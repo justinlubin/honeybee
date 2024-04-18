@@ -19,15 +19,10 @@ pub enum FactKind {
 }
 
 #[derive(Debug, Clone)]
-pub struct FactType {
-    pub params: Vec<(String, ValueType)>,
-}
-
-#[derive(Debug, Clone)]
 pub struct FactSignature {
     pub name: FactName,
     pub kind: FactKind,
-    pub typ: FactType,
+    pub params: Vec<(String, ValueType)>,
 }
 
 #[derive(Debug, Clone)]

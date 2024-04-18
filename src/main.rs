@@ -1,5 +1,5 @@
 mod ir;
-mod parse;
+mod syntax;
 
 fn main() {
     use chumsky::prelude::*;
