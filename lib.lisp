@@ -1,4 +1,8 @@
-(analysis VolcanoPlot (start Int) (end Int))
+(annotation Seq
+  (at Int) (data Str))
+
+(analysis VolcanoPlot
+  (start Int) (end Int))
 
 (computation foo VolcanoPlot
   ((s1 Seq) (s2 Seq))

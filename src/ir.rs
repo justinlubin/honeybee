@@ -6,7 +6,7 @@ pub enum ValueType {
 
 #[derive(Debug, Clone)]
 pub enum Value {
-    Int(u32),
+    Int(i64),
     Str(String),
 }
 
@@ -52,15 +52,38 @@ pub struct ComputationSignature {
     pub precondition: Predicate,
 }
 
+#[derive(Debug, Clone)]
 pub enum Signature {
     Fact(FactSignature),
     Computation(ComputationSignature),
 }
 
-pub type Library = Vec<Signature>;
+#[derive(Debug, Clone)]
+pub struct Library {
+    pub signatures: Vec<Signature>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Program {
     pub annotations: Vec<Fact>,
     pub goal: Fact,
+}
+
+impl Library {
+    pub fn lookup(&self, name: &str) -> Option<&Signature> {
+        self.signatures.iter().find(|s| match s {
+            Signature::Fact(fs) => fs.name == *name,
+            Signature::Computation(cs) => cs.name == *name,
+        })
+    }
+
+    pub fn matching_computations(&self, fact_name: &str) -> Vec<&ComputationSignature> {
+        self.signatures
+            .iter()
+            .filter_map(|s| match s {
+                Signature::Computation(cs) if cs.ret == fact_name => Some(cs),
+                _ => None,
+            })
+            .collect()
+    }
 }
