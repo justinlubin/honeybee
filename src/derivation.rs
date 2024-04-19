@@ -1,19 +1,19 @@
 use crate::ir::*;
 
-type Path<'a> = Vec<&'a str>;
+pub type Path = Vec<String>;
 
-enum Tree<'a> {
-    Axiom(&'a Fact),
-    Goal(&'a Fact),
+pub enum Tree {
+    Axiom(Fact),
+    Goal(Fact),
     Step {
-        label: &'a str,
-        antecedents: Vec<(&'a str, Tree<'a>)>,
-        consequent: &'a Fact,
+        label: String,
+        antecedents: Vec<(String, Tree)>,
+        consequent: Fact,
     },
 }
 
-impl<'a> Tree<'a> {
-    fn replace(&mut self, mut path: Path, subtree: Tree<'a>) {
+impl Tree {
+    fn replace(&mut self, mut path: Path, subtree: Tree) {
         match path.pop() {
             Some(name) => match self {
                 Tree::Step { antecedents, .. } => antecedents
@@ -37,7 +37,7 @@ impl<'a> Tree<'a> {
                 .iter()
                 .flat_map(|(_, subtree)| {
                     subtree.goals().into_iter().map(|(mut path, fact)| {
-                        path.push(label);
+                        path.push(label.clone());
                         (path, fact)
                     })
                 })
