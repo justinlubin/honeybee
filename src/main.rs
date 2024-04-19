@@ -17,7 +17,7 @@ fn main() {
                 Ok(prog) => {
                     log::debug!("Program:\n{}", syntax::unparse::program(&prog));
 
-                    if egglog_adapter::check(&lib, &prog) {
+                    if egglog_adapter::check_program(&lib, &prog) {
                         println!(">>> Possible! <<<")
                     } else {
                         println!(">>> Not possible <<<")

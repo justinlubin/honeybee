@@ -102,19 +102,19 @@ pub fn fact(lib: &Library, f: &Fact) -> String {
     )
 }
 
-pub fn compile(lib: &Library, prog: &Program) -> String {
+pub fn compile(lib: &Library, facts: &Vec<Fact>, query: &Fact) -> String {
     let mut seen_fact_names = std::collections::HashSet::new();
 
     let mut output = vec![];
 
-    for f in prog.annotations.iter().chain(std::iter::once(&prog.goal)) {
+    for f in facts.iter().chain(std::iter::once(query)) {
         if seen_fact_names.contains(&f.name) {
             continue;
         }
         match lib.lookup(&f.name) {
             Some(Signature::Fact(fs)) => {
                 seen_fact_names.insert(&f.name);
-                output.push(fact_signature(&fs));
+                output.push(fact_signature(fs));
             }
             _ => panic!(),
         }
@@ -130,31 +130,35 @@ pub fn compile(lib: &Library, prog: &Program) -> String {
 
     output.push("".to_owned());
 
-    for f in prog.annotations.iter() {
+    for f in facts.iter() {
         output.push(fact(lib, f));
     }
 
     output.push("\n(run-schedule (saturate all))\n".to_owned());
 
-    output.push(format!("(check {})", fact(lib, &prog.goal)));
+    output.push(format!("(check {})", fact(lib, query)));
 
     return output.join("\n");
 }
 
-pub fn check(lib: &Library, prog: &Program) -> bool {
-    let egglog_src = &compile(&lib, &prog);
+pub fn check(lib: &Library, facts: &Vec<Fact>, query: &Fact) -> bool {
+    let egglog_src = compile(lib, facts, query);
 
     log::debug!("Egglog Source:\n{}", egglog_src);
 
     let mut egraph = egglog::EGraph::default();
-    match egraph.parse_and_run_program(egglog_src) {
+    match egraph.parse_and_run_program(&egglog_src) {
         Ok(messages) => {
             assert!(messages.is_empty());
             true
         }
         Err(e) => match e {
             egglog::Error::CheckError(_) => false,
-            _ => panic!(),
+            _ => panic!("{}", e),
         },
     }
+}
+
+pub fn check_program(lib: &Library, prog: &Program) -> bool {
+    check(&lib, &prog.annotations, &prog.goal)
 }
