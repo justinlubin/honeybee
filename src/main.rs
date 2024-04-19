@@ -1,3 +1,4 @@
+mod derivation;
 mod egglog_adapter;
 mod ir;
 mod syntax;
