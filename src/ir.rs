@@ -69,6 +69,38 @@ pub struct Program {
     pub goal: Fact,
 }
 
+#[derive(Debug, Clone)]
+pub enum Expression {
+    Val(Value),
+    Var(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct BasicQuery {
+    pub name: FactName,
+    pub args: Vec<(String, Expression)>,
+}
+
+pub struct Query {
+    pub entries: Vec<BasicQuery>,
+}
+
+impl Fact {
+    pub fn to_query(&self) -> Query {
+        Query {
+            entries: vec![BasicQuery {
+                name: self.name.clone(),
+                args: self
+                    .args
+                    .clone()
+                    .into_iter()
+                    .map(|(p, v)| (p, Expression::Val(v)))
+                    .collect(),
+            }],
+        }
+    }
+}
+
 impl Library {
     pub fn lookup(&self, name: &str) -> Option<&Signature> {
         self.signatures.iter().find(|s| match s {
@@ -85,5 +117,29 @@ impl Library {
                 _ => None,
             })
             .collect()
+    }
+}
+
+impl Query {
+    pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
+        let mut fvs = vec![];
+        for bq in &self.entries {
+            let vts = match lib.lookup(&bq.name) {
+                Some(Signature::Fact(fs)) => &fs.params,
+                _ => panic!(),
+            };
+            for (x, e) in &bq.args {
+                match e {
+                    Expression::Val(_) => continue,
+                    Expression::Var(var) => fvs.push((
+                        var.clone(),
+                        vts.iter()
+                            .find_map(|(y, vt)| if x == y { Some(vt.clone()) } else { None })
+                            .unwrap(),
+                    )),
+                };
+            }
+        }
+        fvs
     }
 }

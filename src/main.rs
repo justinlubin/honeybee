@@ -2,6 +2,7 @@ mod derivation;
 mod egglog_adapter;
 mod ir;
 mod syntax;
+mod synthesis;
 
 use chumsky::Parser;
 
@@ -18,7 +19,7 @@ fn main() {
                 Ok(prog) => {
                     log::debug!("Program:\n{}", syntax::unparse::program(&prog));
 
-                    if egglog_adapter::check_program(&lib, &prog) {
+                    if egglog_adapter::check_possible(&lib, &prog) {
                         println!(">>> Possible! <<<")
                     } else {
                         println!(">>> Not possible <<<")

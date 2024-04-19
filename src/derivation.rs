@@ -18,7 +18,7 @@ impl<'a> Tree<'a> {
             Some(name) => match self {
                 Tree::Step { antecedents, .. } => antecedents
                     .iter_mut()
-                    .find_map(|(n, t)| if (name == *n) { Some(t) } else { None })
+                    .find_map(|(n, t)| if name == *n { Some(t) } else { None })
                     .unwrap()
                     .replace(path, subtree),
                 _ => panic!(),
