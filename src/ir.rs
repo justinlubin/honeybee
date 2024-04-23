@@ -36,10 +36,34 @@ pub enum PredicateAtom {
     Select { selector: String, arg: String },
 }
 
+impl PredicateAtom {
+    fn prefix_vars(&self, prefix: &str) -> PredicateAtom {
+        match self {
+            PredicateAtom::Select { selector, arg } => PredicateAtom::Select {
+                selector: selector.clone(),
+                arg: format!("{}{}", prefix, arg),
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum PredicateRelation {
     Eq(PredicateAtom, PredicateAtom),
     Lt(PredicateAtom, PredicateAtom),
+}
+
+impl PredicateRelation {
+    pub fn prefix_vars(&self, prefix: &str) -> PredicateRelation {
+        match self {
+            PredicateRelation::Eq(lhs, rhs) => {
+                PredicateRelation::Eq(lhs.prefix_vars(prefix), rhs.prefix_vars(prefix))
+            }
+            PredicateRelation::Lt(lhs, rhs) => {
+                PredicateRelation::Lt(lhs.prefix_vars(prefix), rhs.prefix_vars(prefix))
+            }
+        }
+    }
 }
 
 pub type Predicate = Vec<PredicateRelation>;
@@ -52,15 +76,75 @@ pub struct ComputationSignature {
     pub precondition: Predicate,
 }
 
-#[derive(Debug, Clone)]
-pub enum Signature {
-    Fact(FactSignature),
-    Computation(ComputationSignature),
+impl ComputationSignature {
+    fn cut(
+        &self,
+        lib: &Library,
+        selector: &str,
+        lemma: &ComputationSignature,
+    ) -> ComputationSignature {
+        let mut selector_fact_name = None;
+        let mut new_params = vec![];
+        for (n, f) in &self.params {
+            if n == selector {
+                selector_fact_name = Some(f);
+            } else {
+                new_params.push((format!("self/{}", n), f.clone()))
+            }
+        }
+        let selector_fact_name = selector_fact_name.unwrap();
+
+        for (n, f) in &lemma.params {
+            new_params.push((format!("lemma/{}", n), f.clone()))
+        }
+
+        ComputationSignature {
+            name: format!("{}+{}", self.name, lemma.name),
+            params: self
+                .params
+                .iter()
+                .filter_map(|(n, t)| {
+                    if n == selector {
+                        None
+                    } else {
+                        Some((n.clone(), t.clone()))
+                    }
+                })
+                .chain(lemma.params.iter().cloned())
+                .collect(),
+            precondition: self
+                .precondition
+                .iter()
+                .map(|pr| pr.prefix_vars("self/"))
+                .chain(lemma.precondition.iter().map(|pr| pr.prefix_vars("lemma/")))
+                .chain(
+                    lib.fact_signature(selector_fact_name)
+                        .unwrap()
+                        .params
+                        .iter()
+                        .map(|(n, _)| {
+                            PredicateRelation::Eq(
+                                PredicateAtom::Select {
+                                    selector: n.clone(),
+                                    arg: format!("self/{}", selector),
+                                },
+                                PredicateAtom::Select {
+                                    selector: n.clone(),
+                                    arg: format!("lemma/{}", selector),
+                                },
+                            )
+                        }),
+                )
+                .collect(),
+            ret: self.ret.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Library {
-    pub signatures: Vec<Signature>,
+    pub fact_signatures: Vec<FactSignature>,
+    pub computation_signatures: Vec<ComputationSignature>,
 }
 
 #[derive(Debug, Clone)]
@@ -102,20 +186,20 @@ impl Fact {
 }
 
 impl Library {
-    pub fn lookup(&self, name: &str) -> Option<&Signature> {
-        self.signatures.iter().find(|s| match s {
-            Signature::Fact(fs) => fs.name == *name,
-            Signature::Computation(cs) => cs.name == *name,
-        })
+    pub fn fact_signature(&self, fact_name: &str) -> Option<&FactSignature> {
+        self.fact_signatures.iter().find(|fs| fs.name == *fact_name)
     }
 
-    pub fn matching_computations(&self, fact_name: &str) -> Vec<&ComputationSignature> {
-        self.signatures
+    pub fn computation_signature(&self, computation_name: &str) -> Option<&ComputationSignature> {
+        self.computation_signatures
             .iter()
-            .filter_map(|s| match s {
-                Signature::Computation(cs) if cs.ret == fact_name => Some(cs),
-                _ => None,
-            })
+            .find(|cs| cs.name == *computation_name)
+    }
+
+    pub fn matching_computation_signatures(&self, fact_name: &str) -> Vec<&ComputationSignature> {
+        self.computation_signatures
+            .iter()
+            .filter(|cs| cs.ret == fact_name)
             .collect()
     }
 }
@@ -124,10 +208,7 @@ impl Query {
     pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
         let mut fvs = vec![];
         for bq in &self.entries {
-            let vts = match lib.lookup(&bq.name) {
-                Some(Signature::Fact(fs)) => &fs.params,
-                _ => panic!(),
-            };
+            let vts = lib.fact_signature(&bq.name).unwrap().params;
             for (x, e) in &bq.args {
                 match e {
                     Expression::Val(_) => continue,

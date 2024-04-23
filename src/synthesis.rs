@@ -1,12 +1,22 @@
 use crate::derivation;
 
+use crate::ir::*;
+
 pub struct Synthesizer {
     tree: derivation::Tree,
 }
 
-// Sends out a tree, gets back int representing choice - needs to maintain possible choices in
-// state?
+pub enum Msg {
+    Success,
+    InvalidBreadcrumbs,
+}
 
 impl Synthesizer {
+    fn new(top_level_goal: Fact) -> Synthesizer {
+        Synthesizer {
+            tree: derivation::Tree::Goal(top_level_goal),
+        }
+    }
+
     fn step(&self) {}
 }
