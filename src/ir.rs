@@ -10,6 +10,8 @@ pub enum Value {
     Str(String),
 }
 
+pub type Assignment = std::collections::HashMap<String, Value>;
+
 pub type FactName = String;
 
 #[derive(Debug, Clone)]
@@ -56,12 +58,14 @@ pub enum PredicateRelation {
 impl PredicateRelation {
     pub fn prefix_vars(&self, prefix: &str) -> PredicateRelation {
         match self {
-            PredicateRelation::Eq(lhs, rhs) => {
-                PredicateRelation::Eq(lhs.prefix_vars(prefix), rhs.prefix_vars(prefix))
-            }
-            PredicateRelation::Lt(lhs, rhs) => {
-                PredicateRelation::Lt(lhs.prefix_vars(prefix), rhs.prefix_vars(prefix))
-            }
+            PredicateRelation::Eq(lhs, rhs) => PredicateRelation::Eq(
+                lhs.prefix_vars(prefix),
+                rhs.prefix_vars(prefix),
+            ),
+            PredicateRelation::Lt(lhs, rhs) => PredicateRelation::Lt(
+                lhs.prefix_vars(prefix),
+                rhs.prefix_vars(prefix),
+            ),
         }
     }
 }
@@ -116,7 +120,12 @@ impl ComputationSignature {
                 .precondition
                 .iter()
                 .map(|pr| pr.prefix_vars("self/"))
-                .chain(lemma.precondition.iter().map(|pr| pr.prefix_vars("lemma/")))
+                .chain(
+                    lemma
+                        .precondition
+                        .iter()
+                        .map(|pr| pr.prefix_vars("lemma/")),
+                )
                 .chain(
                     lib.fact_signature(selector_fact_name)
                         .unwrap()
@@ -170,17 +179,21 @@ pub struct Query {
 }
 
 impl Fact {
+    pub fn to_basic_query(&self) -> BasicQuery {
+        BasicQuery {
+            name: self.name.clone(),
+            args: self
+                .args
+                .clone()
+                .into_iter()
+                .map(|(p, v)| (p, Expression::Val(v)))
+                .collect(),
+        }
+    }
+
     pub fn to_query(&self) -> Query {
         Query {
-            entries: vec![BasicQuery {
-                name: self.name.clone(),
-                args: self
-                    .args
-                    .clone()
-                    .into_iter()
-                    .map(|(p, v)| (p, Expression::Val(v)))
-                    .collect(),
-            }],
+            entries: vec![self.to_basic_query()],
         }
     }
 }
@@ -190,13 +203,19 @@ impl Library {
         self.fact_signatures.iter().find(|fs| fs.name == *fact_name)
     }
 
-    pub fn computation_signature(&self, computation_name: &str) -> Option<&ComputationSignature> {
+    pub fn computation_signature(
+        &self,
+        computation_name: &str,
+    ) -> Option<&ComputationSignature> {
         self.computation_signatures
             .iter()
             .find(|cs| cs.name == *computation_name)
     }
 
-    pub fn matching_computation_signatures(&self, fact_name: &str) -> Vec<&ComputationSignature> {
+    pub fn matching_computation_signatures(
+        &self,
+        fact_name: &str,
+    ) -> Vec<&ComputationSignature> {
         self.computation_signatures
             .iter()
             .filter(|cs| cs.ret == fact_name)
@@ -204,23 +223,38 @@ impl Library {
     }
 }
 
-impl Query {
+impl BasicQuery {
     pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
         let mut fvs = vec![];
-        for bq in &self.entries {
-            let vts = lib.fact_signature(&bq.name).unwrap().params;
-            for (x, e) in &bq.args {
-                match e {
-                    Expression::Val(_) => continue,
-                    Expression::Var(var) => fvs.push((
+        let vts = &lib.fact_signature(&self.name).unwrap().params;
+        for (x, e) in &self.args {
+            match e {
+                Expression::Val(_) => continue,
+                Expression::Var(var) => {
+                    fvs.push((
                         var.clone(),
                         vts.iter()
-                            .find_map(|(y, vt)| if x == y { Some(vt.clone()) } else { None })
+                            .find_map(|(y, vt)| {
+                                if x == y {
+                                    Some(vt.clone())
+                                } else {
+                                    None
+                                }
+                            })
                             .unwrap(),
-                    )),
-                };
-            }
+                    ))
+                }
+            };
         }
         fvs
+    }
+}
+
+impl Query {
+    pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
+        self.entries
+            .iter()
+            .flat_map(|bq| bq.free_variables(lib))
+            .collect()
     }
 }

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::ir::*;
 
 mod compile {
@@ -26,7 +24,9 @@ mod compile {
 
     pub fn predicate_atom(pa: &PredicateAtom) -> String {
         match pa {
-            PredicateAtom::Select { selector, arg } => format!("{}_{}", arg, selector),
+            PredicateAtom::Select { selector, arg } => {
+                format!("{}_{}", arg, selector)
+            }
         }
     }
 
@@ -41,7 +41,10 @@ mod compile {
         }
     }
 
-    pub fn computation_signature(lib: &Library, cs: &ComputationSignature) -> String {
+    pub fn computation_signature(
+        lib: &Library,
+        cs: &ComputationSignature,
+    ) -> String {
         format!(
             "; {}\n(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
             cs.name,
@@ -50,15 +53,13 @@ mod compile {
                 .map(|(p, fact_name)| format!(
                     "({} {})",
                     fact_name,
-                    match lib.lookup(fact_name) {
-                        Some(Signature::Fact(fs)) => fs
-                            .params
-                            .iter()
-                            .map(|(pp, _)| format!("{}_{}", p, pp))
-                            .collect::<Vec<String>>()
-                            .join(" "),
-                        _ => panic!(),
-                    }
+                    lib.fact_signature(fact_name)
+                        .unwrap()
+                        .params
+                        .iter()
+                        .map(|(pp, _)| format!("{}_{}", p, pp))
+                        .collect::<Vec<String>>()
+                        .join(" "),
                 ))
                 .collect::<Vec<String>>()
                 .join("\n   "),
@@ -68,15 +69,13 @@ mod compile {
                 .collect::<Vec<String>>()
                 .join("\n   "),
             cs.ret,
-            match lib.lookup(&cs.ret) {
-                Some(Signature::Fact(fs)) => fs
-                    .params
-                    .iter()
-                    .map(|(p, _)| format!("ret_{}", p))
-                    .collect::<Vec<String>>()
-                    .join(" "),
-                _ => panic!(),
-            }
+            lib.fact_signature(&cs.ret)
+                .unwrap()
+                .params
+                .iter()
+                .map(|(p, _)| format!("ret_{}", p))
+                .collect::<Vec<String>>()
+                .join(" "),
         )
     }
 
@@ -91,19 +90,21 @@ mod compile {
         format!(
             "({} {})",
             f.name,
-            match lib.lookup(&f.name) {
-                Some(Signature::Fact(fs)) => fs
-                    .params
+            lib.fact_signature(&f.name)
+                .unwrap()
+                .params
+                .iter()
+                .map(|(p, _)| f
+                    .args
                     .iter()
-                    .map(|(p, _)| f
-                        .args
-                        .iter()
-                        .find_map(|(a, v)| if a == p { Some(value(v)) } else { None })
-                        .unwrap())
-                    .collect::<Vec<String>>()
-                    .join(" "),
-                _ => panic!(),
-            }
+                    .find_map(|(a, v)| if a == p {
+                        Some(value(v))
+                    } else {
+                        None
+                    })
+                    .unwrap())
+                .collect::<Vec<String>>()
+                .join(" "),
         )
     }
 
@@ -118,19 +119,21 @@ mod compile {
         format!(
             "({} {})",
             bq.name,
-            match lib.lookup(&bq.name) {
-                Some(Signature::Fact(fs)) => fs
-                    .params
+            lib.fact_signature(&bq.name)
+                .unwrap()
+                .params
+                .iter()
+                .map(|(p, _)| bq
+                    .args
                     .iter()
-                    .map(|(p, _)| bq
-                        .args
-                        .iter()
-                        .find_map(|(a, v)| if a == p { Some(expression(v)) } else { None })
-                        .unwrap())
-                    .collect::<Vec<String>>()
-                    .join(" "),
-                _ => panic!(),
-            }
+                    .find_map(|(a, v)| if a == p {
+                        Some(expression(v))
+                    } else {
+                        None
+                    })
+                    .unwrap())
+                .collect::<Vec<String>>()
+                .join(" "),
         )
     }
 
@@ -168,19 +171,16 @@ pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
         if seen_fact_names.contains(fact_name) {
             continue;
         }
-        match lib.lookup(fact_name) {
-            Some(Signature::Fact(fs)) => {
-                seen_fact_names.insert(fact_name);
-                output.push(compile::fact_signature(fs));
-            }
-            _ => panic!(),
-        }
+        seen_fact_names.insert(fact_name);
+        output.push(compile::fact_signature(
+            lib.fact_signature(fact_name).unwrap(),
+        ))
     }
 
     output.push("\n(ruleset all)\n".to_owned());
 
     for fact_name in seen_fact_names {
-        for cs in lib.matching_computations(fact_name) {
+        for cs in lib.matching_computation_signatures(fact_name) {
             output.push(compile::computation_signature(lib, cs))
         }
     }
@@ -214,16 +214,18 @@ mod parse {
         text::int(10).map(|s: String| Value::Int(s.parse().unwrap()))
     }
 
-    fn entry(fvs: Vec<String>) -> impl P<HashMap<String, Value>> {
+    fn entry(fvs: Vec<String>) -> impl P<Assignment> {
         just("*GOAL")
             .ignored()
             .padded()
             .then(value().padded().repeated())
             .delimited_by(just('('), just(')'))
-            .map(move |(_, vs)| HashMap::from_iter(fvs.clone().into_iter().zip(vs)))
+            .map(move |(_, vs)| {
+                HashMap::from_iter(fvs.clone().into_iter().zip(vs))
+            })
     }
 
-    pub fn output(fvs: Vec<String>) -> impl P<Vec<HashMap<String, Value>>> {
+    pub fn output(fvs: Vec<String>) -> impl P<Vec<Assignment>> {
         entry(fvs)
             .padded()
             .repeated()
@@ -234,7 +236,7 @@ mod parse {
 
 use chumsky::Parser;
 
-pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<HashMap<String, Value>> {
+pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
     let egglog_src = compile(lib, facts, q);
 
     log::debug!("Egglog Source:\n{}", egglog_src);
@@ -245,10 +247,11 @@ pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<HashMap<String,
             if messages.len() != 1 {
                 panic!("{:?}", messages)
             }
-            let assignments =
-                parse::output(q.free_variables(lib).into_iter().map(|(x, _)| x).collect())
-                    .parse(messages[0].clone())
-                    .unwrap();
+            let assignments = parse::output(
+                q.free_variables(lib).into_iter().map(|(x, _)| x).collect(),
+            )
+            .parse(messages[0].clone())
+            .unwrap();
             log::debug!("Egglog Assignments:\n{:?}", assignments);
             assignments
         }

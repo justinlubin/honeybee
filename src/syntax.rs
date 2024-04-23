@@ -155,14 +155,31 @@ pub mod parse {
     }
 
     pub fn library() -> impl P<Library> {
+        enum Sig {
+            F(FactSignature),
+            C(ComputationSignature),
+        }
         choice((
-            fact_signature().map(Signature::Fact),
-            computation_signature().map(Signature::Computation),
+            fact_signature().map(Sig::F),
+            computation_signature().map(Sig::C),
         ))
         .padded()
         .repeated()
         .padded()
-        .map(|signatures| Library { signatures })
+        .map(|sigs| {
+            let mut fact_signatures = vec![];
+            let mut computation_signatures = vec![];
+            for sig in sigs {
+                match sig {
+                    Sig::F(fs) => fact_signatures.push(fs),
+                    Sig::C(cs) => computation_signatures.push(cs),
+                };
+            }
+            Library {
+                fact_signatures,
+                computation_signatures,
+            }
+        })
     }
 
     pub fn program() -> impl P<Program> {
@@ -274,17 +291,11 @@ pub mod unparse {
         )
     }
 
-    pub fn signature(sig: &Signature) -> String {
-        match sig {
-            Signature::Fact(fs) => fact_signature(fs),
-            Signature::Computation(cs) => computation_signature(cs),
-        }
-    }
-
     pub fn library(lib: &Library) -> String {
-        lib.signatures
+        lib.fact_signatures
             .iter()
-            .map(signature)
+            .map(fact_signature)
+            .chain(lib.computation_signatures.iter().map(computation_signature))
             .collect::<Vec<String>>()
             .join("\n\n")
     }
