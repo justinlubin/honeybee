@@ -8,7 +8,9 @@ pub mod parse {
 
     pub fn ident_rest() -> impl P<String> {
         filter(|c| {
-            char::is_ascii_lowercase(c) || char::is_ascii_uppercase(c) || char::is_ascii_digit(c)
+            char::is_ascii_lowercase(c)
+                || char::is_ascii_uppercase(c)
+                || char::is_ascii_digit(c)
         })
         .repeated()
         .collect()
@@ -144,14 +146,14 @@ pub mod parse {
             .then(predicate())
             .padded()
             .delimited_by(just('('), just(')'))
-            .map(
-                |((((_, name), ret), params), precondition)| ComputationSignature {
+            .map(|((((_, name), ret), params), precondition)| {
+                ComputationSignature {
                     name,
                     params,
                     ret,
                     precondition,
-                },
-            )
+                }
+            })
     }
 
     pub fn library() -> impl P<Library> {
@@ -252,7 +254,10 @@ pub mod unparse {
 
     pub fn predicate_atom(pa: &PredicateAtom) -> String {
         match pa {
-            PredicateAtom::Select { selector, arg } => format!("(.{} {})", selector, arg),
+            PredicateAtom::Select { selector, arg } => {
+                format!("(.{} {})", selector, arg)
+            }
+            PredicateAtom::Const(v) => value(v),
         }
     }
 

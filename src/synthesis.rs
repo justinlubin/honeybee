@@ -3,56 +3,58 @@ use crate::egglog_adapter;
 
 use crate::ir::*;
 
+#[derive(Debug, Clone)]
 pub struct Synthesizer {
-    tree: derivation::Tree,
+    pub tree: derivation::Tree,
 }
 
-pub enum Msg {
-    Success,
-    InvalidBreadcrumbs,
-}
+// pub enum Msg {
+//     Success,
+//     InvalidBreadcrumbs,
+// }
 
+#[derive(Debug, Clone)]
 pub struct ComputationOption {
     signature: ComputationSignature,
     assignment_options: Vec<Assignment>,
 }
 
+#[derive(Debug, Clone)]
 pub struct GoalOption {
     path: Vec<String>,
-    goal: BasicQuery,
     computation_options: Vec<ComputationOption>,
 }
 
 impl Synthesizer {
-    fn new(top_level_goal: Fact) -> Synthesizer {
+    pub fn new(top_level_goal: &Fact) -> Synthesizer {
         Synthesizer {
-            tree: derivation::Tree::Goal(top_level_goal.to_basic_query()),
+            tree: derivation::Tree::new(top_level_goal),
         }
     }
 
-    fn options(&self, lib: &Library, prog: &Program) -> Vec<GoalOption> {
+    pub fn options(&self, lib: &Library, prog: &Program) -> Vec<GoalOption> {
         self.tree
-            .immediately_partial_steps()
+            .queries(lib)
             .into_iter()
             .flat_map(|(path, query)| {
                 query
-                    .entries
+                    .computation_signature
+                    .params
                     .iter()
-                    .map(|(selector, goal)| GoalOption {
+                    .map(|(cut_param, goal_fact_name)| GoalOption {
                         computation_options: lib
-                            .matching_computation_signatures(&goal.name)
+                            .matching_computation_signatures(goal_fact_name)
                             .into_iter()
                             .map(|lemma| ComputationOption {
                                 assignment_options: egglog_adapter::query(
                                     lib,
                                     &prog.annotations,
-                                    &query.cut(lib, &selector, lemma),
+                                    &query.cut(lib, cut_param, lemma),
                                 ),
                                 signature: lemma.clone(),
                             })
                             .collect(),
                         path: path.clone(),
-                        goal: goal.clone(),
                     })
                     .collect::<Vec<_>>()
             })

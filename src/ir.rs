@@ -36,6 +36,7 @@ pub struct Fact {
 #[derive(Debug, Clone)]
 pub enum PredicateAtom {
     Select { selector: String, arg: String },
+    Const(Value),
 }
 
 impl PredicateAtom {
@@ -45,7 +46,40 @@ impl PredicateAtom {
                 selector: selector.clone(),
                 arg: format!("{}{}", prefix, arg),
             },
+            PredicateAtom::Const(v) => PredicateAtom::Const(v.clone()),
         }
+    }
+
+    pub fn substitute(
+        &self,
+        selector: &str,
+        arg: &str,
+        rhs: &Value,
+    ) -> PredicateAtom {
+        match self {
+            PredicateAtom::Select {
+                selector: s,
+                arg: a,
+            } => {
+                if s == selector && a == arg {
+                    PredicateAtom::Const(rhs.clone())
+                } else {
+                    self.clone()
+                }
+            }
+            PredicateAtom::Const(v) => PredicateAtom::Const(v.clone()),
+        }
+    }
+
+    pub fn substitute_all(
+        &self,
+        subs: Vec<(&str, &str, &Value)>,
+    ) -> PredicateAtom {
+        let mut ret = self.clone();
+        for (selector, arg, rhs) in subs {
+            ret = ret.substitute(selector, arg, rhs);
+        }
+        ret
     }
 }
 
@@ -68,6 +102,35 @@ impl PredicateRelation {
             ),
         }
     }
+
+    pub fn substitute(
+        &self,
+        selector: &str,
+        arg: &str,
+        rhs: &Value,
+    ) -> PredicateRelation {
+        match self {
+            PredicateRelation::Eq(left, right) => PredicateRelation::Eq(
+                left.substitute(selector, arg, rhs),
+                right.substitute(selector, arg, rhs),
+            ),
+            PredicateRelation::Lt(left, right) => PredicateRelation::Lt(
+                left.substitute(selector, arg, rhs),
+                right.substitute(selector, arg, rhs),
+            ),
+        }
+    }
+
+    pub fn substitute_all(
+        &self,
+        subs: Vec<(&str, &str, &Value)>,
+    ) -> PredicateRelation {
+        let mut ret = self.clone();
+        for (selector, arg, rhs) in subs {
+            ret = ret.substitute(selector, arg, rhs);
+        }
+        ret
+    }
 }
 
 pub type Predicate = Vec<PredicateRelation>;
@@ -79,8 +142,6 @@ pub struct ComputationSignature {
     pub ret: FactName,
     pub precondition: Predicate,
 }
-
-impl ComputationSignature {}
 
 #[derive(Debug, Clone)]
 pub struct Library {
@@ -95,39 +156,105 @@ pub struct Program {
 }
 
 #[derive(Debug, Clone)]
-pub enum Expression {
-    Val(Value),
-    Var(String),
-}
-
-#[derive(Debug, Clone)]
-pub struct BasicQuery {
-    pub name: FactName,
-    pub args: Vec<(String, Expression)>,
-}
-
 pub struct Query {
-    pub entries: Vec<(String, BasicQuery)>,
-    pub side_condition: Predicate,
+    pub fact_signature: FactSignature,
+    pub computation_signature: ComputationSignature,
 }
 
-impl Fact {
-    pub fn to_basic_query(&self) -> BasicQuery {
-        BasicQuery {
-            name: self.name.clone(),
-            args: self
-                .args
-                .clone()
-                .into_iter()
-                .map(|(p, v)| (p, Expression::Val(v)))
-                .collect(),
+// RHS of datalog rule, where each fact is labeled with a string tag
+// #[derive(Debug, Clone)]
+// pub struct Query {
+//     pub entries: Vec<(String, FactName)>,
+//     pub side_condition: Predicate,
+// }
+
+impl Query {
+    pub const RET: &'static str = "ret";
+
+    const GOAL_FACT_NAME: &'static str = "&GOAL";
+    const GOAL_COMPUTATION_NAME: &'static str = "&goal";
+
+    pub fn from_fact(fact: &Fact) -> Query {
+        Query {
+            fact_signature: FactSignature {
+                name: Query::GOAL_FACT_NAME.to_owned(),
+                kind: FactKind::Analysis,
+                params: vec![],
+            },
+            computation_signature: ComputationSignature {
+                name: Query::GOAL_COMPUTATION_NAME.to_owned(),
+                params: vec![("q".to_owned(), fact.name.clone())],
+                ret: Query::GOAL_FACT_NAME.to_owned(),
+                precondition: fact
+                    .args
+                    .iter()
+                    .map(|(n, v)| {
+                        PredicateRelation::Eq(
+                            PredicateAtom::Select {
+                                selector: n.clone(),
+                                arg: "q".to_owned(),
+                            },
+                            PredicateAtom::Const(v.clone()),
+                        )
+                    })
+                    .collect(),
+            },
         }
     }
 
-    pub fn to_query(&self) -> Query {
+    pub fn free(
+        lib: &Library,
+        params: Vec<(String, FactName)>,
+        precondition: Predicate,
+    ) -> Query {
+        let mut fs_params = vec![];
+        let mut cs_precondition = precondition.clone();
+        for (n, f) in &params {
+            for (nn, vt) in &lib.fact_signature(f).unwrap().params {
+                let fv = format!("fv%{}*{}", n, nn);
+                fs_params.push((fv.clone(), vt.clone()));
+                cs_precondition.push(PredicateRelation::Eq(
+                    PredicateAtom::Select {
+                        selector: fv,
+                        arg: Query::RET.to_owned(),
+                    },
+                    PredicateAtom::Select {
+                        selector: nn.clone(),
+                        arg: n.clone(),
+                    },
+                ));
+            }
+        }
         Query {
-            entries: vec![("q".to_owned(), self.to_basic_query())],
-            side_condition: vec![],
+            fact_signature: FactSignature {
+                name: Query::GOAL_FACT_NAME.to_owned(),
+                kind: FactKind::Analysis,
+                params: fs_params,
+            },
+            computation_signature: ComputationSignature {
+                name: Query::GOAL_COMPUTATION_NAME.to_owned(),
+                params,
+                ret: Query::GOAL_FACT_NAME.to_owned(),
+                precondition: cs_precondition,
+            },
+        }
+    }
+
+    pub fn closed(&self) -> bool {
+        self.fact_signature.params.is_empty()
+    }
+
+    pub fn cut(
+        &self,
+        lib: &Library,
+        cut_param: &str,
+        lemma: &ComputationSignature,
+    ) -> Query {
+        Query {
+            fact_signature: self.fact_signature.clone(),
+            computation_signature: self
+                .computation_signature
+                .cut(lib, cut_param, lemma),
         }
     }
 }
@@ -155,101 +282,45 @@ impl Library {
             .filter(|cs| cs.ret == fact_name)
             .collect()
     }
-}
 
-impl BasicQuery {
-    pub fn free(lib: &Library, fact_name: &str) -> BasicQuery {
-        BasicQuery {
-            name: fact_name.to_owned(),
-            args: lib
-                .fact_signature(fact_name)
-                .unwrap()
-                .params
-                .iter()
-                .map(|(n, _)| {
-                    (n.clone(), Expression::Var(format!("{}{}", n, "_fv")))
-                })
-                .collect(),
+    pub fn singleton(fact_signature: &FactSignature) -> Library {
+        Library {
+            fact_signatures: vec![fact_signature.clone()],
+            computation_signatures: vec![],
         }
-    }
-
-    pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
-        let mut fvs = vec![];
-        let vts = &lib.fact_signature(&self.name).unwrap().params;
-        for (x, e) in &self.args {
-            match e {
-                Expression::Val(_) => continue,
-                Expression::Var(var) => {
-                    fvs.push((
-                        var.clone(),
-                        vts.iter()
-                            .find_map(|(y, vt)| {
-                                if x == y {
-                                    Some(vt.clone())
-                                } else {
-                                    None
-                                }
-                            })
-                            .unwrap(),
-                    ))
-                }
-            };
-        }
-        fvs
-    }
-
-    pub fn prefix_vars(mut self, prefix: &str) -> BasicQuery {
-        self.args.iter_mut().for_each(|(_, e)| match e {
-            Expression::Val(_) => (),
-            Expression::Var(var) => {
-                *e = Expression::Var(format!("{}{}", prefix, var))
-            }
-        });
-        self
     }
 }
 
-impl Query {
-    pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
-        self.entries
-            .iter()
-            .flat_map(|(_, bq)| bq.free_variables(lib))
-            .collect()
-    }
-
+impl ComputationSignature {
     pub fn cut(
         &self,
         lib: &Library,
-        selector: &str,
+        cut_param: &str,
         lemma: &ComputationSignature,
-    ) -> Query {
-        let mut selector_fact_name = None;
-        let mut entries = vec![];
-        for (n, bq) in &self.entries {
-            if n == selector {
-                selector_fact_name = Some(&bq.name);
+    ) -> ComputationSignature {
+        let mut cut_param_fact_name = None;
+        let mut params = vec![];
+        for (n, f) in &self.params {
+            if n == cut_param {
+                cut_param_fact_name = Some(f);
             } else {
-                entries.push((
-                    format!("self/{}", n),
-                    bq.clone().prefix_vars("self/"),
-                ))
+                params.push((n.clone(), f.clone()));
             }
         }
-        let selector_fact_name = selector_fact_name.unwrap();
+        let cut_param_fact_name = cut_param_fact_name.unwrap();
 
         for (n, f) in &lemma.params {
-            entries.push((
-                format!("lemma/{}", n),
-                BasicQuery::free(lib, f).prefix_vars("lemma/"),
-            ))
+            params.push((format!("lemma/{}", n), f.clone()));
         }
 
-        Query {
-            entries,
-            side_condition: self
-                .side_condition
+        ComputationSignature {
+            name: format!("&cut_{}_{}", self.name, lemma.name),
+            params,
+            ret: self.ret.clone(),
+            precondition: self
+                .precondition
                 .iter()
-                .map(|pr| pr.prefix_vars("self/"))
+                .cloned()
                 .chain(
                     lemma
                         .precondition
@@ -257,7 +328,7 @@ impl Query {
                         .map(|pr| pr.prefix_vars("lemma/")),
                 )
                 .chain(
-                    lib.fact_signature(selector_fact_name)
+                    lib.fact_signature(&cut_param_fact_name)
                         .unwrap()
                         .params
                         .iter()
@@ -265,11 +336,11 @@ impl Query {
                             PredicateRelation::Eq(
                                 PredicateAtom::Select {
                                     selector: n.clone(),
-                                    arg: format!("self/{}", selector),
+                                    arg: cut_param.to_owned(),
                                 },
                                 PredicateAtom::Select {
                                     selector: n.clone(),
-                                    arg: format!("lemma/{}", selector),
+                                    arg: "lemma/ret".to_owned(),
                                 },
                             )
                         }),

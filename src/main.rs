@@ -9,21 +9,32 @@ use chumsky::Parser;
 fn main() {
     env_logger::init();
 
-    let lib_src = std::fs::read_to_string(std::env::args().nth(1).unwrap()).unwrap();
-    let prog_src = std::fs::read_to_string(std::env::args().nth(2).unwrap()).unwrap();
+    let lib_src =
+        std::fs::read_to_string(std::env::args().nth(1).unwrap()).unwrap();
+    let prog_src =
+        std::fs::read_to_string(std::env::args().nth(2).unwrap()).unwrap();
 
     match syntax::parse::library().parse(lib_src) {
         Ok(lib) => {
             log::debug!("Library:\n{}", syntax::unparse::library(&lib));
             match syntax::parse::program().parse(prog_src) {
                 Ok(prog) => {
-                    log::debug!("Program:\n{}", syntax::unparse::program(&prog));
+                    log::debug!(
+                        "Program:\n{}",
+                        syntax::unparse::program(&prog)
+                    );
 
                     if egglog_adapter::check_possible(&lib, &prog) {
                         println!(">>> Possible! <<<")
                     } else {
                         println!(">>> Not possible <<<")
                     }
+
+                    let s = synthesis::Synthesizer::new(&prog.goal);
+
+                    println!("{:?}\n", s.tree);
+                    println!("{:?}\n", s.tree.queries(&lib));
+                    println!("{:?}\n", s.options(&lib, &prog));
                 }
                 Err(errs) => errs
                     .iter()

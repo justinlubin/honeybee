@@ -3,7 +3,7 @@ use crate::ir::*;
 #[derive(Debug, Clone)]
 pub enum Tree {
     Axiom(Fact),
-    Goal(BasicQuery),
+    Goal(FactName),
     // Same as ComputationSignature, but:
     // (i) facts are instantiated
     // (ii) recursively references Tree
@@ -16,6 +16,31 @@ pub enum Tree {
 }
 
 impl Tree {
+    fn from_query(q: &Query) -> Option<Tree> {
+        if !q.closed() {
+            return None;
+        }
+
+        Some(Tree::Step {
+            label: q.computation_signature.name.clone(),
+            antecedents: q
+                .computation_signature
+                .params
+                .iter()
+                .map(|(n, f)| (n.clone(), Tree::Goal(f.clone())))
+                .collect(),
+            consequent: Fact {
+                name: q.fact_signature.name.clone(),
+                args: vec![],
+            },
+            side_condition: q.computation_signature.precondition.clone(),
+        })
+    }
+
+    pub fn new(top_level_goal: &Fact) -> Tree {
+        Tree::from_query(&Query::from_fact(top_level_goal)).unwrap()
+    }
+
     pub fn replace(&self, path: &[&str], subtree: &Tree) -> Option<Tree> {
         match path.last() {
             Some(name) => match self {
@@ -57,43 +82,57 @@ impl Tree {
         }
     }
 
-    pub fn immediately_partial_steps(&self) -> Vec<(Vec<String>, Query)> {
+    pub fn queries(&self, lib: &Library) -> Vec<(Vec<String>, Query)> {
         match self {
             Tree::Step {
                 antecedents,
                 side_condition,
+                consequent,
                 ..
             } => {
-                let siblings: Vec<_> = antecedents
-                    .iter()
-                    .filter_map(|(n, t)| match t {
-                        Tree::Goal(q) => Some((n.clone(), q.clone())),
-                        _ => None,
-                    })
-                    .collect();
+                let mut goal_siblings = vec![];
+                let mut ret = vec![];
 
-                let mine = if siblings.is_empty() {
-                    None
-                } else {
-                    Some((
+                for (n, t) in antecedents {
+                    match t {
+                        Tree::Axiom(..) => (),
+                        Tree::Goal(q) => {
+                            goal_siblings.push((n.clone(), q.clone()))
+                        }
+                        Tree::Step { .. } => {
+                            for (mut path, q) in t.queries(lib) {
+                                path.push(n.clone());
+                                ret.push((path, q))
+                            }
+                        }
+                    }
+                }
+
+                if !goal_siblings.is_empty() {
+                    ret.push((
                         vec![],
-                        Query {
-                            entries: siblings,
-                            side_condition: side_condition.clone(),
-                        },
+                        Query::free(
+                            lib,
+                            goal_siblings,
+                            side_condition
+                                .iter()
+                                .map(|pr| {
+                                    pr.substitute_all(
+                                        consequent
+                                            .args
+                                            .iter()
+                                            .map(|(n, v)| {
+                                                (n.as_str(), Query::RET, v)
+                                            })
+                                            .collect(),
+                                    )
+                                })
+                                .collect(),
+                        ),
                     ))
                 };
 
-                mine.into_iter()
-                    .chain(antecedents.iter().flat_map(|(n, t)| {
-                        t.immediately_partial_steps().into_iter().map(
-                            |(mut path, q)| {
-                                path.push(n.clone());
-                                (path, q)
-                            },
-                        )
-                    }))
-                    .collect::<Vec<(Vec<String>, Query)>>()
+                ret
             }
             _ => vec![],
         }

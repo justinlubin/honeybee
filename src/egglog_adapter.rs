@@ -25,8 +25,9 @@ mod compile {
     pub fn predicate_atom(pa: &PredicateAtom) -> String {
         match pa {
             PredicateAtom::Select { selector, arg } => {
-                format!("{}_{}", arg, selector)
+                format!("{}*{}", arg, selector)
             }
+            PredicateAtom::Const(v) => value(v),
         }
     }
 
@@ -44,7 +45,9 @@ mod compile {
     pub fn computation_signature(
         lib: &Library,
         cs: &ComputationSignature,
+        ret_fact_signature: Option<&FactSignature>,
     ) -> String {
+        println!("{:?}", cs);
         format!(
             "; {}\n(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
             cs.name,
@@ -57,7 +60,7 @@ mod compile {
                         .unwrap()
                         .params
                         .iter()
-                        .map(|(pp, _)| format!("{}_{}", p, pp))
+                        .map(|(pp, _)| format!("{}*{}", p, pp))
                         .collect::<Vec<String>>()
                         .join(" "),
                 ))
@@ -69,13 +72,15 @@ mod compile {
                 .collect::<Vec<String>>()
                 .join("\n   "),
             cs.ret,
-            lib.fact_signature(&cs.ret)
-                .unwrap()
-                .params
-                .iter()
-                .map(|(p, _)| format!("ret_{}", p))
-                .collect::<Vec<String>>()
-                .join(" "),
+            (match ret_fact_signature {
+                Some(fs) => fs,
+                None => lib.fact_signature(&cs.ret).unwrap(),
+            })
+            .params
+            .iter()
+            .map(|(p, _)| format!("{}*{}", Query::RET, p))
+            .collect::<Vec<String>>()
+            .join(" "),
         )
     }
 
@@ -108,82 +113,30 @@ mod compile {
         )
     }
 
-    pub fn expression(e: &Expression) -> String {
-        match e {
-            Expression::Val(v) => value(v),
-            Expression::Var(x) => x.clone(),
-        }
-    }
-
-    pub fn basic_query(lib: &Library, bq: &BasicQuery) -> String {
-        format!(
-            "({} {})",
-            bq.name,
-            lib.fact_signature(&bq.name)
-                .unwrap()
-                .params
-                .iter()
-                .map(|(p, _)| bq
-                    .args
-                    .iter()
-                    .find_map(|(a, v)| if a == p {
-                        Some(expression(v))
-                    } else {
-                        None
-                    })
-                    .unwrap())
-                .collect::<Vec<String>>()
-                .join(" "),
-        )
-    }
-
     pub fn query(lib: &Library, q: &Query) -> String {
-        let fvs = q.free_variables(lib);
         format!(
-            "(relation *GOAL ({}))\n\n(rule\n  ({})\n  ((*GOAL {}))\n  :ruleset all)",
-            fvs.iter()
-                .map(|(_, vt)| value_type(vt))
-                .collect::<Vec<String>>()
-                .join(" "),
-            q.entries
-                .iter()
-                .map(|(_, bq)| basic_query(lib, bq))
-                .chain(q.side_condition.iter().map(predicate_relation))
-                .collect::<Vec<String>>()
-                .join("\n   "),
-            fvs.iter()
-                .map(|(x, _)| x.clone())
-                .collect::<Vec<String>>()
-                .join(" "),
+            "{}\n\n{}",
+            fact_signature(&q.fact_signature),
+            computation_signature(
+                lib,
+                &q.computation_signature,
+                Some(&q.fact_signature)
+            ),
         )
     }
 }
 
 pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
-    let mut seen_fact_names = std::collections::HashSet::new();
-
     let mut output = vec![];
 
-    for fact_name in facts
-        .iter()
-        .map(|f| &f.name)
-        .chain(q.entries.iter().map(|(_, bq)| &bq.name))
-    {
-        if seen_fact_names.contains(fact_name) {
-            continue;
-        }
-        seen_fact_names.insert(fact_name);
-        output.push(compile::fact_signature(
-            lib.fact_signature(fact_name).unwrap(),
-        ))
+    for fs in &lib.fact_signatures {
+        output.push(compile::fact_signature(fs));
     }
 
     output.push("\n(ruleset all)\n".to_owned());
 
-    for fact_name in seen_fact_names {
-        for cs in lib.matching_computation_signatures(fact_name) {
-            output.push(compile::computation_signature(lib, cs))
-        }
+    for cs in &lib.computation_signatures {
+        output.push(compile::computation_signature(lib, cs, None))
     }
 
     output.push("".to_owned());
@@ -197,7 +150,7 @@ pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
     output.push(compile::query(lib, q));
 
     output.push("\n(run-schedule (saturate all))\n".to_owned());
-    output.push(format!("(print-function *GOAL 1000)"));
+    output.push(format!("(print-function {} 1000)", q.fact_signature.name));
 
     return output.join("\n");
 }
@@ -215,19 +168,22 @@ mod parse {
         text::int(10).map(|s: String| Value::Int(s.parse().unwrap()))
     }
 
-    fn entry(fvs: Vec<String>) -> impl P<Assignment> {
-        just("*GOAL")
+    fn entry(fs: &FactSignature) -> impl P<Assignment> {
+        let fs = fs.clone();
+        just(fs.name)
             .ignored()
             .padded()
             .then(value().padded().repeated())
             .delimited_by(just('('), just(')'))
             .map(move |(_, vs)| {
-                HashMap::from_iter(fvs.clone().into_iter().zip(vs))
+                HashMap::from_iter(
+                    fs.params.iter().map(|(n, _)| n.clone()).zip(vs),
+                )
             })
     }
 
-    pub fn output(fvs: Vec<String>) -> impl P<Vec<Assignment>> {
-        entry(fvs)
+    pub fn output(fs: &FactSignature) -> impl P<Vec<Assignment>> {
+        entry(fs)
             .padded()
             .repeated()
             .delimited_by(just('('), just(')'))
@@ -245,14 +201,13 @@ pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
     let mut egraph = egglog::EGraph::default();
     match egraph.parse_and_run_program(&egglog_src) {
         Ok(messages) => {
+            println!("{:?}", messages);
             if messages.len() != 1 {
                 panic!("{:?}", messages)
             }
-            let assignments = parse::output(
-                q.free_variables(lib).into_iter().map(|(x, _)| x).collect(),
-            )
-            .parse(messages[0].clone())
-            .unwrap();
+            let assignments = parse::output(&q.fact_signature)
+                .parse(messages[0].clone())
+                .unwrap();
             log::debug!("Egglog Assignments:\n{:?}", assignments);
             assignments
         }
@@ -262,5 +217,5 @@ pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
 }
 
 pub fn check_possible(lib: &Library, prog: &Program) -> bool {
-    !query(&lib, &prog.annotations, &prog.goal.to_query()).is_empty()
+    !query(&lib, &prog.annotations, &Query::from_fact(&prog.goal)).is_empty()
 }
