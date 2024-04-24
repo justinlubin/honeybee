@@ -199,7 +199,7 @@ impl BasicQuery {
     }
 
     pub fn prefix_vars(mut self, prefix: &str) -> BasicQuery {
-        self.args.iter_mut().for_each(|(x, e)| match e {
+        self.args.iter_mut().for_each(|(_, e)| match e {
             Expression::Val(_) => (),
             Expression::Var(var) => {
                 *e = Expression::Var(format!("{}{}", prefix, var))
@@ -217,7 +217,7 @@ impl Query {
             .collect()
     }
 
-    fn cut(
+    pub fn cut(
         &self,
         lib: &Library,
         selector: &str,

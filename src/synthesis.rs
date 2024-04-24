@@ -35,23 +35,26 @@ impl Synthesizer {
             .immediately_partial_steps()
             .into_iter()
             .flat_map(|(path, query)| {
-                query.entries.into_iter().map(move |(n, goal)| GoalOption {
-                    computation_options: lib
-                        .matching_computation_signatures(&goal.name)
-                        .into_iter()
-                        .cloned()
-                        .map(|signature| ComputationOption {
-                            assignment_options: egglog_adapter::query(
-                                lib,
-                                &prog.annotations,
-                                todo!(),
-                            ),
-                            signature,
-                        })
-                        .collect(),
-                    path: path.clone(),
-                    goal,
-                })
+                query
+                    .entries
+                    .iter()
+                    .map(|(selector, goal)| GoalOption {
+                        computation_options: lib
+                            .matching_computation_signatures(&goal.name)
+                            .into_iter()
+                            .map(|lemma| ComputationOption {
+                                assignment_options: egglog_adapter::query(
+                                    lib,
+                                    &prog.annotations,
+                                    &query.cut(lib, &selector, lemma),
+                                ),
+                                signature: lemma.clone(),
+                            })
+                            .collect(),
+                        path: path.clone(),
+                        goal: goal.clone(),
+                    })
+                    .collect::<Vec<_>>()
             })
             .collect()
     }

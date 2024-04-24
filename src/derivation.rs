@@ -8,7 +8,7 @@ pub enum Tree {
     // (i) facts are instantiated
     // (ii) recursively references Tree
     Step {
-        name: String,
+        label: String,
         antecedents: Vec<(String, Tree)>,
         consequent: Fact,
         side_condition: Predicate,
@@ -20,12 +20,12 @@ impl Tree {
         match path.last() {
             Some(name) => match self {
                 Tree::Step {
-                    name,
+                    label,
                     consequent,
                     side_condition,
                     antecedents,
                 } => Some(Tree::Step {
-                    name: name.clone(),
+                    label: label.clone(),
                     consequent: consequent.clone(),
                     side_condition: side_condition.clone(),
                     antecedents: {
