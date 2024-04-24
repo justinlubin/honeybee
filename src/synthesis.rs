@@ -15,13 +15,14 @@ pub struct Synthesizer {
 
 #[derive(Debug, Clone)]
 pub struct ComputationOption {
-    signature: ComputationSignature,
+    name: String,
     assignment_options: Vec<Assignment>,
 }
 
 #[derive(Debug, Clone)]
 pub struct GoalOption {
     path: Vec<String>,
+    tag: String,
     computation_options: Vec<ComputationOption>,
 }
 
@@ -51,15 +52,16 @@ impl Synthesizer {
                                     &prog.annotations,
                                     &query.cut(lib, cut_param, lemma),
                                 ),
-                                signature: lemma.clone(),
+                                name: lemma.name.clone(),
                             })
                             .collect(),
                         path: path.clone(),
+                        tag: cut_param.clone(),
                     })
                     .collect::<Vec<_>>()
             })
             .collect()
     }
 
-    fn step(&self) {}
+    // fn step(&self) {}
 }

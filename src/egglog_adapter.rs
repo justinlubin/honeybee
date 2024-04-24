@@ -47,7 +47,6 @@ mod compile {
         cs: &ComputationSignature,
         ret_fact_signature: Option<&FactSignature>,
     ) -> String {
-        println!("{:?}", cs);
         format!(
             "; {}\n(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
             cs.name,
@@ -201,7 +200,6 @@ pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
     let mut egraph = egglog::EGraph::default();
     match egraph.parse_and_run_program(&egglog_src) {
         Ok(messages) => {
-            println!("{:?}", messages);
             if messages.len() != 1 {
                 panic!("{:?}", messages)
             }

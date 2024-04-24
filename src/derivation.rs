@@ -137,4 +137,62 @@ impl Tree {
             _ => vec![],
         }
     }
+
+    fn make_dashes(amount: usize) -> String {
+        std::iter::repeat('-').take(amount * 2).collect()
+    }
+
+    fn _fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        depth: usize,
+        prefix: &str,
+    ) -> std::fmt::Result {
+        match self {
+            Tree::Axiom(fact) => write!(
+                f,
+                "{} {}{} [&leaf]",
+                Tree::make_dashes(depth),
+                prefix,
+                crate::syntax::unparse::fact(fact),
+            ),
+            Tree::Goal(fact_name) => {
+                write!(
+                    f,
+                    "{} {}*** {}",
+                    Tree::make_dashes(depth),
+                    prefix,
+                    fact_name
+                )
+            }
+            Tree::Step {
+                label,
+                antecedents,
+                consequent,
+                side_condition,
+            } => {
+                write!(
+                    f,
+                    "{} {}{} [{}] {}",
+                    Tree::make_dashes(depth),
+                    prefix,
+                    crate::syntax::unparse::fact(consequent),
+                    label,
+                    crate::syntax::unparse::predicate(side_condition)
+                        .replace("\n", ""),
+                )?;
+                for (n, t) in antecedents {
+                    write!(f, "\n")?;
+                    t._fmt(f, depth + 1, &format!("<{}>: ", n))?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for Tree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self._fmt(f, 1, "")
+    }
 }

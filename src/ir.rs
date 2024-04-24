@@ -161,13 +161,6 @@ pub struct Query {
     pub computation_signature: ComputationSignature,
 }
 
-// RHS of datalog rule, where each fact is labeled with a string tag
-// #[derive(Debug, Clone)]
-// pub struct Query {
-//     pub entries: Vec<(String, FactName)>,
-//     pub side_condition: Predicate,
-// }
-
 impl Query {
     pub const RET: &'static str = "ret";
 

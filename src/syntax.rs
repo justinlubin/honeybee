@@ -242,13 +242,13 @@ pub mod unparse {
 
     pub fn fact(f: &Fact) -> String {
         format!(
-            "({} {})",
+            "({}{})",
             f.name,
             f.args
                 .iter()
-                .map(|(lhs, rhs)| format!("({} {})", lhs, value(rhs)))
+                .map(|(lhs, rhs)| format!(" ({} {})", lhs, value(rhs)))
                 .collect::<Vec<String>>()
-                .join(" ")
+                .join("")
         )
     }
 

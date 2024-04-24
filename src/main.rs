@@ -32,8 +32,7 @@ fn main() {
 
                     let s = synthesis::Synthesizer::new(&prog.goal);
 
-                    println!("{:?}\n", s.tree);
-                    println!("{:?}\n", s.tree.queries(&lib));
+                    println!("{}\n", s.tree);
                     println!("{:?}\n", s.options(&lib, &prog));
                 }
                 Err(errs) => errs
