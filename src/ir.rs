@@ -80,75 +80,7 @@ pub struct ComputationSignature {
     pub precondition: Predicate,
 }
 
-impl ComputationSignature {
-    fn cut(
-        &self,
-        lib: &Library,
-        selector: &str,
-        lemma: &ComputationSignature,
-    ) -> ComputationSignature {
-        let mut selector_fact_name = None;
-        let mut new_params = vec![];
-        for (n, f) in &self.params {
-            if n == selector {
-                selector_fact_name = Some(f);
-            } else {
-                new_params.push((format!("self/{}", n), f.clone()))
-            }
-        }
-        let selector_fact_name = selector_fact_name.unwrap();
-
-        for (n, f) in &lemma.params {
-            new_params.push((format!("lemma/{}", n), f.clone()))
-        }
-
-        ComputationSignature {
-            name: format!("{}+{}", self.name, lemma.name),
-            params: self
-                .params
-                .iter()
-                .filter_map(|(n, t)| {
-                    if n == selector {
-                        None
-                    } else {
-                        Some((n.clone(), t.clone()))
-                    }
-                })
-                .chain(lemma.params.iter().cloned())
-                .collect(),
-            precondition: self
-                .precondition
-                .iter()
-                .map(|pr| pr.prefix_vars("self/"))
-                .chain(
-                    lemma
-                        .precondition
-                        .iter()
-                        .map(|pr| pr.prefix_vars("lemma/")),
-                )
-                .chain(
-                    lib.fact_signature(selector_fact_name)
-                        .unwrap()
-                        .params
-                        .iter()
-                        .map(|(n, _)| {
-                            PredicateRelation::Eq(
-                                PredicateAtom::Select {
-                                    selector: n.clone(),
-                                    arg: format!("self/{}", selector),
-                                },
-                                PredicateAtom::Select {
-                                    selector: n.clone(),
-                                    arg: format!("lemma/{}", selector),
-                                },
-                            )
-                        }),
-                )
-                .collect(),
-            ret: self.ret.clone(),
-        }
-    }
-}
+impl ComputationSignature {}
 
 #[derive(Debug, Clone)]
 pub struct Library {
@@ -226,6 +158,21 @@ impl Library {
 }
 
 impl BasicQuery {
+    pub fn free(lib: &Library, fact_name: &str) -> BasicQuery {
+        BasicQuery {
+            name: fact_name.to_owned(),
+            args: lib
+                .fact_signature(fact_name)
+                .unwrap()
+                .params
+                .iter()
+                .map(|(n, _)| {
+                    (n.clone(), Expression::Var(format!("{}{}", n, "_fv")))
+                })
+                .collect(),
+        }
+    }
+
     pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
         let mut fvs = vec![];
         let vts = &lib.fact_signature(&self.name).unwrap().params;
@@ -250,6 +197,16 @@ impl BasicQuery {
         }
         fvs
     }
+
+    pub fn prefix_vars(mut self, prefix: &str) -> BasicQuery {
+        self.args.iter_mut().for_each(|(x, e)| match e {
+            Expression::Val(_) => (),
+            Expression::Var(var) => {
+                *e = Expression::Var(format!("{}{}", prefix, var))
+            }
+        });
+        self
+    }
 }
 
 impl Query {
@@ -258,5 +215,66 @@ impl Query {
             .iter()
             .flat_map(|(_, bq)| bq.free_variables(lib))
             .collect()
+    }
+
+    fn cut(
+        &self,
+        lib: &Library,
+        selector: &str,
+        lemma: &ComputationSignature,
+    ) -> Query {
+        let mut selector_fact_name = None;
+        let mut entries = vec![];
+        for (n, bq) in &self.entries {
+            if n == selector {
+                selector_fact_name = Some(&bq.name);
+            } else {
+                entries.push((
+                    format!("self/{}", n),
+                    bq.clone().prefix_vars("self/"),
+                ))
+            }
+        }
+        let selector_fact_name = selector_fact_name.unwrap();
+
+        for (n, f) in &lemma.params {
+            entries.push((
+                format!("lemma/{}", n),
+                BasicQuery::free(lib, f).prefix_vars("lemma/"),
+            ))
+        }
+
+        Query {
+            entries,
+            side_condition: self
+                .side_condition
+                .iter()
+                .map(|pr| pr.prefix_vars("self/"))
+                .chain(
+                    lemma
+                        .precondition
+                        .iter()
+                        .map(|pr| pr.prefix_vars("lemma/")),
+                )
+                .chain(
+                    lib.fact_signature(selector_fact_name)
+                        .unwrap()
+                        .params
+                        .iter()
+                        .map(|(n, _)| {
+                            PredicateRelation::Eq(
+                                PredicateAtom::Select {
+                                    selector: n.clone(),
+                                    arg: format!("self/{}", selector),
+                                },
+                                PredicateAtom::Select {
+                                    selector: n.clone(),
+                                    arg: format!("lemma/{}", selector),
+                                },
+                            )
+                        }),
+                )
+                .collect(),
+        }
     }
 }
