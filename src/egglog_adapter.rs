@@ -147,7 +147,8 @@ mod compile {
                 .join(" "),
             q.entries
                 .iter()
-                .map(|bq| basic_query(lib, bq))
+                .map(|(_, bq)| basic_query(lib, bq))
+                .chain(q.side_condition.iter().map(predicate_relation))
                 .collect::<Vec<String>>()
                 .join("\n   "),
             fvs.iter()
@@ -166,7 +167,7 @@ pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
     for fact_name in facts
         .iter()
         .map(|f| &f.name)
-        .chain(q.entries.iter().map(|q| &q.name))
+        .chain(q.entries.iter().map(|(_, bq)| &bq.name))
     {
         if seen_fact_names.contains(fact_name) {
             continue;

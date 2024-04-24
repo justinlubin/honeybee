@@ -57,19 +57,8 @@ impl Tree {
         }
     }
 
-    pub fn goals(
-        &self,
-    ) -> Vec<(
-        Vec<String>,
-        BasicQuery,
-        Vec<(String, BasicQuery)>,
-        Predicate,
-    )> {
+    pub fn immediately_partial_steps(&self) -> Vec<(Vec<String>, Query)> {
         match self {
-            Tree::Axiom(_) => vec![],
-            Tree::Goal(q) => {
-                vec![(vec![], q.clone(), vec![], vec![])]
-            }
             Tree::Step {
                 antecedents,
                 side_condition,
@@ -82,26 +71,31 @@ impl Tree {
                         _ => None,
                     })
                     .collect();
-                antecedents
-                    .iter()
-                    .flat_map(|(n, t)| match t {
-                        Tree::Goal(q) => vec![(
-                            vec![n.clone()],
-                            q.clone(),
-                            siblings.clone(),
-                            side_condition.clone(),
-                        )],
-                        _ => t
-                            .goals()
-                            .into_iter()
-                            .map(|(mut path, q, s, p)| {
+
+                let mine = if siblings.is_empty() {
+                    None
+                } else {
+                    Some((
+                        vec![],
+                        Query {
+                            entries: siblings,
+                            side_condition: side_condition.clone(),
+                        },
+                    ))
+                };
+
+                mine.into_iter()
+                    .chain(antecedents.iter().flat_map(|(n, t)| {
+                        t.immediately_partial_steps().into_iter().map(
+                            |(mut path, q)| {
                                 path.push(n.clone());
-                                (path, q, s, p)
-                            })
-                            .collect(),
-                    })
-                    .collect()
+                                (path, q)
+                            },
+                        )
+                    }))
+                    .collect::<Vec<(Vec<String>, Query)>>()
             }
+            _ => vec![],
         }
     }
 }

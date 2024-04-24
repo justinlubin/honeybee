@@ -32,24 +32,26 @@ impl Synthesizer {
 
     fn options(&self, lib: &Library, prog: &Program) -> Vec<GoalOption> {
         self.tree
-            .goals()
+            .immediately_partial_steps()
             .into_iter()
-            .map(|(path, goal, siblings, side_condition)| GoalOption {
-                computation_options: lib
-                    .matching_computation_signatures(&goal.name)
-                    .into_iter()
-                    .cloned()
-                    .map(|signature| ComputationOption {
-                        assignment_options: egglog_adapter::query(
-                            lib,
-                            &prog.annotations,
-                            todo!(),
-                        ),
-                        signature,
-                    })
-                    .collect(),
-                path,
-                goal,
+            .flat_map(|(path, query)| {
+                query.entries.into_iter().map(move |(n, goal)| GoalOption {
+                    computation_options: lib
+                        .matching_computation_signatures(&goal.name)
+                        .into_iter()
+                        .cloned()
+                        .map(|signature| ComputationOption {
+                            assignment_options: egglog_adapter::query(
+                                lib,
+                                &prog.annotations,
+                                todo!(),
+                            ),
+                            signature,
+                        })
+                        .collect(),
+                    path: path.clone(),
+                    goal,
+                })
             })
             .collect()
     }

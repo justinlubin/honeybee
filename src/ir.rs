@@ -175,7 +175,8 @@ pub struct BasicQuery {
 }
 
 pub struct Query {
-    pub entries: Vec<BasicQuery>,
+    pub entries: Vec<(String, BasicQuery)>,
+    pub side_condition: Predicate,
 }
 
 impl Fact {
@@ -193,7 +194,8 @@ impl Fact {
 
     pub fn to_query(&self) -> Query {
         Query {
-            entries: vec![self.to_basic_query()],
+            entries: vec![("q".to_owned(), self.to_basic_query())],
+            side_condition: vec![],
         }
     }
 }
@@ -254,7 +256,7 @@ impl Query {
     pub fn free_variables(&self, lib: &Library) -> Vec<(String, ValueType)> {
         self.entries
             .iter()
-            .flat_map(|bq| bq.free_variables(lib))
+            .flat_map(|(_, bq)| bq.free_variables(lib))
             .collect()
     }
 }
