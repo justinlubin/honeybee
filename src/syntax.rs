@@ -63,12 +63,14 @@ pub mod parse {
             .then(fact_name())
             .padded()
             .then(
-                lower_ident()
+                just('.')
+                    .then(lower_ident())
                     .padded()
                     .then(value_type())
                     .padded()
                     .delimited_by(just('('), just(')'))
                     .padded()
+                    .map(|((_, n), v)| (n, v))
                     .repeated(),
             )
             .delimited_by(just('('), just(')'))
@@ -79,12 +81,15 @@ pub mod parse {
         fact_name()
             .padded()
             .then(
-                lower_ident()
+                just('.')
+                    .ignored()
+                    .then(lower_ident())
                     .padded()
                     .then(value())
                     .padded()
                     .delimited_by(just('('), just(')'))
                     .padded()
+                    .map(|((_, n), v)| (n, v))
                     .repeated(),
             )
             .delimited_by(just('('), just(')'))
@@ -182,6 +187,7 @@ pub mod parse {
                 computation_signatures,
             }
         })
+        .then_ignore(end())
     }
 
     pub fn program() -> impl P<Program> {
@@ -200,6 +206,7 @@ pub mod parse {
             )
             .padded()
             .map(|((_, annotations), (_, goal))| Program { annotations, goal })
+            .then_ignore(end())
     }
 }
 
@@ -234,7 +241,7 @@ pub mod unparse {
             fs.name,
             fs.params
                 .iter()
-                .map(|(lhs, rhs)| format!("({} {})", lhs, value_type(rhs)))
+                .map(|(lhs, rhs)| format!("(.{} {})", lhs, value_type(rhs)))
                 .collect::<Vec<String>>()
                 .join(" ")
         )
@@ -246,7 +253,7 @@ pub mod unparse {
             f.name,
             f.args
                 .iter()
-                .map(|(lhs, rhs)| format!(" ({} {})", lhs, value(rhs)))
+                .map(|(lhs, rhs)| format!(" (.{} {})", lhs, value(rhs)))
                 .collect::<Vec<String>>()
                 .join("")
         )
