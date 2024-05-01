@@ -1,0 +1,59 @@
+; Annotations
+
+(annotation Seq
+  (.sample Str) (.at Int) (.data Str))
+
+(annotation Transfect
+  (.sample Str) (.at Int) (.library Str))
+
+(annotation Sort
+  (.in-sample Str) (.on-sample Str) (.off-sample Str) (.at Int))
+
+(annotation Flow
+  (.sample Str) (.at Int) (.data Str))
+
+; Gene quantification
+
+(analysis Gene-Quantification
+  (.sample Str) (.at Int))
+
+(computation quantify Gene-Quantification
+  ((s Seq))
+  ((= (.sample ret) (.sample s))
+   (= (.at ret) (.at s))))
+
+; Growth over time in a single sample
+
+(analysis Growth-Over-Time
+  (.sample Str) (.from Int) (.to Int))
+
+(computation growth_over_time Growth-Over-Time
+  ((q1 Gene-Quantification) (q2 Gene-Quantification))
+  ((= (.sample ret) (.sample q1))
+   (= (.from ret) (.at q1))
+   (= (.to ret) (.at q2))
+   (= (.sample q1) (.sample q2))
+   (< (.at q1) (.at q2))))
+
+; Growth between two samples
+
+(analysis Growth-Between
+  (.sample1 Str) (.sample2 Str) (.at Int))
+
+(computation growth_between Growth-Between
+  ((q1 Gene-Quantification) (q2 Gene-Quantification))
+  ((= (.sample1 ret) (.sample q1))
+   (= (.sample2 ret) (.sample q2))
+   (= (.at ret) (.at q1))
+   (= (.at q1) (.at q2))))
+
+; Flow cytometry time course
+
+(analysis Flow-Time-Course
+  (.samples [Str]) (.from Int) (.to Int))
+
+(computation flow_time_course Flow-Time-Course
+  ((forall f Flow))
+  ((contains (.samples ret) (.sample f))
+   (<= (.from ret) (.at f))
+   (<= (.at f) (.to ret))))

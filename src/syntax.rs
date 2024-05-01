@@ -11,6 +11,8 @@ pub mod parse {
             char::is_ascii_lowercase(c)
                 || char::is_ascii_uppercase(c)
                 || char::is_ascii_digit(c)
+                || *c == '-'
+                || *c == '_'
         })
         .repeated()
         .collect()
@@ -107,19 +109,24 @@ pub mod parse {
             .map(|((_, selector), arg)| PredicateAtom::Select { selector, arg })
     }
 
+    pub fn predicate_relation_binop() -> impl P<PredicateRelationBinOp> {
+        choice((
+            just("<=").map(|_| PredicateRelationBinOp::Lte),
+            just("<").map(|_| PredicateRelationBinOp::Lt),
+            just("=").map(|_| PredicateRelationBinOp::Eq),
+            just("contains").map(|_| PredicateRelationBinOp::Contains),
+        ))
+    }
+
     pub fn predicate_relation() -> impl P<PredicateRelation> {
-        one_of("=<")
+        predicate_relation_binop()
             .padded()
             .then(predicate_atom())
             .padded()
             .then(predicate_atom())
             .padded()
             .delimited_by(just('('), just(')'))
-            .map(|((op, lhs), rhs)| match op {
-                '=' => PredicateRelation::Eq(lhs, rhs),
-                '<' => PredicateRelation::Lt(lhs, rhs),
-                _ => panic!("Unknown operator '{}'", op),
-            })
+            .map(|((op, lhs), rhs)| PredicateRelation::BinOp(op, lhs, rhs))
     }
 
     pub fn predicate() -> impl P<Predicate> {
@@ -161,14 +168,23 @@ pub mod parse {
             })
     }
 
+    pub fn comment() -> impl P<()> {
+        just(';')
+            .then(filter(|c| *c != '\n').repeated())
+            .ignored()
+            .padded()
+    }
+
     pub fn library() -> impl P<Library> {
         enum Sig {
             F(FactSignature),
             C(ComputationSignature),
+            Comment,
         }
         choice((
             fact_signature().map(Sig::F),
             computation_signature().map(Sig::C),
+            comment().map(|_| Sig::Comment),
         ))
         .padded()
         .repeated()
@@ -180,6 +196,7 @@ pub mod parse {
                 match sig {
                     Sig::F(fs) => fact_signatures.push(fs),
                     Sig::C(cs) => computation_signatures.push(cs),
+                    Sig::Comment => (),
                 };
             }
             Library {
@@ -217,6 +234,7 @@ pub mod unparse {
         match vt {
             ValueType::Int => "Int".to_owned(),
             ValueType::Str => "Str".to_owned(),
+            ValueType::List(vt_inner) => format!("[{}]", value_type(vt_inner)),
         }
     }
 
@@ -224,6 +242,10 @@ pub mod unparse {
         match v {
             Value::Int(x) => format!("{}", x),
             Value::Str(s) => format!("\"{}\"", s),
+            Value::List(args) => format!(
+                "[{}]",
+                args.iter().map(value).collect::<Vec<_>>().join(" ")
+            ),
         }
     }
 
@@ -268,13 +290,24 @@ pub mod unparse {
         }
     }
 
+    pub fn predicate_relation_binop(op: &PredicateRelationBinOp) -> String {
+        match op {
+            PredicateRelationBinOp::Eq => "=".to_owned(),
+            PredicateRelationBinOp::Lt => "<".to_owned(),
+            PredicateRelationBinOp::Lte => "<=".to_owned(),
+            PredicateRelationBinOp::Contains => "contains".to_owned(),
+        }
+    }
+
     pub fn predicate_relation(pr: &PredicateRelation) -> String {
         match pr {
-            PredicateRelation::Eq(lhs, rhs) => {
-                format!("(= {} {})", predicate_atom(lhs), predicate_atom(rhs))
-            }
-            PredicateRelation::Lt(lhs, rhs) => {
-                format!("(< {} {})", predicate_atom(lhs), predicate_atom(rhs))
+            PredicateRelation::BinOp(op, lhs, rhs) => {
+                format!(
+                    "({} {} {})",
+                    predicate_relation_binop(op),
+                    predicate_atom(lhs),
+                    predicate_atom(rhs)
+                )
             }
         }
     }

@@ -7,6 +7,9 @@ mod compile {
         match vt {
             ValueType::Int => "i64".to_owned(),
             ValueType::Str => "String".to_owned(),
+            ValueType::List(vt_inner) => {
+                format!("(Vec {})", value_type(vt_inner))
+            }
         }
     }
 
@@ -31,13 +34,24 @@ mod compile {
         }
     }
 
+    pub fn predicate_relation_binop(op: &PredicateRelationBinOp) -> String {
+        match op {
+            PredicateRelationBinOp::Eq => "=".to_owned(),
+            PredicateRelationBinOp::Lt => "<".to_owned(),
+            PredicateRelationBinOp::Lte => "<=".to_owned(),
+            PredicateRelationBinOp::Contains => "vec-contains".to_owned(),
+        }
+    }
+
     pub fn predicate_relation(pr: &PredicateRelation) -> String {
         match pr {
-            PredicateRelation::Eq(lhs, rhs) => {
-                format!("(= {} {})", predicate_atom(lhs), predicate_atom(rhs))
-            }
-            PredicateRelation::Lt(lhs, rhs) => {
-                format!("(< {} {})", predicate_atom(lhs), predicate_atom(rhs))
+            PredicateRelation::BinOp(pk, lhs, rhs) => {
+                format!(
+                    "({} {} {})",
+                    predicate_relation_binop(pk),
+                    predicate_atom(lhs),
+                    predicate_atom(rhs)
+                )
             }
         }
     }
@@ -87,6 +101,10 @@ mod compile {
         match v {
             Value::Int(x) => format!("{}", x),
             Value::Str(s) => format!("\"{}\"", s),
+            Value::List(args) => format!(
+                "(vec-of {})",
+                args.iter().map(value).collect::<Vec<_>>().join(" ")
+            ),
         }
     }
 
@@ -164,7 +182,14 @@ mod parse {
     impl<S, T> P<T> for S where S: Parser<char, T, Error = Simple<char>> {}
 
     fn value() -> impl P<Value> {
-        text::int(10).map(|s: String| Value::Int(s.parse().unwrap()))
+        choice((
+            text::int(10).map(|s: String| Value::Int(s.parse().unwrap())),
+            none_of("\"")
+                .repeated()
+                .collect()
+                .delimited_by(just('"'), just('"'))
+                .map(|s: String| Value::Str(s)),
+        ))
     }
 
     fn entry(fs: &FactSignature) -> impl P<Assignment> {
@@ -182,11 +207,14 @@ mod parse {
     }
 
     pub fn output(fs: &FactSignature) -> impl P<Vec<Assignment>> {
-        entry(fs)
-            .padded()
-            .repeated()
-            .delimited_by(just('('), just(')'))
-            .padded()
+        choice((
+            just('(').padded().then(just(')').padded()).map(|_| vec![]),
+            entry(fs)
+                .padded()
+                .repeated()
+                .delimited_by(just('('), just(')'))
+                .padded(),
+        ))
     }
 }
 

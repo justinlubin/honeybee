@@ -25,15 +25,16 @@ fn main() {
                     );
 
                     if egglog_adapter::check_possible(&lib, &prog) {
-                        println!(">>> Possible! <<<")
+                        println!(">>> Possible! <<<");
                     } else {
-                        println!(">>> Not possible <<<")
+                        println!(">>> Not possible <<<");
+                        return;
                     }
 
-                    let s = synthesis::Synthesizer::new(&prog.goal);
+                    // let s = synthesis::Synthesizer::new(&prog.goal);
 
-                    println!("{}\n", s.tree);
-                    println!("{:?}\n", s.options(&lib, &prog));
+                    // println!("{}\n", s.tree);
+                    // println!("{:?}\n", s.options(&lib, &prog));
                 }
                 Err(errs) => errs
                     .iter()

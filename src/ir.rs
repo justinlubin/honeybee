@@ -2,12 +2,14 @@
 pub enum ValueType {
     Int,
     Str,
+    List(Box<ValueType>),
 }
 
 #[derive(Debug, Clone)]
 pub enum Value {
     Int(i64),
     Str(String),
+    List(Vec<Value>),
 }
 
 pub type Assignment = std::collections::HashMap<String, Value>;
@@ -84,19 +86,23 @@ impl PredicateAtom {
 }
 
 #[derive(Debug, Clone)]
+pub enum PredicateRelationBinOp {
+    Eq,
+    Lt,
+    Lte,
+    Contains,
+}
+
+#[derive(Debug, Clone)]
 pub enum PredicateRelation {
-    Eq(PredicateAtom, PredicateAtom),
-    Lt(PredicateAtom, PredicateAtom),
+    BinOp(PredicateRelationBinOp, PredicateAtom, PredicateAtom),
 }
 
 impl PredicateRelation {
     pub fn prefix_vars(&self, prefix: &str) -> PredicateRelation {
         match self {
-            PredicateRelation::Eq(lhs, rhs) => PredicateRelation::Eq(
-                lhs.prefix_vars(prefix),
-                rhs.prefix_vars(prefix),
-            ),
-            PredicateRelation::Lt(lhs, rhs) => PredicateRelation::Lt(
+            PredicateRelation::BinOp(op, lhs, rhs) => PredicateRelation::BinOp(
+                op.clone(),
                 lhs.prefix_vars(prefix),
                 rhs.prefix_vars(prefix),
             ),
@@ -110,14 +116,13 @@ impl PredicateRelation {
         rhs: &Value,
     ) -> PredicateRelation {
         match self {
-            PredicateRelation::Eq(left, right) => PredicateRelation::Eq(
-                left.substitute(selector, arg, rhs),
-                right.substitute(selector, arg, rhs),
-            ),
-            PredicateRelation::Lt(left, right) => PredicateRelation::Lt(
-                left.substitute(selector, arg, rhs),
-                right.substitute(selector, arg, rhs),
-            ),
+            PredicateRelation::BinOp(op, left, right) => {
+                PredicateRelation::BinOp(
+                    op.clone(),
+                    left.substitute(selector, arg, rhs),
+                    right.substitute(selector, arg, rhs),
+                )
+            }
         }
     }
 
@@ -182,7 +187,8 @@ impl Query {
                     .args
                     .iter()
                     .map(|(n, v)| {
-                        PredicateRelation::Eq(
+                        PredicateRelation::BinOp(
+                            PredicateRelationBinOp::Eq,
                             PredicateAtom::Select {
                                 selector: n.clone(),
                                 arg: "q".to_owned(),
@@ -206,7 +212,8 @@ impl Query {
             for (nn, vt) in &lib.fact_signature(f).unwrap().params {
                 let fv = format!("fv%{}*{}", n, nn);
                 fs_params.push((fv.clone(), vt.clone()));
-                cs_precondition.push(PredicateRelation::Eq(
+                cs_precondition.push(PredicateRelation::BinOp(
+                    PredicateRelationBinOp::Eq,
                     PredicateAtom::Select {
                         selector: fv,
                         arg: Query::RET.to_owned(),
@@ -326,7 +333,8 @@ impl ComputationSignature {
                         .params
                         .iter()
                         .map(|(n, _)| {
-                            PredicateRelation::Eq(
+                            PredicateRelation::BinOp(
+                                PredicateRelationBinOp::Eq,
                                 PredicateAtom::Select {
                                     selector: n.clone(),
                                     arg: cut_param.to_owned(),
