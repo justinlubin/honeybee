@@ -42,7 +42,7 @@ impl Synthesizer {
                     .computation_signature
                     .params
                     .iter()
-                    .map(|(cut_param, goal_fact_name)| GoalOption {
+                    .map(|(cut_param, goal_fact_name, _)| GoalOption {
                         computation_options: lib
                             .matching_computation_signatures(goal_fact_name)
                             .into_iter()

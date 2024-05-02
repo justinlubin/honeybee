@@ -5,7 +5,7 @@ pub enum ValueType {
     List(Box<ValueType>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Value {
     Int(i64),
     Str(String),
@@ -42,6 +42,34 @@ pub enum PredicateAtom {
 }
 
 impl PredicateAtom {
+    pub fn typ(
+        &self,
+        lib: &Library,
+        params: &Vec<(String, FactName, Mode)>,
+    ) -> Option<ValueType> {
+        match self {
+            PredicateAtom::Select { selector, arg } => params
+                .iter()
+                .find_map(|(x, f, _)| {
+                    if x == arg {
+                        lib.fact_signature(f)
+                    } else {
+                        None
+                    }
+                })
+                .and_then(|fs| {
+                    fs.params.iter().find_map(|(x, vt)| {
+                        if x == selector {
+                            Some(vt.clone())
+                        } else {
+                            None
+                        }
+                    })
+                }),
+            PredicateAtom::Const(_) => None,
+        }
+    }
+
     fn prefix_vars(&self, prefix: &str) -> PredicateAtom {
         match self {
             PredicateAtom::Select { selector, arg } => PredicateAtom::Select {
@@ -141,9 +169,15 @@ impl PredicateRelation {
 pub type Predicate = Vec<PredicateRelation>;
 
 #[derive(Debug, Clone)]
+pub enum Mode {
+    Exists,
+    ForAll,
+}
+
+#[derive(Debug, Clone)]
 pub struct ComputationSignature {
     pub name: String,
-    pub params: Vec<(String, FactName)>,
+    pub params: Vec<(String, FactName, Mode)>,
     pub ret: FactName,
     pub precondition: Predicate,
 }
@@ -160,6 +194,10 @@ pub struct Program {
     pub goal: Fact,
 }
 
+// Invariants:
+// - The computation signature's return value must be the same as the fact
+//   signature's name
+// - All mode parameters for the computation signature must be Mode::Exists
 #[derive(Debug, Clone)]
 pub struct Query {
     pub fact_signature: FactSignature,
@@ -181,7 +219,7 @@ impl Query {
             },
             computation_signature: ComputationSignature {
                 name: Query::GOAL_COMPUTATION_NAME.to_owned(),
-                params: vec![("q".to_owned(), fact.name.clone())],
+                params: vec![("q".to_owned(), fact.name.clone(), Mode::Exists)],
                 ret: Query::GOAL_FACT_NAME.to_owned(),
                 precondition: fact
                     .args
@@ -233,7 +271,10 @@ impl Query {
             },
             computation_signature: ComputationSignature {
                 name: Query::GOAL_COMPUTATION_NAME.to_owned(),
-                params,
+                params: params
+                    .into_iter()
+                    .map(|(x, f)| (x, f, Mode::Exists))
+                    .collect(),
                 ret: Query::GOAL_FACT_NAME.to_owned(),
                 precondition: cs_precondition,
             },
@@ -300,17 +341,17 @@ impl ComputationSignature {
     ) -> ComputationSignature {
         let mut cut_param_fact_name = None;
         let mut params = vec![];
-        for (n, f) in &self.params {
+        for (n, f, m) in &self.params {
             if n == cut_param {
                 cut_param_fact_name = Some(f);
             } else {
-                params.push((n.clone(), f.clone()));
+                params.push((n.clone(), f.clone(), m.clone()));
             }
         }
         let cut_param_fact_name = cut_param_fact_name.unwrap();
 
-        for (n, f) in &lemma.params {
-            params.push((format!("lemma/{}", n), f.clone()));
+        for (n, f, m) in &lemma.params {
+            params.push((format!("lemma/{}", n), f.clone(), m.clone()));
         }
 
         ComputationSignature {

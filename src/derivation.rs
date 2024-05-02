@@ -3,6 +3,7 @@ use crate::ir::*;
 #[derive(Debug, Clone)]
 pub enum Tree {
     Axiom(Fact),
+    Collector(FactName),
     Goal(FactName),
     // Same as ComputationSignature, but:
     // (i) facts are instantiated
@@ -27,7 +28,7 @@ impl Tree {
                 .computation_signature
                 .params
                 .iter()
-                .map(|(n, f)| (n.clone(), Tree::Goal(f.clone())))
+                .map(|(n, f, _)| (n.clone(), Tree::Goal(f.clone())))
                 .collect(),
             consequent: Fact {
                 name: q.fact_signature.name.clone(),
@@ -96,6 +97,7 @@ impl Tree {
                 for (n, t) in antecedents {
                     match t {
                         Tree::Axiom(..) => (),
+                        Tree::Collector(_) => (),
                         Tree::Goal(q) => {
                             goal_siblings.push((n.clone(), q.clone()))
                         }
@@ -151,20 +153,25 @@ impl Tree {
         match self {
             Tree::Axiom(fact) => write!(
                 f,
-                "{} {}{} [&leaf]",
+                "{} {}{} [&axiom]",
                 Tree::make_dashes(depth),
                 prefix,
                 crate::syntax::unparse::fact(fact),
             ),
-            Tree::Goal(fact_name) => {
-                write!(
-                    f,
-                    "{} {}*** {}",
-                    Tree::make_dashes(depth),
-                    prefix,
-                    fact_name
-                )
-            }
+            Tree::Collector(fact_name) => write!(
+                f,
+                "{} {}{} [&collector]",
+                Tree::make_dashes(depth),
+                prefix,
+                fact_name,
+            ),
+            Tree::Goal(fact_name) => write!(
+                f,
+                "{} {}*** {}",
+                Tree::make_dashes(depth),
+                prefix,
+                fact_name
+            ),
             Tree::Step {
                 label,
                 antecedents,

@@ -31,21 +31,33 @@ pub mod parse {
     }
 
     pub fn value_type() -> impl P<ValueType> {
-        choice((
-            just("Int").to(ValueType::Int),
-            just("Str").to(ValueType::Str),
-        ))
+        recursive(|value_type| {
+            choice((
+                just("Int").to(ValueType::Int),
+                just("Str").to(ValueType::Str),
+                value_type
+                    .delimited_by(just('['), just(']'))
+                    .map(|vt| ValueType::List(Box::new(vt))),
+            ))
+        })
     }
 
     pub fn value() -> impl P<Value> {
-        choice((
-            text::int(10).map(|s: String| Value::Int(s.parse().unwrap())),
-            none_of("\"")
-                .repeated()
-                .collect()
-                .delimited_by(just('"'), just('"'))
-                .map(|s: String| Value::Str(s)),
-        ))
+        recursive(|value| {
+            choice((
+                text::int(10).map(|s: String| Value::Int(s.parse().unwrap())),
+                none_of("\"")
+                    .repeated()
+                    .collect()
+                    .delimited_by(just('"'), just('"'))
+                    .map(|s: String| Value::Str(s)),
+                value
+                    .padded()
+                    .repeated()
+                    .delimited_by(just('['), just(']'))
+                    .map(Value::List),
+            ))
+        })
     }
 
     pub fn fact_name() -> impl P<FactName> {
@@ -111,10 +123,10 @@ pub mod parse {
 
     pub fn predicate_relation_binop() -> impl P<PredicateRelationBinOp> {
         choice((
-            just("<=").map(|_| PredicateRelationBinOp::Lte),
-            just("<").map(|_| PredicateRelationBinOp::Lt),
-            just("=").map(|_| PredicateRelationBinOp::Eq),
-            just("contains").map(|_| PredicateRelationBinOp::Contains),
+            just("<=").to(PredicateRelationBinOp::Lte),
+            just("<").to(PredicateRelationBinOp::Lt),
+            just("=").to(PredicateRelationBinOp::Eq),
+            just("contains").to(PredicateRelationBinOp::Contains),
         ))
     }
 
@@ -145,14 +157,21 @@ pub mod parse {
             .then(fact_name())
             .padded()
             .then(
-                lower_ident()
-                    .padded()
-                    .then(fact_name())
-                    .padded()
-                    .delimited_by(just('('), just(')'))
-                    .padded()
-                    .repeated()
-                    .delimited_by(just('('), just(')')),
+                choice((
+                    just("forall").to(Mode::ForAll),
+                    just("exists").to(Mode::Exists),
+                    just("").to(Mode::Exists),
+                ))
+                .padded()
+                .then(lower_ident())
+                .padded()
+                .then(fact_name())
+                .padded()
+                .delimited_by(just('('), just(')'))
+                .padded()
+                .map(|((m, x), f)| (x, f, m))
+                .repeated()
+                .delimited_by(just('('), just(')')),
             )
             .padded()
             .then(predicate())
@@ -176,6 +195,7 @@ pub mod parse {
     }
 
     pub fn library() -> impl P<Library> {
+        #[derive(Debug, Clone)]
         enum Sig {
             F(FactSignature),
             C(ComputationSignature),
@@ -184,7 +204,7 @@ pub mod parse {
         choice((
             fact_signature().map(Sig::F),
             computation_signature().map(Sig::C),
-            comment().map(|_| Sig::Comment),
+            comment().to(Sig::Comment),
         ))
         .padded()
         .repeated()
@@ -322,6 +342,13 @@ pub mod unparse {
         )
     }
 
+    pub fn mode(m: &Mode) -> String {
+        match m {
+            Mode::Exists => "exists".to_owned(),
+            Mode::ForAll => "forall".to_owned(),
+        }
+    }
+
     pub fn computation_signature(cs: &ComputationSignature) -> String {
         format!(
             "(computation {} {}\n  {}\n  {})",
@@ -329,7 +356,7 @@ pub mod unparse {
             cs.ret,
             cs.params
                 .iter()
-                .map(|(lhs, rhs)| format!("({} {})", lhs, rhs))
+                .map(|(x, f, m)| format!("({} {} {})", mode(m), x, f))
                 .collect::<Vec<String>>()
                 .join(" "),
             predicate(&cs.precondition),

@@ -1,62 +1,138 @@
+use std::collections::HashSet;
+
 use crate::ir::*;
 
-mod compile {
-    use crate::ir::*;
+struct Compiler {
+    ints: HashSet<i64>,
+    vecs: Vec<Vec<Value>>,
+}
 
-    pub fn value_type(vt: &ValueType) -> String {
-        match vt {
-            ValueType::Int => "i64".to_owned(),
-            ValueType::Str => "String".to_owned(),
-            ValueType::List(vt_inner) => {
-                format!("(Vec {})", value_type(vt_inner))
-            }
+impl Compiler {
+    pub fn new() -> Compiler {
+        Compiler {
+            ints: HashSet::new(),
+            vecs: vec![],
         }
     }
 
-    pub fn fact_signature(fs: &FactSignature) -> String {
+    pub fn header(&self) -> String {
+        let mut output = vec![];
+
+        output.push("(ruleset all)\n".to_owned());
+
+        output.push(";;; Domain compactification\n".to_owned());
+
+        output.push("(relation &Int (i64))".to_owned());
+        output.push("".to_owned());
+        for int in &self.ints {
+            output.push(format!("(rule () ((&Int {})) :ruleset all)", int));
+        }
+
+        output.push("\n(relation &Lt (i64 i64))".to_owned());
+        output.push("(relation &Lte (i64 i64))\n".to_owned());
+        output.push(
+            "(rule ((< x y) (&Int x) (&Int y)) ((&Lt x y)) :ruleset all)"
+                .to_owned(),
+        );
+        output.push("(rule ((&Lt x y)) ((&Lte x y)) :ruleset all)".to_owned());
+        output.push(
+            "(rule ((= x y) (&Int x) (&Int y)) ((&Lte x y)) :ruleset all)"
+                .to_owned(),
+        );
+
+        output.push("\n(relation &IntContains (i64 i64))".to_owned());
+        output.push("(relation &StrContains (i64 String))\n".to_owned());
+        for (i, vec) in self.vecs.iter().enumerate() {
+            let mut seen = HashSet::new();
+            for val in vec {
+                if seen.contains(val) {
+                    continue;
+                }
+                match val {
+                    Value::Int(x) => output.push(format!(
+                        "(rule () ((&IntContains {} {})) :ruleset all)",
+                        i, x
+                    )),
+                    Value::Str(s) => output.push(format!(
+                        "(rule () ((&StrContains {} \"{}\")) :ruleset all)",
+                        i, s
+                    )),
+                    Value::List(_) => panic!("Nested vectors not supported"),
+                }
+                seen.insert(val);
+            }
+            output.push("".to_owned());
+        }
+
+        output.join("\n")
+    }
+
+    pub fn value_type(&self, vt: &ValueType) -> String {
+        match vt {
+            ValueType::Int => "i64".to_owned(),
+            ValueType::Str => "String".to_owned(),
+            ValueType::List(_) => "i64".to_owned(), // Pointers
+        }
+    }
+
+    pub fn fact_signature(&self, fs: &FactSignature) -> String {
         format!(
             "(relation {} ({}))",
             fs.name,
             fs.params
                 .iter()
-                .map(|(_, vt)| value_type(vt))
+                .map(|(_, vt)| self.value_type(vt))
                 .collect::<Vec<String>>()
                 .join(" ")
         )
     }
 
-    pub fn predicate_atom(pa: &PredicateAtom) -> String {
+    pub fn predicate_atom(&mut self, pa: &PredicateAtom) -> String {
         match pa {
             PredicateAtom::Select { selector, arg } => {
                 format!("{}*{}", arg, selector)
             }
-            PredicateAtom::Const(v) => value(v),
+            PredicateAtom::Const(v) => self.value(v),
         }
     }
 
-    pub fn predicate_relation_binop(op: &PredicateRelationBinOp) -> String {
+    pub fn predicate_relation_binop(
+        &mut self,
+        op: &PredicateRelationBinOp,
+        rhs_type: Option<ValueType>,
+    ) -> String {
         match op {
             PredicateRelationBinOp::Eq => "=".to_owned(),
-            PredicateRelationBinOp::Lt => "<".to_owned(),
-            PredicateRelationBinOp::Lte => "<=".to_owned(),
-            PredicateRelationBinOp::Contains => "vec-contains".to_owned(),
+            PredicateRelationBinOp::Lt => "&Lt".to_owned(),
+            PredicateRelationBinOp::Lte => "&Lte".to_owned(),
+            PredicateRelationBinOp::Contains => match rhs_type {
+                Some(ValueType::Int) => "&IntContains".to_owned(),
+                Some(ValueType::Str) => "&StrContains".to_owned(),
+                _ => panic!("Unknown contains type"),
+            },
         }
     }
 
-    pub fn predicate_relation(pr: &PredicateRelation) -> String {
+    pub fn predicate_relation(
+        &mut self,
+        lib: &Library,
+        params: &Vec<(String, FactName, Mode)>,
+        pr: &PredicateRelation,
+    ) -> String {
         match pr {
-            PredicateRelation::BinOp(pk, lhs, rhs) => {
+            PredicateRelation::BinOp(op, lhs, rhs) => {
                 format!(
                     "({} {} {})",
-                    predicate_relation_binop(pk),
-                    predicate_atom(lhs),
-                    predicate_atom(rhs)
+                    self.predicate_relation_binop(op, rhs.typ(lib, params)),
+                    self.predicate_atom(lhs),
+                    self.predicate_atom(rhs),
                 )
             }
         }
     }
 
     pub fn computation_signature(
+        &mut self,
         lib: &Library,
         cs: &ComputationSignature,
         ret_fact_signature: Option<&FactSignature>,
@@ -66,7 +142,7 @@ mod compile {
             cs.name,
             cs.params
                 .iter()
-                .map(|(p, fact_name)| format!(
+                .map(|(p, fact_name, _)| format!(
                     "({} {})",
                     fact_name,
                     lib.fact_signature(fact_name)
@@ -81,7 +157,7 @@ mod compile {
                 .join("\n   "),
             cs.precondition
                 .iter()
-                .map(predicate_relation)
+                .map(|pr| self.predicate_relation(lib, &cs.params, pr))
                 .collect::<Vec<String>>()
                 .join("\n   "),
             cs.ret,
@@ -97,18 +173,21 @@ mod compile {
         )
     }
 
-    pub fn value(v: &Value) -> String {
+    pub fn value(&mut self, v: &Value) -> String {
         match v {
-            Value::Int(x) => format!("{}", x),
+            Value::Int(x) => {
+                self.ints.insert(*x);
+                format!("{}", x)
+            }
             Value::Str(s) => format!("\"{}\"", s),
-            Value::List(args) => format!(
-                "(vec-of {})",
-                args.iter().map(value).collect::<Vec<_>>().join(" ")
-            ),
+            Value::List(args) => {
+                self.vecs.push(args.clone());
+                format!("{}", self.vecs.len() - 1)
+            }
         }
     }
 
-    pub fn fact(lib: &Library, f: &Fact) -> String {
+    pub fn fact(&mut self, lib: &Library, f: &Fact) -> String {
         format!(
             "({} {})",
             f.name,
@@ -120,7 +199,7 @@ mod compile {
                     .args
                     .iter()
                     .find_map(|(a, v)| if a == p {
-                        Some(value(v))
+                        Some(self.value(v))
                     } else {
                         None
                     })
@@ -130,11 +209,11 @@ mod compile {
         )
     }
 
-    pub fn query(lib: &Library, q: &Query) -> String {
+    pub fn query(&mut self, lib: &Library, q: &Query) -> String {
         format!(
             "{}\n\n{}",
-            fact_signature(&q.fact_signature),
-            computation_signature(
+            self.fact_signature(&q.fact_signature),
+            self.computation_signature(
                 lib,
                 &q.computation_signature,
                 Some(&q.fact_signature)
@@ -144,32 +223,35 @@ mod compile {
 }
 
 pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
-    let mut output = vec![];
+    let mut c = Compiler::new();
+
+    let mut body = vec![];
+
+    body.push(";;; Fact signatures\n".to_owned());
 
     for fs in &lib.fact_signatures {
-        output.push(compile::fact_signature(fs));
+        body.push(c.fact_signature(fs));
     }
 
-    output.push("\n(ruleset all)\n".to_owned());
+    body.push("\n;;; Computation signatures\n".to_owned());
 
     for cs in &lib.computation_signatures {
-        output.push(compile::computation_signature(lib, cs, None))
+        body.push(c.computation_signature(lib, cs, None));
+        body.push("".to_owned());
     }
-
-    output.push("".to_owned());
 
     for f in facts.iter() {
-        output.push(compile::fact(lib, f));
+        body.push(c.fact(lib, f));
     }
 
-    output.push("".to_owned());
+    body.push("".to_owned());
 
-    output.push(compile::query(lib, q));
+    body.push(c.query(lib, q));
 
-    output.push("\n(run-schedule (saturate all))\n".to_owned());
-    output.push(format!("(print-function {} 1000)", q.fact_signature.name));
+    body.push("\n(run-schedule (saturate all))\n".to_owned());
+    body.push(format!("(print-function {} 1000)", q.fact_signature.name));
 
-    return output.join("\n");
+    format!("{}\n{}", c.header(), body.join("\n"))
 }
 
 mod parse {
@@ -208,7 +290,7 @@ mod parse {
 
     pub fn output(fs: &FactSignature) -> impl P<Vec<Assignment>> {
         choice((
-            just('(').padded().then(just(')').padded()).map(|_| vec![]),
+            just('(').padded().then(just(')').padded()).to(vec![]),
             entry(fs)
                 .padded()
                 .repeated()
