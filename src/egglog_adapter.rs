@@ -28,17 +28,23 @@ impl Compiler {
             output.push(format!("(rule () ((&Int {})) :ruleset all)", int));
         }
 
-        output.push("\n(relation &Lt (i64 i64))".to_owned());
-        output.push("(relation &Lte (i64 i64))\n".to_owned());
-        output.push(
-            "(rule ((< x y) (&Int x) (&Int y)) ((&Lt x y)) :ruleset all)"
-                .to_owned(),
-        );
-        output.push("(rule ((&Lt x y)) ((&Lte x y)) :ruleset all)".to_owned());
-        output.push(
-            "(rule ((= x y) (&Int x) (&Int y)) ((&Lte x y)) :ruleset all)"
-                .to_owned(),
-        );
+        output.push("(relation &Pointer (i64))".to_owned());
+        output.push("".to_owned());
+        for i in 0..self.vecs.len() {
+            output.push(format!("(rule () ((&Pointer {})) :ruleset all)", i));
+        }
+
+        // output.push("\n(relation &Lt (i64 i64))".to_owned());
+        // output.push("(relation &Lte (i64 i64))\n".to_owned());
+        // output.push(
+        //     "(rule ((< x y) (&Int x) (&Int y)) ((&Lt x y)) :ruleset all)"
+        //         .to_owned(),
+        // );
+        // output.push("(rule ((&Lt x y)) ((&Lte x y)) :ruleset all)".to_owned());
+        // output.push(
+        //     "(rule ((= x y) (&Int x) (&Int y)) ((&Lte x y)) :ruleset all)"
+        //         .to_owned(),
+        // );
 
         output.push("\n(relation &IntContains (i64 i64))".to_owned());
         output.push("(relation &StrContains (i64 String))\n".to_owned());
@@ -103,8 +109,8 @@ impl Compiler {
     ) -> String {
         match op {
             PredicateRelationBinOp::Eq => "=".to_owned(),
-            PredicateRelationBinOp::Lt => "&Lt".to_owned(),
-            PredicateRelationBinOp::Lte => "&Lte".to_owned(),
+            PredicateRelationBinOp::Lt => "<".to_owned(),
+            PredicateRelationBinOp::Lte => "<=".to_owned(),
             PredicateRelationBinOp::Contains => match rhs_type {
                 Some(ValueType::Int) => "&IntContains".to_owned(),
                 Some(ValueType::Str) => "&StrContains".to_owned(),
@@ -137,6 +143,39 @@ impl Compiler {
         cs: &ComputationSignature,
         ret_fact_signature: Option<&FactSignature>,
     ) -> String {
+        let mut int_params = vec![];
+        let mut pointer_params = vec![];
+
+        for (x, f, m) in &cs.params {
+            for (selector, vt) in &lib.fact_signature(f).unwrap().params {
+                match vt {
+                    ValueType::Int => {
+                        int_params.push(format!("{}*{}", x, selector))
+                    }
+                    ValueType::Str => (),
+                    ValueType::List(_) => {
+                        pointer_params.push(format!("{}*{}", x, selector))
+                    }
+                }
+            }
+        }
+
+        let ret_fact_signature = (match ret_fact_signature {
+            Some(fs) => fs,
+            None => lib.fact_signature(&cs.ret).unwrap(),
+        });
+
+        for (selector, vt) in &ret_fact_signature.params {
+            // TODO: duplicate code
+            match vt {
+                ValueType::Int => int_params.push(format!("ret*{}", selector)),
+                ValueType::Str => (),
+                ValueType::List(_) => {
+                    pointer_params.push(format!("ret*{}", selector))
+                }
+            }
+        }
+
         format!(
             "; {}\n(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
             cs.name,
@@ -158,18 +197,19 @@ impl Compiler {
             cs.precondition
                 .iter()
                 .map(|pr| self.predicate_relation(lib, &cs.params, pr))
+                .chain(int_params.iter().map(|x| format!("(&Int {})", x)))
+                .chain(
+                    pointer_params.iter().map(|x| format!("(&Pointer {})", x))
+                )
                 .collect::<Vec<String>>()
                 .join("\n   "),
             cs.ret,
-            (match ret_fact_signature {
-                Some(fs) => fs,
-                None => lib.fact_signature(&cs.ret).unwrap(),
-            })
-            .params
-            .iter()
-            .map(|(p, _)| format!("{}*{}", Query::RET, p))
-            .collect::<Vec<String>>()
-            .join(" "),
+            ret_fact_signature
+                .params
+                .iter()
+                .map(|(p, _)| format!("{}*{}", Query::RET, p))
+                .collect::<Vec<String>>()
+                .join(" "),
         )
     }
 
