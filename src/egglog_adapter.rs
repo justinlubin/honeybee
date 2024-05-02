@@ -143,27 +143,35 @@ impl Compiler {
         cs: &ComputationSignature,
         ret_fact_signature: Option<&FactSignature>,
     ) -> String {
+        let ret_fact_signature = match ret_fact_signature {
+            Some(fs) => fs,
+            None => lib.fact_signature(&cs.ret).unwrap(),
+        };
+
+        let mut forall_params = HashSet::new();
         let mut int_params = vec![];
         let mut pointer_params = vec![];
 
         for (x, f, m) in &cs.params {
-            for (selector, vt) in &lib.fact_signature(f).unwrap().params {
-                match vt {
-                    ValueType::Int => {
-                        int_params.push(format!("{}*{}", x, selector))
-                    }
-                    ValueType::Str => (),
-                    ValueType::List(_) => {
-                        pointer_params.push(format!("{}*{}", x, selector))
+            match m {
+                Mode::ForAll => {
+                    forall_params.insert(x.clone());
+                }
+                Mode::Exists => {
+                    for (selector, vt) in &lib.fact_signature(f).unwrap().params
+                    {
+                        match vt {
+                            ValueType::Int => {
+                                int_params.push(format!("{}*{}", x, selector))
+                            }
+                            ValueType::Str => (),
+                            ValueType::List(_) => pointer_params
+                                .push(format!("{}*{}", x, selector)),
+                        }
                     }
                 }
             }
         }
-
-        let ret_fact_signature = (match ret_fact_signature {
-            Some(fs) => fs,
-            None => lib.fact_signature(&cs.ret).unwrap(),
-        });
 
         for (selector, vt) in &ret_fact_signature.params {
             // TODO: duplicate code
@@ -181,22 +189,32 @@ impl Compiler {
             cs.name,
             cs.params
                 .iter()
-                .map(|(p, fact_name, _)| format!(
-                    "({} {})",
-                    fact_name,
-                    lib.fact_signature(fact_name)
-                        .unwrap()
-                        .params
-                        .iter()
-                        .map(|(pp, _)| format!("{}*{}", p, pp))
-                        .collect::<Vec<String>>()
-                        .join(" "),
-                ))
+                .filter_map(|(p, fact_name, _)| if forall_params.contains(p) {
+                    None
+                } else {
+                    Some(format!(
+                        "({} {})",
+                        fact_name,
+                        lib.fact_signature(fact_name)
+                            .unwrap()
+                            .params
+                            .iter()
+                            .map(|(pp, _)| format!("{}*{}", p, pp))
+                            .collect::<Vec<String>>()
+                            .join(" "),
+                    ))
+                })
                 .collect::<Vec<String>>()
                 .join("\n   "),
             cs.precondition
                 .iter()
-                .map(|pr| self.predicate_relation(lib, &cs.params, pr))
+                .filter_map(|pr| {
+                    if pr.free_variables().is_disjoint(&forall_params) {
+                        Some(self.predicate_relation(lib, &cs.params, pr))
+                    } else {
+                        None
+                    }
+                })
                 .chain(int_params.iter().map(|x| format!("(&Int {})", x)))
                 .chain(
                     pointer_params.iter().map(|x| format!("(&Pointer {})", x))

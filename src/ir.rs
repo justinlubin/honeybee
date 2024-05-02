@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 #[derive(Debug, Clone)]
 pub enum ValueType {
     Int,
@@ -12,7 +15,7 @@ pub enum Value {
     List(Vec<Value>),
 }
 
-pub type Assignment = std::collections::HashMap<String, Value>;
+pub type Assignment = HashMap<String, Value>;
 
 pub type FactName = String;
 
@@ -67,6 +70,17 @@ impl PredicateAtom {
                     })
                 }),
             PredicateAtom::Const(_) => None,
+        }
+    }
+
+    pub fn free_variables(&self) -> HashSet<String> {
+        match self {
+            PredicateAtom::Select { arg, .. } => {
+                let mut hs: HashSet<String> = HashSet::new();
+                hs.insert(arg.clone());
+                hs
+            }
+            PredicateAtom::Const(_) => HashSet::new(),
         }
     }
 
@@ -163,6 +177,16 @@ impl PredicateRelation {
             ret = ret.substitute(selector, arg, rhs);
         }
         ret
+    }
+
+    pub fn free_variables(&self) -> HashSet<String> {
+        match self {
+            PredicateRelation::BinOp(_, left, right) => left
+                .free_variables()
+                .union(&right.free_variables())
+                .cloned()
+                .collect(),
+        }
     }
 }
 
