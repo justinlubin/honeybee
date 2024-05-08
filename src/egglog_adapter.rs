@@ -4,6 +4,7 @@ use crate::ir::*;
 
 struct Compiler {
     ints: HashSet<i64>,
+    strings: HashSet<String>,
     vecs: Vec<Vec<Value>>,
 }
 
@@ -11,6 +12,7 @@ impl Compiler {
     pub fn new() -> Compiler {
         Compiler {
             ints: HashSet::new(),
+            strings: HashSet::new(),
             vecs: vec![],
         }
     }
@@ -28,23 +30,20 @@ impl Compiler {
             output.push(format!("(rule () ((&Int {})) :ruleset all)", int));
         }
 
+        output.push("(relation &Str (String))".to_owned());
+        output.push("".to_owned());
+        for string in &self.strings {
+            output.push(format!(
+                "(rule () ((&Str \"{}\")) :ruleset all)",
+                string
+            ));
+        }
+
         output.push("(relation &Pointer (i64))".to_owned());
         output.push("".to_owned());
         for i in 0..self.vecs.len() {
             output.push(format!("(rule () ((&Pointer {})) :ruleset all)", i));
         }
-
-        // output.push("\n(relation &Lt (i64 i64))".to_owned());
-        // output.push("(relation &Lte (i64 i64))\n".to_owned());
-        // output.push(
-        //     "(rule ((< x y) (&Int x) (&Int y)) ((&Lt x y)) :ruleset all)"
-        //         .to_owned(),
-        // );
-        // output.push("(rule ((&Lt x y)) ((&Lte x y)) :ruleset all)".to_owned());
-        // output.push(
-        //     "(rule ((= x y) (&Int x) (&Int y)) ((&Lte x y)) :ruleset all)"
-        //         .to_owned(),
-        // );
 
         output.push("\n(relation &IntContains (i64 i64))".to_owned());
         output.push("(relation &StrContains (i64 String))\n".to_owned());
@@ -150,6 +149,7 @@ impl Compiler {
 
         let mut forall_params = HashSet::new();
         let mut int_params = vec![];
+        let mut string_params = vec![];
         let mut pointer_params = vec![];
 
         for (x, f, m) in &cs.params {
@@ -164,7 +164,8 @@ impl Compiler {
                             ValueType::Int => {
                                 int_params.push(format!("{}*{}", x, selector))
                             }
-                            ValueType::Str => (),
+                            ValueType::Str => string_params
+                                .push(format!("{}*{}", x, selector)),
                             ValueType::List(_) => pointer_params
                                 .push(format!("{}*{}", x, selector)),
                         }
@@ -177,7 +178,9 @@ impl Compiler {
             // TODO: duplicate code
             match vt {
                 ValueType::Int => int_params.push(format!("ret*{}", selector)),
-                ValueType::Str => (),
+                ValueType::Str => {
+                    string_params.push(format!("ret*{}", selector))
+                }
                 ValueType::List(_) => {
                     pointer_params.push(format!("ret*{}", selector))
                 }
@@ -216,6 +219,7 @@ impl Compiler {
                     }
                 })
                 .chain(int_params.iter().map(|x| format!("(&Int {})", x)))
+                .chain(string_params.iter().map(|x| format!("(&Str {})", x)))
                 .chain(
                     pointer_params.iter().map(|x| format!("(&Pointer {})", x))
                 )
@@ -237,7 +241,10 @@ impl Compiler {
                 self.ints.insert(*x);
                 format!("{}", x)
             }
-            Value::Str(s) => format!("\"{}\"", s),
+            Value::Str(s) => {
+                self.strings.insert(s.clone());
+                format!("\"{}\"", s)
+            }
             Value::List(args) => {
                 self.vecs.push(args.clone());
                 format!("{}", self.vecs.len() - 1)

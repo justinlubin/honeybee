@@ -7,20 +7,28 @@ endif
 
 let b:current_syntax = "cea"
 
-syn keyword ceaKeywords annotation analysis computation annotations goal ret forall exists
+syn keyword ceaKeywords annotation analysis computation annotations goal ret exists
 hi def link ceaKeywords Keyword
 
 syn keyword ceaComputationKeyword computation nextgroup=ceaComputationName skipwhite
 hi def link ceaComputationKeyword Keyword
+
+syn match ceaComputationName '[a-z][A-Za-z_\-0-9]*'
+hi def link ceaComputationName Special
+syn match _ceaComputationName '[a-z][A-Za-z_\-0-9]*'
+
+syn keyword ceaForAllKeyword forall nextgroup=ceaForAllPlus
+hi def link ceaForAllKeyword Keyword
+
+syn match ceaForAllPlus '+'
+hi def link ceaForAllPlus Keyword
+syn match _ceaForAllPlus '+'
 
 syn region ceaString start='"' end='"'
 hi def link ceaString String
 
 syn match ceaComment ";.*$"
 hi def link ceaComment Comment
-
-syn match ceaComputationName '[a-z][A-Za-z_\-0-9]*'
-hi def link ceaComputationName Special
 
 syn match ceaOp '[=<]'
 hi def link ceaOp Statement

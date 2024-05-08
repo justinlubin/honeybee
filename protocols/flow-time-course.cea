@@ -12,6 +12,4 @@
   (Flow (.sample "CRISPRoff") (.at 10) (.data "data.csv:B2")))
 
 (goal
-  (Flow-Time-Course
-    (.samples ["dCas9" "CRISPRoff"])
-    (.from 3) (.to 10)))
+  (Flow-Time-Course (.from 3) (.to 10)))

@@ -53,31 +53,39 @@
 ; Flow cytometry time course
 
 (analysis Flow-Time-Course
-  (.samples [Str]) (.from Int) (.to Int))
+  (.from Int) (.to Int))
 
 (computation flow_time_course Flow-Time-Course
   ((forall f Flow))
-  ((contains (.samples ret) (.sample f))
-   (<= (.from ret) (.at f))
+  ((<= (.from ret) (.at f))
    (<= (.at f) (.to ret))))
 
 ; Bulk RNA-seq analysis
 
 (analysis Read-Count-Matrix
-  (.samples [Str]) (.at Int))
+  (.at Int))
 
 (analysis QC-Read-Count-Matrix
-  (.samples [Str]) (.at Int))
+  (.at Int))
 
 (analysis Batch-Corrected-Read-Count-Matrix
-  (.samples [Str]) (.at Int))
+  (.at Int))
 
 (analysis Differential-Gene-Expression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
 (computation bulk_quantify Read-Count-Matrix
-  ((forall r RNA-Seq))
-  ((contains (.samples ret) (.sample q1))
-   (= (.sample2 ret) (.sample q2))
-   (= (.at ret) (.at q1))
-   (= (.at q1) (.at q2))))
+  ((forall+ r RNA-Seq))
+  ((= (.at ret) (.at r))))
+
+(computation rna_qc QC-Read-Count-Matrix
+  ((rcm Read-Count-Matrix))
+  ((= (.at ret) (.at rcm))))
+
+(computation rna_bc Batch-Corrected-Read-Count-Matrix
+  ((qc QC-Read-Count-Matrix))
+  ((= (.at ret) (.at qc))))
+
+(computation deseq2 Differential-Gene-Expression
+  ((bc Batch-Corrected-Read-Count-Matrix))
+  ((= (.at ret) (.at bc))))
