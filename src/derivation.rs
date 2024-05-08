@@ -42,7 +42,7 @@ impl Tree {
         Tree::from_query(&Query::from_fact(top_level_goal)).unwrap()
     }
 
-    pub fn replace(&self, path: &[&str], subtree: &Tree) -> Option<Tree> {
+    pub fn replace(&self, path: &[String], subtree: &Tree) -> Option<Tree> {
         match path.last() {
             Some(name) => match self {
                 Tree::Step {
@@ -83,6 +83,62 @@ impl Tree {
         }
     }
 
+    pub fn add_side_condition(
+        &self,
+        path: &[String],
+        additional_condition: &Predicate,
+    ) -> Tree {
+        match path.last() {
+            Some(name) => match self {
+                Tree::Step {
+                    label,
+                    antecedents,
+                    consequent,
+                    side_condition,
+                } => Tree::Step {
+                    label: label.clone(),
+                    antecedents: antecedents
+                        .iter()
+                        .map(|(x, t)| {
+                            if x == name {
+                                (
+                                    x.clone(),
+                                    t.add_side_condition(
+                                        &path[..path.len() - 1],
+                                        additional_condition,
+                                    ),
+                                )
+                            } else {
+                                (x.clone(), t.clone())
+                            }
+                        })
+                        .collect(),
+                    consequent: consequent.clone(),
+                    side_condition: side_condition.clone(),
+                },
+                _ => panic!("Invalid path for tree"),
+            },
+            None => match self {
+                Tree::Step {
+                    label,
+                    antecedents,
+                    consequent,
+                    side_condition,
+                } => Tree::Step {
+                    label: label.clone(),
+                    antecedents: antecedents.clone(),
+                    consequent: consequent.clone(),
+                    side_condition: side_condition
+                        .iter()
+                        .cloned()
+                        .chain(additional_condition.clone())
+                        .collect(),
+                },
+                _ => panic!("Invalid path for tree (ends in non-step)"),
+            },
+        }
+    }
+
     pub fn queries(&self, lib: &Library) -> Vec<(Vec<String>, Query)> {
         match self {
             Tree::Step {
@@ -119,6 +175,8 @@ impl Tree {
                             side_condition
                                 .iter()
                                 .map(|pr| {
+                                    // TODO: probably don't need to substitute; just add more
+                                    // equality constraints?
                                     pr.substitute_all(
                                         consequent
                                             .args

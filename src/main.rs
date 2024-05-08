@@ -1,3 +1,4 @@
+mod analysis;
 mod derivation;
 mod egglog_adapter;
 mod ir;
@@ -31,10 +32,18 @@ fn main() {
                         return;
                     }
 
-                    // let s = synthesis::Synthesizer::new(&prog.goal);
+                    let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
-                    // println!("{}\n", s.tree);
-                    // println!("{:?}\n", s.options(&lib, &prog));
+                    loop {
+                        let options = s.options();
+                        if options.is_empty() {
+                            break;
+                        }
+                        let choice = analysis::auto(options);
+                        s.step(&choice);
+                    }
+
+                    println!("{}\n", s.tree);
                 }
                 Err(errs) => errs
                     .iter()

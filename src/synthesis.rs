@@ -4,8 +4,10 @@ use crate::egglog_adapter;
 use crate::ir::*;
 
 #[derive(Debug, Clone)]
-pub struct Synthesizer {
+pub struct Synthesizer<'a> {
     pub tree: derivation::Tree,
+    lib: &'a Library,
+    prog: &'a Program,
 }
 
 // pub enum Msg {
@@ -26,16 +28,26 @@ pub struct GoalOption {
     computation_options: Vec<ComputationOption>,
 }
 
-impl Synthesizer {
-    pub fn new(top_level_goal: &Fact) -> Synthesizer {
+#[derive(Debug, Clone)]
+pub struct Choice {
+    pub goal: usize,
+    pub computation: usize,
+    pub assignment: usize,
+}
+
+impl<'a> Synthesizer<'a> {
+    pub fn new(lib: &'a Library, prog: &'a Program) -> Synthesizer<'a> {
         Synthesizer {
-            tree: derivation::Tree::new(top_level_goal),
+            tree: derivation::Tree::new(&prog.goal),
+            lib,
+            prog,
         }
     }
 
-    pub fn options(&self, lib: &Library, prog: &Program) -> Vec<GoalOption> {
+    // TODO: cache this if slow?
+    pub fn options(&self) -> Vec<GoalOption> {
         self.tree
-            .queries(lib)
+            .queries(self.lib)
             .into_iter()
             .flat_map(|(path, query)| {
                 query
@@ -43,14 +55,15 @@ impl Synthesizer {
                     .params
                     .iter()
                     .map(|(cut_param, goal_fact_name, _)| GoalOption {
-                        computation_options: lib
+                        computation_options: self
+                            .lib
                             .matching_computation_signatures(goal_fact_name)
                             .into_iter()
                             .map(|lemma| ComputationOption {
                                 assignment_options: egglog_adapter::query(
-                                    lib,
-                                    &prog.annotations,
-                                    &query.cut(lib, cut_param, lemma),
+                                    self.lib,
+                                    &self.prog.annotations,
+                                    &query.cut(self.lib, cut_param, lemma),
                                 ),
                                 name: lemma.name.clone(),
                             })
@@ -61,6 +74,68 @@ impl Synthesizer {
                     .collect::<Vec<_>>()
             })
             .collect()
+    }
+
+    pub fn step(&mut self, choice: &Choice) {
+        let ops = self.options();
+
+        let goal_path = &ops[choice.goal].path;
+        let goal_tag = &ops[choice.goal].tag;
+
+        let computation_name =
+            &ops[choice.goal].computation_options[choice.computation].name;
+
+        let assignment = &ops[choice.goal].computation_options
+            [choice.computation]
+            .assignment_options[choice.assignment];
+
+        let cs = self.lib.computation_signature(&computation_name).unwrap();
+
+        let mut ret_args = vec![];
+        let mut additional_condition = vec![];
+
+        for (lhs, rhs) in assignment {
+            let components = lhs
+                .strip_prefix("fv%")
+                .unwrap()
+                .split("*")
+                .collect::<Vec<&str>>();
+
+            assert!(components.len() == 2);
+
+            let selector = components[0].to_owned();
+            let arg = components[1].to_owned();
+
+            if selector == *goal_tag {
+                ret_args.push((arg.clone(), rhs.clone()))
+            } else {
+                additional_condition.push(PredicateRelation::BinOp(
+                    PredicateRelationBinOp::Eq,
+                    PredicateAtom::Select { selector, arg },
+                    PredicateAtom::Const(rhs.clone()),
+                ))
+            }
+        }
+
+        let new_subtree = derivation::Tree::Step {
+            label: cs.name.clone(),
+            antecedents: cs
+                .params
+                .iter()
+                .map(|(p, fact_name, mode)| todo!())
+                .collect(),
+            consequent: Fact {
+                name: cs.ret.clone(),
+                args: ret_args,
+            },
+            side_condition: cs.precondition.clone(),
+        };
+
+        self.tree = self
+            .tree
+            .replace(&goal_path[..], &new_subtree)
+            .unwrap()
+            .add_side_condition(&goal_path[..], &additional_condition);
     }
 
     // fn step(&self) {}
