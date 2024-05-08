@@ -196,6 +196,7 @@ pub type Predicate = Vec<PredicateRelation>;
 pub enum Mode {
     Exists,
     ForAll,
+    ForAllPlus,
 }
 
 #[derive(Debug, Clone)]

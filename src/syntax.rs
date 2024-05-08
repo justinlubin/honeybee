@@ -158,6 +158,7 @@ pub mod parse {
             .padded()
             .then(
                 choice((
+                    just("forall+").to(Mode::ForAllPlus),
                     just("forall").to(Mode::ForAll),
                     just("exists").to(Mode::Exists),
                     just("").to(Mode::Exists),
@@ -346,6 +347,7 @@ pub mod unparse {
         match m {
             Mode::Exists => "exists".to_owned(),
             Mode::ForAll => "forall".to_owned(),
+            Mode::ForAllPlus => "forall+".to_owned(),
         }
     }
 

@@ -157,7 +157,7 @@ impl Compiler {
                 Mode::ForAll => {
                     forall_params.insert(x.clone());
                 }
-                Mode::Exists => {
+                Mode::Exists | Mode::ForAllPlus => {
                     for (selector, vt) in &lib.fact_signature(f).unwrap().params
                     {
                         match vt {
