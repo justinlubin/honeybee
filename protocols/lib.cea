@@ -12,6 +12,9 @@
 (annotation Flow
   (.sample Str) (.at Int) (.data Str))
 
+(annotation RNA-Seq
+  (.sample Str) (.at Int) (.data Str))
+
 ; Gene quantification
 
 (analysis Gene-Quantification
@@ -57,3 +60,24 @@
   ((contains (.samples ret) (.sample f))
    (<= (.from ret) (.at f))
    (<= (.at f) (.to ret))))
+
+; Bulk RNA-seq analysis
+
+(analysis Read-Count-Matrix
+  (.samples [Str]) (.at Int))
+
+(analysis QC-Read-Count-Matrix
+  (.samples [Str]) (.at Int))
+
+(analysis Batch-Corrected-Read-Count-Matrix
+  (.samples [Str]) (.at Int))
+
+(analysis Differential-Gene-Expression
+  (.sample1 Str) (.sample2 Str) (.at Int))
+
+(computation bulk_quantify Read-Count-Matrix
+  ((forall r RNA-Seq))
+  ((contains (.samples ret) (.sample q1))
+   (= (.sample2 ret) (.sample q2))
+   (= (.at ret) (.at q1))
+   (= (.at q1) (.at q2))))
