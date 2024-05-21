@@ -26,22 +26,8 @@ impl Tree {
             antecedents: cs
                 .params
                 .iter()
-                .filter_map(|(p, fact_name, mode)| match mode {
-                    Mode::Exists | Mode::ForAllPlus => {
-                        match lib.fact_signature(fact_name).unwrap().kind {
-                            FactKind::Annotation => Some((
-                                p.clone(),
-                                Tree::Axiom(Fact {
-                                    name: fact_name.clone(),
-                                    args: todo!(),
-                                }),
-                            )),
-                            FactKind::Analysis => {
-                                Some((p.clone(), Tree::Goal(fact_name.clone())))
-                            }
-                        }
-                    }
-                    Mode::ForAll => todo!(),
+                .filter_map(|(p, fact_name, _mode)| {
+                    Some((p.clone(), Tree::Goal(fact_name.clone())))
                 })
                 .collect(),
             consequent: Fact {
