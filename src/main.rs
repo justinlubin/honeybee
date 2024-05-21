@@ -35,6 +35,7 @@ fn main() {
                     let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
                     loop {
+                        println!("STAGE:\n{}\n-------------====----\n", s.tree);
                         let options = s.options();
                         if options.is_empty() {
                             break;

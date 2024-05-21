@@ -16,8 +16,7 @@ pub enum Tree {
 }
 
 impl Tree {
-    pub fn make_step(
-        lib: &Library,
+    pub fn step(
         cs: &ComputationSignature,
         ret_args: Vec<(String, Value)>,
     ) -> Tree {
@@ -28,18 +27,7 @@ impl Tree {
                 .iter()
                 .filter_map(|(p, fact_name, mode)| match mode {
                     Mode::Exists | Mode::ForAllPlus => {
-                        match lib.fact_signature(fact_name).unwrap().kind {
-                            FactKind::Annotation => Some((
-                                p.clone(),
-                                Tree::Axiom(Fact {
-                                    name: fact_name.clone(),
-                                    args: todo!(),
-                                }),
-                            )),
-                            FactKind::Analysis => {
-                                Some((p.clone(), Tree::Goal(fact_name.clone())))
-                            }
-                        }
+                        Some((p.clone(), Tree::Goal(fact_name.clone())))
                     }
                     Mode::ForAll => todo!(),
                 })
@@ -78,7 +66,7 @@ impl Tree {
     }
 
     pub fn replace(&self, path: &[String], subtree: &Tree) -> Tree {
-        match path.first() {
+        match path.last() {
             Some(name) => match self {
                 Tree::Step {
                     label,
@@ -96,7 +84,10 @@ impl Tree {
                             if n == name {
                                 ret.push((
                                     n.clone(),
-                                    t.replace(&path[1..], subtree),
+                                    t.replace(
+                                        &path[..path.len() - 1],
+                                        subtree,
+                                    )?,
                                 ));
                                 count += 1;
                             } else {
@@ -104,14 +95,14 @@ impl Tree {
                             }
                         }
                         if count == 0 {
-                            panic!("Selector name not found: {}", name)
+                            panic!("Selector name not found: {}", n)
                         }
                         ret
                     },
                 },
-                _ => panic!("Path on non-step"),
+                _ => None,
             },
-            None => subtree.clone(),
+            None => Some(subtree.clone()),
         }
     }
 
@@ -120,7 +111,7 @@ impl Tree {
         path: &[String],
         additional_condition: &Predicate,
     ) -> Tree {
-        match path.first() {
+        match path.last() {
             Some(name) => match self {
                 Tree::Step {
                     label,
@@ -190,8 +181,7 @@ impl Tree {
                         }
                         Tree::Step { .. } => {
                             for (mut path, q) in t.queries(lib) {
-                                // TODO: possibly inefficient
-                                path.insert(0, n.clone());
+                                path.push(n.clone());
                                 ret.push((path, q))
                             }
                         }

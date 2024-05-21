@@ -10,11 +10,6 @@ pub struct Synthesizer<'a> {
     prog: &'a Program,
 }
 
-// pub enum Msg {
-//     Success,
-//     InvalidBreadcrumbs,
-// }
-
 #[derive(Debug, Clone)]
 pub struct ComputationOption {
     name: String,
@@ -117,24 +112,16 @@ impl<'a> Synthesizer<'a> {
             }
         }
 
-        let new_subtree = derivation::Tree::Step {
-            label: cs.name.clone(),
-            antecedents: cs
-                .params
-                .iter()
-                .map(|(p, fact_name, mode)| todo!())
-                .collect(),
-            consequent: Fact {
-                name: cs.ret.clone(),
-                args: ret_args,
-            },
-            side_condition: cs.precondition.clone(),
-        };
-
         self.tree = self
             .tree
-            .replace(&goal_path[..], &new_subtree)
-            .unwrap()
+            .replace(
+                &goal_path
+                    .iter()
+                    .cloned()
+                    .chain(std::iter::once(goal_tag.clone()))
+                    .collect::<Vec<String>>(),
+                &derivation::Tree::make_step(self.lib, cs, ret_args),
+            )
             .add_side_condition(&goal_path[..], &additional_condition);
     }
 
