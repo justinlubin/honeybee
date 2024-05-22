@@ -16,8 +16,7 @@ pub enum Tree {
 }
 
 impl Tree {
-    pub fn make_step(
-        lib: &Library,
+    pub fn from_computation_signature(
         cs: &ComputationSignature,
         ret_args: Vec<(String, Value)>,
     ) -> Tree {
@@ -59,7 +58,7 @@ impl Tree {
         })
     }
 
-    pub fn new(top_level_goal: &Fact) -> Tree {
+    pub fn from_goal(top_level_goal: &Fact) -> Tree {
         Tree::from_query(&Query::from_fact(top_level_goal)).unwrap()
     }
 
@@ -214,6 +213,38 @@ impl Tree {
             }
             _ => vec![],
         }
+    }
+
+    pub fn complete(&self) -> bool {
+        match self {
+            Tree::Axiom(_) => true,
+            Tree::Goal(_) => false,
+            Tree::Step { antecedents, .. } => {
+                for (_, t) in antecedents {
+                    if !t.complete() {
+                        return false;
+                    }
+                }
+                true
+            }
+        }
+    }
+
+    pub fn postorder(&self) -> Vec<(Vec<String>, &Tree)> {
+        let mut ret = vec![];
+        match self {
+            Tree::Axiom(..) | Tree::Goal(..) => (),
+            Tree::Step { antecedents, .. } => {
+                for (tag, t) in antecedents {
+                    for (mut path, tt) in t.postorder() {
+                        path.insert(0, tag.clone());
+                        ret.push((path, tt));
+                    }
+                }
+            }
+        }
+        ret.push((vec![], self));
+        ret
     }
 
     fn make_dashes(amount: usize) -> String {

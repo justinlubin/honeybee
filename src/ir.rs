@@ -32,7 +32,7 @@ pub struct FactSignature {
     pub params: Vec<(String, ValueType)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fact {
     pub name: FactName,
     pub args: Vec<(String, Value)>,
@@ -115,16 +115,16 @@ impl PredicateAtom {
         }
     }
 
-    pub fn substitute_all(
-        &self,
-        subs: Vec<(&str, &str, &Value)>,
-    ) -> PredicateAtom {
-        let mut ret = self.clone();
-        for (selector, arg, rhs) in subs {
-            ret = ret.substitute(selector, arg, rhs);
-        }
-        ret
-    }
+    // pub fn substitute_all(
+    //     &self,
+    //     subs: Vec<(&str, &str, &Value)>,
+    // ) -> PredicateAtom {
+    //     let mut ret = self.clone();
+    //     for (selector, arg, rhs) in subs {
+    //         ret = ret.substitute(selector, arg, rhs);
+    //     }
+    //     ret
+    // }
 }
 
 #[derive(Debug, Clone)]
@@ -347,13 +347,6 @@ impl Library {
             .iter()
             .filter(|cs| cs.ret == fact_name)
             .collect()
-    }
-
-    pub fn singleton(fact_signature: &FactSignature) -> Library {
-        Library {
-            fact_signatures: vec![fact_signature.clone()],
-            computation_signatures: vec![],
-        }
     }
 }
 

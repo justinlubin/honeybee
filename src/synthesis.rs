@@ -12,8 +12,8 @@ pub struct Synthesizer<'a> {
 
 #[derive(Debug, Clone)]
 pub struct ComputationOption {
-    name: String,
-    assignment_options: Vec<Assignment>,
+    pub name: String,
+    pub assignment_options: Vec<Assignment>,
 }
 
 #[derive(Debug, Clone)]
@@ -26,29 +26,37 @@ pub enum GoalOption {
     Annotation {
         path: Vec<String>,
         tag: String,
-        name: String,
+        fact_name: String,
         assignment_options: Vec<Assignment>,
     },
 }
 
 // TODO: computation field ignored for annotation goals
 #[derive(Debug, Clone)]
-pub struct Choice {
-    pub goal: usize,
-    pub computation: usize,
-    pub assignment: usize,
+pub enum Choice {
+    Analysis {
+        path: Vec<String>,
+        tag: String,
+        computation_name: String,
+        assignment: Assignment,
+    },
+    Annotation {
+        path: Vec<String>,
+        tag: String,
+        fact_name: String,
+        assignment: Assignment,
+    },
 }
 
 impl<'a> Synthesizer<'a> {
     pub fn new(lib: &'a Library, prog: &'a Program) -> Synthesizer<'a> {
         Synthesizer {
-            tree: derivation::Tree::new(&prog.goal),
+            tree: derivation::Tree::from_goal(&prog.goal),
             lib,
             prog,
         }
     }
 
-    // TODO: cache this if slow?
     pub fn options(&self) -> Vec<GoalOption> {
         let mut ops = vec![];
 
@@ -63,7 +71,7 @@ impl<'a> Synthesizer<'a> {
                     match self.lib.fact_signature(goal_fact_name).unwrap().kind
                     {
                         FactKind::Annotation => GoalOption::Annotation {
-                            name: goal_fact_name.clone(),
+                            fact_name: goal_fact_name.clone(),
                             path: path.clone(),
                             tag: cut_param.clone(),
                             assignment_options: basic_assignments.clone(),
@@ -127,17 +135,13 @@ impl<'a> Synthesizer<'a> {
     }
 
     pub fn step(&mut self, choice: &Choice) {
-        let ops = self.options();
-        let op = &ops[choice.goal];
-
-        match op {
-            GoalOption::Annotation {
+        match choice {
+            Choice::Annotation {
                 path,
                 tag,
-                name,
-                assignment_options,
+                fact_name,
+                assignment,
             } => {
-                let assignment = &assignment_options[choice.assignment];
                 let (args, additional_condition) =
                     Synthesizer::args_and_condition(&assignment, &tag);
 
@@ -150,23 +154,18 @@ impl<'a> Synthesizer<'a> {
                             .chain(std::iter::once(tag.clone()))
                             .collect::<Vec<String>>(),
                         &derivation::Tree::Axiom(Fact {
-                            name: name.clone(),
+                            name: fact_name.clone(),
                             args,
                         }),
                     )
                     .add_side_condition(&path[..], &additional_condition);
             }
-            GoalOption::Analysis {
+            Choice::Analysis {
                 path,
                 tag,
-                computation_options,
+                computation_name,
+                assignment,
             } => {
-                let computation_name =
-                    &computation_options[choice.computation].name;
-
-                let assignment = &computation_options[choice.computation]
-                    .assignment_options[choice.assignment];
-
                 let cs =
                     self.lib.computation_signature(&computation_name).unwrap();
 
@@ -204,7 +203,9 @@ impl<'a> Synthesizer<'a> {
                             .cloned()
                             .chain(std::iter::once(tag.clone()))
                             .collect::<Vec<String>>(),
-                        &derivation::Tree::make_step(self.lib, cs, ret_args),
+                        &derivation::Tree::from_computation_signature(
+                            cs, ret_args,
+                        ),
                     )
                     .add_side_condition(&path[..], &additional_condition);
             }

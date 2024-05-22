@@ -1,4 +1,5 @@
 mod analysis;
+mod backend;
 mod derivation;
 mod egglog_adapter;
 mod ir;
@@ -35,7 +36,6 @@ fn main() {
                     let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
                     loop {
-                        println!("STAGE:\n{}\n-------------====----\n", s.tree);
                         let options = s.options();
                         if options.is_empty() {
                             break;
@@ -45,6 +45,8 @@ fn main() {
                     }
 
                     println!("{}\n", s.tree);
+
+                    println!("{}\n", backend::Python::new(&s.tree))
                 }
                 Err(errs) => errs
                     .iter()
