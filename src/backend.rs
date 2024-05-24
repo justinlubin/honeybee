@@ -39,10 +39,18 @@ impl<'a> Python<'a> {
                     }
                 }
                 Tree::Step {
-                    label, antecedents, ..
+                    label,
+                    antecedents,
+                    consequent,
+                    ..
                 } => {
                     if !path.is_empty() {
-                        computations.push((path.join("_"), label, antecedents))
+                        computations.push((
+                            path.join("_"),
+                            label,
+                            antecedents,
+                            consequent,
+                        ))
                     }
                 }
                 Tree::Goal(..) => {
@@ -64,23 +72,42 @@ impl<'a> Python<'a> {
                     format!("{}={}", tag, syntax::unparse::value(val))
                 })
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",\n    ");
 
-            cells
-                .initializations
-                .push((format!("{} = {}({})", name, axiom.name, args), name));
+            cells.initializations.push((
+                format!("{} = {}(\n    {}\n)", name, axiom.name, args),
+                name,
+            ));
         }
 
-        for (name, label, antecedents) in computations {
+        for (name, label, antecedents, consequent) in computations {
+            let meta_args = consequent
+                .args
+                .iter()
+                .map(|(tag, val)| {
+                    format!("{}={}", tag, syntax::unparse::value(val))
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+
             let args = antecedents
                 .iter()
                 .map(|(tag, _)| format!("{}={}_{}", tag, name, tag))
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",\n        ");
 
-            cells
-                .computations
-                .push((format!("{} = {}({})", name, label, args), name));
+            cells.computations.push((
+                format!(
+                    "{} = {}(\n    m={}.M({}),\n    d={}(\n        {}\n    )\n)",
+                    name,
+                    consequent.name,
+                    consequent.name,
+                    meta_args,
+                    label,
+                    args,
+                ),
+                name,
+            ));
         }
 
         cells
