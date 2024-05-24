@@ -34,11 +34,12 @@ fn main() {
     let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
     loop {
+        println!("{}", s.tree);
         let options = s.options();
         if options.is_empty() {
             break;
         }
-        let choice = analysis::auto(options);
+        let choice = analysis::manual(options);
         s.step(&choice);
     }
 
