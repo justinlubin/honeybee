@@ -188,8 +188,7 @@ impl Compiler {
         }
 
         format!(
-            "; {}\n(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
-            cs.name,
+            "(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
             cs.params
                 .iter()
                 .filter_map(|(p, fact_name, _)| if forall_params.contains(p) {
@@ -300,9 +299,16 @@ pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
 
     body.push("\n;;; Computation signatures\n".to_owned());
 
+    let mut rules: std::collections::HashSet<String> =
+        std::collections::HashSet::new();
     for cs in &lib.computation_signatures {
-        body.push(c.computation_signature(lib, cs, None));
+        let rule = c.computation_signature(lib, cs, None);
+        if rules.contains(&rule) {
+            continue;
+        }
+        body.push(format!("; {}\n{}", cs.name, rule));
         body.push("".to_owned());
+        rules.insert(rule);
     }
 
     for f in facts.iter() {

@@ -33,7 +33,7 @@
 (analysis LibrarySizeHistogram
   (.sample Str) (.at Int))
 
-(computation library_size_histogram
+(computation library_size_histogram LibrarySizeHistogram
   ((gq GeneQuantification))
   ((= (.sample ret) (.sample gq))
    (= (.at ret) (.at gq))))

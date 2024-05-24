@@ -1,7 +1,7 @@
 (annotations
-  (RNA-Seq (.sample "CRISPRoff") (.at 3) (.data "croff.fastq"))
-  (RNA-Seq (.sample "CRISPRi") (.at 3) (.data "cri.fastq")))
+  (RNASeq (.sample "CRISPRoff") (.at 3) (.data "croff.fastq"))
+  (RNASeq (.sample "CRISPRi") (.at 3) (.data "cri.fastq")))
 
 (goal
-  (Differential-Gene-Expression
+  (DifferentialGeneExpression
     (.sample1 "CRISPRoff") (.sample2 "CRISPRi") (.at 3)))
