@@ -7,31 +7,31 @@
   (.sample Str) (.at Int) (.library Str))
 
 (annotation Sort
-  (.in-sample Str) (.on-sample Str) (.off-sample Str) (.at Int))
+  (.in_sample Str) (.on_sample Str) (.off_sample Str) (.at Int))
 
 (annotation Flow
   (.sample Str) (.at Int) (.data Str))
 
-(annotation RNA-Seq
+(annotation RNASeq
   (.sample Str) (.at Int) (.data Str))
 
 ; Gene quantification
 
-(analysis Gene-Quantification
+(analysis GeneQuantification
   (.sample Str) (.at Int))
 
-(computation quantify Gene-Quantification
+(computation quantify GeneQuantification
   ((s Seq))
   ((= (.sample ret) (.sample s))
    (= (.at ret) (.at s))))
 
 ; Growth over time in a single sample
 
-(analysis Growth-Over-Time
+(analysis GrowthOverTime
   (.sample Str) (.from Int) (.to Int))
 
-(computation growth_over_time Growth-Over-Time
-  ((q1 Gene-Quantification) (q2 Gene-Quantification))
+(computation growth_over_time GrowthOverTime
+  ((q1 GeneQuantification) (q2 GeneQuantification))
   ((= (.sample ret) (.sample q1))
    (= (.from ret) (.at q1))
    (= (.to ret) (.at q2))
@@ -40,11 +40,11 @@
 
 ; Growth between two samples
 
-(analysis Growth-Between
+(analysis GrowthBetween
   (.sample1 Str) (.sample2 Str) (.at Int))
 
-(computation growth_between Growth-Between
-  ((q1 Gene-Quantification) (q2 Gene-Quantification))
+(computation growth_between GrowthBetween
+  ((q1 GeneQuantification) (q2 GeneQuantification))
   ((= (.sample1 ret) (.sample q1))
    (= (.sample2 ret) (.sample q2))
    (= (.at ret) (.at q1))
@@ -52,40 +52,40 @@
 
 ; Flow cytometry time course
 
-(analysis Flow-Time-Course
+(analysis FlowTimeCourse
   (.from Int) (.to Int))
 
-(computation flow_time_course Flow-Time-Course
+(computation flow_time_course FlowTimeCourse
   ((forall f Flow))
   ((<= (.from ret) (.at f))
    (<= (.at f) (.to ret))))
 
 ; Bulk RNA-seq analysis
 
-(analysis Read-Count-Matrix
+(analysis ReadCountMatrix
   (.at Int))
 
-(analysis QC-Read-Count-Matrix
+(analysis QCReadCountMatrix
   (.at Int))
 
-(analysis Batch-Corrected-Read-Count-Matrix
+(analysis BatchCorrectedReadCountMatrix
   (.at Int))
 
-(analysis Differential-Gene-Expression
+(analysis DifferentialGeneExpression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
-(computation bulk_quantify Read-Count-Matrix
-  ((forall+ r RNA-Seq))
+(computation bulk_quantify ReadCountMatrix
+  ((forall+ r RNASeq))
   ((= (.at ret) (.at r))))
 
-(computation rna_qc QC-Read-Count-Matrix
-  ((rcm Read-Count-Matrix))
+(computation rna_qc QCReadCountMatrix
+  ((rcm ReadCountMatrix))
   ((= (.at ret) (.at rcm))))
 
-(computation rna_bc Batch-Corrected-Read-Count-Matrix
-  ((qc QC-Read-Count-Matrix))
+(computation rna_bc BatchCorrectedReadCountMatrix
+  ((qc QCReadCountMatrix))
   ((= (.at ret) (.at qc))))
 
-(computation deseq2 Differential-Gene-Expression
-  ((bc Batch-Corrected-Read-Count-Matrix))
+(computation deseq2 DifferentialGeneExpression
+  ((bc BatchCorrectedReadCountMatrix))
   ((= (.at ret) (.at bc))))
