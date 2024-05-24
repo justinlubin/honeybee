@@ -42,5 +42,5 @@ fn main() {
         s.step(&choice);
     }
 
-    println!("{}\n{}", imp, backend::Python::new(&s.tree))
+    println!("{}", backend::Python::new(&s.tree).emit().nbformat(&imp));
 }

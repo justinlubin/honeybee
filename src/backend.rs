@@ -3,6 +3,11 @@ use crate::ir::*;
 
 use crate::syntax;
 
+pub struct Cells {
+    initializations: Vec<(String, String)>,
+    computations: Vec<(String, String)>,
+}
+
 pub struct Python<'a> {
     tree: &'a Tree,
 }
@@ -16,8 +21,8 @@ impl<'a> Python<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Python<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<'a> Python<'a> {
+    pub fn emit(&self) -> Cells {
         use std::collections::HashSet;
 
         let mut initializations = vec![];
@@ -46,7 +51,10 @@ impl<'a> std::fmt::Display for Python<'a> {
             }
         }
 
-        write!(f, "# %% Load data\n\n")?;
+        let mut cells = Cells {
+            initializations: vec![],
+            computations: vec![],
+        };
 
         for (name, axiom) in initializations {
             let args = axiom
@@ -58,10 +66,10 @@ impl<'a> std::fmt::Display for Python<'a> {
                 .collect::<Vec<_>>()
                 .join(", ");
 
-            write!(f, "{} = {}({})\n", name, axiom.name, args)?;
+            cells
+                .initializations
+                .push((format!("{} = {}({})", name, axiom.name, args), name));
         }
-
-        write!(f, "\n# %% Compute\n")?;
 
         for (name, label, antecedents) in computations {
             let args = antecedents
@@ -70,9 +78,95 @@ impl<'a> std::fmt::Display for Python<'a> {
                 .collect::<Vec<_>>()
                 .join(", ");
 
-            write!(f, "\n{} = {}({})", name, label, args)?;
+            cells
+                .computations
+                .push((format!("{} = {}({})", name, label, args), name));
         }
 
-        Ok(())
+        cells
+    }
+}
+
+fn nbformat_cell(cell_type: &str, source: &str) -> String {
+    format!(
+        "{{ \"cell_type\": \"{}\", \"source\": \"{}\" }}",
+        cell_type,
+        source.replace("\"", "\\\"").replace("\n", "\\n")
+    )
+}
+
+impl Cells {
+    pub fn plain_text(self, lib_imp: &str) -> String {
+        format!(
+            "{}\n# %% Load data\n\n{}\n\n# %% Compute\n\n{}",
+            lib_imp,
+            self.initializations
+                .into_iter()
+                .map(|(src, _name)| src)
+                .collect::<Vec<_>>()
+                .join("\n"),
+            self.computations
+                .into_iter()
+                .map(|(src, _name)| src)
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    }
+
+    pub fn nbformat(self, lib_imp: &str) -> String {
+        use ipynb::*;
+        use std::collections::HashMap;
+
+        let mut cells = vec![];
+
+        cells.push(Cell::Code(CodeCell {
+            metadata: HashMap::new(),
+            source: vec![lib_imp.trim().to_owned()],
+            id: None,
+            execution_count: None,
+            outputs: vec![],
+        }));
+
+        cells.push(Cell::Markdown(MarkdownCell {
+            metadata: HashMap::new(),
+            id: None,
+            attachments: None,
+            source: vec!["# Load data".to_owned()],
+        }));
+
+        for (src, name) in self.initializations {
+            cells.push(Cell::Code(CodeCell {
+                metadata: HashMap::new(),
+                source: vec![src, name],
+                id: None,
+                execution_count: None,
+                outputs: vec![],
+            }))
+        }
+
+        cells.push(Cell::Markdown(MarkdownCell {
+            metadata: HashMap::new(),
+            id: None,
+            attachments: None,
+            source: vec!["# Run analysis".to_owned()],
+        }));
+
+        for (src, name) in self.computations {
+            cells.push(Cell::Code(CodeCell {
+                metadata: HashMap::new(),
+                source: vec![src, name],
+                id: None,
+                execution_count: None,
+                outputs: vec![],
+            }))
+        }
+
+        serde_json::to_string(&Notebook {
+            cells,
+            metadata: HashMap::new(),
+            nbformat: 4,
+            nbformat_minor: 0,
+        })
+        .unwrap()
     }
 }
