@@ -1,0 +1,6 @@
+ipython
+rope
+flake8
+black
+pylsp-mypy
+python-lsp-server
