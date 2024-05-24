@@ -20,8 +20,6 @@ fn main() {
     let imp =
         std::fs::read_to_string(std::env::args().nth(2).unwrap()).unwrap();
 
-    println!("{}", imp);
-
     let prog = syntax::parse::program()
         .parse(
             std::fs::read_to_string(std::env::args().nth(3).unwrap()).unwrap(),
@@ -44,5 +42,5 @@ fn main() {
         s.step(&choice);
     }
 
-    println!("{}", backend::Python::new(&s.tree))
+    println!("{}\n{}", imp, backend::Python::new(&s.tree))
 }

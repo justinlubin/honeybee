@@ -3,18 +3,9 @@ import altair as alt
 
 @dataclass
 class Seq:
-    @dataclass
-    class M:
-        sample: str
-        at: int
-        data: str
-
-    @dataclass
-    class D:
-        pass
-
-    m: M
-    d: D
+    sample: str
+    at: int
+    data: str
 
 @dataclass
 class GeneQuantification:

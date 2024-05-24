@@ -1,6 +1,8 @@
 use crate::derivation::*;
 use crate::ir::*;
 
+use crate::syntax;
+
 pub struct Python<'a> {
     tree: &'a Tree,
 }
@@ -47,7 +49,16 @@ impl<'a> std::fmt::Display for Python<'a> {
         write!(f, "# %% Load data\n\n")?;
 
         for (name, axiom) in initializations {
-            write!(f, "{} = ... # {:?}\n", name, axiom)?;
+            let args = axiom
+                .args
+                .iter()
+                .map(|(tag, val)| {
+                    format!("{}={}", tag, syntax::unparse::value(val))
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            write!(f, "{} = {}({})\n", name, axiom.name, args)?;
         }
 
         write!(f, "\n# %% Compute\n")?;
