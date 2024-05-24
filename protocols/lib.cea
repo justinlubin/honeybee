@@ -20,10 +20,23 @@
 (analysis GeneQuantification
   (.sample Str) (.at Int))
 
-(computation quantify GeneQuantification
+(computation bowtie GeneQuantification
   ((s Seq))
   ((= (.sample ret) (.sample s))
    (= (.at ret) (.at s))))
+
+(computation kallisto GeneQuantification
+  ((s Seq))
+  ((= (.sample ret) (.sample s))
+   (= (.at ret) (.at s))))
+
+(analysis LibrarySizeHistogram
+  (.sample Str) (.at Int))
+
+(computation library_size_histogram
+  ((gq GeneQuantification))
+  ((= (.sample ret) (.sample gq))
+   (= (.at ret) (.at gq))))
 
 ; Growth over time in a single sample
 
