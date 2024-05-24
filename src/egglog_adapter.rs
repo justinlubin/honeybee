@@ -390,5 +390,6 @@ pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
 }
 
 pub fn check_possible(lib: &Library, prog: &Program) -> bool {
-    !query(&lib, &prog.annotations, &Query::from_fact(&prog.goal)).is_empty()
+    !query(&lib, &prog.annotations, &Query::from_fact(&prog.goal, "q"))
+        .is_empty()
 }

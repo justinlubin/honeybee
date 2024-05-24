@@ -235,7 +235,7 @@ impl Query {
     const GOAL_FACT_NAME: &'static str = "&GOAL";
     const GOAL_COMPUTATION_NAME: &'static str = "&goal";
 
-    pub fn from_fact(fact: &Fact) -> Query {
+    pub fn from_fact(fact: &Fact, tag: &str) -> Query {
         Query {
             fact_signature: FactSignature {
                 name: Query::GOAL_FACT_NAME.to_owned(),
@@ -244,7 +244,7 @@ impl Query {
             },
             computation_signature: ComputationSignature {
                 name: Query::GOAL_COMPUTATION_NAME.to_owned(),
-                params: vec![("q".to_owned(), fact.name.clone(), Mode::Exists)],
+                params: vec![(tag.to_owned(), fact.name.clone(), Mode::Exists)],
                 ret: Query::GOAL_FACT_NAME.to_owned(),
                 precondition: fact
                     .args
@@ -254,7 +254,7 @@ impl Query {
                             PredicateRelationBinOp::Eq,
                             PredicateAtom::Select {
                                 selector: n.clone(),
-                                arg: "q".to_owned(),
+                                arg: tag.to_owned(),
                             },
                             PredicateAtom::Const(v.clone()),
                         )

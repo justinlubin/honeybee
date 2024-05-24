@@ -32,16 +32,12 @@ impl<'a> std::fmt::Display for Python<'a> {
                     }
                 }
                 Tree::Step {
-                    label,
-                    antecedents,
-                    consequent,
-                    ..
-                } => computations.push((
-                    path.join("_"),
-                    consequent,
-                    label,
-                    antecedents,
-                )),
+                    label, antecedents, ..
+                } => {
+                    if !path.is_empty() {
+                        computations.push((path.join("_"), label, antecedents))
+                    }
+                }
                 Tree::Goal(..) => {
                     panic!("invariant violated: non-complete tree")
                 }
@@ -54,7 +50,17 @@ impl<'a> std::fmt::Display for Python<'a> {
             write!(f, "{} = ... # {:?}\n", name, axiom)?;
         }
 
-        write!(f, "\n# %% Compute\n\n")?;
+        write!(f, "\n# %% Compute\n")?;
+
+        for (name, label, antecedents) in computations {
+            let args = antecedents
+                .iter()
+                .map(|(tag, _)| format!("{}={}_{}", tag, name, tag))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            write!(f, "\n{} = {}({})", name, label, args)?;
+        }
 
         Ok(())
     }

@@ -26,9 +26,7 @@ fn main() {
                         syntax::unparse::program(&prog)
                     );
 
-                    if egglog_adapter::check_possible(&lib, &prog) {
-                        println!(">>> Possible! <<<");
-                    } else {
+                    if !egglog_adapter::check_possible(&lib, &prog) {
                         println!(">>> Not possible <<<");
                         return;
                     }
@@ -44,9 +42,7 @@ fn main() {
                         s.step(&choice);
                     }
 
-                    println!("{}\n", s.tree);
-
-                    println!("{}\n", backend::Python::new(&s.tree))
+                    println!("{}", backend::Python::new(&s.tree))
                 }
                 Err(errs) => errs
                     .iter()

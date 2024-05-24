@@ -59,7 +59,7 @@ impl Tree {
     }
 
     pub fn from_goal(top_level_goal: &Fact) -> Tree {
-        Tree::from_query(&Query::from_fact(top_level_goal)).unwrap()
+        Tree::from_query(&Query::from_fact(top_level_goal, "output")).unwrap()
     }
 
     pub fn replace(&self, path: &[String], subtree: &Tree) -> Tree {
@@ -229,6 +229,14 @@ impl Tree {
             }
         }
     }
+
+    // pub fn head(&self) -> Option<&Fact> {
+    //     match self {
+    //         Tree::Axiom(f) => Some(f),
+    //         Tree::Goal(_) => None,
+    //         Tree::Step { consequent, .. } => Some(consequent),
+    //     }
+    // }
 
     pub fn postorder(&self) -> Vec<(Vec<String>, &Tree)> {
         let mut ret = vec![];
