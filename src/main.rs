@@ -5,6 +5,7 @@ mod egglog_adapter;
 mod ir;
 mod syntax;
 mod synthesis;
+mod top_level;
 
 use chumsky::Parser;
 use std::fs::File;
@@ -79,7 +80,7 @@ fn main() -> std::io::Result<()> {
                 lib_src,
                 &errs[0],
             );
-            return Ok(());
+            std::process::exit(1);
         }
     };
 
@@ -113,49 +114,27 @@ fn main() -> std::io::Result<()> {
 
     // Main
 
-    if !egglog_adapter::check_possible(&lib, &prog) {
-        println!(">>> Not possible <<<");
-        return Ok(());
-    }
+    let runner = top_level::Runner { interactive: false };
 
-    let mut synthesizer = synthesis::Synthesizer::new(&lib, &prog);
-    let analyzer = analysis::CLI {
-        mode: analysis::CLIMode::Auto,
-        print: false,
-    };
-
-    let mut step = 1;
-    loop {
-        println!(
-            "{} {} {}\n\n{}",
-            ansi_term::Color::Fixed(8).paint("═".repeat(2)),
-            ansi_term::Color::Fixed(8).paint(format!("Step {}", step)),
-            ansi_term::Color::Fixed(8).paint("═".repeat(40)),
-            ansi_term::Style::new().bold().paint("Derivation tree:")
-        );
-        print!("{}", synthesizer.tree.pretty());
-        let options = synthesizer.options();
-        if options.is_empty() {
-            break;
+    match runner.run(lib, imp_src, prog) {
+        Some(output) => {
+            let mut output_file = File::create(output_filename)?;
+            write!(output_file, "{}", output)?;
+            if runner.interactive {
+                println!(
+                    "{}",
+                    ansi_term::Color::Cyan.bold().paint("[ All done! ]")
+                );
+            }
         }
-        println!();
-        let choice = analyzer.analyze(options);
-        synthesizer.step(&choice);
-        step += 1;
+        None => {
+            println!(
+                "{}",
+                ansi_term::Color::Red.bold().paint("[ Not possible! ]")
+            );
+            std::process::exit(1);
+        }
     }
-
-    let nb = backend::Python::new(&synthesizer.tree)
-        .emit()
-        .nbformat(&imp_src);
-
-    let mut output_file = File::create(output_filename)?;
-    write!(output_file, "{}", nb)?;
-
-    println!(
-        "\n{}{}\n",
-        " ".repeat(20),
-        ansi_term::Color::Cyan.paint("All done!")
-    );
 
     Ok(())
 }
