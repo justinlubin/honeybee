@@ -19,11 +19,18 @@ fn select_cli<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
         Mode::Manual => false,
     };
 
-    if !auto {
-        println!("{}", title);
-        for (i, (label, _)) in options.iter().enumerate() {
-            println!("  {}) {}", i, label);
-        }
+    println!("{}", title);
+    for (i, (label, _)) in options.iter().enumerate() {
+        println!(
+            "  {}) {}{}",
+            i,
+            label,
+            if auto && i == 0 {
+                " (auto-selected)"
+            } else {
+                ""
+            }
+        );
     }
 
     loop {
@@ -47,9 +54,7 @@ fn select_cli<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
             continue;
         }
 
-        if !auto {
-            println!();
-        }
+        println!();
 
         return options.swap_remove(idx).1;
     }
