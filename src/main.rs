@@ -7,8 +7,10 @@ mod syntax;
 mod synthesis;
 
 use chumsky::Parser;
+use std::fs::File;
+use std::io::prelude::*;
 
-fn main() {
+fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let lib = syntax::parse::library()
@@ -26,22 +28,30 @@ fn main() {
         )
         .unwrap();
 
+    let output_filename = std::env::args().nth(4).unwrap();
+
     if !egglog_adapter::check_possible(&lib, &prog) {
         println!(">>> Not possible <<<");
-        return;
+        return Ok(());
     }
 
     let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
     loop {
-        println!("\n{}", s.tree.pretty());
+        print!("{}", s.tree.pretty());
         let options = s.options();
         if options.is_empty() {
             break;
         }
-        let choice = analysis::manual(options);
+        println!();
+        let choice = analysis::fast_forward(options);
         s.step(&choice);
     }
 
-    // println!("\n{}", backend::Python::new(&s.tree).emit().nbformat(&imp));
+    let nb = backend::Python::new(&s.tree).emit().nbformat(&imp);
+
+    let mut output_file = File::create(output_filename)?;
+    write!(output_file, "{}", nb)?;
+
+    Ok(())
 }

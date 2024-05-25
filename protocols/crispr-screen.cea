@@ -4,4 +4,4 @@
   (Seq (.sample "A") (.at 3) (.data "final.fastq")))
 
 (goal
-  (Growth-Over-Time (.sample "A") (.from 2) (.to 3)))
+  (GrowthOverTime (.sample "A") (.from 2) (.to 3)))

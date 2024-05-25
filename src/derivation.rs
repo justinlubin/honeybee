@@ -264,6 +264,14 @@ impl Tree {
         gp.item_indent = "─";
         gp.skip_indent = " ";
 
+        use ansi_term::Color::*;
+        gp.middle_item = Fixed(8).paint(gp.middle_item).to_string().leak();
+        gp.last_item = Fixed(8).paint(gp.last_item).to_string().leak();
+        gp.item_indent = Fixed(8).paint(gp.item_indent).to_string().leak();
+        gp.middle_skip = Fixed(8).paint(gp.middle_skip).to_string().leak();
+        gp.last_skip = Fixed(8).paint(gp.last_skip).to_string().leak();
+        gp.skip_indent = Fixed(8).paint(gp.skip_indent).to_string().leak();
+
         match self {
             Tree::Step {
                 consequent,
@@ -286,21 +294,26 @@ impl Tree {
         prefix: &str,
     ) -> termtree::Tree<String> {
         use crate::syntax::unparse;
-        use ansi_term::ANSIString;
         use ansi_term::Color::*;
 
         // termtree::Tree::new(Red.paint("hi!"))
         match self {
             Tree::Axiom(fact) => termtree::Tree::new(format!(
-                "• {} {}",
-                Purple.paint(prefix),
+                "{} {} {} {}",
+                Purple.paint("•"),
+                Blue.paint(prefix),
+                Purple.paint("[fact]"),
                 Fixed(8).paint(unparse::fact(fact))
             ))
             .with_glyphs(gp),
             Tree::Goal(fact_name) => termtree::Tree::new(format!(
-                "• {} {}",
+                "{} {} {} {}{}{}",
+                Yellow.paint("•"),
                 Yellow.paint(prefix),
-                Yellow.paint(fact_name)
+                Yellow.paint("[goal]"),
+                Fixed(8).paint("("),
+                Yellow.paint(fact_name),
+                Fixed(8).paint(")"),
             ))
             .with_glyphs(gp),
             Tree::Step {
@@ -310,7 +323,8 @@ impl Tree {
                 side_condition,
             } => {
                 let mut t = termtree::Tree::new(format!(
-                    "• {} {} {}",
+                    "{} {} {} {}",
+                    Green.paint("•"),
                     Blue.paint(prefix),
                     Green.paint(format!("[{}]", label)),
                     Fixed(8).paint(unparse::fact(consequent))

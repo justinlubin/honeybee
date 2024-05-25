@@ -20,9 +20,9 @@ fn select_cli<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
     };
 
     if !auto {
-        println!("\n{}", title);
+        println!("{}", title);
         for (i, (label, _)) in options.iter().enumerate() {
-            println!("{}. {}", i, label);
+            println!("  {}) {}", i, label);
         }
     }
 
@@ -46,21 +46,38 @@ fn select_cli<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
         if idx > options.len() {
             continue;
         }
+
+        if !auto {
+            println!();
+        }
+
         return options.swap_remove(idx).1;
     }
 }
 
 fn cli(mode: &Mode, options: Vec<synthesis::GoalOption>) -> synthesis::Choice {
+    use ansi_term::Color::*;
+    use ansi_term::Style;
+
     let goal_option = select_cli(
         mode,
-        "Goals:",
+        &Style::new().bold().paint("Goals:").to_string(),
         options
             .into_iter()
             .map(|opt| match &opt {
-                synthesis::GoalOption::Analysis { path, .. }
-                | synthesis::GoalOption::Annotation { path, .. } => {
-                    (format!("{:?}", path), opt)
-                }
+                synthesis::GoalOption::Analysis { path, tag, .. }
+                | synthesis::GoalOption::Annotation { path, tag, .. } => (
+                    Yellow
+                        .paint(
+                            path.iter()
+                                .chain(std::iter::once(tag))
+                                .map(|id| format!(".{}", id))
+                                .collect::<Vec<_>>()
+                                .join(""),
+                        )
+                        .to_string(),
+                    opt,
+                ),
             })
             .collect::<Vec<_>>(),
     );
@@ -73,10 +90,10 @@ fn cli(mode: &Mode, options: Vec<synthesis::GoalOption>) -> synthesis::Choice {
         } => {
             let computation_option = select_cli(
                 mode,
-                "Computations:",
+                &Style::new().bold().paint("Computations:").to_string(),
                 computation_options
                     .into_iter()
-                    .map(|c| (c.name.clone(), c))
+                    .map(|c| (Green.paint(c.name.clone()).to_string(), c))
                     .collect::<Vec<_>>(),
             );
 

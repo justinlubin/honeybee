@@ -211,6 +211,4 @@ impl<'a> Synthesizer<'a> {
             }
         }
     }
-
-    // fn step(&self) {}
 }
