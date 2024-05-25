@@ -1,23 +1,23 @@
 ; Annotations
 
-(annotation Seq
+(ground fact Seq
   (.sample Str) (.at Int) (.data Str))
 
-(annotation Transfect
+(ground fact Transfect
   (.sample Str) (.at Int) (.library Str))
 
-(annotation Sort
+(ground fact Sort
   (.in_sample Str) (.on_sample Str) (.off_sample Str) (.at Int))
 
-(annotation Flow
+(ground fact Flow
   (.sample Str) (.at Int) (.data Str))
 
-(annotation RNASeq
+(ground fact RNASeq
   (.sample Str) (.at Int) (.data Str))
 
 ; Gene quantification
 
-(analysis GeneQuantification
+(analysis type GeneQuantification
   (.sample Str) (.at Int))
 
 (computation bowtie GeneQuantification
@@ -30,7 +30,7 @@
   ((= (.sample ret) (.sample s))
    (= (.at ret) (.at s))))
 
-(analysis LibrarySizeHistogram
+(analysis type LibrarySizeHistogram
   (.sample Str) (.at Int))
 
 (computation library_size_histogram LibrarySizeHistogram
@@ -40,7 +40,7 @@
 
 ; Growth over time in a single sample
 
-(analysis GrowthOverTime
+(analysis type GrowthOverTime
   (.sample Str) (.from Int) (.to Int))
 
 (computation growth_over_time GrowthOverTime
@@ -53,7 +53,7 @@
 
 ; Growth between two samples
 
-(analysis GrowthBetween
+(ground fact GrowthBetween
   (.sample1 Str) (.sample2 Str) (.at Int))
 
 (computation growth_between GrowthBetween
@@ -65,7 +65,7 @@
 
 ; Flow cytometry time course
 
-(analysis FlowTimeCourse
+(ground fact FlowTimeCourse
   (.from Int) (.to Int))
 
 (computation flow_time_course FlowTimeCourse
@@ -75,16 +75,16 @@
 
 ; Bulk RNA-seq analysis
 
-(analysis ReadCountMatrix
+(ground fact ReadCountMatrix
   (.at Int))
 
-(analysis QCReadCountMatrix
+(ground fact QCReadCountMatrix
   (.at Int))
 
-(analysis BatchCorrectedReadCountMatrix
+(ground fact BatchCorrectedReadCountMatrix
   (.at Int))
 
-(analysis DifferentialGeneExpression
+(ground fact DifferentialGeneExpression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
 (computation bulk_quantify ReadCountMatrix

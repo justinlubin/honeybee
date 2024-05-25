@@ -7,8 +7,11 @@ endif
 
 let b:current_syntax = "cea"
 
-syn keyword ceaKeywords annotation analysis computation annotations goal ret exists
+syn keyword ceaKeywords computation facts goal exists
 hi def link ceaKeywords Keyword
+
+syn keyword ceaRetKeyword ret
+hi def link ceaRetKeyword Statement
 
 syn keyword ceaComputationKeyword computation nextgroup=ceaComputationName skipwhite
 hi def link ceaComputationKeyword Keyword
@@ -53,3 +56,9 @@ hi def link ceaFact Type
 
 syn match ceaVar '[a-z][A-Za-z_\-0-9]*'
 " (No highlight for ceaVar.)
+
+syn match ceaAnalysisTypeKeyword 'analysis type'
+hi def link ceaAnalysisTypeKeyword Keyword
+
+syn match ceaGroundFactKeyword 'ground fact'
+hi def link ceaGroundFactKeyword Keyword

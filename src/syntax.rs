@@ -66,8 +66,8 @@ pub mod parse {
 
     pub fn fact_kind() -> impl P<FactKind> {
         choice((
-            just("annotation").to(FactKind::Annotation),
-            just("analysis").to(FactKind::Analysis),
+            just("ground fact").to(FactKind::Annotation),
+            just("analysis type").to(FactKind::Analysis),
         ))
     }
 
@@ -229,7 +229,7 @@ pub mod parse {
     }
 
     pub fn program() -> impl P<Program> {
-        just("annotations")
+        just("facts")
             .ignored()
             .padded()
             .then(fact().padded().repeated())
@@ -272,8 +272,8 @@ pub mod unparse {
 
     pub fn fact_kind(fk: &FactKind) -> String {
         match fk {
-            FactKind::Annotation => "annotation".to_owned(),
-            FactKind::Analysis => "analysis".to_owned(),
+            FactKind::Annotation => "ground fact".to_owned(),
+            FactKind::Analysis => "analysis type".to_owned(),
         }
     }
 
@@ -376,7 +376,7 @@ pub mod unparse {
 
     pub fn program(p: &Program) -> String {
         format!(
-            "(annotations\n  {})\n\n(goal\n  {}))",
+            "(facts\n  {})\n\n(goal\n  {}))",
             p.annotations
                 .iter()
                 .map(fact)
