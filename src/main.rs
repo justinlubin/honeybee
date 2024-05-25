@@ -34,7 +34,7 @@ fn main() {
     let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
     loop {
-        println!("{}", s.tree);
+        println!("\n{}", s.tree.pretty());
         let options = s.options();
         if options.is_empty() {
             break;
@@ -43,5 +43,5 @@ fn main() {
         s.step(&choice);
     }
 
-    println!("{}", backend::Python::new(&s.tree).emit().nbformat(&imp));
+    // println!("\n{}", backend::Python::new(&s.tree).emit().nbformat(&imp));
 }

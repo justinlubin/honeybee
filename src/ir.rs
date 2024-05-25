@@ -232,8 +232,8 @@ pub struct Query {
 impl Query {
     pub const RET: &'static str = "ret";
 
-    const GOAL_FACT_NAME: &'static str = "&GOAL";
-    const GOAL_COMPUTATION_NAME: &'static str = "&goal";
+    pub const GOAL_FACT_NAME: &'static str = "&GOAL";
+    pub const GOAL_COMPUTATION_NAME: &'static str = "&goal";
 
     pub fn from_fact(fact: &Fact, tag: &str) -> Query {
         Query {

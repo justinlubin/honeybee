@@ -259,6 +259,71 @@ impl Tree {
         std::iter::repeat('-').take(amount * 2).collect()
     }
 
+    pub fn pretty(&self) -> termtree::Tree<String> {
+        let mut gp = termtree::GlyphPalette::new();
+        gp.item_indent = "─";
+        gp.skip_indent = " ";
+
+        match self {
+            Tree::Step {
+                consequent,
+                antecedents,
+                ..
+            } if consequent.name == Query::GOAL_FACT_NAME
+                && antecedents.len() == 1 =>
+            {
+                antecedents[0]
+                    .1
+                    .termtree(gp, &format!(".{}", antecedents[0].0))
+            }
+            _ => self.termtree(gp, ""),
+        }
+    }
+
+    fn termtree(
+        &self,
+        gp: termtree::GlyphPalette,
+        prefix: &str,
+    ) -> termtree::Tree<String> {
+        use crate::syntax::unparse;
+        use ansi_term::ANSIString;
+        use ansi_term::Color::*;
+
+        // termtree::Tree::new(Red.paint("hi!"))
+        match self {
+            Tree::Axiom(fact) => termtree::Tree::new(format!(
+                "• {} {}",
+                Purple.paint(prefix),
+                Fixed(8).paint(unparse::fact(fact))
+            ))
+            .with_glyphs(gp),
+            Tree::Goal(fact_name) => termtree::Tree::new(format!(
+                "• {} {}",
+                Yellow.paint(prefix),
+                Yellow.paint(fact_name)
+            ))
+            .with_glyphs(gp),
+            Tree::Step {
+                label,
+                antecedents,
+                consequent,
+                side_condition,
+            } => {
+                let mut t = termtree::Tree::new(format!(
+                    "• {} {} {}",
+                    Blue.paint(prefix),
+                    Green.paint(format!("[{}]", label)),
+                    Fixed(8).paint(unparse::fact(consequent))
+                ))
+                .with_glyphs(gp);
+                for (tag, subtree) in antecedents {
+                    t.push(subtree.termtree(gp, &format!(".{}", tag)));
+                }
+                t
+            }
+        }
+    }
+
     fn _fmt(
         &self,
         f: &mut std::fmt::Formatter<'_>,
@@ -288,13 +353,13 @@ impl Tree {
             } => {
                 write!(
                     f,
-                    "{} {}{} [{}] {}",
+                    "{} {}{} [{}]",
                     Tree::make_dashes(depth),
                     prefix,
                     crate::syntax::unparse::fact(consequent),
                     label,
-                    crate::syntax::unparse::predicate(side_condition)
-                        .replace("\n", ""),
+                    // crate::syntax::unparse::predicate(side_condition)
+                    //     .replace("\n", ""),
                 )?;
                 for (n, t) in antecedents {
                     write!(f, "\n")?;

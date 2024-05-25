@@ -6,7 +6,7 @@ enum Mode {
     Auto,
 }
 
-fn select<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
+fn select_cli<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
     use std::io::Write;
 
     if options.is_empty() {
@@ -50,11 +50,8 @@ fn select<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
     }
 }
 
-fn analyze(
-    mode: &Mode,
-    options: Vec<synthesis::GoalOption>,
-) -> synthesis::Choice {
-    let goal_option = select(
+fn cli(mode: &Mode, options: Vec<synthesis::GoalOption>) -> synthesis::Choice {
+    let goal_option = select_cli(
         mode,
         "Goals:",
         options
@@ -74,7 +71,7 @@ fn analyze(
             tag,
             computation_options,
         } => {
-            let computation_option = select(
+            let computation_option = select_cli(
                 mode,
                 "Computations:",
                 computation_options
@@ -109,13 +106,13 @@ fn analyze(
 }
 
 pub fn manual(options: Vec<synthesis::GoalOption>) -> synthesis::Choice {
-    analyze(&Mode::Manual, options)
+    cli(&Mode::Manual, options)
 }
 
 pub fn fast_forward(options: Vec<synthesis::GoalOption>) -> synthesis::Choice {
-    analyze(&Mode::FastForward, options)
+    cli(&Mode::FastForward, options)
 }
 
 pub fn auto(options: Vec<synthesis::GoalOption>) -> synthesis::Choice {
-    analyze(&Mode::Auto, options)
+    cli(&Mode::Auto, options)
 }
