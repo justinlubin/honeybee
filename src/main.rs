@@ -118,7 +118,11 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let mut s = synthesis::Synthesizer::new(&lib, &prog);
+    let mut synthesizer = synthesis::Synthesizer::new(&lib, &prog);
+    let analyzer = analysis::CLI {
+        mode: analysis::CLIMode::Auto,
+        print: false,
+    };
 
     let mut step = 1;
     loop {
@@ -129,18 +133,20 @@ fn main() -> std::io::Result<()> {
             ansi_term::Color::Fixed(8).paint("═".repeat(40)),
             ansi_term::Style::new().bold().paint("Derivation tree:")
         );
-        print!("{}", s.tree.pretty());
-        let options = s.options();
+        print!("{}", synthesizer.tree.pretty());
+        let options = synthesizer.options();
         if options.is_empty() {
             break;
         }
         println!();
-        let choice = analysis::fast_forward(options);
-        s.step(&choice);
+        let choice = analyzer.analyze(options);
+        synthesizer.step(&choice);
         step += 1;
     }
 
-    let nb = backend::Python::new(&s.tree).emit().nbformat(&imp_src);
+    let nb = backend::Python::new(&synthesizer.tree)
+        .emit()
+        .nbformat(&imp_src);
 
     let mut output_file = File::create(output_filename)?;
     write!(output_file, "{}", nb)?;
