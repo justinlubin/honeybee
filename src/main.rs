@@ -37,7 +37,15 @@ fn main() -> std::io::Result<()> {
 
     let mut s = synthesis::Synthesizer::new(&lib, &prog);
 
+    let mut step = 1;
     loop {
+        println!(
+            "{} {} {}\n\n{}",
+            ansi_term::Color::Fixed(8).paint("═".repeat(2)),
+            ansi_term::Color::Fixed(8).paint(format!("Step {}", step)),
+            ansi_term::Color::Fixed(8).paint("═".repeat(40)),
+            ansi_term::Style::new().bold().paint("Derivation tree:")
+        );
         print!("{}", s.tree.pretty());
         let options = s.options();
         if options.is_empty() {
@@ -46,12 +54,19 @@ fn main() -> std::io::Result<()> {
         println!();
         let choice = analysis::fast_forward(options);
         s.step(&choice);
+        step += 1;
     }
 
     let nb = backend::Python::new(&s.tree).emit().nbformat(&imp);
 
     let mut output_file = File::create(output_filename)?;
     write!(output_file, "{}", nb)?;
+
+    println!(
+        "\n{}{}\n",
+        " ".repeat(20),
+        ansi_term::Color::Cyan.paint("All done!")
+    );
 
     Ok(())
 }

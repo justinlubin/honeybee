@@ -26,9 +26,9 @@ fn select_cli<T>(mode: &Mode, title: &str, mut options: Vec<(String, T)>) -> T {
             i,
             label,
             if auto && i == 0 {
-                " (auto-selected)"
+                ansi_term::Color::Red.paint(" (auto-selected)").to_string()
             } else {
-                ""
+                "".to_owned()
             }
         );
     }
