@@ -3,23 +3,6 @@
 version = 3
 
 [[package]]
-name = "HoneyBee"
-version = "0.1.0"
-dependencies = [
- "ansi_term",
- "ariadne",
- "chumsky",
- "egglog",
- "env_logger 0.11.3",
- "ipynb",
- "log",
- "rustpython-ast",
- "rustpython-parser",
- "serde_json",
- "termtree",
-]
-
-[[package]]
 name = "Inflector"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -582,6 +565,23 @@ name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
+
+[[package]]
+name = "honeybee"
+version = "0.1.0"
+dependencies = [
+ "ansi_term",
+ "ariadne",
+ "chumsky",
+ "egglog",
+ "env_logger 0.11.3",
+ "ipynb",
+ "log",
+ "rustpython-ast",
+ "rustpython-parser",
+ "serde_json",
+ "termtree",
+]
 
 [[package]]
 name = "humantime"
