@@ -1,5 +1,3 @@
-To run in debug mode:
+![A honey bee approaching a flower](./bee.jpg)
 
-```
-RUST_LOG=cea2=debug cargo run -- <LIB FILE> <PROTOCOL FILE>
-```
+_Image credit: [Louise Docker](https://www.flickr.com/photos/aussiegall/) on [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pollinationn.jpg), [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/)._

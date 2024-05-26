@@ -1,7 +1,12 @@
 [package]
-name = "cea2"
+name = "HoneyBee"
 version = "0.1.0"
+authors = ["Justin Lubin <justin@jlubin.net>"]
 edition = "2021"
+readme = "README.md"
+repository = "https://github.com/justinlubin/HoneyBee"
+license = "BSD"
+license-file = "LICENSE.txt"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
