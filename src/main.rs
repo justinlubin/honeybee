@@ -114,7 +114,7 @@ fn main() -> std::io::Result<()> {
 
     // Main
 
-    let runner = top_level::Runner { interactive: false };
+    let runner = top_level::Runner { interactive: true };
 
     match runner.run(lib, imp_src, prog) {
         Some(output) => {
@@ -122,7 +122,7 @@ fn main() -> std::io::Result<()> {
             write!(output_file, "{}", output)?;
             if runner.interactive {
                 println!(
-                    "{}",
+                    "\n{}",
                     ansi_term::Color::Cyan.bold().paint("[ All done! ]")
                 );
             }

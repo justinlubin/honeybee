@@ -23,7 +23,8 @@ impl Runner {
         let mut synthesizer = synthesis::Synthesizer::new(&lib, &prog);
         let analyzer = if self.interactive {
             analysis::CLI {
-                mode: analysis::CLIMode::FastForward,
+                // mode: analysis::CLIMode::FastForward,
+                mode: analysis::CLIMode::Manual,
                 print: true,
             }
         } else {

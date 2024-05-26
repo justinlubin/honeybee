@@ -1,23 +1,9 @@
-; Annotations
+; Sequencing
 
 (ground fact Seq
   (.sample Str) (.at Int) (.data Str))
 
-(ground fact Transfect
-  (.sample Str) (.at Int) (.library Str))
-
-(ground fact Sort
-  (.in_sample Str) (.on_sample Str) (.off_sample Str) (.at Int))
-
-(ground fact Flow
-  (.sample Str) (.at Int) (.data Str))
-
-(ground fact RNASeq
-  (.sample Str) (.at Int) (.data Str))
-
-; Gene quantification
-
-(analysis type GeneQuantification
+(derived fact GeneQuantification
   (.sample Str) (.at Int))
 
 (computation bowtie GeneQuantification
@@ -30,18 +16,18 @@
   ((= (.sample ret) (.sample s))
    (= (.at ret) (.at s))))
 
-(analysis type LibrarySizeHistogram
-  (.sample Str) (.at Int))
+; Transfection
 
-(computation library_size_histogram LibrarySizeHistogram
-  ((gq GeneQuantification))
-  ((= (.sample ret) (.sample gq))
-   (= (.at ret) (.at gq))))
+(ground fact Transfect
+  (.sample Str) (.at Int) (.library Str))
 
-; Growth over time in a single sample
+; Growth phenotype
 
-(analysis type GrowthOverTime
+(derived fact GrowthOverTime
   (.sample Str) (.from Int) (.to Int))
+
+(derived fact GrowthBetween
+  (.sample1 Str) (.sample2 Str) (.at Int))
 
 (computation growth_over_time GrowthOverTime
   ((q1 GeneQuantification) (q2 GeneQuantification))
@@ -51,11 +37,6 @@
    (= (.sample q1) (.sample q2))
    (< (.at q1) (.at q2))))
 
-; Growth between two samples
-
-(ground fact GrowthBetween
-  (.sample1 Str) (.sample2 Str) (.at Int))
-
 (computation growth_between GrowthBetween
   ((q1 GeneQuantification) (q2 GeneQuantification))
   ((= (.sample1 ret) (.sample q1))
@@ -63,42 +44,26 @@
    (= (.at ret) (.at q1))
    (= (.at q1) (.at q2))))
 
-; Flow cytometry time course
-
-(ground fact FlowTimeCourse
-  (.from Int) (.to Int))
-
-(computation flow_time_course FlowTimeCourse
-  ((forall f Flow))
-  ((<= (.from ret) (.at f))
-   (<= (.at f) (.to ret))))
-
 ; Bulk RNA-seq analysis
 
-(ground fact ReadCountMatrix
+(derived fact ReadCountMatrix
   (.at Int))
 
-(ground fact QCReadCountMatrix
-  (.at Int))
-
-(ground fact BatchCorrectedReadCountMatrix
-  (.at Int))
-
-(ground fact DifferentialGeneExpression
+(derived fact DifferentialGeneExpression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
-(computation bulk_quantify ReadCountMatrix
-  ((forall+ r RNASeq))
-  ((= (.at ret) (.at r))))
+(computation aggregate_counts ReadCountMatrix
+  ((forall+ counts GeneQuantification))
+  ((= (.at ret) (.at counts))))
 
-(computation rna_qc QCReadCountMatrix
+(computation rna_qc ReadCountMatrix
   ((rcm ReadCountMatrix))
   ((= (.at ret) (.at rcm))))
 
-(computation rna_bc BatchCorrectedReadCountMatrix
-  ((qc QCReadCountMatrix))
-  ((= (.at ret) (.at qc))))
+(computation combat_seq ReadCountMatrix
+  ((rcm ReadCountMatrix))
+  ((= (.at ret) (.at rcm))))
 
 (computation deseq2 DifferentialGeneExpression
-  ((bc BatchCorrectedReadCountMatrix))
-  ((= (.at ret) (.at bc))))
+  ((rcm ReadCountMatrix))
+  ((= (.at ret) (.at rcm))))
