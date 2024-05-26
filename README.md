@@ -1,4 +1,4 @@
-![Tests workflow results](https://github.com/justinlubin/HoneyBee/actions/workflows/rust.yml/badge.svg)
+![Tests workflow results](https://github.com/justinlubin/HoneyBee/actions/workflows/tests.yml/badge.svg)
 
 ![A honey bee approaching a flower](https://jlubin.net/assets/bee.jpg)
 
