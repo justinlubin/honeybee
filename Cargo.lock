@@ -3,6 +3,23 @@
 version = 3
 
 [[package]]
+name = "HoneyBee"
+version = "0.1.0"
+dependencies = [
+ "ansi_term",
+ "ariadne",
+ "chumsky",
+ "egglog",
+ "env_logger 0.11.3",
+ "ipynb",
+ "log",
+ "rustpython-ast",
+ "rustpython-parser",
+ "serde_json",
+ "termtree",
+]
+
+[[package]]
 name = "Inflector"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -186,23 +203,6 @@ name = "cc"
 version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17f6e324229dc011159fcc089755d1e2e216a90d43a7dea6853ca740b84f35e7"
-
-[[package]]
-name = "cea2"
-version = "0.1.0"
-dependencies = [
- "ansi_term",
- "ariadne",
- "chumsky",
- "egglog",
- "env_logger 0.11.3",
- "ipynb",
- "log",
- "rustpython-ast",
- "rustpython-parser",
- "serde_json",
- "termtree",
-]
 
 [[package]]
 name = "cfg-if"
