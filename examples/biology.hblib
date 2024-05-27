@@ -61,18 +61,18 @@
 
 (computation rna_qc ReadCountMatrix
   ((rcm ReadCountMatrix))
-  ((= (.sample1 ret) (.sample1 ret))
-   (= (.sample2 ret) (.sample2 ret))
+  ((= (.sample1 ret) (.sample1 rcm))
+   (= (.sample2 ret) (.sample2 rcm))
    (= (.at ret) (.at rcm))))
 
 (computation combat_seq ReadCountMatrix
   ((rcm ReadCountMatrix))
-  ((= (.sample1 ret) (.sample1 ret))
-   (= (.sample2 ret) (.sample2 ret))
+  ((= (.sample1 ret) (.sample1 rcm))
+   (= (.sample2 ret) (.sample2 rcm))
    (= (.at ret) (.at rcm))))
 
 (computation deseq2 DifferentialGeneExpression
   ((rcm ReadCountMatrix))
-  ((= (.sample1 ret) (.sample1 ret))
-   (= (.sample2 ret) (.sample2 ret))
+  ((= (.sample1 ret) (.sample1 rcm))
+   (= (.sample2 ret) (.sample2 rcm))
    (= (.at ret) (.at rcm))))

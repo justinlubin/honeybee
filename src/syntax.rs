@@ -385,4 +385,23 @@ pub mod unparse {
             fact(&p.goal)
         )
     }
+
+    pub fn assignment(a: &Assignment) -> String {
+        format!(
+            "{{{}}}",
+            a.iter()
+                .map(|(k, v)| {
+                    format!(
+                        "{} = {}",
+                        match k.strip_prefix("fv%") {
+                            Some(rest) => format!("{}", rest.replace("*", ".")),
+                            None => k.clone(),
+                        },
+                        value(v)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
 }

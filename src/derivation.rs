@@ -344,7 +344,7 @@ impl Tree {
             {
                 antecedents[0]
                     .1
-                    .termtree(gp, &format!(".{}", antecedents[0].0))
+                    .termtree(gp, &format!("{}", antecedents[0].0))
             }
             _ => self.termtree(gp, ""),
         }
@@ -383,9 +383,9 @@ impl Tree {
                 Yellow.paint("•"),
                 Yellow.paint(prefix),
                 Yellow.paint("[goal]"),
-                Fixed(8).paint("("),
+                Yellow.paint("("),
                 Yellow.paint(fact_name),
-                Fixed(8).paint(")"),
+                Yellow.paint(")"),
             ))
             .with_glyphs(gp),
             Tree::Step {
@@ -398,12 +398,12 @@ impl Tree {
                     "{} {} {} {}",
                     Green.paint("•"),
                     Blue.paint(prefix),
-                    Green.paint(format!("[{}]", label)),
+                    Green.paint(format!("({})", label)),
                     Fixed(8).paint(unparse::fact(consequent))
                 ))
                 .with_glyphs(gp);
                 for (tag, subtree) in antecedents {
-                    t.push(subtree.termtree(gp, &format!(".{}", tag)));
+                    t.push(subtree.termtree(gp, &format!("{}", tag)));
                 }
                 t
             }

@@ -1,5 +1,8 @@
 use crate::derivation;
+use crate::syntax;
 use crate::synthesis;
+
+use crate::ir::*;
 
 #[derive(Debug, Clone)]
 pub enum CLIMode {
@@ -76,6 +79,34 @@ impl CLI {
         }
     }
 
+    fn select_assignment(
+        &self,
+        path: &Vec<String>,
+        assignment_options: Vec<Assignment>,
+    ) -> Assignment {
+        use ansi_term::Color::*;
+        use ansi_term::Style;
+
+        self.select(
+            &format!(
+                "{}{}{}",
+                &Style::new().bold().paint("Assignments"),
+                if path.is_empty() {
+                    " (on root)".to_owned()
+                } else {
+                    format!(" (on {})", Blue.paint(path.join(".")))
+                },
+                &Style::new().bold().paint(":"),
+            ),
+            assignment_options
+                .into_iter()
+                .map(|a| {
+                    (Cyan.paint(syntax::unparse::assignment(&a)).to_string(), a)
+                })
+                .collect::<Vec<_>>(),
+        )
+    }
+
     pub fn analyze(
         &self,
         options: Vec<synthesis::GoalOption>,
@@ -95,9 +126,9 @@ impl CLI {
                                 path.iter()
                                     .map(|derivation::PathEntry { tag, .. }| tag)
                                     .chain(std::iter::once(tag))
-                                    .map(|id| format!(".{}", id))
+                                    .map(|id| id.clone())
                                     .collect::<Vec<_>>()
-                                    .join(""),
+                                    .join("."),
                             )
                             .to_string(),
                         opt,
@@ -113,7 +144,10 @@ impl CLI {
                 computation_options,
             } => {
                 let computations = derivation::computations(&path);
-                let computation_option = self.select(
+                let synthesis::ComputationOption {
+                    name,
+                    assignment_options,
+                } = self.select(
                     &Style::new().bold().paint("Computations:").to_string(),
                     computation_options
                         .into_iter()
@@ -122,15 +156,16 @@ impl CLI {
                         .collect::<Vec<_>>(),
                 );
 
+                let path = derivation::into_tags(path);
+
+                let assignment =
+                    self.select_assignment(&path, assignment_options);
+
                 synthesis::Choice::Analysis {
-                    path: derivation::into_tags(path),
+                    path,
                     tag,
-                    computation_name: computation_option.name,
-                    assignment: computation_option
-                        .assignment_options
-                        .into_iter()
-                        .next()
-                        .unwrap(),
+                    computation_name: name,
+                    assignment,
                 }
             }
             synthesis::GoalOption::Annotation {
@@ -138,12 +173,16 @@ impl CLI {
                 tag,
                 fact_name,
                 assignment_options,
-            } => synthesis::Choice::Annotation {
-                path: derivation::into_tags(path),
-                tag,
-                fact_name,
-                assignment: assignment_options.into_iter().next().unwrap(),
-            },
+            } => {
+                let path = derivation::into_tags(path);
+                synthesis::Choice::Annotation {
+                    tag,
+                    fact_name,
+                    assignment: self
+                        .select_assignment(&path, assignment_options),
+                    path,
+                }
+            }
         }
     }
 }
