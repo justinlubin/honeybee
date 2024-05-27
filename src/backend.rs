@@ -27,7 +27,6 @@ impl<'a> Python<'a> {
         use std::collections::HashSet;
 
         let mut initializations = vec![];
-        let mut collects = vec![];
         let mut computations = vec![];
 
         let mut seen_axioms: HashSet<&Fact> = HashSet::new();
@@ -41,10 +40,7 @@ impl<'a> Python<'a> {
                     }
                 }
                 Tree::Collect(_, None) => unreachable!(),
-                Tree::Collect(_, Some(facts)) => {
-                    let name = path.join("_");
-                    collects.push((name, facts))
-                }
+                Tree::Collect(_, Some(facts)) => todo!(),
                 Tree::Step {
                     label,
                     antecedents,
@@ -85,12 +81,6 @@ impl<'a> Python<'a> {
                 format!("{} = {}(\n    {}\n)", name, axiom.name, args),
                 name,
             ));
-        }
-
-        for (name, facts) in collects {
-            cells
-                .initializations
-                .push((format!("{} = ... # collect", name), name));
         }
 
         for (name, label, antecedents, consequent) in computations {

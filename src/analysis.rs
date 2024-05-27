@@ -1,3 +1,4 @@
+use crate::derivation;
 use crate::synthesis;
 
 #[derive(Debug, Clone)]
@@ -92,6 +93,7 @@ impl CLI {
                         Yellow
                             .paint(
                                 path.iter()
+                                    .map(|derivation::PathEntry { tag, .. }| tag)
                                     .chain(std::iter::once(tag))
                                     .map(|id| format!(".{}", id))
                                     .collect::<Vec<_>>()
@@ -110,16 +112,18 @@ impl CLI {
                 tag,
                 computation_options,
             } => {
+                let computations = derivation::computations(&path);
                 let computation_option = self.select(
                     &Style::new().bold().paint("Computations:").to_string(),
                     computation_options
                         .into_iter()
+                        .filter(|c| !computations.contains(&c.name))
                         .map(|c| (Green.paint(c.name.clone()).to_string(), c))
                         .collect::<Vec<_>>(),
                 );
 
                 synthesis::Choice::Analysis {
-                    path,
+                    path: derivation::into_tags(path),
                     tag,
                     computation_name: computation_option.name,
                     assignment: computation_option
@@ -135,7 +139,7 @@ impl CLI {
                 fact_name,
                 assignment_options,
             } => synthesis::Choice::Annotation {
-                path,
+                path: derivation::into_tags(path),
                 tag,
                 fact_name,
                 assignment: assignment_options.into_iter().next().unwrap(),

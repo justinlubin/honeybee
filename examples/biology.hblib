@@ -47,23 +47,32 @@
 ; Bulk RNA-seq analysis
 
 (derived fact ReadCountMatrix
-  (.at Int))
+  (.sample1 Str) (.sample2 Str) (.at Int))
 
 (derived fact DifferentialGeneExpression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
-(computation aggregate_counts ReadCountMatrix
-  ((forall+ counts GeneQuantification))
-  ((= (.at ret) (.at counts))))
+(computation load_read_counts ReadCountMatrix
+  ((q1 GeneQuantification) (q2 GeneQuantification))
+  ((= (.sample1 ret) (.sample q1))
+   (= (.sample2 ret) (.sample q2))
+   (= (.at ret) (.at q1))
+   (= (.at q1) (.at q2))))
 
 (computation rna_qc ReadCountMatrix
   ((rcm ReadCountMatrix))
-  ((= (.at ret) (.at rcm))))
+  ((= (.sample1 ret) (.sample1 ret))
+   (= (.sample2 ret) (.sample2 ret))
+   (= (.at ret) (.at rcm))))
 
 (computation combat_seq ReadCountMatrix
   ((rcm ReadCountMatrix))
-  ((= (.at ret) (.at rcm))))
+  ((= (.sample1 ret) (.sample1 ret))
+   (= (.sample2 ret) (.sample2 ret))
+   (= (.at ret) (.at rcm))))
 
 (computation deseq2 DifferentialGeneExpression
   ((rcm ReadCountMatrix))
-  ((= (.at ret) (.at rcm))))
+  ((= (.sample1 ret) (.sample1 ret))
+   (= (.sample2 ret) (.sample2 ret))
+   (= (.at ret) (.at rcm))))

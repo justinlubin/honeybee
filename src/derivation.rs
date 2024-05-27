@@ -1,6 +1,22 @@
 use crate::ir::*;
 
 #[derive(Debug, Clone)]
+pub struct PathEntry {
+    pub computation: String,
+    pub tag: String,
+}
+
+pub fn computations(path: &Vec<PathEntry>) -> Vec<String> {
+    path.iter()
+        .map(|PathEntry { computation, .. }| computation.clone())
+        .collect()
+}
+
+pub fn into_tags(path: Vec<PathEntry>) -> Vec<String> {
+    path.into_iter().map(|PathEntry { tag, .. }| tag).collect()
+}
+
+#[derive(Debug, Clone)]
 pub enum Tree {
     Axiom(Fact),
     Goal(FactName),
@@ -170,7 +186,7 @@ impl Tree {
         }
     }
 
-    pub fn queries(&self, lib: &Library) -> Vec<(Vec<String>, Query)> {
+    pub fn queries(&self, lib: &Library) -> Vec<(Vec<PathEntry>, Query)> {
         // TODO: will need to do something like this to fill the Collects
         // at program construction time (only do on complete trees?)
         match self {
@@ -189,10 +205,16 @@ impl Tree {
                         Tree::Goal(q) => {
                             goal_siblings.push((n.clone(), q.clone()))
                         }
-                        Tree::Step { .. } => {
+                        Tree::Step { label, .. } => {
                             for (mut path, q) in t.queries(lib) {
                                 // TODO: possibly inefficient
-                                path.insert(0, n.clone());
+                                path.insert(
+                                    0,
+                                    PathEntry {
+                                        computation: label.clone(),
+                                        tag: n.clone(),
+                                    },
+                                );
                                 ret.push((path, q))
                             }
                         }

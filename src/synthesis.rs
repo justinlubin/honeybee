@@ -19,12 +19,12 @@ pub struct ComputationOption {
 #[derive(Debug, Clone)]
 pub enum GoalOption {
     Analysis {
-        path: Vec<String>,
+        path: Vec<derivation::PathEntry>,
         tag: String,
         computation_options: Vec<ComputationOption>,
     },
     Annotation {
-        path: Vec<String>,
+        path: Vec<derivation::PathEntry>,
         tag: String,
         fact_name: String,
         assignment_options: Vec<Assignment>,
