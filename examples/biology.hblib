@@ -3,18 +3,40 @@
 (ground fact Seq
   (.sample Str) (.at Int) (.data Str))
 
-(derived fact GeneQuantification
+(derived fact ReadCountMatrix1
   (.sample Str) (.at Int))
 
-(computation bowtie GeneQuantification
-  ((s Seq))
-  ((= (.sample ret) (.sample s))
-   (= (.at ret) (.at s))))
+(derived fact ReadCountMatrix2
+  (.sample1 Str) (.sample2 Str) (.at Int))
 
-(computation kallisto GeneQuantification
-  ((s Seq))
-  ((= (.sample ret) (.sample s))
-   (= (.at ret) (.at s))))
+(computation load_local_reads ReadCountMatrix1
+  ((seq Seq))
+  ((= (.sample ret) (.sample seq))
+   (= (.at ret) (.at seq))))
+
+(computation aggregate_reads ReadCountMatrix2
+  ((rcm1 ReadCountMatrix1) (rcm2 ReadCountMatrix1))
+  ((= (.sample1 ret) (.sample rcm1))
+   (= (.sample2 ret) (.sample rcm2))
+   (= (.at ret) (.at q1))
+   (= (.at q1) (.at q2))))
+
+; Bulk RNA-seq
+
+(derived fact DifferentialGeneExpression
+  (.sample1 Str) (.sample2 Str) (.at Int))
+
+(computation combat_seq ReadCountMatrix2
+  ((rcm ReadCountMatrix2))
+  ((= (.sample1 ret) (.sample1 rcm))
+   (= (.sample2 ret) (.sample2 rcm))
+   (= (.at ret) (.at rcm))))
+
+(computation deseq2 DifferentialGeneExpression
+  ((rcm ReadCountMatrix2))
+  ((= (.sample1 ret) (.sample1 rcm))
+   (= (.sample2 ret) (.sample2 rcm))
+   (= (.at ret) (.at rcm))))
 
 ; Transfection and growth
 
@@ -25,40 +47,14 @@
   (.sample Str) (.start Int) (.end Int))
 
 (computation growth_phenotype GrowthPhenotype
-  ((t Transfection)
-   (q1 GeneQuantification)
-   (q2 GeneQuantification))
+  ((t Transfect)
+   (rcm1 ReadCountMatrix1)
+   (rcm2 ReadCountMatrix1))
   ((= (.sample ret) (.sample t))
-   (= (.start ret) (.at q1))
-   (= (.end ret) (.at q2))
-   (= (.sample t) (.sample q1))
-   (= (.sample t) (.sample q2))
-   (< (.at t) (.at q1))
-   (< (.at q1) (.at q2))))
+   (= (.start ret) (.at rcm1))
+   (= (.end ret) (.at rcm2))
+   (= (.sample t) (.sample rcm1))
+   (= (.sample t) (.sample rcm2))
+   (< (.at t) (.at rcm1))
+   (< (.at rcm1) (.at rcm2))))
 
-; Bulk RNA-seq
-
-(derived fact ReadCountMatrix
-  (.sample1 Str) (.sample2 Str) (.at Int))
-
-(derived fact DifferentialGeneExpression
-  (.sample1 Str) (.sample2 Str) (.at Int))
-
-(computation load_read_counts ReadCountMatrix
-  ((q1 GeneQuantification) (q2 GeneQuantification))
-  ((= (.sample1 ret) (.sample q1))
-   (= (.sample2 ret) (.sample q2))
-   (= (.at ret) (.at q1))
-   (= (.at q1) (.at q2))))
-
-(computation combat_seq ReadCountMatrix
-  ((rcm ReadCountMatrix))
-  ((= (.sample1 ret) (.sample1 rcm))
-   (= (.sample2 ret) (.sample2 rcm))
-   (= (.at ret) (.at rcm))))
-
-(computation deseq2 DifferentialGeneExpression
-  ((rcm ReadCountMatrix))
-  ((= (.sample1 ret) (.sample1 rcm))
-   (= (.sample2 ret) (.sample2 rcm))
-   (= (.at ret) (.at rcm))))

@@ -1,7 +1,7 @@
 (facts
-  (Seq (.sample "CRISPRoff") (.at 3) (.data "croff.fastq"))
-  (Seq (.sample "CRISPRi") (.at 3) (.data "cri.fastq")))
+  (Seq (.sample "healthy") (.at 1) (.data "healthy.fastq"))
+  (Seq (.sample "tle") (.at 1) (.data "cri.fastq")))
 
 (goal
   (DifferentialGeneExpression
-    (.sample1 "CRISPRoff") (.sample2 "CRISPRi") (.at 3)))
+    (.sample1 "healthy") (.sample2 "tle") (.at 1)))

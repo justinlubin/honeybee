@@ -14,7 +14,7 @@ class Seq:
 
 
 @dataclass
-class GeneQuantification:
+class ReadCountMatrix1:
     @dataclass
     class M:
         sample: str
@@ -28,12 +28,33 @@ class GeneQuantification:
     d: D
 
 
-def bowtie(s: Seq) -> GeneQuantification.D:
+@dataclass
+class ReadCountMatrix2:
+    @dataclass
+    class M:
+        sample1: str
+        sample2: str
+        at: int
+
+    @dataclass
+    class D:
+        df: pd.DataFrame
+
+    m: M
+    d: D
+
+
+def load_local_reads(
+    seq: Seq,
+) -> ReadCountMatrix1.D:
     df = ...
     return pd.DataFrame(df=df)
 
 
-def kallisto(s: Seq) -> GeneQuantification.D:
+def aggregate_reads(
+    rcm1: ReadCountMatrix1,
+    rcm2: ReadCountMatrix1,
+) -> ReadCountMatrix2.D:
     df = ...
     return pd.DataFrame(df=df)
 
@@ -65,29 +86,15 @@ class GrowthPhenotype:
 
 
 def growth_phenotype(
-    t: Transfect, q1: GeneQuantification, q2: GeneQuantification
+    t: Transfect,
+    rcm1: ReadCountMatrix1,
+    rcm2: ReadCountMatrix1,
 ) -> GrowthPhenotype.D:
     df = ...
     return GrowthPhenotype.D(df=df)
 
 
 # Bulk RNA-seq
-
-
-@dataclass
-class ReadCountMatrix:
-    @dataclass
-    class M:
-        sample1: str
-        sample2: str
-        at: int
-
-    @dataclass
-    class D:
-        df: pd.DataFrame
-
-    m: M
-    d: D
 
 
 @dataclass
@@ -106,18 +113,15 @@ class DifferentialGeneExpression:
     d: D
 
 
-def load_read_counts(
-    q1: GeneQuantification, q2: GeneQuantification
-) -> ReadCountMatrix.D:
+def combat_seq(
+    rcm: ReadCountMatrix2,
+) -> ReadCountMatrix2.D:
     df = ...
-    return ReadCountMatrix.D(df=df)
+    return ReadCountMatrix2.D(df=df)
 
 
-def combat_seq(rcm: ReadCountMatrix) -> ReadCountMatrix.D:
-    df = ...
-    return ReadCountMatrix.D(df=df)
-
-
-def deseq2(rcm: ReadCountMatrix) -> DifferentialGeneExpression.D:
+def deseq2(
+    rcm: ReadCountMatrix2,
+) -> DifferentialGeneExpression.D:
     df = ...
     return DifferentialGeneExpression.D(df=df)

@@ -67,7 +67,7 @@ impl CLI {
                 }
             };
 
-            if idx > options.len() {
+            if idx >= options.len() {
                 continue;
             }
 

@@ -196,14 +196,29 @@ impl Tree {
                 consequent,
                 ..
             } => {
+                let mut axiom_equalities = vec![];
                 let mut goal_siblings = vec![];
                 let mut ret = vec![];
 
-                for (n, t) in antecedents {
+                for (tag, t) in antecedents {
                     match t {
-                        Tree::Axiom(..) | Tree::Collect(..) => (),
+                        Tree::Axiom(fact) => {
+                            for (n, v) in &fact.args {
+                                axiom_equalities.push(
+                                    PredicateRelation::BinOp(
+                                        PredicateRelationBinOp::Eq,
+                                        PredicateAtom::Select {
+                                            selector: n.clone(),
+                                            arg: tag.clone(),
+                                        },
+                                        PredicateAtom::Const(v.clone()),
+                                    ),
+                                );
+                            }
+                        }
+                        Tree::Collect(..) => (),
                         Tree::Goal(q) => {
-                            goal_siblings.push((n.clone(), q.clone()))
+                            goal_siblings.push((tag.clone(), q.clone()))
                         }
                         Tree::Step { label, .. } => {
                             for (mut path, q) in t.queries(lib) {
@@ -212,7 +227,7 @@ impl Tree {
                                     0,
                                     PathEntry {
                                         computation: label.clone(),
-                                        tag: n.clone(),
+                                        tag: tag.clone(),
                                     },
                                 );
                                 ret.push((path, q))
@@ -242,6 +257,7 @@ impl Tree {
                                             .collect(),
                                     )
                                 })
+                                .chain(axiom_equalities)
                                 .collect(),
                         ),
                     ))

@@ -158,7 +158,10 @@ impl Compiler {
                     forall_params.insert(x.clone());
                 }
                 Mode::Exists | Mode::ForAllPlus => {
-                    for (selector, vt) in &lib.fact_signature(f).unwrap().params
+                    for (selector, vt) in &lib
+                        .fact_signature(f)
+                        .expect(&format!("Unknown fact name: {}", f))
+                        .params
                     {
                         match vt {
                             ValueType::Int => {
