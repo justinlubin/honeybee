@@ -16,35 +16,27 @@
   ((= (.sample ret) (.sample s))
    (= (.at ret) (.at s))))
 
-; Transfection
+; Transfection and growth
 
 (ground fact Transfect
   (.sample Str) (.at Int) (.library Str))
 
-; Growth phenotype
+(derived fact GrowthPhenotype
+  (.sample Str) (.start Int) (.end Int))
 
-(derived fact GrowthOverTime
-  (.sample Str) (.from Int) (.to Int))
-
-(derived fact GrowthBetween
-  (.sample1 Str) (.sample2 Str) (.at Int))
-
-(computation growth_over_time GrowthOverTime
-  ((q1 GeneQuantification) (q2 GeneQuantification))
-  ((= (.sample ret) (.sample q1))
-   (= (.from ret) (.at q1))
-   (= (.to ret) (.at q2))
-   (= (.sample q1) (.sample q2))
+(computation growth_phenotype GrowthPhenotype
+  ((t Transfection)
+   (q1 GeneQuantification)
+   (q2 GeneQuantification))
+  ((= (.sample ret) (.sample t))
+   (= (.start ret) (.at q1))
+   (= (.end ret) (.at q2))
+   (= (.sample t) (.sample q1))
+   (= (.sample t) (.sample q2))
+   (< (.at t) (.at q1))
    (< (.at q1) (.at q2))))
 
-(computation growth_between GrowthBetween
-  ((q1 GeneQuantification) (q2 GeneQuantification))
-  ((= (.sample1 ret) (.sample q1))
-   (= (.sample2 ret) (.sample q2))
-   (= (.at ret) (.at q1))
-   (= (.at q1) (.at q2))))
-
-; Bulk RNA-seq analysis
+; Bulk RNA-seq
 
 (derived fact ReadCountMatrix
   (.sample1 Str) (.sample2 Str) (.at Int))
@@ -58,12 +50,6 @@
    (= (.sample2 ret) (.sample q2))
    (= (.at ret) (.at q1))
    (= (.at q1) (.at q2))))
-
-(computation rna_qc ReadCountMatrix
-  ((rcm ReadCountMatrix))
-  ((= (.sample1 ret) (.sample1 rcm))
-   (= (.sample2 ret) (.sample2 rcm))
-   (= (.at ret) (.at rcm))))
 
 (computation combat_seq ReadCountMatrix
   ((rcm ReadCountMatrix))

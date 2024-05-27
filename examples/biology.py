@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import pandas as pd
 import altair as alt
 
+# Sequencing
+
 
 @dataclass
 class Seq:
@@ -20,39 +22,102 @@ class GeneQuantification:
 
     @dataclass
     class D:
-        table: pd.DataFrame
-
-    m: M
-    d: D
-
-
-@dataclass
-class LibrarySizeHistogram:
-    @dataclass
-    class M:
-        sample: str
-        at: int
-
-    @dataclass
-    class D:
-        pass
+        df: pd.DataFrame
 
     m: M
     d: D
 
 
 def bowtie(s: Seq) -> GeneQuantification.D:
-    filepath = s.data
-    command_output = ...  # filepath
-    return pd.DataFrame(command_output)
+    df = ...
+    return pd.DataFrame(df=df)
 
 
 def kallisto(s: Seq) -> GeneQuantification.D:
-    filepath = s.data + s.at
-    command_output = ...  # filepath
-    return pd.DataFrame(columns=command_output)
+    df = ...
+    return pd.DataFrame(df=df)
 
 
-def library_size_histogram(gq: GeneQuantification) -> LibrarySizeHistogram.D:
-    alt.Chart(gq.d.table).interactive()
-    return LibrarySizeHistogram.D()
+# Transfection and growth
+
+
+@dataclass
+class Transfect:
+    sample: str
+    at: int
+    library: str
+
+
+@dataclass
+class GrowthPhenotype:
+    @dataclass
+    class M:
+        sample: str
+        start: int
+        end: int
+
+    @dataclass
+    class D:
+        df: pd.DataFrame
+
+    m: M
+    d: D
+
+
+def growth_phenotype(
+    t: Transfect, q1: GeneQuantification, q2: GeneQuantification
+) -> GrowthPhenotype.D:
+    df = ...
+    return GrowthPhenotype.D(df=df)
+
+
+# Bulk RNA-seq
+
+
+@dataclass
+class ReadCountMatrix:
+    @dataclass
+    class M:
+        sample1: str
+        sample2: str
+        at: int
+
+    @dataclass
+    class D:
+        df: pd.DataFrame
+
+    m: M
+    d: D
+
+
+@dataclass
+class DifferentialGeneExpression:
+    @dataclass
+    class M:
+        sample1: str
+        sample2: str
+        at: int
+
+    @dataclass
+    class D:
+        df: pd.DataFrame
+
+    m: M
+    d: D
+
+
+def load_read_counts(
+    q1: GeneQuantification, q2: GeneQuantification
+) -> ReadCountMatrix.D:
+    df = ...
+    return ReadCountMatrix.D(df=df)
+
+
+def combat_seq(rcm: ReadCountMatrix) -> ReadCountMatrix.D:
+    df = ...
+    return ReadCountMatrix.D(df=df)
+
+
+def deseq2(rcm: ReadCountMatrix) -> DifferentialGeneExpression.D:
+    df = ...
+    return DifferentialGeneExpression.D(df=df)
