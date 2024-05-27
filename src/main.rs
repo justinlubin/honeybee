@@ -26,12 +26,10 @@ fn parse_error(
         .filter_map(|mtok| mtok.map(|tok| format!("`{}`", tok)))
         .collect::<Vec<_>>();
 
-    let mut colors = ColorGenerator::new();
-
     let error_color = Color::Red;
 
     let mut report = Report::build(ReportKind::Error, filename, err_span.start)
-        .with_code(1)
+        .with_code(code)
         .with_message(title)
         .with_label(
             Label::new((filename, err_span))

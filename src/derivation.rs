@@ -4,6 +4,7 @@ use crate::ir::*;
 pub enum Tree {
     Axiom(Fact),
     Goal(FactName),
+    Collect(FactName, Option<Vec<Fact>>),
     // Same as ComputationSignature, but:
     // (i) facts are instantiated
     // (ii) recursively references Tree
@@ -25,8 +26,16 @@ impl Tree {
             antecedents: cs
                 .params
                 .iter()
-                .filter_map(|(p, fact_name, _mode)| {
-                    Some((p.clone(), Tree::Goal(fact_name.clone())))
+                .map(|(tag, fact_name, mode)| {
+                    (
+                        tag.clone(),
+                        match mode {
+                            Mode::Exists => Tree::Goal(fact_name.clone()),
+                            Mode::ForAll | Mode::ForAllPlus => {
+                                Tree::Collect(fact_name.clone(), None)
+                            }
+                        },
+                    )
                 })
                 .collect(),
             consequent: Fact {
@@ -48,7 +57,12 @@ impl Tree {
                 .computation_signature
                 .params
                 .iter()
-                .map(|(n, f, _)| (n.clone(), Tree::Goal(f.clone())))
+                .filter_map(|(tag, fact_name, mode)| match mode {
+                    Mode::Exists => {
+                        Some((tag.clone(), Tree::Goal(fact_name.clone())))
+                    }
+                    Mode::ForAll | Mode::ForAllPlus => None,
+                })
                 .collect(),
             consequent: Fact {
                 name: q.fact_signature.name.clone(),
@@ -157,6 +171,8 @@ impl Tree {
     }
 
     pub fn queries(&self, lib: &Library) -> Vec<(Vec<String>, Query)> {
+        // TODO: will need to do something like this to fill the Collects
+        // at program construction time (only do on complete trees?)
         match self {
             Tree::Step {
                 antecedents,
@@ -169,7 +185,7 @@ impl Tree {
 
                 for (n, t) in antecedents {
                     match t {
-                        Tree::Axiom(..) => (),
+                        Tree::Axiom(..) | Tree::Collect(..) => (),
                         Tree::Goal(q) => {
                             goal_siblings.push((n.clone(), q.clone()))
                         }
@@ -215,13 +231,20 @@ impl Tree {
         }
     }
 
-    pub fn complete(&self) -> bool {
+    pub fn complete(&self, including_collects: bool) -> bool {
         match self {
-            Tree::Axiom(_) => true,
-            Tree::Goal(_) => false,
+            Tree::Axiom(..) => true,
+            Tree::Collect(_, facts_option) => {
+                if including_collects {
+                    facts_option.is_some()
+                } else {
+                    true
+                }
+            }
+            Tree::Goal(..) => false,
             Tree::Step { antecedents, .. } => {
                 for (_, t) in antecedents {
-                    if !t.complete() {
+                    if !t.complete(including_collects) {
                         return false;
                     }
                 }
@@ -230,18 +253,39 @@ impl Tree {
         }
     }
 
-    // pub fn head(&self) -> Option<&Fact> {
-    //     match self {
-    //         Tree::Axiom(f) => Some(f),
-    //         Tree::Goal(_) => None,
-    //         Tree::Step { consequent, .. } => Some(consequent),
-    //     }
-    // }
+    pub fn collect(&mut self) {
+        if !self.complete(false) {
+            panic!("Can only collect on complete tree");
+        }
+
+        match self {
+            Tree::Step {
+                label,
+                antecedents,
+                consequent,
+                side_condition,
+            } => {
+                for i in 0..antecedents.len() {
+                    match &antecedents[i].1 {
+                        Tree::Collect(_, Some(_)) => {
+                            panic!("Already collected tree")
+                        }
+                        Tree::Collect(fact_name, None) => {
+                            antecedents[i].1 =
+                                Tree::Collect(fact_name.clone(), Some(todo!()))
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
+        }
+    }
 
     pub fn postorder(&self) -> Vec<(Vec<String>, &Tree)> {
         let mut ret = vec![];
         match self {
-            Tree::Axiom(..) | Tree::Goal(..) => (),
+            Tree::Axiom(..) | Tree::Collect(..) | Tree::Goal(..) => (),
             Tree::Step { antecedents, .. } => {
                 for (tag, t) in antecedents {
                     for (mut path, tt) in t.postorder() {
@@ -253,10 +297,6 @@ impl Tree {
         }
         ret.push((vec![], self));
         ret
-    }
-
-    fn make_dashes(amount: usize) -> String {
-        std::iter::repeat('-').take(amount * 2).collect()
     }
 
     pub fn pretty(&self) -> termtree::Tree<String> {
@@ -306,6 +346,16 @@ impl Tree {
                 Fixed(8).paint(unparse::fact(fact))
             ))
             .with_glyphs(gp),
+            Tree::Collect(fact_name, _) => termtree::Tree::new(format!(
+                "{} {} {} {}{}{}",
+                Purple.paint("•"),
+                Blue.paint(prefix),
+                Purple.paint("[collect]"),
+                Fixed(8).paint("("),
+                Purple.paint(fact_name),
+                Fixed(8).paint(")"),
+            ))
+            .with_glyphs(gp),
             Tree::Goal(fact_name) => termtree::Tree::new(format!(
                 "{} {} {} {}{}{}",
                 Yellow.paint("•"),
@@ -320,7 +370,7 @@ impl Tree {
                 label,
                 antecedents,
                 consequent,
-                side_condition,
+                ..
             } => {
                 let mut t = termtree::Tree::new(format!(
                     "{} {} {} {}",
@@ -337,56 +387,10 @@ impl Tree {
             }
         }
     }
-
-    fn _fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        depth: usize,
-        prefix: &str,
-    ) -> std::fmt::Result {
-        match self {
-            Tree::Axiom(fact) => write!(
-                f,
-                "{} {}{} [&axiom]",
-                Tree::make_dashes(depth),
-                prefix,
-                crate::syntax::unparse::fact(fact),
-            ),
-            Tree::Goal(fact_name) => write!(
-                f,
-                "{} {}*** {}",
-                Tree::make_dashes(depth),
-                prefix,
-                fact_name
-            ),
-            Tree::Step {
-                label,
-                antecedents,
-                consequent,
-                side_condition,
-            } => {
-                write!(
-                    f,
-                    "{} {}{} [{}]",
-                    Tree::make_dashes(depth),
-                    prefix,
-                    crate::syntax::unparse::fact(consequent),
-                    label,
-                    // crate::syntax::unparse::predicate(side_condition)
-                    //     .replace("\n", ""),
-                )?;
-                for (n, t) in antecedents {
-                    write!(f, "\n")?;
-                    t._fmt(f, depth + 1, &format!("<{}>: ", n))?;
-                }
-                Ok(())
-            }
-        }
-    }
 }
 
 impl std::fmt::Display for Tree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self._fmt(f, 1, "")
+        write!(f, "{}", self.pretty())
     }
 }

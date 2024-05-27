@@ -1,4 +1,5 @@
 use crate::derivation::*;
+use crate::egglog_adapter;
 use crate::ir::*;
 
 use crate::syntax;
@@ -14,7 +15,7 @@ pub struct Python<'a> {
 
 impl<'a> Python<'a> {
     pub fn new(tree: &'a Tree) -> Python<'a> {
-        if !tree.complete() {
+        if !tree.complete(true) {
             panic!("Cannot compile an incomplete tree")
         }
         Python { tree }
@@ -26,6 +27,7 @@ impl<'a> Python<'a> {
         use std::collections::HashSet;
 
         let mut initializations = vec![];
+        let mut collects = vec![];
         let mut computations = vec![];
 
         let mut seen_axioms: HashSet<&Fact> = HashSet::new();
@@ -38,24 +40,29 @@ impl<'a> Python<'a> {
                         initializations.push((name, f));
                     }
                 }
+                Tree::Collect(_, None) => unreachable!(),
+                Tree::Collect(_, Some(facts)) => {
+                    let name = path.join("_");
+                    collects.push((name, facts))
+                }
                 Tree::Step {
                     label,
                     antecedents,
                     consequent,
-                    ..
+                    side_condition,
                 } => {
-                    if !path.is_empty() {
-                        computations.push((
-                            path.join("_"),
-                            label,
-                            antecedents,
-                            consequent,
-                        ))
+                    if path.is_empty() {
+                        continue;
                     }
+
+                    computations.push((
+                        path.join("_"),
+                        label,
+                        antecedents,
+                        consequent,
+                    ));
                 }
-                Tree::Goal(..) => {
-                    panic!("invariant violated: non-complete tree")
-                }
+                Tree::Goal(..) => unreachable!(),
             }
         }
 
@@ -80,6 +87,12 @@ impl<'a> Python<'a> {
             ));
         }
 
+        for (name, facts) in collects {
+            cells
+                .initializations
+                .push((format!("{} = ... # collect", name), name));
+        }
+
         for (name, label, antecedents, consequent) in computations {
             let meta_args = consequent
                 .args
@@ -99,12 +112,7 @@ impl<'a> Python<'a> {
             cells.computations.push((
                 format!(
                     "{} = {}(\n    m={}.M({}),\n    d={}(\n        {}\n    )\n)",
-                    name,
-                    consequent.name,
-                    consequent.name,
-                    meta_args,
-                    label,
-                    args,
+                    name, consequent.name, consequent.name, meta_args, label, args,
                 ),
                 name,
             ));
@@ -112,14 +120,6 @@ impl<'a> Python<'a> {
 
         cells
     }
-}
-
-fn nbformat_cell(cell_type: &str, source: &str) -> String {
-    format!(
-        "{{ \"cell_type\": \"{}\", \"source\": \"{}\" }}",
-        cell_type,
-        source.replace("\"", "\\\"").replace("\n", "\\n")
-    )
 }
 
 impl Cells {
