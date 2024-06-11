@@ -1,2 +1,3 @@
 pandas
 altair[all]
+requests
