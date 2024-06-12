@@ -2,3 +2,4 @@
 .venv
 output/
 compendium/data/*
+node_modules
