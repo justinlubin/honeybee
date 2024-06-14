@@ -61,6 +61,10 @@ impl CLI {
             } else {
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input).unwrap();
+                let input = input.trim();
+                if input == "q" {
+                    std::process::exit(1);
+                }
                 match input.trim().parse::<usize>() {
                     Ok(idx) => idx,
                     Err(_) => continue,
@@ -115,7 +119,11 @@ impl CLI {
         use ansi_term::Style;
 
         let goal_option = self.select(
-            &Style::new().bold().paint("Goals:").to_string(),
+            &format!(
+                "{} {}",
+                Style::new().bold().paint("Goals:"),
+                Fixed(8).paint("('q' to quit)"),
+            ),
             options
                 .into_iter()
                 .map(|opt| match &opt {
@@ -124,7 +132,7 @@ impl CLI {
                         Yellow
                             .paint(
                                 path.iter()
-                                    .map(|derivation::PathEntry { tag, .. }| tag)
+                                    .map(|pe| &pe.tag)
                                     .chain(std::iter::once(tag))
                                     .map(|id| id.clone())
                                     .collect::<Vec<_>>()
