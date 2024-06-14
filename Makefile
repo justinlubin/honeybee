@@ -4,4 +4,4 @@ wasm:
 
 .PHONY: publish
 publish:
-	git subtree push --prefix gui origin gh-pages
+	./publish.sh

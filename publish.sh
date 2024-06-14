@@ -3,8 +3,13 @@
 FROM=gui
 TO=gh-pages-new
 
+git clone git@github.com:justinlubin/honeybee.git \
+  --branch gh-pages \
+  --single-branch \
+  gh-pages-old
+
 mkdir $TO
-mv gh-pages/.git $TO
+mv gh-pages-old/.git $TO
 
 for file in \
   CNAME \
@@ -23,8 +28,12 @@ do
   cp -a $FROM/$dir $TO/$dir
 done
 
-mv $TO gh-pages
-cd gh-pages
-git add -A
+cd $TO
+git checkout gh-pages
+git add * -f
 git commit -m "Upload"
 git push
+
+cd ../
+rm -rf gh-pages-old
+rm -rf $TO
