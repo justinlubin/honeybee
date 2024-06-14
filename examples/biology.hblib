@@ -18,8 +18,8 @@
   ((rcm1 ReadCountMatrix1) (rcm2 ReadCountMatrix1))
   ((= (.sample1 ret) (.sample rcm1))
    (= (.sample2 ret) (.sample rcm2))
-   (= (.at ret) (.at q1))
-   (= (.at q1) (.at q2))))
+   (= (.at ret) (.at rcm1))
+   (= (.at rcm1) (.at rcm2))))
 
 ; Bulk RNA-seq
 
