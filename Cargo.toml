@@ -13,7 +13,7 @@ license = "BSD-3-Clause"
 ansi_term = "0.12.1"
 ariadne = "0.4.0"
 chumsky = "0.9.3"
-egglog = { git = "https://github.com/egraphs-good/egglog.git" }
+egglog = "0.2.0"
 env_logger = "0.11.3"
 ipynb = "0.0.1"
 log = "0.4.21"
@@ -25,6 +25,8 @@ serde-wasm-bindgen = "0.4"
 termtree = "0.4.1"
 wasm-bindgen = "0.2.92"
 
+# To get WASM to work
+instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [lib]
