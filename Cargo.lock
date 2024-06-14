@@ -590,6 +590,7 @@ dependencies = [
  "rustpython-parser",
  "serde",
  "serde-wasm-bindgen",
+ "serde_json",
  "termtree",
  "wasm-bindgen",
 ]
