@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ValueType {
     Int,
     Str,
     List(Box<ValueType>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Value {
     Int(i64),
     Str(String),
@@ -19,26 +21,26 @@ pub type Assignment = HashMap<String, Value>;
 
 pub type FactName = String;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FactKind {
     Annotation,
     Analysis,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactSignature {
     pub name: FactName,
     pub kind: FactKind,
     pub params: Vec<(String, ValueType)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Fact {
     pub name: FactName,
     pub args: Vec<(String, Value)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PredicateAtom {
     Select { selector: String, arg: String },
     Const(Value),
@@ -127,7 +129,7 @@ impl PredicateAtom {
     // }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PredicateRelationBinOp {
     Eq,
     Lt,
@@ -135,7 +137,7 @@ pub enum PredicateRelationBinOp {
     Contains,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PredicateRelation {
     BinOp(PredicateRelationBinOp, PredicateAtom, PredicateAtom),
 }
@@ -192,14 +194,14 @@ impl PredicateRelation {
 
 pub type Predicate = Vec<PredicateRelation>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Mode {
     Exists,
     ForAll,
     ForAllPlus,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComputationSignature {
     pub name: String,
     pub params: Vec<(String, FactName, Mode)>,
@@ -207,7 +209,7 @@ pub struct ComputationSignature {
     pub precondition: Predicate,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Library {
     pub fact_signatures: Vec<FactSignature>,
     pub computation_signatures: Vec<ComputationSignature>,
