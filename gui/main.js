@@ -28,11 +28,11 @@ await init();
 ////////////////////////////////////////////////////////////////////////////////
 // Load library
 
-const libraryRes = await fetch("biology.hblib");
+const libraryRes = await fetch("hblib/biology.hblib");
 const librarySrc = await libraryRes.text();
 const library = Honeybee.parse_library(librarySrc);
 
-const impRes = await fetch("biology.py");
+const impRes = await fetch("hblib/biology.py");
 const impSrc = await impRes.text();
 
 ////////////////////////////////////////////////////////////////////////////////
