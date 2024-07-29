@@ -63,6 +63,14 @@ fn parse_error(
 fn main() -> std::io::Result<()> {
     env_logger::init();
 
+    if std::env::args().len() != 5 {
+        println!(
+            "usage: {} <library> <implementation> <program> <output>",
+            std::env::args().nth(0).unwrap()
+        );
+        std::process::exit(1)
+    }
+
     // Library signature
 
     let lib_filename = &*std::env::args().nth(1).unwrap().leak();
@@ -87,13 +95,9 @@ fn main() -> std::io::Result<()> {
     let imp_filename = &*std::env::args().nth(2).unwrap().leak();
     let imp_src = &*std::fs::read_to_string(imp_filename).unwrap().leak();
 
-    // Output path
-
-    let output_filename = std::env::args().nth(3).unwrap();
-
     // Program
 
-    let prog_filename = &*std::env::args().nth(4).unwrap().leak();
+    let prog_filename = &*std::env::args().nth(3).unwrap().leak();
     let prog_src = &*std::fs::read_to_string(prog_filename).unwrap().leak();
 
     let prog = match syntax::parse::program().parse(prog_src.to_owned()) {
@@ -109,6 +113,10 @@ fn main() -> std::io::Result<()> {
             return Ok(());
         }
     };
+
+    // Output path
+
+    let output_filename = std::env::args().nth(4).unwrap();
 
     // Main
 
