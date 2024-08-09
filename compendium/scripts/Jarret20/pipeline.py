@@ -3,6 +3,10 @@ import subprocess as s
 # %% Setup
 
 DATA = "intermediates/Jarret20"
+s.run(
+    f"""mkdir -p {DATA}""",
+    shell=True,
+)
 
 # %% Download SRA ascension numbers
 

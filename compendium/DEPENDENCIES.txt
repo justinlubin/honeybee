@@ -1,0 +1,2 @@
+- sratools (https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit)
+- Entrez direct (https://www.ncbi.nlm.nih.gov/books/NBK179288/)
