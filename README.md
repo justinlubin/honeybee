@@ -7,3 +7,5 @@ _Image credit: [Louise Docker](https://www.flickr.com/photos/aussiegall/) on
 [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/)._
 
 [https://www.youtube.com/watch?v=-7ijI-g4jHg](https://www.youtube.com/watch?v=-7ijI-g4jHg)
+
+[Honeybee navigation][https://www.cell.com/current-biology/fulltext/S0960-9822(03)00836-4]
