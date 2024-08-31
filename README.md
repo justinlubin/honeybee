@@ -8,4 +8,4 @@ _Image credit: [Louise Docker](https://www.flickr.com/photos/aussiegall/) on
 
 [https://www.youtube.com/watch?v=-7ijI-g4jHg](https://www.youtube.com/watch?v=-7ijI-g4jHg)
 
-[Honeybee navigation][https://www.cell.com/current-biology/fulltext/S0960-9822(03)00836-4]
+[Honeybee navigation](https://www.cell.com/current-biology/fulltext/S0960-9822(03)00836-4)
