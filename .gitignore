@@ -1,5 +1,5 @@
 backend/target
-.venv
 compendium/data/*
+.venv
 node_modules
 gh-pages
