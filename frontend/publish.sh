@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+cd ../
+
 shopt -s extglob
 
-FROM=gui
+FROM=frontend
 TO=gh-pages
 
 git clone git@github.com:justinlubin/honeybee.git \
@@ -16,7 +18,9 @@ rm -rf !(.git)
 
 cd ../$FROM
 
-cp -a !(biome.json|package.json|package-lock.json|node_modules) ../$TO
+cp -a -L \
+  !(publish.sh|biome.json|package.json|package-lock.json|node_modules) \
+  ../$TO
 
 cd ../$TO
 git add -A

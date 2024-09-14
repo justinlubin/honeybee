@@ -1,7 +1,5 @@
-/target
+backend/target
 .venv
-output/
 compendium/data/*
-compendium/intermediates/*
 node_modules
 gh-pages
