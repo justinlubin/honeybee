@@ -18,12 +18,12 @@ pub struct ComputationOption {
 
 #[derive(Debug, Clone)]
 pub enum GoalOption {
-    Analysis {
+    Output {
         path: Vec<derivation::PathEntry>,
         tag: String,
         computation_options: Vec<ComputationOption>,
     },
-    Annotation {
+    Input {
         path: Vec<derivation::PathEntry>,
         tag: String,
         fact_name: String,
@@ -34,13 +34,13 @@ pub enum GoalOption {
 // TODO: computation field ignored for annotation goals
 #[derive(Debug, Clone)]
 pub enum Choice {
-    Analysis {
+    Output {
         path: Vec<String>,
         tag: String,
         computation_name: String,
         assignment: Assignment,
     },
-    Annotation {
+    Input {
         path: Vec<String>,
         tag: String,
         fact_name: String,
@@ -70,13 +70,13 @@ impl<'a> Synthesizer<'a> {
                 ops.push(
                     match self.lib.fact_signature(goal_fact_name).unwrap().kind
                     {
-                        FactKind::Annotation => GoalOption::Annotation {
+                        FactKind::Input => GoalOption::Input {
                             fact_name: goal_fact_name.clone(),
                             path: path.clone(),
                             tag: cut_param.clone(),
                             assignment_options: basic_assignments.clone(),
                         },
-                        FactKind::Analysis => GoalOption::Analysis {
+                        FactKind::Output => GoalOption::Output {
                             computation_options: self
                                 .lib
                                 .matching_computation_signatures(goal_fact_name)
@@ -136,7 +136,7 @@ impl<'a> Synthesizer<'a> {
 
     pub fn step(&mut self, choice: &Choice) {
         match choice {
-            Choice::Annotation {
+            Choice::Input {
                 path,
                 tag,
                 fact_name,
@@ -160,7 +160,7 @@ impl<'a> Synthesizer<'a> {
                     )
                     .add_side_condition(&path[..], &additional_condition);
             }
-            Choice::Analysis {
+            Choice::Output {
                 path,
                 tag,
                 computation_name,

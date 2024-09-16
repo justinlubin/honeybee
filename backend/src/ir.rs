@@ -23,8 +23,8 @@ pub type FactName = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FactKind {
-    Annotation,
-    Analysis,
+    Input,
+    Output,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -241,7 +241,7 @@ impl Query {
         Query {
             fact_signature: FactSignature {
                 name: Query::GOAL_FACT_NAME.to_owned(),
-                kind: FactKind::Analysis,
+                kind: FactKind::Output,
                 params: vec![],
             },
             computation_signature: ComputationSignature {
@@ -293,7 +293,7 @@ impl Query {
         Query {
             fact_signature: FactSignature {
                 name: Query::GOAL_FACT_NAME.to_owned(),
-                kind: FactKind::Analysis,
+                kind: FactKind::Output,
                 params: fs_params,
             },
             computation_signature: ComputationSignature {

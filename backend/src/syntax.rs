@@ -66,8 +66,8 @@ pub mod parse {
 
     pub fn fact_kind() -> impl P<FactKind> {
         choice((
-            just("ground fact").to(FactKind::Annotation),
-            just("derived fact").to(FactKind::Analysis),
+            just("input fact").to(FactKind::Input),
+            just("output fact").to(FactKind::Output),
         ))
     }
 
@@ -272,8 +272,8 @@ pub mod unparse {
 
     pub fn fact_kind(fk: &FactKind) -> String {
         match fk {
-            FactKind::Annotation => "ground fact".to_owned(),
-            FactKind::Analysis => "derived fact".to_owned(),
+            FactKind::Input => "input fact".to_owned(),
+            FactKind::Output => "output fact".to_owned(),
         }
     }
 

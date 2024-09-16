@@ -1,12 +1,12 @@
 ; Sequencing
 
-(ground fact Seq
+(input fact Seq
   (.sample Str) (.at Int) (.data Str))
 
-(derived fact ReadCountMatrix1
+(output fact ReadCountMatrix1
   (.sample Str) (.at Int))
 
-(derived fact ReadCountMatrix2
+(output fact ReadCountMatrix2
   (.sample1 Str) (.sample2 Str) (.at Int))
 
 (computation load_local_reads ReadCountMatrix1
@@ -23,7 +23,7 @@
 
 ; Bulk RNA-seq
 
-(derived fact DifferentialGeneExpression
+(output fact DifferentialGeneExpression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
 (computation combat_seq ReadCountMatrix2
@@ -40,10 +40,10 @@
 
 ; Transfection and growth
 
-(ground fact Transfect
+(input fact Transfect
   (.sample Str) (.at Int) (.library Str))
 
-(derived fact GrowthPhenotype
+(output fact GrowthPhenotype
   (.sample Str) (.start Int) (.end Int))
 
 (computation growth_phenotype GrowthPhenotype

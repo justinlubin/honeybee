@@ -1,5 +1,4 @@
 use crate::derivation::*;
-use crate::egglog_adapter;
 use crate::ir::*;
 
 use crate::syntax;
@@ -40,12 +39,12 @@ impl<'a> Python<'a> {
                     }
                 }
                 Tree::Collect(_, None) => unreachable!(),
-                Tree::Collect(_, Some(facts)) => todo!(),
+                Tree::Collect(_, Some(_)) => todo!(),
                 Tree::Step {
                     label,
                     antecedents,
                     consequent,
-                    side_condition,
+                    ..
                 } => {
                     if path.is_empty() {
                         continue;

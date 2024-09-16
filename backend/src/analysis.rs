@@ -127,8 +127,8 @@ impl CLI {
             options
                 .into_iter()
                 .map(|opt| match &opt {
-                    synthesis::GoalOption::Analysis { path, tag, .. }
-                    | synthesis::GoalOption::Annotation { path, tag, .. } => (
+                    synthesis::GoalOption::Output { path, tag, .. }
+                    | synthesis::GoalOption::Input { path, tag, .. } => (
                         Yellow
                             .paint(
                                 path.iter()
@@ -146,7 +146,7 @@ impl CLI {
         );
 
         match goal_option {
-            synthesis::GoalOption::Analysis {
+            synthesis::GoalOption::Output {
                 path,
                 tag,
                 computation_options,
@@ -169,21 +169,21 @@ impl CLI {
                 let assignment =
                     self.select_assignment(&path, assignment_options);
 
-                synthesis::Choice::Analysis {
+                synthesis::Choice::Output {
                     path,
                     tag,
                     computation_name: name,
                     assignment,
                 }
             }
-            synthesis::GoalOption::Annotation {
+            synthesis::GoalOption::Input {
                 path,
                 tag,
                 fact_name,
                 assignment_options,
             } => {
                 let path = derivation::into_tags(path);
-                synthesis::Choice::Annotation {
+                synthesis::Choice::Input {
                     tag,
                     fact_name,
                     assignment: self

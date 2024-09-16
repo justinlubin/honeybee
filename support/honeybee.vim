@@ -57,8 +57,8 @@ hi def link hbFact Type
 syn match hbVar '[a-z][A-Za-z_\-0-9]*'
 " (No highlight for hbVar.)
 
-syn match hbAnalysisTypeKeyword 'derived fact'
+syn match hbAnalysisTypeKeyword 'output fact'
 hi def link hbAnalysisTypeKeyword Keyword
 
-syn match hbGroundFactKeyword 'ground fact'
+syn match hbGroundFactKeyword 'input fact'
 hi def link hbGroundFactKeyword Keyword
