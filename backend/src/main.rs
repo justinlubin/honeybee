@@ -4,6 +4,7 @@ mod derivation;
 mod egglog_adapter;
 mod hybrid_oracle;
 mod ir;
+mod lang;
 mod pbn;
 mod syntax;
 mod synthesis;

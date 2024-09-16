@@ -10,7 +10,7 @@ pub trait Function: Clone + Eq + Hash + PartialEq {
     fn arity(&self) -> HashSet<String>;
 }
 
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Exp<F: Function> {
     Hole(HoleName),
     App(F, HashMap<String, Exp<F>>),
@@ -18,7 +18,7 @@ pub enum Exp<F: Function> {
 
 pub type ExpSet<F> = HashSet<Exp<F>>;
 
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Step<F: Function> {
     Intro(F, HashMap<String, Exp<F>>),
     Merge(HoleName, Exp<F>),
