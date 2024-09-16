@@ -1,4 +1,5 @@
 backend/target
+backend/output/*.ipynb
 compendium/data/*
 .venv
 node_modules
