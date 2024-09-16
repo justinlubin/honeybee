@@ -28,6 +28,7 @@ wasm-bindgen = "0.2.92"
 # To get WASM to work
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 getrandom = { version = "0.2", features = ["js"] }
+im = "15.1.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
