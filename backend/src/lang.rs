@@ -129,7 +129,7 @@ pub fn infer(
     match e {
         pbn::Exp::Hole(_) => None,
         pbn::Exp::App(f, args) => {
-            let fun_sig = lib.function.get(&f).unwrap();
+            // let fun_sig = lib.function.get(&f).unwrap();
             todo!()
         }
     }
