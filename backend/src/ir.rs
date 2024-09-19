@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ValueType {
     Int,
     Str,
@@ -15,6 +15,16 @@ pub enum Value {
     Int(i64),
     Str(String),
     List(Vec<Value>),
+}
+
+impl Value {
+    pub fn infer(&self) -> ValueType {
+        match self {
+            Value::Int(_) => ValueType::Int,
+            Value::Str(_) => ValueType::Str,
+            Value::List(xs) => todo!(),
+        }
+    }
 }
 
 pub type Assignment = HashMap<String, Value>;
@@ -40,7 +50,7 @@ pub struct Fact {
     pub args: Vec<(String, Value)>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PredicateAtom {
     Select { selector: String, arg: String },
     Const(Value),
@@ -157,7 +167,7 @@ impl PredicateAtom {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PredicateRelationBinOp {
     Eq,
     Lt,
@@ -165,7 +175,7 @@ pub enum PredicateRelationBinOp {
     Contains,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PredicateRelation {
     BinOp(PredicateRelationBinOp, PredicateAtom, PredicateAtom),
 }

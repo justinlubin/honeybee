@@ -16,7 +16,7 @@ pub fn into_tags(path: Vec<PathEntry>) -> Vec<String> {
     path.into_iter().map(|PathEntry { tag, .. }| tag).collect()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Tree {
     Axiom(Fact),
     Goal(FactName),
