@@ -68,33 +68,46 @@ fn expand(
     match tree {
         derivation::Tree::Axiom(_) => ExpansionResult::Complete(tree),
         derivation::Tree::Goal(fact_name) => {
-            let mut expansions = vec![];
-            for cs in lib.matching_computation_signatures(&fact_name) {
-                let fact_params =
-                    &lib.fact_signature(&fact_name).unwrap().params;
-                for args in support(&prog.annotations, fact_params) {
-                    let consequent = Fact {
-                        name: fact_name.clone(),
-                        args,
-                    };
-                    expansions.push(derivation::Tree::Step {
-                        label: cs.name.clone(),
-                        antecedents: cs
-                            .params
-                            .iter()
-                            .map(|(tag, goal_name, _)| {
-                                (
-                                    tag.clone(),
-                                    derivation::Tree::Goal(goal_name.clone()),
-                                )
-                            })
-                            .collect(),
-                        consequent,
-                        side_condition: cs.precondition.clone(),
-                    });
+            let fact_sig = lib.fact_signature(&fact_name).unwrap();
+            match fact_sig.kind {
+                FactKind::Input => ExpansionResult::Incomplete(
+                    prog.annotations
+                        .iter()
+                        .map(|f| derivation::Tree::Axiom(f.clone()))
+                        .collect(),
+                ),
+                FactKind::Output => {
+                    let mut expansions = vec![];
+                    for cs in lib.matching_computation_signatures(&fact_name) {
+                        let fact_params =
+                            &lib.fact_signature(&fact_name).unwrap().params;
+                        for args in support(&prog.annotations, fact_params) {
+                            let consequent = Fact {
+                                name: fact_name.clone(),
+                                args,
+                            };
+                            expansions.push(derivation::Tree::Step {
+                                label: cs.name.clone(),
+                                antecedents: cs
+                                    .params
+                                    .iter()
+                                    .map(|(tag, goal_name, _)| {
+                                        (
+                                            tag.clone(),
+                                            derivation::Tree::Goal(
+                                                goal_name.clone(),
+                                            ),
+                                        )
+                                    })
+                                    .collect(),
+                                consequent,
+                                side_condition: cs.precondition.clone(),
+                            });
+                        }
+                    }
+                    ExpansionResult::Incomplete(expansions)
                 }
             }
-            ExpansionResult::Incomplete(expansions)
         }
         derivation::Tree::Collect(_, _) => todo!(),
         derivation::Tree::Step {
@@ -137,7 +150,7 @@ fn expand(
     }
 }
 
-fn enumerate(
+pub fn enumerate(
     lib: &Library,
     prog: &Program,
     mode: Mode,

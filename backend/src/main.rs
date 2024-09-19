@@ -124,6 +124,23 @@ fn main() -> std::io::Result<()> {
 
     // Main
 
+    println!(
+        "{}",
+        match enumerate::enumerate(
+            &lib,
+            &prog,
+            enumerate::Mode::AnySimplyTyped,
+            10000
+        )
+        .pop()
+        {
+            Some(t) => format!("{}", t.pretty()),
+            None => "not found".to_owned(),
+        }
+    );
+
+    return Ok(());
+
     let runner = top_level::Runner { interactive: true };
 
     match runner.run(lib, imp_src, prog) {
