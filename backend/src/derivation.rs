@@ -343,10 +343,10 @@ impl Tree {
             Tree::Goal(_) => false,
             Tree::Collect(_, _) => todo!(),
             Tree::Step {
-                label,
                 antecedents,
                 consequent,
                 side_condition,
+                ..
             } => {
                 let mut antecedent_facts = vec![];
                 for (tag, subtree) in antecedents {
@@ -359,12 +359,7 @@ impl Tree {
                             Tree::Axiom(f) => f,
                             Tree::Goal(_) => unreachable!(),
                             Tree::Collect(_, _) => todo!(),
-                            Tree::Step {
-                                label,
-                                antecedents,
-                                consequent,
-                                side_condition,
-                            } => consequent,
+                            Tree::Step { consequent, .. } => consequent,
                         },
                     ));
                 }
