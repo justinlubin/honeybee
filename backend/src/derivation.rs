@@ -337,6 +337,44 @@ impl Tree {
         ret
     }
 
+    pub fn valid(&self, annotations: &Vec<Fact>) -> bool {
+        match self {
+            Tree::Axiom(f) => annotations.contains(f),
+            Tree::Goal(_) => false,
+            Tree::Collect(_, _) => todo!(),
+            Tree::Step {
+                label,
+                antecedents,
+                consequent,
+                side_condition,
+            } => {
+                let mut antecedent_facts = vec![];
+                for (tag, subtree) in antecedents {
+                    if !subtree.valid(annotations) {
+                        return false;
+                    }
+                    antecedent_facts.push((
+                        tag,
+                        match subtree {
+                            Tree::Axiom(f) => f,
+                            Tree::Goal(_) => unreachable!(),
+                            Tree::Collect(_, _) => todo!(),
+                            Tree::Step {
+                                label,
+                                antecedents,
+                                consequent,
+                                side_condition,
+                            } => consequent,
+                        },
+                    ));
+                }
+                side_condition
+                    .iter()
+                    .all(|atom| atom.sat(consequent, &antecedent_facts))
+            }
+        }
+    }
+
     pub fn pretty(&self) -> termtree::Tree<String> {
         let mut gp = termtree::GlyphPalette::new();
         gp.item_indent = "─";
@@ -351,12 +389,14 @@ impl Tree {
         gp.skip_indent = Fixed(8).paint(gp.skip_indent).to_string().leak();
 
         match self {
+            // Disable for now to understand tree a bit better
             Tree::Step {
                 consequent,
                 antecedents,
                 ..
             } if consequent.name == Query::GOAL_FACT_NAME
-                && antecedents.len() == 1 =>
+                && antecedents.len() == 1
+                && false =>
             {
                 antecedents[0]
                     .1

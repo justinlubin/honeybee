@@ -44,6 +44,7 @@ impl Runner {
                     ansi_term::Color::Fixed(8).paint("═".repeat(40)),
                     ansi_term::Style::new().bold().paint("Derivation tree:")
                 );
+                println!("{:?}", synthesizer.tree);
                 print!("{}", synthesizer.tree.pretty());
             }
             let options = synthesizer.options();
@@ -61,7 +62,7 @@ impl Runner {
         return Some(
             backend::Python::new(&synthesizer.tree)
                 .emit()
-                .nbformat(&imp_src),
+                .plain_text(&imp_src),
         );
     }
 }

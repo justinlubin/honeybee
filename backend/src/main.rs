@@ -2,6 +2,7 @@ mod analysis;
 mod backend;
 mod derivation;
 mod egglog_adapter;
+mod enumerate;
 mod hybrid_oracle;
 mod ir;
 mod lang;

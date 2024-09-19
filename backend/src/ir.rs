@@ -127,6 +127,34 @@ impl PredicateAtom {
     //     }
     //     ret
     // }
+
+    pub fn eval(&self, ret: &Fact, args: &Vec<(&String, &Fact)>) -> Value {
+        match self {
+            PredicateAtom::Select { selector, arg } => {
+                let fact =
+                    if selector == Query::RET {
+                        ret
+                    } else {
+                        args.iter()
+                            .find_map(|(k, f)| {
+                                if **k == *selector {
+                                    Some(f)
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap()
+                    };
+
+                fact.args
+                    .iter()
+                    .find_map(|(k, v)| if *k == *arg { Some(v) } else { None })
+                    .unwrap()
+                    .clone()
+            }
+            PredicateAtom::Const(v) => v.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,6 +216,28 @@ impl PredicateRelation {
                 .union(&right.free_variables())
                 .cloned()
                 .collect(),
+        }
+    }
+
+    pub fn sat(&self, ret: &Fact, args: &Vec<(&String, &Fact)>) -> bool {
+        match self {
+            PredicateRelation::BinOp(op, a1, a2) => {
+                match (op, a1.eval(ret, args), a2.eval(ret, args)) {
+                    (PredicateRelationBinOp::Eq, v1, v2) => v1 == v2,
+                    (
+                        PredicateRelationBinOp::Lt,
+                        Value::Int(i1),
+                        Value::Int(i2),
+                    ) => i1 < i2,
+                    (
+                        PredicateRelationBinOp::Lte,
+                        Value::Int(i1),
+                        Value::Int(i2),
+                    ) => i1 <= i2,
+                    (PredicateRelationBinOp::Contains, _, _) => todo!(),
+                    (_, _, _) => false,
+                }
+            }
         }
     }
 }
