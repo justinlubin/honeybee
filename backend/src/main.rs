@@ -1,5 +1,6 @@
 mod analysis;
 mod backend;
+mod benchmark;
 mod derivation;
 mod egglog_adapter;
 mod enumerate;
@@ -36,19 +37,28 @@ enum Commands {
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
     },
+    /// Benchmark Honeybee and baselines
+    Benchmark {
+        /// The benchmark suite directory to use
+        #[arg(short, long, value_name = "DIR")]
+        suite: PathBuf,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
+    let result = match &cli.command {
         Commands::Run {
             library,
             implementation,
             program,
-        } => match run::run(library, implementation, program) {
-            Ok(_) => (),
-            Err(_) => std::process::exit(1),
-        },
+        } => run::run(library, implementation, program),
+        Commands::Benchmark { suite } => benchmark::run(suite),
+    };
+
+    match result {
+        Ok(_) => (),
+        Err(_) => std::process::exit(1),
     }
 }
