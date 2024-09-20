@@ -1,109 +1,61 @@
-use std::hash::Hash;
+use crate::analysis;
+use crate::backend;
+use crate::egglog_adapter;
+use crate::synthesis;
 
-use im::hashmap::HashMap;
-use im::hashset::HashSet;
-use im::vector::Vector;
+use crate::ir::*;
 
-pub type HoleName = usize;
-
-pub trait Function: Clone + Eq + Hash + PartialEq {
-    fn arity(&self) -> HashSet<String>;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Exp<F: Function> {
-    Hole(HoleName),
-    App(F, HashMap<String, Exp<F>>),
-}
-
-pub type ExpSet<F> = HashSet<Exp<F>>;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Step<F: Function> {
-    Intro(F, HashMap<String, Exp<F>>),
-    Merge(HoleName, Exp<F>),
-    Seq(Box<Step<F>>, Box<Step<F>>),
-}
-
-pub type StepSet<F> = HashSet<Step<F>>;
-
-impl<F: Function> Exp<F> {
-    pub fn has_subexpression(&self, e: &Exp<F>) -> bool {
-        if self == e {
-            return true;
-        }
-        match self {
-            Exp::Hole(_) => false,
-            Exp::App(_, args) => {
-                args.iter().any(|(_, e_prime)| e_prime.has_subexpression(e))
-            }
-        }
+pub fn run(
+    lib: &Library,
+    imp_src: &str,
+    prog: &Program,
+    interactive: bool,
+) -> Option<String> {
+    if !egglog_adapter::check_possible(lib, prog) {
+        return None;
     }
 
-    pub fn substitute(&self, h: HoleName, e: &Exp<F>) -> Exp<F> {
-        match self {
-            Exp::Hole(h_prime) if *h_prime == h => e.clone(),
-            Exp::Hole(_) => self.clone(),
-            Exp::App(f, args) => Exp::App(
-                f.clone(),
-                args.iter()
-                    .map(|(x, e_prime)| (x.clone(), e_prime.substitute(h, e)))
-                    .collect(),
-            ),
+    let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
+    let analyzer = if interactive {
+        analysis::CLI {
+            // mode: analysis::CLIMode::FastForward,
+            mode: analysis::CLIMode::Manual,
+            print: true,
         }
+    } else {
+        analysis::CLI {
+            mode: analysis::CLIMode::Auto,
+            print: false,
+        }
+    };
+
+    let mut step = 1;
+    loop {
+        if interactive {
+            println!(
+                "{} {} {}\n\n{}",
+                ansi_term::Color::Fixed(8).paint("═".repeat(2)),
+                ansi_term::Color::Fixed(8).paint(format!("Step {}", step)),
+                ansi_term::Color::Fixed(8).paint("═".repeat(40)),
+                ansi_term::Style::new().bold().paint("Derivation tree:")
+            );
+            print!("{}", synthesizer.tree.pretty());
+        }
+        let options = synthesizer.options();
+        if options.is_empty() {
+            break;
+        }
+        if interactive {
+            println!();
+        }
+        let choice = analyzer.analyze(options);
+        synthesizer.step(&choice);
+        step += 1;
     }
 
-    fn max_hole(&self) -> HoleName {
-        match self {
-            Exp::Hole(h) => *h,
-            Exp::App(_, args) => {
-                args.iter().map(|(_, e)| e.max_hole()).max().unwrap_or(0)
-            }
-        }
-    }
-
-    pub fn fresh(&self) -> HoleName {
-        self.max_hole() + 1
-    }
+    return Some(
+        backend::Python::new(&synthesizer.tree)
+            .emit()
+            .plain_text(imp_src),
+    );
 }
-
-impl<F: Function> Step<F> {
-    pub fn step(&self, es: &ExpSet<F>) -> Option<ExpSet<F>> {
-        match self {
-            Step::Intro(f, args) => {
-                let e = Exp::App(f.clone(), args.clone());
-                if f.arity().len() == args.len() && !es.contains(&e) {
-                    Some(es.update(e))
-                } else {
-                    None
-                }
-            }
-            Step::Merge(h, e) => {
-                let he = Exp::Hole(*h);
-                if es.contains(e)
-                    && !e.has_subexpression(&he)
-                    && es.iter().any(|x| x.has_subexpression(&he))
-                {
-                    Some(
-                        es.iter()
-                            .filter_map(|x| {
-                                if x == e {
-                                    None
-                                } else {
-                                    Some(x.substitute(*h, e))
-                                }
-                            })
-                            .collect(),
-                    )
-                } else {
-                    None
-                }
-            }
-            Step::Seq(s1, s2) => {
-                s1.step(es).and_then(|es_prime| s2.step(&es_prime))
-            }
-        }
-    }
-}
-
-pub trait StepProvider<F: Function>: Fn(Vector<Step<F>>) -> StepSet<F> {}

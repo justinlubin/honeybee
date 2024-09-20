@@ -125,7 +125,7 @@ impl Cells {
                 .into_iter()
                 .map(|(src, _name)| src)
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join("\n\n")
         )
     }
 

@@ -159,7 +159,7 @@ impl CLI {
                     &Style::new().bold().paint("Computations:").to_string(),
                     computation_options
                         .into_iter()
-                        .filter(|c| !computations.contains(&c.name))
+                        // .filter(|c| !computations.contains(&c.name))
                         .map(|c| (Green.paint(c.name.clone()).to_string(), c))
                         .collect::<Vec<_>>(),
                 );

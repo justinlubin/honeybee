@@ -29,6 +29,7 @@ wasm-bindgen = "0.2.92"
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 getrandom = { version = "0.2", features = ["js"] }
 im = "15.1.0"
+clap = { version = "4.5.17", features = ["derive"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

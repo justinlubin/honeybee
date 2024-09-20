@@ -3,10 +3,9 @@ mod backend;
 mod derivation;
 mod egglog_adapter;
 mod ir;
+mod pbn;
 mod syntax;
 mod synthesis;
-
-mod top_level;
 
 use chumsky::Parser;
 
@@ -31,9 +30,7 @@ pub fn generate_notebook(
         .parse(prog_src)
         .map_err(|_| "Program parse error")?;
 
-    let runner = top_level::Runner { interactive: false };
-
-    match runner.run(lib, &imp_src, prog) {
+    match pbn::run(&lib, &imp_src, &prog, false) {
         Some(output) => Ok(output),
         None => Err("Not possible".to_owned()),
     }
