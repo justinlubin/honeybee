@@ -1,5 +1,4 @@
 use crate::derivation;
-
 use crate::ir::*;
 
 pub enum Mode<'a> {

@@ -22,7 +22,7 @@ impl Value {
         match self {
             Value::Int(_) => ValueType::Int,
             Value::Str(_) => ValueType::Str,
-            Value::List(xs) => todo!(),
+            Value::List(_) => todo!(),
         }
     }
 }
@@ -139,27 +139,31 @@ impl PredicateAtom {
     // }
 
     pub fn eval(&self, ret: &Fact, args: &Vec<(&String, &Fact)>) -> Value {
+        // println!("{:?}\n{:?}\n{:?}", self, ret, args);
         match self {
-            PredicateAtom::Select { selector, arg } => {
-                let fact =
-                    if selector == Query::RET {
-                        ret
-                    } else {
-                        args.iter()
-                            .find_map(|(k, f)| {
-                                if **k == *selector {
+            PredicateAtom::Select { arg, selector } => {
+                let fact = if arg == Query::RET {
+                    ret
+                } else {
+                    args.iter()
+                        .find_map(
+                            |(k, f)| {
+                                if **k == *arg {
                                     Some(f)
                                 } else {
                                     None
                                 }
-                            })
-                            .unwrap()
-                    };
+                            },
+                        )
+                        .expect("arg should match")
+                };
 
                 fact.args
                     .iter()
-                    .find_map(|(k, v)| if *k == *arg { Some(v) } else { None })
-                    .unwrap()
+                    .find_map(
+                        |(k, v)| if *k == *selector { Some(v) } else { None },
+                    )
+                    .expect("selector should match")
                     .clone()
             }
             PredicateAtom::Const(v) => v.clone(),

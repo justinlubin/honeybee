@@ -291,18 +291,14 @@ impl Tree {
         }
     }
 
+    #[allow(unreachable_code)]
     pub fn collect(&mut self) {
         if !self.complete(false) {
             panic!("Can only collect on complete tree");
         }
 
         match self {
-            Tree::Step {
-                label,
-                antecedents,
-                consequent,
-                side_condition,
-            } => {
+            Tree::Step { antecedents, .. } => {
                 for i in 0..antecedents.len() {
                     match &antecedents[i].1 {
                         Tree::Collect(_, Some(_)) => {

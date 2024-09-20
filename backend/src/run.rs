@@ -57,7 +57,7 @@ pub fn run(
     lib_filename: &PathBuf,
     imp_filename: &PathBuf,
     prog_filename: &PathBuf,
-) -> Result<(), String> {
+) -> Result<(), Box<dyn std::error::Error>> {
     let lib_src = std::fs::read_to_string(lib_filename).unwrap();
     let imp_src = std::fs::read_to_string(imp_filename).unwrap();
     let prog_src = std::fs::read_to_string(prog_filename).unwrap();
@@ -72,7 +72,7 @@ pub fn run(
                 lib_src.leak(),
                 &errs[0],
             );
-            return Err("Library parse error".to_owned());
+            return Err("Library parse error".into());
         }
     };
 
@@ -86,26 +86,9 @@ pub fn run(
                 prog_src.leak(),
                 &errs[0],
             );
-            return Err("Program parse error".to_owned());
+            return Err("Program parse error".into());
         }
     };
-
-    // println!(
-    //     "{}",
-    //     match enumerate::enumerate(
-    //         &lib,
-    //         &prog,
-    //         enumerate::Mode::AnySimplyTyped,
-    //         10000
-    //     )
-    //     .pop()
-    //     {
-    //         Some(t) => format!("{}", t.pretty()),
-    //         None => "not found".to_owned(),
-    //     }
-    // );
-
-    // return Ok(());
 
     match pbn::run(&lib, &imp_src, &prog, true) {
         Some(output) => {

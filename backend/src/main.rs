@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod analysis;
 mod backend;
 mod benchmark;

@@ -151,7 +151,7 @@ impl CLI {
                 tag,
                 computation_options,
             } => {
-                let computations = derivation::computations(&path);
+                // let computations = derivation::computations(&path);
                 let synthesis::ComputationOption {
                     name,
                     assignment_options,

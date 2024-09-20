@@ -4,4 +4,4 @@
   (Seq (.sample "A") (.at 3) (.data "final.fastq")))
 
 (goal
-  (GrowthPhenotype (.sample "A") (.from 2) (.to 3)))
+  (GrowthPhenotype (.sample "A") (.start 2) (.end 3)))
