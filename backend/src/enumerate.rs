@@ -1,6 +1,8 @@
 use crate::derivation;
 use crate::ir::*;
 
+use std::time::Instant;
+
 pub enum Mode<'a> {
     AnyValid,
     AllValid,
@@ -149,25 +151,32 @@ fn expand(
     }
 }
 
+// returns (results, completed)
 pub fn enumerate(
     lib: &Library,
     prog: &Program,
     mode: Mode,
     max_iterations: usize,
-) -> Vec<derivation::Tree> {
+    soft_timeout: u128, // milliseconds
+) -> (Vec<derivation::Tree>, bool) {
     let mut results = vec![];
     let mut worklist = vec![derivation::Tree::from_goal(&prog.goal)];
     let mut iterations = 0;
+
+    let now = Instant::now();
 
     while !worklist.is_empty() && iterations < max_iterations {
         let mut new_worklist = vec![];
 
         for t in worklist.into_iter() {
+            if now.elapsed().as_millis() > soft_timeout {
+                return (results, false);
+            }
             match expand(lib, prog, t) {
                 ExpansionResult::Complete(t) => match mode {
                     Mode::AnyValid => {
                         if t.valid(&prog.annotations) {
-                            return vec![t];
+                            return (vec![t], true);
                         }
                     }
                     Mode::AllValid => {
@@ -175,11 +184,11 @@ pub fn enumerate(
                             results.push(t)
                         }
                     }
-                    Mode::AnySimplyTyped => return vec![t],
+                    Mode::AnySimplyTyped => return (vec![t], true),
                     Mode::AllSimplyTyped => results.push(t),
                     Mode::Particular(choice) => {
                         if t == *choice {
-                            return vec![t];
+                            return (vec![t], true);
                         }
                     }
                 },
@@ -190,5 +199,5 @@ pub fn enumerate(
         worklist = new_worklist;
         iterations += 1;
     }
-    results
+    (results, true)
 }

@@ -29,12 +29,14 @@ struct Record<'a> {
     entry: &'a str,
     task: Task,
     algorithm: Algorithm,
+    completed: bool,
     duration: u128,
     solution_count: usize,
     output: &'a str,
 }
 
 struct SynthesisResult {
+    completed: bool,
     duration: u128,
     solutions: Vec<derivation::Tree>,
 }
@@ -49,16 +51,18 @@ fn run_one(
         (Task::Any, Algorithm::BaselineEnumerative) => {
             let now = Instant::now();
 
-            let solutions = enumerate::enumerate(
+            let (solutions, completed) = enumerate::enumerate(
                 lib,
                 prog,
                 enumerate::Mode::AnyValid,
                 usize::MAX,
+                2000,
             );
 
             let duration = now.elapsed().as_millis();
 
             SynthesisResult {
+                completed,
                 duration,
                 solutions,
             }
@@ -71,6 +75,7 @@ fn run_one(
             let duration = now.elapsed().as_millis();
 
             SynthesisResult {
+                completed: true,
                 duration,
                 solutions,
             }
@@ -130,7 +135,7 @@ pub fn run(
 
         for task in vec![Task::Any] {
             for algorithm in vec![
-                // Algorithm::BaselineEnumerative,
+                Algorithm::BaselineEnumerative,
                 Algorithm::ClassicalConstructiveDatalog,
             ] {
                 for _ in 0..run_count {
@@ -142,6 +147,7 @@ pub fn run(
                         entry,
                         task: task.clone(),
                         algorithm: algorithm.clone(),
+                        completed: sr.completed,
                         duration: sr.duration,
                         solution_count: sr.solutions.len(),
                         output: "TODO",
