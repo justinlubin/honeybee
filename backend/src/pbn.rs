@@ -1,16 +1,14 @@
 use crate::analysis;
-use crate::backend;
+use crate::derivation;
 use crate::egglog_adapter;
-use crate::synthesis;
-
 use crate::ir::*;
+use crate::synthesis;
 
 pub fn run(
     lib: &Library,
-    imp_src: &str,
     prog: &Program,
     interactive: bool,
-) -> Option<String> {
+) -> Option<derivation::Tree> {
     if !egglog_adapter::check_possible(lib, prog) {
         return None;
     }
@@ -52,10 +50,5 @@ pub fn run(
         synthesizer.step(&choice);
         step += 1;
     }
-
-    return Some(
-        backend::Python::new(&synthesizer.tree)
-            .emit()
-            .plain_text(imp_src),
-    );
+    Some(synthesizer.tree)
 }

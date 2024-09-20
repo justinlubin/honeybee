@@ -44,6 +44,10 @@ enum Commands {
         /// The benchmark suite directory to use
         #[arg(short, long, value_name = "DIR")]
         suite: PathBuf,
+
+        /// The number of times to run each benchmark entry
+        #[arg(short, long, value_name = "N", default_value_t = 1)]
+        run_count: usize,
     },
 }
 
@@ -56,11 +60,16 @@ fn main() {
             implementation,
             program,
         } => run::run(library, implementation, program),
-        Commands::Benchmark { suite } => benchmark::run(suite),
+        Commands::Benchmark { suite, run_count } => {
+            benchmark::run(suite, *run_count)
+        }
     };
 
     match result {
-        Ok(_) => (),
-        Err(_) => std::process::exit(1),
+        Ok(()) => (),
+        Err(e) => {
+            println!("{} {}", ansi_term::Color::Red.bold().paint("error:"), e);
+            std::process::exit(1)
+        }
     }
 }

@@ -32,8 +32,8 @@ pub fn generate_notebook(
         .parse(prog_src)
         .map_err(|_| "Program parse error")?;
 
-    match pbn::run(&lib, &imp_src, &prog, false) {
-        Some(output) => Ok(output),
+    match pbn::run(&lib, &prog, false) {
+        Some(tree) => Ok(backend::Python::new(&tree).emit().nbformat(&imp_src)),
         None => Err("Not possible".to_owned()),
     }
 }

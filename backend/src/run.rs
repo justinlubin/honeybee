@@ -1,3 +1,4 @@
+use crate::backend;
 use crate::pbn;
 use crate::syntax;
 
@@ -90,13 +91,16 @@ pub fn run(
         }
     };
 
-    match pbn::run(&lib, &imp_src, &prog, true) {
-        Some(output) => {
+    match pbn::run(&lib, &prog, true) {
+        Some(tree) => {
             println!(
                 "\n{}",
                 ansi_term::Color::Cyan.bold().paint("[ All done! ]")
             );
-            println!("\n{}", output)
+            println!(
+                "\n{}",
+                backend::Python::new(&tree).emit().plain_text(&imp_src)
+            )
         }
         None => {
             println!(
