@@ -379,15 +379,14 @@ impl Tree {
         gp.last_skip = Fixed(8).paint(gp.last_skip).to_string().leak();
         gp.skip_indent = Fixed(8).paint(gp.skip_indent).to_string().leak();
 
+        // Comment out first branch to understand tree a bit better
         match self {
-            // Disable for now to understand tree a bit better
             Tree::Step {
                 consequent,
                 antecedents,
                 ..
             } if consequent.name == Query::GOAL_FACT_NAME
-                && antecedents.len() == 1
-                && false =>
+                && antecedents.len() == 1 =>
             {
                 antecedents[0]
                     .1
