@@ -111,14 +111,20 @@ pub mod parse {
     }
 
     pub fn predicate_atom() -> impl P<PredicateAtom> {
-        just('.')
-            .ignored()
-            .then(lower_ident())
-            .padded()
-            .then(lower_ident())
-            .padded()
-            .delimited_by(just('('), just(')'))
-            .map(|((_, selector), arg)| PredicateAtom::Select { selector, arg })
+        choice((
+            just('.')
+                .ignored()
+                .then(lower_ident())
+                .padded()
+                .then(lower_ident())
+                .padded()
+                .delimited_by(just('('), just(')'))
+                .map(|((_, selector), arg)| PredicateAtom::Select {
+                    selector,
+                    arg,
+                }),
+            value().map(|v| PredicateAtom::Const(v)),
+        ))
     }
 
     pub fn predicate_relation_binop() -> impl P<PredicateRelationBinOp> {

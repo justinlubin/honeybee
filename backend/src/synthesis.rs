@@ -81,13 +81,23 @@ impl<'a> Synthesizer<'a> {
                                 .lib
                                 .matching_computation_signatures(goal_fact_name)
                                 .into_iter()
-                                .map(|lemma| ComputationOption {
-                                    assignment_options: egglog_adapter::query(
-                                        self.lib,
-                                        &self.prog.annotations,
-                                        &query.cut(self.lib, cut_param, lemma),
-                                    ),
-                                    name: lemma.name.clone(),
+                                .filter_map(|lemma| {
+                                    let assignment_options =
+                                        egglog_adapter::query(
+                                            self.lib,
+                                            &self.prog.annotations,
+                                            &query.cut(
+                                                self.lib, cut_param, lemma,
+                                            ),
+                                        );
+                                    if assignment_options.is_empty() {
+                                        None
+                                    } else {
+                                        Some(ComputationOption {
+                                            assignment_options,
+                                            name: lemma.name.clone(),
+                                        })
+                                    }
                                 })
                                 .collect(),
                             path: path.clone(),

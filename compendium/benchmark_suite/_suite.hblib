@@ -7,7 +7,7 @@
   (.sample Str) (.at Int))
 
 (output fact ReadCountMatrix2
-  (.sample1 Str) (.sample2 Str) (.at Int))
+  (.sample1 Str) (.sample2 Str) (.at Int) (.bc Int))
 
 (computation load_local_reads ReadCountMatrix1
   ((seq Seq))
@@ -19,7 +19,8 @@
   ((= (.sample1 ret) (.sample rcm1))
    (= (.sample2 ret) (.sample rcm2))
    (= (.at ret) (.at rcm1))
-   (= (.at rcm1) (.at rcm2))))
+   (= (.at rcm1) (.at rcm2))
+   (= (.bc ret) 0)))
 
 ; Bulk RNA-seq
 
@@ -30,7 +31,9 @@
   ((rcm ReadCountMatrix2))
   ((= (.sample1 ret) (.sample1 rcm))
    (= (.sample2 ret) (.sample2 rcm))
-   (= (.at ret) (.at rcm))))
+   (= (.at ret) (.at rcm))
+   (= (.bc rcm) 0)
+   (= (.bc ret) 1)))
 
 (computation deseq2 DifferentialGeneExpression
   ((rcm ReadCountMatrix2))
