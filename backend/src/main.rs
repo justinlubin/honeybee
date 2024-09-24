@@ -38,6 +38,10 @@ enum Commands {
         /// The Honeybee program to use (.hb)
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
+
+        /// Whether to output JSON of synthesized derivation tree (same directory as program)
+        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
+        json: bool,
     },
     /// Benchmark Honeybee and baselines
     Benchmark {
@@ -48,6 +52,15 @@ enum Commands {
         /// The number of times to run each benchmark entry
         #[arg(short, long, value_name = "N", default_value_t = 1)]
         run_count: usize,
+
+        /// The (soft) time cutoff to use for synthesis in milliseconds
+        #[arg(
+            short,
+            long,
+            value_name = "MILLISECONDS",
+            default_value_t = 2000
+        )]
+        timeout: u128,
     },
 }
 
@@ -59,10 +72,13 @@ fn main() {
             library,
             implementation,
             program,
-        } => run::run(library, implementation, program),
-        Commands::Benchmark { suite, run_count } => {
-            benchmark::run(suite, *run_count)
-        }
+            json,
+        } => run::run(library, implementation, program, *json),
+        Commands::Benchmark {
+            suite,
+            run_count,
+            timeout,
+        } => benchmark::run(suite, *run_count, *timeout),
     };
 
     match result {

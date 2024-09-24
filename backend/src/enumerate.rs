@@ -156,16 +156,14 @@ pub fn enumerate(
     lib: &Library,
     prog: &Program,
     mode: Mode,
-    max_iterations: usize,
     soft_timeout: u128, // milliseconds
 ) -> (Vec<derivation::Tree>, bool) {
     let mut results = vec![];
     let mut worklist = vec![derivation::Tree::from_goal(&prog.goal)];
-    let mut iterations = 0;
 
     let now = Instant::now();
 
-    while !worklist.is_empty() && iterations < max_iterations {
+    while !worklist.is_empty() {
         let mut new_worklist = vec![];
 
         for t in worklist.into_iter() {
@@ -197,7 +195,6 @@ pub fn enumerate(
         }
 
         worklist = new_worklist;
-        iterations += 1;
     }
     (results, true)
 }

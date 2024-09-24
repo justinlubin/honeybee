@@ -1,0 +1,578 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "deseq2",
+            "antecedents": [
+              [
+                "rcm",
+                {
+                  "Step": {
+                    "label": "combat_seq",
+                    "antecedents": [
+                      [
+                        "rcm",
+                        {
+                          "Step": {
+                            "label": "aggregate_reads",
+                            "antecedents": [
+                              [
+                                "rcm1",
+                                {
+                                  "Step": {
+                                    "label": "load_local_reads",
+                                    "antecedents": [
+                                      [
+                                        "seq",
+                                        {
+                                          "Axiom": {
+                                            "name": "Seq",
+                                            "args": [
+                                              [
+                                                "sample",
+                                                {
+                                                  "Str": "Healthy"
+                                                }
+                                              ],
+                                              [
+                                                "data",
+                                                {
+                                                  "Str": "healthy.fastq"
+                                                }
+                                              ],
+                                              [
+                                                "at",
+                                                {
+                                                  "Int": 5
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "ReadCountMatrix1",
+                                      "args": [
+                                        [
+                                          "at",
+                                          {
+                                            "Int": 5
+                                          }
+                                        ],
+                                        [
+                                          "sample",
+                                          {
+                                            "Str": "Healthy"
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": [
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "sample",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Select": {
+                                              "selector": "sample",
+                                              "arg": "seq"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "at",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Select": {
+                                              "selector": "at",
+                                              "arg": "seq"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              ],
+                              [
+                                "rcm2",
+                                {
+                                  "Step": {
+                                    "label": "load_local_reads",
+                                    "antecedents": [
+                                      [
+                                        "seq",
+                                        {
+                                          "Axiom": {
+                                            "name": "Seq",
+                                            "args": [
+                                              [
+                                                "at",
+                                                {
+                                                  "Int": 5
+                                                }
+                                              ],
+                                              [
+                                                "sample",
+                                                {
+                                                  "Str": "TLE"
+                                                }
+                                              ],
+                                              [
+                                                "data",
+                                                {
+                                                  "Str": "tle.fastq"
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "ReadCountMatrix1",
+                                      "args": [
+                                        [
+                                          "sample",
+                                          {
+                                            "Str": "TLE"
+                                          }
+                                        ],
+                                        [
+                                          "at",
+                                          {
+                                            "Int": 5
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": [
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "sample",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Select": {
+                                              "selector": "sample",
+                                              "arg": "seq"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "at",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Select": {
+                                              "selector": "at",
+                                              "arg": "seq"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "ReadCountMatrix2",
+                              "args": [
+                                [
+                                  "at",
+                                  {
+                                    "Int": 5
+                                  }
+                                ],
+                                [
+                                  "sample1",
+                                  {
+                                    "Str": "Healthy"
+                                  }
+                                ],
+                                [
+                                  "bc",
+                                  {
+                                    "Int": 0
+                                  }
+                                ],
+                                [
+                                  "sample2",
+                                  {
+                                    "Str": "TLE"
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "sample1",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "sample",
+                                      "arg": "rcm1"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "sample2",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "sample",
+                                      "arg": "rcm2"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "at",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "at",
+                                      "arg": "rcm1"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "at",
+                                      "arg": "rcm1"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "at",
+                                      "arg": "rcm2"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "bc",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 0
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "ReadCountMatrix2",
+                      "args": [
+                        [
+                          "sample2",
+                          {
+                            "Str": "TLE"
+                          }
+                        ],
+                        [
+                          "at",
+                          {
+                            "Int": 5
+                          }
+                        ],
+                        [
+                          "sample1",
+                          {
+                            "Str": "Healthy"
+                          }
+                        ],
+                        [
+                          "bc",
+                          {
+                            "Int": 1
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "sample1",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "sample1",
+                              "arg": "rcm"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "sample2",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "sample2",
+                              "arg": "rcm"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "at",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "at",
+                              "arg": "rcm"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "bc",
+                              "arg": "rcm"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 0
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "bc",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 1
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "DifferentialGeneExpression",
+              "args": [
+                [
+                  "sample2",
+                  {
+                    "Str": "TLE"
+                  }
+                ],
+                [
+                  "at",
+                  {
+                    "Int": 5
+                  }
+                ],
+                [
+                  "sample1",
+                  {
+                    "Str": "Healthy"
+                  }
+                ]
+              ]
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "sample1",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "sample1",
+                      "arg": "rcm"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "sample2",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "sample2",
+                      "arg": "rcm"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "rcm"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": [
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "sample1",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Str": "Healthy"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "sample2",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Str": "TLE"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "at",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Int": 5
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

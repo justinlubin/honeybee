@@ -1,0 +1,521 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "growth_phenotype",
+            "antecedents": [
+              [
+                "t",
+                {
+                  "Axiom": {
+                    "name": "Transfect",
+                    "args": [
+                      [
+                        "at",
+                        {
+                          "Int": 1
+                        }
+                      ],
+                      [
+                        "sample",
+                        {
+                          "Str": "A"
+                        }
+                      ],
+                      [
+                        "library",
+                        {
+                          "Str": "library.csv"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "rcm1",
+                {
+                  "Step": {
+                    "label": "load_local_reads",
+                    "antecedents": [
+                      [
+                        "seq",
+                        {
+                          "Axiom": {
+                            "name": "Seq",
+                            "args": [
+                              [
+                                "at",
+                                {
+                                  "Int": 2
+                                }
+                              ],
+                              [
+                                "data",
+                                {
+                                  "Str": "initial.fastq"
+                                }
+                              ],
+                              [
+                                "sample",
+                                {
+                                  "Str": "A"
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "ReadCountMatrix1",
+                      "args": [
+                        [
+                          "sample",
+                          {
+                            "Str": "A"
+                          }
+                        ],
+                        [
+                          "at",
+                          {
+                            "Int": 2
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "sample",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "sample",
+                              "arg": "seq"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "at",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "at",
+                              "arg": "seq"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "rcm2",
+                {
+                  "Step": {
+                    "label": "load_local_reads",
+                    "antecedents": [
+                      [
+                        "seq",
+                        {
+                          "Axiom": {
+                            "name": "Seq",
+                            "args": [
+                              [
+                                "sample",
+                                {
+                                  "Str": "A"
+                                }
+                              ],
+                              [
+                                "at",
+                                {
+                                  "Int": 3
+                                }
+                              ],
+                              [
+                                "data",
+                                {
+                                  "Str": "final.fastq"
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "ReadCountMatrix1",
+                      "args": [
+                        [
+                          "at",
+                          {
+                            "Int": 3
+                          }
+                        ],
+                        [
+                          "sample",
+                          {
+                            "Str": "A"
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "sample",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "sample",
+                              "arg": "seq"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "at",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "at",
+                              "arg": "seq"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "GrowthPhenotype",
+              "args": [
+                [
+                  "start",
+                  {
+                    "Int": 2
+                  }
+                ],
+                [
+                  "end",
+                  {
+                    "Int": 3
+                  }
+                ],
+                [
+                  "sample",
+                  {
+                    "Str": "A"
+                  }
+                ]
+              ]
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "t"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "start",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "rcm1"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "end",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "rcm2"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "t"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "rcm1"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "t"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "rcm2"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "t"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "rcm1"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "rcm1"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "at",
+                      "arg": "rcm2"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "rcm1",
+                      "arg": "at"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "rcm2",
+                      "arg": "sample"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "rcm1",
+                      "arg": "sample"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "rcm2",
+                      "arg": "at"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 3
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "rcm2",
+                      "arg": "sample"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "rcm2",
+                      "arg": "at"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 3
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": [
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "sample",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Str": "A"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "start",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Int": 2
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "end",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Int": 3
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

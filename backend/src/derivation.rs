@@ -1,5 +1,7 @@
 use crate::ir::*;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone)]
 pub struct PathEntry {
     pub computation: String,
@@ -16,7 +18,7 @@ pub fn into_tags(path: Vec<PathEntry>) -> Vec<String> {
     path.into_iter().map(|PathEntry { tag, .. }| tag).collect()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Tree {
     Axiom(Fact),
     Goal(FactName),

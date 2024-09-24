@@ -20,7 +20,7 @@ enum Algorithm {
 enum Task {
     Any,
     All,
-    // Particular,
+    Particular,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,8 +44,10 @@ struct SynthesisResult {
 fn run_one(
     lib: &Library,
     prog: &Program,
+    particular: &derivation::Tree,
     task: Task,
     algorithm: Algorithm,
+    soft_timeout: u128,
 ) -> SynthesisResult {
     match (task, algorithm) {
         (Task::Any, Algorithm::BaselineEnumerative) => {
@@ -55,8 +57,43 @@ fn run_one(
                 lib,
                 prog,
                 enumerate::Mode::AnyValid,
-                usize::MAX,
-                2000,
+                soft_timeout,
+            );
+
+            let duration = now.elapsed().as_millis();
+
+            SynthesisResult {
+                completed,
+                duration,
+                solutions,
+            }
+        }
+        (Task::All, Algorithm::BaselineEnumerative) => {
+            let now = Instant::now();
+
+            let (solutions, completed) = enumerate::enumerate(
+                lib,
+                prog,
+                enumerate::Mode::AllValid,
+                soft_timeout,
+            );
+
+            let duration = now.elapsed().as_millis();
+
+            SynthesisResult {
+                completed,
+                duration,
+                solutions,
+            }
+        }
+        (Task::Particular, Algorithm::BaselineEnumerative) => {
+            let now = Instant::now();
+
+            let (solutions, completed) = enumerate::enumerate(
+                lib,
+                prog,
+                enumerate::Mode::Particular(particular),
+                soft_timeout,
             );
 
             let duration = now.elapsed().as_millis();
@@ -70,17 +107,49 @@ fn run_one(
         (Task::Any, Algorithm::ClassicalConstructiveDatalog) => {
             let now = Instant::now();
 
-            let solutions = pbn::run(lib, prog, false).into_iter().collect();
+            let (solutions, completed) =
+                pbn::enumerate(lib, prog, pbn::Mode::Any, soft_timeout);
 
             let duration = now.elapsed().as_millis();
 
             SynthesisResult {
-                completed: true,
+                completed,
                 duration,
                 solutions,
             }
         }
-        _ => todo!(),
+        (Task::All, Algorithm::ClassicalConstructiveDatalog) => {
+            let now = Instant::now();
+
+            let (solutions, completed) =
+                pbn::enumerate(lib, prog, pbn::Mode::All, soft_timeout);
+
+            let duration = now.elapsed().as_millis();
+
+            SynthesisResult {
+                completed,
+                duration,
+                solutions,
+            }
+        }
+        (Task::Particular, Algorithm::ClassicalConstructiveDatalog) => {
+            let now = Instant::now();
+
+            let (solutions, completed) = pbn::enumerate(
+                lib,
+                prog,
+                pbn::Mode::Particular(particular),
+                soft_timeout,
+            );
+
+            let duration = now.elapsed().as_millis();
+
+            SynthesisResult {
+                completed,
+                duration,
+                solutions,
+            }
+        }
     }
 }
 
@@ -98,6 +167,7 @@ fn run_one(
 pub fn run(
     suite_directory: &PathBuf,
     run_count: usize,
+    soft_timeout: u128, // in milliseconds
 ) -> Result<(), Box<dyn std::error::Error>> {
     assert!(suite_directory.is_dir());
 
@@ -119,8 +189,6 @@ pub fn run(
             .unwrap()
             .filter_map(Result::ok)
     {
-        // let particular_filename = prog_filename.with_extension(".txt");
-
         let prog_filename_without_extension = prog_filename.with_extension("");
         let entry = prog_filename_without_extension
             .file_name()
@@ -133,14 +201,27 @@ pub fn run(
             .parse(prog_src)
             .map_err(|_| "Program parse error")?;
 
-        for task in vec![Task::Any] {
+        let particular_filename = prog_filename.with_extension("json");
+        let particular_src =
+            std::fs::read_to_string(&particular_filename).unwrap();
+
+        let particular: derivation::Tree =
+            serde_json::from_str(&particular_src).unwrap();
+
+        for task in vec![Task::Any, Task::All, Task::Particular] {
             for algorithm in vec![
                 Algorithm::BaselineEnumerative,
                 Algorithm::ClassicalConstructiveDatalog,
             ] {
                 for _ in 0..run_count {
-                    let sr =
-                        run_one(&lib, &prog, task.clone(), algorithm.clone());
+                    let sr = run_one(
+                        &lib,
+                        &prog,
+                        &particular,
+                        task.clone(),
+                        algorithm.clone(),
+                        soft_timeout,
+                    );
 
                     wtr.serialize(Record {
                         suite,
@@ -150,7 +231,7 @@ pub fn run(
                         completed: sr.completed,
                         duration: sr.duration,
                         solution_count: sr.solutions.len(),
-                        output: "TODO",
+                        output: "...",
                     })?;
                 }
             }

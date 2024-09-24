@@ -3,6 +3,8 @@ use crate::pbn;
 use crate::syntax;
 
 use chumsky::Parser;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::PathBuf;
 
 fn parse_error(
@@ -58,6 +60,7 @@ pub fn run(
     lib_filename: &PathBuf,
     imp_filename: &PathBuf,
     prog_filename: &PathBuf,
+    json: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let lib_src = std::fs::read_to_string(lib_filename).unwrap();
     let imp_src = std::fs::read_to_string(imp_filename).unwrap();
@@ -100,7 +103,16 @@ pub fn run(
             println!(
                 "\n{}",
                 backend::Python::new(&tree).emit().plain_text(&imp_src)
-            )
+            );
+            if json {
+                let json_filename = prog_filename.with_extension("json");
+                let mut json_file = File::create(json_filename)?;
+                write!(
+                    json_file,
+                    "{}",
+                    serde_json::to_string_pretty(&tree).unwrap()
+                )?;
+            }
         }
         None => {
             println!(
