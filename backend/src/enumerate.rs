@@ -70,6 +70,7 @@ fn expand(
         derivation::Tree::Axiom(_) => ExpansionResult::Complete(tree),
         derivation::Tree::Goal(fact_name) => {
             let fact_sig = lib.fact_signature(&fact_name).unwrap();
+            // TODO: Check this?
             match fact_sig.kind {
                 FactKind::Input => ExpansionResult::Incomplete(
                     prog.annotations
@@ -87,6 +88,8 @@ fn expand(
                                 name: fact_name.clone(),
                                 args,
                             };
+                            // TODO safely prune with SMT and brute force contradiction checker
+                            // Possibly not here
                             expansions.push(derivation::Tree::Step {
                                 label: cs.name.clone(),
                                 antecedents: cs

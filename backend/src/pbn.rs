@@ -136,7 +136,16 @@ pub fn enumerate(
             }
             (results, true)
         }
-        Mode::Particular(_) => (vec![], false),
+        Mode::Particular(tree) => {
+            let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
+
+            loop {
+                if now.elapsed().as_millis() > soft_timeout {
+                    return (vec![], false);
+                }
+                return (vec![], false);
+            }
+        }
     }
 }
 

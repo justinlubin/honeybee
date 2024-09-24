@@ -14,6 +14,7 @@ use std::time::Instant;
 enum Algorithm {
     BaselineEnumerative,
     ClassicalConstructiveDatalog,
+    // TODO: add optimized enum, optimized enum with SMT, memoized datalog
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -33,6 +34,7 @@ struct Record<'a> {
     duration: u128,
     solution_count: usize,
     output: &'a str,
+    // TODO: add AST size of output
 }
 
 struct SynthesisResult {
@@ -41,6 +43,7 @@ struct SynthesisResult {
     solutions: Vec<derivation::Tree>,
 }
 
+// TODO include backend to python script in timing
 fn run_one(
     lib: &Library,
     prog: &Program,
