@@ -457,6 +457,17 @@ impl Tree {
             }
         }
     }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Tree::Axiom(_) => 0,
+            Tree::Goal(_) => 0,
+            Tree::Collect(_, _) => 0,
+            Tree::Step { antecedents, .. } => {
+                1 + antecedents.iter().map(|(_, a)| a.size()).sum::<usize>()
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Tree {

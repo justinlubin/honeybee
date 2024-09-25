@@ -1,36 +1,19 @@
 use crate::derivation;
 use crate::ir::*;
+use crate::task::*;
+use crate::util;
 
 use std::time::Instant;
 
-pub enum Mode<'a> {
-    AnyValid,
-    AllValid,
-    AnySimplyTyped,
-    AllSimplyTyped,
-    Particular(&'a derivation::Tree),
+pub enum Config {
+    Basic,
+    Prune,
+    PruneSMT,
 }
 
 enum ExpansionResult {
     Complete(derivation::Tree),
     Incomplete(Vec<derivation::Tree>),
-}
-
-pub fn cartesian_product<T: Clone>(
-    choices_sequence: Vec<Vec<T>>,
-) -> Vec<Vec<T>> {
-    let mut result = vec![vec![]];
-    for choices in choices_sequence {
-        let mut new_result = vec![];
-        for choice in choices {
-            for mut r in result.clone() {
-                r.push(choice.clone());
-                new_result.push(r);
-            }
-        }
-        result = new_result;
-    }
-    result
 }
 
 fn support_one(annotations: &Vec<Fact>, vt: &ValueType) -> Vec<Value> {
@@ -58,7 +41,7 @@ fn support(
                 .collect()
         })
         .collect();
-    cartesian_product(choices)
+    util::cartesian_product(choices)
 }
 
 fn expand(
@@ -139,7 +122,7 @@ fn expand(
                 ExpansionResult::Complete(tree)
             } else {
                 ExpansionResult::Incomplete(
-                    cartesian_product(antecedent_choices)
+                    util::cartesian_product(antecedent_choices)
                         .into_iter()
                         .map(|new_antecedents| derivation::Tree::Step {
                             label: label.clone(),
@@ -155,12 +138,15 @@ fn expand(
 }
 
 // returns (results, completed)
-pub fn enumerate(
-    lib: &Library,
-    prog: &Program,
-    mode: Mode,
-    soft_timeout: u128, // milliseconds
-) -> (Vec<derivation::Tree>, bool) {
+pub fn synthesize(
+    SynthesisProblem {
+        lib,
+        prog,
+        task,
+        soft_timeout,
+    }: SynthesisProblem,
+    _config: Config,
+) -> SynthesisResult {
     let mut results = vec![];
     let mut worklist = vec![derivation::Tree::from_goal(&prog.goal)];
 
@@ -171,25 +157,39 @@ pub fn enumerate(
 
         for t in worklist.into_iter() {
             if now.elapsed().as_millis() > soft_timeout {
-                return (results, false);
+                return SynthesisResult {
+                    results,
+                    completed: false,
+                };
             }
             match expand(lib, prog, t) {
-                ExpansionResult::Complete(t) => match mode {
-                    Mode::AnyValid => {
+                ExpansionResult::Complete(t) => match task {
+                    Task::AnyValid => {
                         if t.valid(&prog.annotations) {
-                            return (vec![t], true);
+                            return SynthesisResult {
+                                results: vec![t],
+                                completed: true,
+                            };
                         }
                     }
-                    Mode::AllValid => {
+                    Task::AllValid => {
                         if t.valid(&prog.annotations) {
                             results.push(t)
                         }
                     }
-                    Mode::AnySimplyTyped => return (vec![t], true),
-                    Mode::AllSimplyTyped => results.push(t),
-                    Mode::Particular(choice) => {
+                    Task::AnySimplyTyped => {
+                        return SynthesisResult {
+                            results: vec![t],
+                            completed: true,
+                        }
+                    }
+                    Task::AllSimplyTyped => results.push(t),
+                    Task::Particular(choice) => {
                         if t == *choice {
-                            return (vec![t], true);
+                            return SynthesisResult {
+                                results: vec![t],
+                                completed: true,
+                            };
                         }
                     }
                 },
@@ -199,5 +199,8 @@ pub fn enumerate(
 
         worklist = new_worklist;
     }
-    (results, true)
+    SynthesisResult {
+        results,
+        completed: true,
+    }
 }

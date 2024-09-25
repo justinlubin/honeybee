@@ -1,41 +1,53 @@
+use crate::ir::*;
+use crate::task::*;
+
 use crate::analysis;
 use crate::derivation;
 use crate::egglog_adapter;
-use crate::ir::*;
 use crate::synthesis;
 
 use std::time::Instant;
 
-pub enum Mode<'a> {
-    Any,
-    All,
-    Particular(&'a derivation::Tree),
+pub enum Config {
+    Basic,
 }
 
 // returns (results, completed)
-pub fn enumerate(
-    lib: &Library,
-    prog: &Program,
-    mode: Mode,
-    soft_timeout: u128, // milliseconds
-) -> (Vec<derivation::Tree>, bool) {
+pub fn synthesize(
+    SynthesisProblem {
+        lib,
+        prog,
+        task,
+        soft_timeout,
+    }: SynthesisProblem,
+    _config: Config,
+) -> SynthesisResult {
     let now = Instant::now();
 
     if !egglog_adapter::check_possible(lib, prog) {
-        return (vec![], true);
+        return SynthesisResult {
+            results: vec![],
+            completed: true,
+        };
     }
 
-    match mode {
-        Mode::Any => {
+    match task {
+        Task::AnyValid => {
             let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
 
             loop {
                 if now.elapsed().as_millis() > soft_timeout {
-                    return (vec![], false);
+                    return SynthesisResult {
+                        results: vec![],
+                        completed: false,
+                    };
                 }
                 let options = synthesizer.options();
                 if options.is_empty() {
-                    return (vec![synthesizer.tree], true);
+                    return SynthesisResult {
+                        results: vec![synthesizer.tree],
+                        completed: true,
+                    };
                 }
                 synthesizer.step(&match options.into_iter().next().unwrap() {
                     synthesis::GoalOption::Output {
@@ -74,14 +86,17 @@ pub fn enumerate(
                 });
             }
         }
-        Mode::All => {
+        Task::AllValid => {
             let mut worklist = vec![synthesis::Synthesizer::new(lib, prog)];
             let mut results = vec![];
             while !worklist.is_empty() {
                 let mut new_worklist = vec![];
                 for synthesizer in worklist.into_iter() {
                     if now.elapsed().as_millis() > soft_timeout {
-                        return (results, false);
+                        return SynthesisResult {
+                            results,
+                            completed: false,
+                        };
                     }
                     let options = synthesizer.options();
                     if options.is_empty() {
@@ -134,18 +149,29 @@ pub fn enumerate(
                 }
                 worklist = new_worklist;
             }
-            (results, true)
+            SynthesisResult {
+                results,
+                completed: true,
+            }
         }
-        Mode::Particular(tree) => {
+        Task::Particular(tree) => {
             let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
 
             loop {
                 if now.elapsed().as_millis() > soft_timeout {
-                    return (vec![], false);
+                    return SynthesisResult {
+                        results: vec![],
+                        completed: false,
+                    };
                 }
-                return (vec![], false);
+                return SynthesisResult {
+                    results: vec![],
+                    completed: false,
+                };
             }
         }
+        Task::AnySimplyTyped => todo!(),
+        Task::AllSimplyTyped => todo!(),
     }
 }
 

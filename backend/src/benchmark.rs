@@ -1,5 +1,6 @@
-use crate::ir::*;
+use crate::task::*;
 
+use crate::backend;
 use crate::derivation;
 use crate::enumerate;
 use crate::pbn;
@@ -11,149 +12,61 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize)]
+#[allow(non_camel_case_types)]
 enum Algorithm {
-    BaselineEnumerative,
-    ClassicalConstructiveDatalog,
-    // TODO: add optimized enum, optimized enum with SMT, memoized datalog
+    // Baselines/alternatives
+    ALT_Enum,
+    ALT_EnumPrune,
+    ALT_EnumPruneSMT,
+    // True PBN
+    PBN_Datalog,
+    // Ablations
+    // PBN_DatalogMemo,
+    // PBN_Enum,
+    // PBN_EnumPrune,
+    // PBN_EnumPruneSMT,
 }
 
 #[derive(Debug, Clone, Serialize)]
-enum Task {
-    Any,
-    All,
-    Particular,
-}
-
-#[derive(Debug, Serialize)]
 struct Record<'a> {
     suite: &'a str,
     entry: &'a str,
-    task: Task,
+    task: &'a str,
     algorithm: Algorithm,
     completed: bool,
     duration: u128,
     solution_count: usize,
-    output: &'a str,
-    // TODO: add AST size of output
+    solution_size: usize,
 }
 
-struct SynthesisResult {
-    completed: bool,
+struct Timed<T> {
+    val: T,
     duration: u128,
-    solutions: Vec<derivation::Tree>,
 }
 
-// TODO include backend to python script in timing
 fn run_one(
-    lib: &Library,
-    prog: &Program,
-    particular: &derivation::Tree,
-    task: Task,
+    sp: SynthesisProblem,
     algorithm: Algorithm,
-    soft_timeout: u128,
-) -> SynthesisResult {
-    match (task, algorithm) {
-        (Task::Any, Algorithm::BaselineEnumerative) => {
-            let now = Instant::now();
-
-            let (solutions, completed) = enumerate::enumerate(
-                lib,
-                prog,
-                enumerate::Mode::AnyValid,
-                soft_timeout,
-            );
-
-            let duration = now.elapsed().as_millis();
-
-            SynthesisResult {
-                completed,
-                duration,
-                solutions,
-            }
+) -> Timed<SynthesisResult> {
+    let now = Instant::now();
+    let sr = match algorithm {
+        Algorithm::ALT_Enum => {
+            enumerate::synthesize(sp, enumerate::Config::Basic)
         }
-        (Task::All, Algorithm::BaselineEnumerative) => {
-            let now = Instant::now();
-
-            let (solutions, completed) = enumerate::enumerate(
-                lib,
-                prog,
-                enumerate::Mode::AllValid,
-                soft_timeout,
-            );
-
-            let duration = now.elapsed().as_millis();
-
-            SynthesisResult {
-                completed,
-                duration,
-                solutions,
-            }
+        Algorithm::ALT_EnumPrune => {
+            enumerate::synthesize(sp, enumerate::Config::Prune)
         }
-        (Task::Particular, Algorithm::BaselineEnumerative) => {
-            let now = Instant::now();
-
-            let (solutions, completed) = enumerate::enumerate(
-                lib,
-                prog,
-                enumerate::Mode::Particular(particular),
-                soft_timeout,
-            );
-
-            let duration = now.elapsed().as_millis();
-
-            SynthesisResult {
-                completed,
-                duration,
-                solutions,
-            }
+        Algorithm::ALT_EnumPruneSMT => {
+            enumerate::synthesize(sp, enumerate::Config::PruneSMT)
         }
-        (Task::Any, Algorithm::ClassicalConstructiveDatalog) => {
-            let now = Instant::now();
-
-            let (solutions, completed) =
-                pbn::enumerate(lib, prog, pbn::Mode::Any, soft_timeout);
-
-            let duration = now.elapsed().as_millis();
-
-            SynthesisResult {
-                completed,
-                duration,
-                solutions,
-            }
-        }
-        (Task::All, Algorithm::ClassicalConstructiveDatalog) => {
-            let now = Instant::now();
-
-            let (solutions, completed) =
-                pbn::enumerate(lib, prog, pbn::Mode::All, soft_timeout);
-
-            let duration = now.elapsed().as_millis();
-
-            SynthesisResult {
-                completed,
-                duration,
-                solutions,
-            }
-        }
-        (Task::Particular, Algorithm::ClassicalConstructiveDatalog) => {
-            let now = Instant::now();
-
-            let (solutions, completed) = pbn::enumerate(
-                lib,
-                prog,
-                pbn::Mode::Particular(particular),
-                soft_timeout,
-            );
-
-            let duration = now.elapsed().as_millis();
-
-            SynthesisResult {
-                completed,
-                duration,
-                solutions,
-            }
-        }
+        Algorithm::PBN_Datalog => pbn::synthesize(sp, pbn::Config::Basic),
+    };
+    for t in &sr.results {
+        // To be fair to LLMs, include Python conversion time
+        let _ = backend::Python::new(t).emit().plain_text("");
     }
+    let duration = now.elapsed().as_millis();
+    Timed { val: sr, duration }
 }
 
 // Directory format:
@@ -211,36 +124,47 @@ pub fn run(
         let particular: derivation::Tree =
             serde_json::from_str(&particular_src).unwrap();
 
-        for task in vec![Task::Any, Task::All, Task::Particular] {
-            for algorithm in vec![
-                Algorithm::BaselineEnumerative,
-                Algorithm::ClassicalConstructiveDatalog,
+        for algorithm in vec![
+            Algorithm::PBN_Datalog,
+            Algorithm::ALT_Enum,
+            // Algorithm::ALT_EnumPrune,
+            // Algorithm::ALT_EnumPruneSMT,
+        ] {
+            for task in vec![
+                Task::AnyValid,
+                Task::AllValid,
+                Task::Particular(&particular),
             ] {
+                let task_str = task.to_string();
+
+                let sp = SynthesisProblem {
+                    lib: &lib,
+                    prog: &prog,
+                    task,
+                    soft_timeout,
+                };
+
                 for _ in 0..run_count {
-                    let sr = run_one(
-                        &lib,
-                        &prog,
-                        &particular,
-                        task.clone(),
-                        algorithm.clone(),
-                        soft_timeout,
-                    );
+                    let Timed {
+                        val: SynthesisResult { results, completed },
+                        duration,
+                    } = run_one(sp.clone(), algorithm.clone());
 
                     wtr.serialize(Record {
                         suite,
                         entry,
-                        task: task.clone(),
+                        task: &task_str,
                         algorithm: algorithm.clone(),
-                        completed: sr.completed,
-                        duration: sr.duration,
-                        solution_count: sr.solutions.len(),
-                        output: "...",
+                        completed,
+                        duration,
+                        solution_count: results.len(),
+                        solution_size: results.iter().map(|t| t.size()).sum(),
                     })?;
                 }
+                wtr.flush()?;
             }
         }
     }
 
-    wtr.flush()?;
     Ok(())
 }

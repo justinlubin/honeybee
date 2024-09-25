@@ -11,6 +11,8 @@ mod pbn;
 mod run;
 mod syntax;
 mod synthesis;
+mod task;
+mod util;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;

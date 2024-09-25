@@ -8,6 +8,7 @@ mod ir;
 mod pbn;
 mod syntax;
 mod synthesis;
+mod task;
 
 use chumsky::Parser;
 
