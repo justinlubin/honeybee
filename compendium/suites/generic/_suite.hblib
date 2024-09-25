@@ -2,10 +2,26 @@
 
 (input fact I (.x Int))
 
-(output fact A (.a Int))
+(output fact A (.x Int))
+(output fact B (.x Int))
+(output fact C (.x Int))
 
-(computation f A
+(computation f1 A
   ((i1 I) (i2 I) (i3 I))
-  ((= (.a ret) (.x i2))
+  ((< (.x ret) (.x i2))
+   (< (.x i1) (.x i2))
+   (< (.x i2) (.x i3))))
+
+(computation f2 A
+  ((b1 B) (b2 B))
+  ((= (.x ret) (.x b2))))
+
+(computation g B
+  ((c1 C) (c2 C))
+  ((= (.x ret) (.x c2))))
+
+(computation h C
+  ((i1 I) (i2 I) (i3 I))
+  ((< (.x ret) (.x i2))
   (< (.x i1) (.x i2))
   (< (.x i2) (.x i3))))

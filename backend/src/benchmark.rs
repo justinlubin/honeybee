@@ -127,7 +127,7 @@ pub fn run(
 
         for algorithm in vec![
             Algorithm::PBN_Datalog,
-            Algorithm::ALT_Enum,
+            // Algorithm::ALT_Enum,
             Algorithm::ALT_EnumPrune,
         ] {
             for task in tasks.clone() {
