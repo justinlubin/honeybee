@@ -468,6 +468,22 @@ impl Tree {
             }
         }
     }
+
+    pub fn get(&self, path: &[String]) -> &Tree {
+        let mut res = self;
+        for tag in path {
+            res = match res {
+                Tree::Axiom(_) => panic!("Cannot 'get' on Axiom"),
+                Tree::Goal(_) => panic!("Cannot 'get' on Goal"),
+                Tree::Collect(_, _) => todo!(),
+                Tree::Step { antecedents, .. } => antecedents
+                    .iter()
+                    .find_map(|(t, a)| if *tag == *t { Some(a) } else { None })
+                    .expect(&format!("Cannot find tag '{}'", tag)),
+            };
+        }
+        res
+    }
 }
 
 impl std::fmt::Display for Tree {

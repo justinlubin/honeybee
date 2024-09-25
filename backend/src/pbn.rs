@@ -6,6 +6,7 @@ use crate::derivation;
 use crate::egglog_adapter;
 use crate::synthesis;
 
+use std::collections::HashMap;
 use std::time::Instant;
 
 pub enum Config {
@@ -164,14 +165,143 @@ pub fn synthesize(
                         completed: false,
                     };
                 }
-                return SynthesisResult {
-                    results: vec![],
-                    completed: false,
-                };
+                let options = synthesizer.options();
+                if options.is_empty() {
+                    return SynthesisResult {
+                        results: vec![synthesizer.tree],
+                        completed: true,
+                    };
+                }
+                synthesizer.step(&match options.into_iter().next().unwrap() {
+                    synthesis::GoalOption::Output {
+                        path,
+                        tag,
+                        computation_options,
+                    } => {
+                        let path = derivation::into_tags(path);
+                        let (name_choice, assignment_choice) = match tree
+                            .get(&path)
+                        {
+                            derivation::Tree::Step {
+                                consequent,
+                                antecedents,
+                                ..
+                            } => {
+                                let mut assignment_choice = HashMap::new();
+                                for (k, v) in &consequent.args {
+                                    assignment_choice.insert(
+                                        format!("fv%{}*{}", tag, k),
+                                        v.clone(),
+                                    );
+                                }
+                                for (t, a) in antecedents {
+                                    let args = match a {
+                                        derivation::Tree::Axiom(f) => &f.args,
+                                        derivation::Tree::Goal(_) => panic!(
+                                            "Incomplete particular reference"
+                                        ),
+                                        derivation::Tree::Collect(_, _) => {
+                                            todo!()
+                                        }
+                                        derivation::Tree::Step {
+                                            consequent,
+                                            ..
+                                        } => &consequent.args,
+                                    };
+                                    for (k, v) in args {
+                                        assignment_choice.insert(
+                                            format!("fv%{}*{}", t, k),
+                                            v.clone(),
+                                        );
+                                    }
+                                }
+                                let name_choice = antecedents
+                                    .iter()
+                                    .find_map(|(t, a)| {
+                                        if *t == tag {
+                                            match a {
+                                                derivation::Tree::Step {
+                                                    label,
+                                                    ..
+                                                } => Some(label),
+                                                _ => panic!(),
+                                            }
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .unwrap();
+                                (name_choice, assignment_choice)
+                            }
+                            _ => panic!("Improper particular reference"),
+                        };
+
+                        let synthesis::ComputationOption {
+                            name,
+                            assignment_options,
+                        } = computation_options
+                            .into_iter()
+                            .find(|c| c.name == *name_choice)
+                            .unwrap();
+
+                        let assignment = assignment_options
+                            .into_iter()
+                            .find(|a| {
+                                a.iter().all(|(k, v)| {
+                                    assignment_choice.get(k) == Some(v)
+                                })
+                            })
+                            .unwrap();
+
+                        synthesis::Choice::Output {
+                            path,
+                            tag,
+                            computation_name: name,
+                            assignment,
+                        }
+                    }
+                    synthesis::GoalOption::Input {
+                        path,
+                        tag,
+                        fact_name,
+                        assignment_options,
+                    } =>
+                    // TODO! Need to fix this!!
+                    {
+                        let mut path = derivation::into_tags(path);
+                        path.push(tag.clone());
+                        let assignment_choice = match tree.get(&path) {
+                            derivation::Tree::Axiom(f) => f
+                                .args
+                                .iter()
+                                .map(|(k, v)| {
+                                    (format!("fv%{}*{}", tag, k), v.clone())
+                                })
+                                .collect::<HashMap<_, _>>(),
+
+                            _ => panic!("Improper particular reference"),
+                        };
+                        path.pop();
+                        let assignment = assignment_options
+                            .into_iter()
+                            .find(|a| {
+                                a.iter().all(|(k, v)| {
+                                    assignment_choice.get(k) == Some(v)
+                                })
+                            })
+                            .unwrap();
+                        synthesis::Choice::Input {
+                            tag,
+                            fact_name,
+                            assignment,
+                            path,
+                        }
+                    }
+                });
             }
         }
-        Task::AnySimplyTyped => todo!(),
-        Task::AllSimplyTyped => todo!(),
+        Task::AnySimplyTyped => panic!("PBN_Datalog cannot do AnySimplyTyped"),
+        Task::AllSimplyTyped => panic!("PBN_Datalog cannot do AllSimplyTyped"),
     }
 }
 

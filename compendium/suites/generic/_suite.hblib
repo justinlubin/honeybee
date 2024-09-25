@@ -12,7 +12,7 @@
 
 (computation f2 A
   ((b B))
-  ((= (.x ret) (.y b))))
+  ((= (.x ret) (.x b))))
 
 (computation g1 B
   ((c C))

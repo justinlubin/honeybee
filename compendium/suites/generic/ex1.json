@@ -1,0 +1,402 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "f2",
+            "antecedents": [
+              [
+                "b",
+                {
+                  "Step": {
+                    "label": "g1",
+                    "antecedents": [
+                      [
+                        "c",
+                        {
+                          "Step": {
+                            "label": "h",
+                            "antecedents": [
+                              [
+                                "i1",
+                                {
+                                  "Axiom": {
+                                    "name": "I",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 1
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ],
+                              [
+                                "i2",
+                                {
+                                  "Axiom": {
+                                    "name": "I",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 2
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ],
+                              [
+                                "i3",
+                                {
+                                  "Axiom": {
+                                    "name": "I",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 3
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ],
+                              [
+                                "i4",
+                                {
+                                  "Axiom": {
+                                    "name": "I",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 5
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "C",
+                              "args": [
+                                [
+                                  "y",
+                                  {
+                                    "Int": 3
+                                  }
+                                ],
+                                [
+                                  "x",
+                                  {
+                                    "Int": 2
+                                  }
+                                ],
+                                [
+                                  "z",
+                                  {
+                                    "Int": 5
+                                  }
+                                ],
+                                [
+                                  "w",
+                                  {
+                                    "Int": 1
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "w",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i1"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i2"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "y",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i3"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "z",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i4"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i1"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i2"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i2"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i3"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i3"
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "i4"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "B",
+                      "args": [
+                        [
+                          "y",
+                          {
+                            "Int": 3
+                          }
+                        ],
+                        [
+                          "w",
+                          {
+                            "Int": 1
+                          }
+                        ],
+                        [
+                          "x",
+                          {
+                            "Int": 2
+                          }
+                        ],
+                        [
+                          "z",
+                          {
+                            "Int": 5
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "w",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "w",
+                              "arg": "c"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "c"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "y",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "y",
+                              "arg": "c"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "z",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "z",
+                              "arg": "c"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "A",
+              "args": [
+                [
+                  "x",
+                  {
+                    "Int": 2
+                  }
+                ]
+              ]
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "x",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "x",
+                      "arg": "b"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": [
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Select": {
+              "selector": "x",
+              "arg": "output"
+            }
+          },
+          {
+            "Const": {
+              "Int": 2
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
