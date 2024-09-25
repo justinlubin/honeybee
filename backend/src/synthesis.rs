@@ -3,9 +3,6 @@ use crate::ir::*;
 use crate::derivation;
 use crate::egglog_adapter;
 
-use std::collections::HashMap;
-use std::collections::HashSet;
-
 #[derive(Debug, Clone)]
 pub struct Synthesizer<'a> {
     pub tree: derivation::Tree,

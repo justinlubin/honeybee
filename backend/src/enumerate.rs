@@ -14,6 +14,7 @@ pub enum Config {
 enum ExpansionResult {
     Complete(derivation::Tree),
     Incomplete(Vec<derivation::Tree>),
+    TimedOut,
 }
 
 fn support_one(annotations: &Vec<Fact>, vt: &ValueType) -> Vec<Value> {
@@ -44,7 +45,7 @@ fn support(
                 .collect()
         })
         .collect();
-    util::cartesian_product(choices)
+    util::timed_cartesian_product(choices, u128::MAX).unwrap()
 }
 
 fn should_keep(
@@ -84,12 +85,13 @@ fn expand(
     prog: &Program,
     tree: derivation::Tree,
     config: Config,
+    start: Instant,
+    soft_timeout: u128,
 ) -> ExpansionResult {
     match tree {
         derivation::Tree::Axiom(_) => ExpansionResult::Complete(tree),
         derivation::Tree::Goal(fact_name) => {
             let fact_sig = lib.fact_signature(&fact_name).unwrap();
-            // TODO: Check this?
             match fact_sig.kind {
                 FactKind::Input => ExpansionResult::Incomplete(
                     prog.annotations
@@ -113,8 +115,6 @@ fn expand(
                                 name: fact_name.clone(),
                                 args,
                             };
-                            // TODO safely prune with SMT and brute force contradiction checker
-                            // Possibly not here
                             expansions.push(derivation::Tree::Step {
                                 label: cs.name.clone(),
                                 antecedents: cs
@@ -148,7 +148,14 @@ fn expand(
             let mut complete = true;
             let mut antecedent_choices = vec![];
             for (tag, subtree) in antecedents.clone() {
-                match expand(lib, prog, subtree, config.clone()) {
+                match expand(
+                    lib,
+                    prog,
+                    subtree,
+                    config.clone(),
+                    start,
+                    soft_timeout,
+                ) {
                     ExpansionResult::Complete(t) => {
                         antecedent_choices.push(vec![(tag, t)])
                     }
@@ -158,39 +165,50 @@ fn expand(
                             ts.into_iter().map(|t| (tag.clone(), t)).collect(),
                         )
                     }
+                    ExpansionResult::TimedOut => {
+                        return ExpansionResult::TimedOut
+                    }
                 }
             }
             if complete {
                 ExpansionResult::Complete(tree)
             } else {
-                ExpansionResult::Incomplete(
-                    util::cartesian_product(antecedent_choices)
-                        .into_iter()
-                        .filter_map(|new_antecedents| {
-                            if should_keep(
-                                &new_antecedents,
-                                consequent,
-                                &side_condition,
-                                config.clone(),
-                            ) {
-                                Some(derivation::Tree::Step {
-                                    label: label.clone(),
-                                    antecedents: new_antecedents,
-                                    consequent: consequent.clone(),
-                                    side_condition: side_condition.clone(),
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .collect(),
-                )
+                let elapsed = start.elapsed().as_millis();
+                if elapsed > soft_timeout {
+                    return ExpansionResult::TimedOut;
+                }
+                match util::timed_cartesian_product(
+                    antecedent_choices,
+                    soft_timeout - elapsed,
+                ) {
+                    Some(prod) => ExpansionResult::Incomplete(
+                        prod.into_iter()
+                            .filter_map(|new_antecedents| {
+                                if should_keep(
+                                    &new_antecedents,
+                                    consequent,
+                                    &side_condition,
+                                    config.clone(),
+                                ) {
+                                    Some(derivation::Tree::Step {
+                                        label: label.clone(),
+                                        antecedents: new_antecedents,
+                                        consequent: consequent.clone(),
+                                        side_condition: side_condition.clone(),
+                                    })
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect(),
+                    ),
+                    None => ExpansionResult::TimedOut,
+                }
             }
         }
     }
 }
 
-// returns (results, completed)
 pub fn synthesize(
     SynthesisProblem {
         lib,
@@ -215,7 +233,7 @@ pub fn synthesize(
                     completed: false,
                 };
             }
-            match expand(lib, prog, t, config.clone()) {
+            match expand(lib, prog, t, config.clone(), now, soft_timeout) {
                 ExpansionResult::Complete(new_t) => match task {
                     Task::AnyValid => {
                         if new_t.valid(&prog.annotations) {
@@ -247,6 +265,12 @@ pub fn synthesize(
                     }
                 },
                 ExpansionResult::Incomplete(ts) => new_worklist.extend(ts),
+                ExpansionResult::TimedOut => {
+                    return SynthesisResult {
+                        results,
+                        completed: false,
+                    };
+                }
             }
         }
 
