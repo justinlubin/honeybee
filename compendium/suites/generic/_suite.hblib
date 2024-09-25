@@ -1,0 +1,11 @@
+; Sequencing
+
+(input fact I (.x Int))
+
+(output fact A (.a Int))
+
+(computation f A
+  ((i1 I) (i2 I) (i3 I))
+  ((= (.a ret) (.x i2))
+  (< (.x i1) (.x i2))
+  (< (.x i2) (.x i3))))
