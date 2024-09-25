@@ -10,7 +10,9 @@ pub enum ValueType {
     List(Box<ValueType>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub enum Value {
     Int(i64),
     Str(String),
@@ -44,13 +46,36 @@ pub struct FactSignature {
     pub params: Vec<(String, ValueType)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fact {
     pub name: FactName,
     pub args: Vec<(String, Value)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+impl PartialEq for Fact {
+    fn eq(&self, other: &Self) -> bool {
+        let mut self_args = self.args.clone();
+        self_args.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+        let mut other_args = other.args.clone();
+        other_args.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+        self.name == other.name && self_args == other_args
+    }
+}
+
+impl Eq for Fact {}
+
+impl std::hash::Hash for Fact {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        let mut self_args = self.args.clone();
+        self_args.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+        self_args.hash(state);
+    }
+}
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub enum PredicateAtom {
     Select { selector: String, arg: String },
     Const(Value),
@@ -171,7 +196,9 @@ impl PredicateAtom {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub enum PredicateRelationBinOp {
     Eq,
     Lt,
@@ -179,7 +206,9 @@ pub enum PredicateRelationBinOp {
     Contains,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub enum PredicateRelation {
     BinOp(PredicateRelationBinOp, PredicateAtom, PredicateAtom),
 }

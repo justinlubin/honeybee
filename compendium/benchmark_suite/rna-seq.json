@@ -33,6 +33,12 @@
                                             "name": "Seq",
                                             "args": [
                                               [
+                                                "at",
+                                                {
+                                                  "Int": 5
+                                                }
+                                              ],
+                                              [
                                                 "sample",
                                                 {
                                                   "Str": "Healthy"
@@ -42,12 +48,6 @@
                                                 "data",
                                                 {
                                                   "Str": "healthy.fastq"
-                                                }
-                                              ],
-                                              [
-                                                "at",
-                                                {
-                                                  "Int": 5
                                                 }
                                               ]
                                             ]
@@ -59,15 +59,15 @@
                                       "name": "ReadCountMatrix1",
                                       "args": [
                                         [
-                                          "at",
-                                          {
-                                            "Int": 5
-                                          }
-                                        ],
-                                        [
                                           "sample",
                                           {
                                             "Str": "Healthy"
+                                          }
+                                        ],
+                                        [
+                                          "at",
+                                          {
+                                            "Int": 5
                                           }
                                         ]
                                       ]
@@ -124,15 +124,15 @@
                                             "name": "Seq",
                                             "args": [
                                               [
-                                                "at",
-                                                {
-                                                  "Int": 5
-                                                }
-                                              ],
-                                              [
                                                 "sample",
                                                 {
                                                   "Str": "TLE"
+                                                }
+                                              ],
+                                              [
+                                                "at",
+                                                {
+                                                  "Int": 5
                                                 }
                                               ],
                                               [
@@ -207,18 +207,6 @@
                               "name": "ReadCountMatrix2",
                               "args": [
                                 [
-                                  "at",
-                                  {
-                                    "Int": 5
-                                  }
-                                ],
-                                [
-                                  "sample1",
-                                  {
-                                    "Str": "Healthy"
-                                  }
-                                ],
-                                [
                                   "bc",
                                   {
                                     "Int": 0
@@ -228,6 +216,18 @@
                                   "sample2",
                                   {
                                     "Str": "TLE"
+                                  }
+                                ],
+                                [
+                                  "at",
+                                  {
+                                    "Int": 5
+                                  }
+                                ],
+                                [
+                                  "sample1",
+                                  {
+                                    "Str": "Healthy"
                                   }
                                 ]
                               ]
@@ -326,27 +326,27 @@
                       "name": "ReadCountMatrix2",
                       "args": [
                         [
-                          "sample2",
-                          {
-                            "Str": "TLE"
-                          }
-                        ],
-                        [
                           "at",
                           {
                             "Int": 5
                           }
                         ],
                         [
-                          "sample1",
-                          {
-                            "Str": "Healthy"
-                          }
-                        ],
-                        [
                           "bc",
                           {
                             "Int": 1
+                          }
+                        ],
+                        [
+                          "sample2",
+                          {
+                            "Str": "TLE"
+                          }
+                        ],
+                        [
+                          "sample1",
+                          {
+                            "Str": "Healthy"
                           }
                         ]
                       ]

@@ -5,10 +5,10 @@ use crate::util;
 
 use std::time::Instant;
 
+#[derive(Debug, Clone)]
 pub enum Config {
     Basic,
     Prune,
-    PruneSMT,
 }
 
 enum ExpansionResult {
@@ -17,7 +17,10 @@ enum ExpansionResult {
 }
 
 fn support_one(annotations: &Vec<Fact>, vt: &ValueType) -> Vec<Value> {
-    let mut result = vec![];
+    let mut result = match vt {
+        ValueType::Int => vec![Value::Int(0), Value::Int(1)], // Workaround for bools for now
+        _ => vec![],
+    };
     for f in annotations {
         for (_, v) in &f.args {
             if v.infer() == *vt && !result.contains(v) {
@@ -44,10 +47,43 @@ fn support(
     util::cartesian_product(choices)
 }
 
+fn should_keep(
+    antecedents: &Vec<(String, derivation::Tree)>,
+    consequent: &Fact,
+    predicate: &Predicate,
+    config: Config,
+) -> bool {
+    match config {
+        Config::Basic => true,
+        Config::Prune => {
+            let args = antecedents
+                .iter()
+                .map(|(s, t)| {
+                    (
+                        s,
+                        match t {
+                            derivation::Tree::Axiom(f) => f,
+                            derivation::Tree::Step { consequent, .. } => {
+                                consequent
+                            }
+                            derivation::Tree::Goal(_) => {
+                                panic!("Cannot prune goal antecedent")
+                            }
+                            derivation::Tree::Collect(_, _) => todo!(),
+                        },
+                    )
+                })
+                .collect();
+            predicate.iter().all(|pr| pr.sat(consequent, &args))
+        }
+    }
+}
+
 fn expand(
     lib: &Library,
     prog: &Program,
     tree: derivation::Tree,
+    config: Config,
 ) -> ExpansionResult {
     match tree {
         derivation::Tree::Axiom(_) => ExpansionResult::Complete(tree),
@@ -58,7 +94,13 @@ fn expand(
                 FactKind::Input => ExpansionResult::Incomplete(
                     prog.annotations
                         .iter()
-                        .map(|f| derivation::Tree::Axiom(f.clone()))
+                        .filter_map(|f| {
+                            if f.name == fact_name {
+                                Some(derivation::Tree::Axiom(f.clone()))
+                            } else {
+                                None
+                            }
+                        })
                         .collect(),
                 ),
                 FactKind::Output => {
@@ -106,7 +148,7 @@ fn expand(
             let mut complete = true;
             let mut antecedent_choices = vec![];
             for (tag, subtree) in antecedents.clone() {
-                match expand(lib, prog, subtree) {
+                match expand(lib, prog, subtree, config.clone()) {
                     ExpansionResult::Complete(t) => {
                         antecedent_choices.push(vec![(tag, t)])
                     }
@@ -124,11 +166,22 @@ fn expand(
                 ExpansionResult::Incomplete(
                     util::cartesian_product(antecedent_choices)
                         .into_iter()
-                        .map(|new_antecedents| derivation::Tree::Step {
-                            label: label.clone(),
-                            antecedents: new_antecedents,
-                            consequent: consequent.clone(),
-                            side_condition: side_condition.clone(),
+                        .filter_map(|new_antecedents| {
+                            if should_keep(
+                                &new_antecedents,
+                                consequent,
+                                &side_condition,
+                                config.clone(),
+                            ) {
+                                Some(derivation::Tree::Step {
+                                    label: label.clone(),
+                                    antecedents: new_antecedents,
+                                    consequent: consequent.clone(),
+                                    side_condition: side_condition.clone(),
+                                })
+                            } else {
+                                None
+                            }
                         })
                         .collect(),
                 )
@@ -145,7 +198,7 @@ pub fn synthesize(
         task,
         soft_timeout,
     }: SynthesisProblem,
-    _config: Config,
+    config: Config,
 ) -> SynthesisResult {
     let mut results = vec![];
     let mut worklist = vec![derivation::Tree::from_goal(&prog.goal)];
@@ -162,32 +215,32 @@ pub fn synthesize(
                     completed: false,
                 };
             }
-            match expand(lib, prog, t) {
-                ExpansionResult::Complete(t) => match task {
+            match expand(lib, prog, t, config.clone()) {
+                ExpansionResult::Complete(new_t) => match task {
                     Task::AnyValid => {
-                        if t.valid(&prog.annotations) {
+                        if new_t.valid(&prog.annotations) {
                             return SynthesisResult {
-                                results: vec![t],
+                                results: vec![new_t],
                                 completed: true,
                             };
                         }
                     }
                     Task::AllValid => {
-                        if t.valid(&prog.annotations) {
-                            results.push(t)
+                        if new_t.valid(&prog.annotations) {
+                            results.push(new_t)
                         }
                     }
                     Task::AnySimplyTyped => {
                         return SynthesisResult {
-                            results: vec![t],
+                            results: vec![new_t],
                             completed: true,
                         }
                     }
-                    Task::AllSimplyTyped => results.push(t),
+                    Task::AllSimplyTyped => results.push(new_t),
                     Task::Particular(choice) => {
-                        if t == *choice {
+                        if new_t == *choice {
                             return SynthesisResult {
-                                results: vec![t],
+                                results: vec![new_t],
                                 completed: true,
                             };
                         }

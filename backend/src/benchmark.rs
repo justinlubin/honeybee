@@ -17,14 +17,12 @@ enum Algorithm {
     // Baselines/alternatives
     ALT_Enum,
     ALT_EnumPrune,
-    ALT_EnumPruneSMT,
     // True PBN
     PBN_Datalog,
     // Ablations
     // PBN_DatalogMemo,
     // PBN_Enum,
     // PBN_EnumPrune,
-    // PBN_EnumPruneSMT,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -55,9 +53,6 @@ fn run_one(
         }
         Algorithm::ALT_EnumPrune => {
             enumerate::synthesize(sp, enumerate::Config::Prune)
-        }
-        Algorithm::ALT_EnumPruneSMT => {
-            enumerate::synthesize(sp, enumerate::Config::PruneSMT)
         }
         Algorithm::PBN_Datalog => pbn::synthesize(sp, pbn::Config::Basic),
     };
@@ -127,8 +122,7 @@ pub fn run(
         for algorithm in vec![
             Algorithm::PBN_Datalog,
             Algorithm::ALT_Enum,
-            // Algorithm::ALT_EnumPrune,
-            // Algorithm::ALT_EnumPruneSMT,
+            Algorithm::ALT_EnumPrune,
         ] {
             for task in vec![
                 Task::AnyValid,

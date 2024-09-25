@@ -18,7 +18,7 @@ pub fn into_tags(path: Vec<PathEntry>) -> Vec<String> {
     path.into_iter().map(|PathEntry { tag, .. }| tag).collect()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Tree {
     Axiom(Fact),
     Goal(FactName),
@@ -475,3 +475,45 @@ impl std::fmt::Display for Tree {
         write!(f, "{}", self.pretty())
     }
 }
+
+impl PartialEq for Tree {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Tree::Axiom(f), Tree::Axiom(f2)) => *f == *f2,
+            (Tree::Axiom(_), _) => false,
+            (Tree::Goal(s), Tree::Goal(s2)) => s == s2,
+            (Tree::Goal(_), _) => false,
+            (Tree::Collect(_, _), _) => todo!(),
+            (
+                Tree::Step {
+                    label,
+                    antecedents,
+                    consequent,
+                    side_condition,
+                },
+                Tree::Step {
+                    label: label2,
+                    antecedents: antecedents2,
+                    consequent: consequent2,
+                    side_condition: side_condition2,
+                },
+            ) => {
+                let mut antecedents = antecedents.clone();
+                antecedents.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+                let mut antecedents2 = antecedents2.clone();
+                antecedents2.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+                let mut side_condition = side_condition.clone();
+                side_condition.sort();
+                let mut side_condition2 = side_condition2.clone();
+                side_condition2.sort();
+                label == label2
+                    && antecedents == antecedents2
+                    && consequent == consequent2
+                    && side_condition == side_condition2
+            }
+            (Tree::Step { .. }, _) => false,
+        }
+    }
+}
+
+impl Eq for Tree {}
