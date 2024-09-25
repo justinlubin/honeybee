@@ -1,7 +1,10 @@
+use crate::ir::*;
+
 use crate::derivation;
 use crate::egglog_adapter;
 
-use crate::ir::*;
+use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub struct Synthesizer<'a> {
@@ -48,6 +51,27 @@ pub enum Choice {
     },
 }
 
+fn restrict(assignments: &Vec<Assignment>, var: &str) -> Vec<Assignment> {
+    let var_substr = format!("fv%{}*", var);
+    let mut new_assignments = vec![];
+    for a in assignments {
+        let mut new_a = vec![];
+        for (k, v) in a {
+            if k.contains(&var_substr) {
+                new_a.push((k.clone(), v.clone()));
+            }
+        }
+        new_a.sort();
+        new_assignments.push(new_a);
+    }
+    new_assignments.sort();
+    new_assignments.dedup();
+    new_assignments
+        .into_iter()
+        .map(|kvs| kvs.into_iter().collect())
+        .collect()
+}
+
 impl<'a> Synthesizer<'a> {
     pub fn new(lib: &'a Library, prog: &'a Program) -> Synthesizer<'a> {
         Synthesizer {
@@ -74,7 +98,10 @@ impl<'a> Synthesizer<'a> {
                             fact_name: goal_fact_name.clone(),
                             path: path.clone(),
                             tag: cut_param.clone(),
-                            assignment_options: basic_assignments.clone(),
+                            assignment_options: restrict(
+                                &basic_assignments,
+                                &cut_param,
+                            ),
                         },
                         FactKind::Output => GoalOption::Output {
                             computation_options: self

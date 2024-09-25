@@ -6,15 +6,15 @@ use serde::Serialize;
 use std::fmt;
 
 #[derive(Debug, Clone, Serialize)]
-pub enum Task<'a> {
+pub enum Task {
     AnyValid,
     AllValid,
     AnySimplyTyped,
     AllSimplyTyped,
-    Particular(&'a derivation::Tree),
+    Particular(derivation::Tree),
 }
 
-impl<'a> fmt::Display for Task<'a> {
+impl fmt::Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Task::AnyValid => write!(f, "Any"),
@@ -30,7 +30,7 @@ impl<'a> fmt::Display for Task<'a> {
 pub struct SynthesisProblem<'a> {
     pub lib: &'a Library,
     pub prog: &'a Program,
-    pub task: Task<'a>,
+    pub task: Task,
     pub soft_timeout: u128, // milliseconds
 }
 

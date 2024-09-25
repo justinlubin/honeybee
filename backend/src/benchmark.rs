@@ -112,23 +112,25 @@ pub fn run(
             .parse(prog_src)
             .map_err(|_| "Program parse error")?;
 
-        let particular_filename = prog_filename.with_extension("json");
-        let particular_src =
-            std::fs::read_to_string(&particular_filename).unwrap();
+        let mut tasks = vec![Task::AnyValid, Task::AllValid];
 
-        let particular: derivation::Tree =
-            serde_json::from_str(&particular_src).unwrap();
+        let particular_filename = prog_filename.with_extension("json");
+
+        match std::fs::read_to_string(&particular_filename) {
+            Ok(particular_src) => {
+                let particular: derivation::Tree =
+                    serde_json::from_str(&particular_src).unwrap();
+                tasks.push(Task::Particular(particular));
+            }
+            Err(_) => (),
+        };
 
         for algorithm in vec![
             Algorithm::PBN_Datalog,
             Algorithm::ALT_Enum,
             Algorithm::ALT_EnumPrune,
         ] {
-            for task in vec![
-                Task::AnyValid,
-                Task::AllValid,
-                Task::Particular(&particular),
-            ] {
+            for task in tasks.clone() {
                 let task_str = task.to_string();
 
                 let sp = SynthesisProblem {

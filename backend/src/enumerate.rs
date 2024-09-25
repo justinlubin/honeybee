@@ -237,7 +237,7 @@ pub fn synthesize(
                         }
                     }
                     Task::AllSimplyTyped => results.push(new_t),
-                    Task::Particular(choice) => {
+                    Task::Particular(ref choice) => {
                         if new_t == *choice {
                             return SynthesisResult {
                                 results: vec![new_t],
