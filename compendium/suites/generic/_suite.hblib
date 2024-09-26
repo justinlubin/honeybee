@@ -4,24 +4,18 @@
 (output fact B (.w Int) (.x Int) (.y Int) (.z Int))
 (output fact C (.w Int) (.x Int) (.y Int) (.z Int))
 
-(computation f1 A
-  ((i1 I) (i2 I) (i3 I))
-  ((< (.x ret) (.x i2))
-   (< (.x i1) (.x i2))
-   (< (.x i2) (.x i3))))
-
-(computation f2 A
+(computation f A
   ((b B))
   ((= (.x ret) (.x b))))
 
-(computation g1 B
+(computation g B
   ((c C))
   ((= (.w ret) (.w c))
    (= (.x ret) (.x c))
    (= (.y ret) (.y c))
    (= (.z ret) (.z c))))
 
-(computation h C
+(computation h1 C
   ((i1 I) (i2 I) (i3 I) (i4 I))
   ((= (.w ret) (.x i1))
    (= (.x ret) (.x i2))
@@ -30,3 +24,11 @@
    (< (.x i1) (.x i2))
    (< (.x i2) (.x i3))
    (< (.x i3) (.x i4))))
+
+(computation h2 C
+  ((i1 I) (i2 I))
+  ((= (.w ret) (.x i1))
+   (= (.x ret) (.x i2))
+   (= (.y ret) (.x i1))
+   (= (.z ret) (.x i2))
+   (< (.x i1) (.x i2))))
