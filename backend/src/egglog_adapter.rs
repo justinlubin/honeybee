@@ -361,48 +361,25 @@ mod parse {
     }
 }
 
-pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
-    let egglog_src = compile_header(lib, facts, q);
-
-    log::debug!("Egglog Source:\n{}", egglog_src);
-
-    let mut egraph = egglog::EGraph::default();
-    let messages = egraph.parse_and_run_program(&egglog_src).unwrap();
-    if messages.len() != 1 {
-        panic!("{:?}", messages)
-    }
-    let assignments = parse::output(&q.fact_signature)
-        .parse(messages[0].clone())
-        .unwrap();
-    log::debug!("Egglog Assignments:\n{:?}", assignments);
-    assignments
-}
-
-pub fn check_possible(lib: &Library, prog: &Program) -> bool {
-    !query(&lib, &prog.annotations, &Query::from_fact(&prog.goal, "q"))
-        .is_empty()
-}
-
 pub struct Instance<'a> {
     lib: &'a Library,
-    facts: &'a Vec<Fact>,
+    prog: &'a Program,
     egraph: Option<egglog::EGraph>,
 }
 
 impl<'a> Instance<'a> {
-    pub fn new(lib: &Library, facts: &Vec<Fact>, cache: bool) -> Self {
-        let egglog_src = compile_header(lib, facts);
-        log::debug!("Egglog Header Source:\n{}", egglog_src);
-
+    pub fn new(lib: &'a Library, prog: &'a Program, cache: bool) -> Self {
         let egraph = if cache {
+            let egglog_header_src = compile_header(lib, &prog.annotations);
+            log::debug!("Egglog Header Source Cache:\n{}", egglog_header_src);
             let mut egraph = egglog::EGraph::default();
-            egraph.parse_and_run_program(&egglog_src).unwrap();
+            egraph.parse_and_run_program(&egglog_header_src).unwrap();
             Some(egraph)
         } else {
             None
         };
 
-        Instance { lib, facts, egraph }
+        Instance { lib, prog, egraph }
     }
 
     pub fn query(&mut self, q: &Query) -> Vec<Assignment> {
@@ -415,7 +392,7 @@ impl<'a> Instance<'a> {
                 self.lib,
                 &q.computation_signature,
                 Some(&q.fact_signature),
-                "query_ruleset"
+                "query_rs"
             ),
             "(run-schedule (saturate query_rs))",
             q.fact_signature.name,
@@ -423,9 +400,24 @@ impl<'a> Instance<'a> {
         );
         log::debug!("Egglog Query Source:\n{}", egglog_src);
 
-        self.egraph.push();
-        let messages = self.egraph.parse_and_run_program(&egglog_src).unwrap();
-        self.egraph.pop().unwrap();
+        let messages = match &mut self.egraph {
+            Some(egraph) => {
+                egraph.push();
+                let m = egraph.parse_and_run_program(&egglog_src).unwrap();
+                egraph.pop().unwrap();
+                m
+            }
+            None => {
+                let egglog_combined_src = format!(
+                    "{}\n{}",
+                    compile_header(self.lib, &self.prog.annotations),
+                    egglog_src
+                );
+                log::debug!("Egglog Combined Source:\n{}", egglog_combined_src);
+                let mut egraph = egglog::EGraph::default();
+                egraph.parse_and_run_program(&egglog_combined_src).unwrap()
+            }
+        };
 
         if messages.len() != 1 {
             panic!("{:?}", messages)
@@ -437,5 +429,21 @@ impl<'a> Instance<'a> {
         log::debug!("Egglog Assignments:\n{:?}", assignments);
 
         assignments
+    }
+
+    pub fn check_possible(&mut self) -> bool {
+        !self
+            .query(&Query::from_fact(&self.prog.goal, "q"))
+            .is_empty()
+    }
+}
+
+impl<'a> std::fmt::Debug for Instance<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "egglog_adapter::Instance (cache = {})",
+            self.egraph.is_some(),
+        )
     }
 }

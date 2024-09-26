@@ -7,7 +7,6 @@ use crate::egglog_adapter;
 pub struct Synthesizer<'a> {
     pub tree: derivation::Tree,
     lib: &'a Library,
-    prog: &'a Program,
 }
 
 #[derive(Debug, Clone)]
@@ -74,16 +73,18 @@ impl<'a> Synthesizer<'a> {
         Synthesizer {
             tree: derivation::Tree::from_goal(&prog.goal),
             lib,
-            prog,
         }
     }
 
-    pub fn options(&self) -> Vec<GoalOption> {
+    // Precondition: egg must have same lib and prog as synthesizer
+    pub fn options(
+        &self,
+        egg: &mut egglog_adapter::Instance,
+    ) -> Vec<GoalOption> {
         let mut ops = vec![];
 
         for (path, query) in self.tree.queries(self.lib) {
-            let basic_assignments =
-                egglog_adapter::query(self.lib, &self.prog.annotations, &query);
+            let basic_assignments = egg.query(&query);
 
             for (cut_param, goal_fact_name, _mode) in
                 &query.computation_signature.params
@@ -106,14 +107,9 @@ impl<'a> Synthesizer<'a> {
                                 .matching_computation_signatures(goal_fact_name)
                                 .into_iter()
                                 .filter_map(|lemma| {
-                                    let assignment_options =
-                                        egglog_adapter::query(
-                                            self.lib,
-                                            &self.prog.annotations,
-                                            &query.cut(
-                                                self.lib, cut_param, lemma,
-                                            ),
-                                        );
+                                    let assignment_options = egg.query(
+                                        &query.cut(self.lib, cut_param, lemma),
+                                    );
                                     if assignment_options.is_empty() {
                                         None
                                     } else {

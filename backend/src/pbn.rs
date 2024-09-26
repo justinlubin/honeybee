@@ -20,11 +20,19 @@ pub fn synthesize(
         task,
         soft_timeout,
     }: SynthesisProblem,
-    _config: Config,
+    config: Config,
 ) -> SynthesisResult {
     let now = Instant::now();
 
-    if !egglog_adapter::check_possible(lib, prog) {
+    let mut egg = egglog_adapter::Instance::new(
+        lib,
+        prog,
+        match config {
+            Config::Basic => false,
+        },
+    );
+
+    if !egg.check_possible() {
         return SynthesisResult {
             results: vec![],
             completed: true,
@@ -42,7 +50,7 @@ pub fn synthesize(
                         completed: false,
                     };
                 }
-                let options = synthesizer.options();
+                let options = synthesizer.options(&mut egg);
                 if options.is_empty() {
                     return SynthesisResult {
                         results: vec![synthesizer.tree],
@@ -96,7 +104,7 @@ pub fn synthesize(
                         completed: false,
                     };
                 }
-                let options = synthesizer.options();
+                let options = synthesizer.options(&mut egg);
                 if options.is_empty() {
                     results.push(synthesizer.tree);
                     continue;
@@ -160,7 +168,7 @@ pub fn synthesize(
                         completed: false,
                     };
                 }
-                let options = synthesizer.options();
+                let options = synthesizer.options(&mut egg);
                 if options.is_empty() {
                     return SynthesisResult {
                         results: vec![synthesizer.tree],
@@ -303,7 +311,9 @@ pub fn run(
     prog: &Program,
     interactive: bool,
 ) -> Option<derivation::Tree> {
-    if !egglog_adapter::check_possible(lib, prog) {
+    let mut egg = egglog_adapter::Instance::new(lib, prog, false);
+
+    if !egg.check_possible() {
         return None;
     }
 
@@ -333,7 +343,7 @@ pub fn run(
             );
             print!("{}", synthesizer.tree.pretty());
         }
-        let options = synthesizer.options();
+        let options = synthesizer.options(&mut egg);
         if options.is_empty() {
             break;
         }
