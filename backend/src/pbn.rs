@@ -13,7 +13,6 @@ pub enum Config {
     Basic,
 }
 
-// returns (results, completed)
 pub fn synthesize(
     SynthesisProblem {
         lib,
@@ -90,65 +89,61 @@ pub fn synthesize(
         Task::AllValid => {
             let mut worklist = vec![synthesis::Synthesizer::new(lib, prog)];
             let mut results = vec![];
-            while !worklist.is_empty() {
-                let mut new_worklist = vec![];
-                for synthesizer in worklist.into_iter() {
-                    if now.elapsed().as_millis() > soft_timeout {
-                        return SynthesisResult {
-                            results,
-                            completed: false,
-                        };
-                    }
-                    let options = synthesizer.options();
-                    if options.is_empty() {
-                        results.push(synthesizer.tree);
-                        continue;
-                    }
-                    match options.into_iter().next().unwrap() {
-                        synthesis::GoalOption::Output {
-                            path,
-                            tag,
-                            computation_options,
-                        } => {
-                            let path = derivation::into_tags(path);
-                            for computation_option in computation_options {
-                                let synthesis::ComputationOption {
-                                    name,
-                                    assignment_options,
-                                } = computation_option;
-                                for assignment in assignment_options {
-                                    let mut new = synthesizer.clone();
-                                    new.step(&synthesis::Choice::Output {
-                                        path: path.clone(),
-                                        tag: tag.clone(),
-                                        computation_name: name.clone(),
-                                        assignment,
-                                    });
-                                    new_worklist.push(new);
-                                }
-                            }
-                        }
-                        synthesis::GoalOption::Input {
-                            path,
-                            tag,
-                            fact_name,
-                            assignment_options,
-                        } => {
-                            let path = derivation::into_tags(path);
+            while let Some(synthesizer) = worklist.pop() {
+                if now.elapsed().as_millis() > soft_timeout {
+                    return SynthesisResult {
+                        results,
+                        completed: false,
+                    };
+                }
+                let options = synthesizer.options();
+                if options.is_empty() {
+                    results.push(synthesizer.tree);
+                    continue;
+                }
+                match options.into_iter().next().unwrap() {
+                    synthesis::GoalOption::Output {
+                        path,
+                        tag,
+                        computation_options,
+                    } => {
+                        let path = derivation::into_tags(path);
+                        for computation_option in computation_options {
+                            let synthesis::ComputationOption {
+                                name,
+                                assignment_options,
+                            } = computation_option;
                             for assignment in assignment_options {
                                 let mut new = synthesizer.clone();
-                                new.step(&synthesis::Choice::Input {
-                                    tag: tag.clone(),
-                                    fact_name: fact_name.clone(),
-                                    assignment,
+                                new.step(&synthesis::Choice::Output {
                                     path: path.clone(),
+                                    tag: tag.clone(),
+                                    computation_name: name.clone(),
+                                    assignment,
                                 });
-                                new_worklist.push(new);
+                                worklist.push(new);
                             }
+                        }
+                    }
+                    synthesis::GoalOption::Input {
+                        path,
+                        tag,
+                        fact_name,
+                        assignment_options,
+                    } => {
+                        let path = derivation::into_tags(path);
+                        for assignment in assignment_options {
+                            let mut new = synthesizer.clone();
+                            new.step(&synthesis::Choice::Input {
+                                tag: tag.clone(),
+                                fact_name: fact_name.clone(),
+                                assignment,
+                                path: path.clone(),
+                            });
+                            worklist.push(new);
                         }
                     }
                 }
-                worklist = new_worklist;
             }
             SynthesisResult {
                 results,
@@ -265,9 +260,7 @@ pub fn synthesize(
                         tag,
                         fact_name,
                         assignment_options,
-                    } =>
-                    // TODO! Need to fix this!!
-                    {
+                    } => {
                         let mut path = derivation::into_tags(path);
                         path.push(tag.clone());
                         let assignment_choice = match tree.get(&path) {

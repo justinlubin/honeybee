@@ -11,7 +11,8 @@ struct Compiler {
 impl Compiler {
     pub fn new() -> Compiler {
         Compiler {
-            ints: HashSet::new(),
+            // 0 and 1 for bool false/true
+            ints: HashSet::from([0, 1]),
             strings: HashSet::new(),
             vecs: vec![],
         }

@@ -19,7 +19,8 @@ enum ExpansionResult {
 
 fn support_one(annotations: &Vec<Fact>, vt: &ValueType) -> Vec<Value> {
     let mut result = match vt {
-        ValueType::Int => vec![Value::Int(0), Value::Int(1)], // Workaround for bools for now
+        // 0 and 1 for bool false/true
+        ValueType::Int => vec![Value::Int(0), Value::Int(1)],
         _ => vec![],
     };
     for f in annotations {
@@ -223,58 +224,53 @@ pub fn synthesize(
 
     let now = Instant::now();
 
-    while !worklist.is_empty() {
-        let mut new_worklist = vec![];
+    while let Some(t) = worklist.pop() {
+        if now.elapsed().as_millis() > soft_timeout {
+            return SynthesisResult {
+                results,
+                completed: false,
+            };
+        }
 
-        for t in worklist.into_iter() {
-            if now.elapsed().as_millis() > soft_timeout {
+        match expand(lib, prog, t, config.clone(), now, soft_timeout) {
+            ExpansionResult::Complete(new_t) => match task {
+                Task::AnyValid => {
+                    if new_t.valid(&prog.annotations) {
+                        return SynthesisResult {
+                            results: vec![new_t],
+                            completed: true,
+                        };
+                    }
+                }
+                Task::AllValid => {
+                    if new_t.valid(&prog.annotations) {
+                        results.push(new_t)
+                    }
+                }
+                Task::AnySimplyTyped => {
+                    return SynthesisResult {
+                        results: vec![new_t],
+                        completed: true,
+                    }
+                }
+                Task::AllSimplyTyped => results.push(new_t),
+                Task::Particular(ref choice) => {
+                    if new_t == *choice {
+                        return SynthesisResult {
+                            results: vec![new_t],
+                            completed: true,
+                        };
+                    }
+                }
+            },
+            ExpansionResult::Incomplete(ts) => worklist.extend(ts),
+            ExpansionResult::TimedOut => {
                 return SynthesisResult {
                     results,
                     completed: false,
                 };
             }
-            match expand(lib, prog, t, config.clone(), now, soft_timeout) {
-                ExpansionResult::Complete(new_t) => match task {
-                    Task::AnyValid => {
-                        if new_t.valid(&prog.annotations) {
-                            return SynthesisResult {
-                                results: vec![new_t],
-                                completed: true,
-                            };
-                        }
-                    }
-                    Task::AllValid => {
-                        if new_t.valid(&prog.annotations) {
-                            results.push(new_t)
-                        }
-                    }
-                    Task::AnySimplyTyped => {
-                        return SynthesisResult {
-                            results: vec![new_t],
-                            completed: true,
-                        }
-                    }
-                    Task::AllSimplyTyped => results.push(new_t),
-                    Task::Particular(ref choice) => {
-                        if new_t == *choice {
-                            return SynthesisResult {
-                                results: vec![new_t],
-                                completed: true,
-                            };
-                        }
-                    }
-                },
-                ExpansionResult::Incomplete(ts) => new_worklist.extend(ts),
-                ExpansionResult::TimedOut => {
-                    return SynthesisResult {
-                        results,
-                        completed: false,
-                    };
-                }
-            }
         }
-
-        worklist = new_worklist;
     }
     SynthesisResult {
         results,
