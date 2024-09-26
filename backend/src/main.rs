@@ -1,21 +1,9 @@
 #![allow(dead_code)]
 
-mod analysis;
-mod backend;
-mod benchmark;
-mod derivation;
-mod egglog_adapter;
-mod enumerate;
-mod ir;
-mod pbn;
-mod run;
-mod syntax;
-mod synthesis;
-mod task;
-mod util;
-
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+
+use honeybee::*;
 
 /// Programming by Navigation with 🐝 Honeybee
 #[derive(Parser)]
@@ -82,7 +70,7 @@ fn main() {
             suite,
             run_count,
             timeout,
-        } => benchmark::run(suite, *run_count, *timeout),
+        } => benchmark::run(suite, *run_count, *timeout, true).map(|_| ()),
     };
 
     match result {

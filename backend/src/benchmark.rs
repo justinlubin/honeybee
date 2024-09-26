@@ -13,7 +13,7 @@ use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize)]
 #[allow(non_camel_case_types)]
-enum Algorithm {
+pub enum Algorithm {
     // Baselines/alternatives
     ALT_Enum,
     ALT_EnumPrune,
@@ -26,15 +26,15 @@ enum Algorithm {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct Record<'a> {
-    suite: &'a str,
-    entry: &'a str,
-    task: &'a str,
-    algorithm: Algorithm,
-    completed: bool,
-    duration: u128,
-    solution_count: usize,
-    solution_size: usize,
+pub struct Record {
+    pub suite: String,
+    pub entry: String,
+    pub task: String,
+    pub algorithm: Algorithm,
+    pub completed: bool,
+    pub duration: u128,
+    pub solution_count: usize,
+    pub solution_size: usize,
 }
 
 struct Timed<T> {
@@ -80,7 +80,8 @@ pub fn run(
     suite_directory: &PathBuf,
     run_count: usize,
     soft_timeout: u128, // in milliseconds
-) -> Result<(), Box<dyn std::error::Error>> {
+    write_stdout: bool,
+) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     assert!(suite_directory.is_dir());
 
     let suite = suite_directory.file_name().unwrap().to_str().unwrap();
@@ -94,6 +95,7 @@ pub fn run(
         .parse(lib_src)
         .map_err(|_| "Library parse error")?;
 
+    let mut records = vec![];
     let mut wtr = csv::Writer::from_writer(std::io::stdout());
 
     for prog_filename in
@@ -129,8 +131,8 @@ pub fn run(
         for algorithm in vec![
             Algorithm::PBN_Datalog,
             Algorithm::PBN_DatalogMemo,
-            // Algorithm::ALT_Enum,
-            // Algorithm::ALT_EnumPrune,
+            Algorithm::ALT_Enum,
+            Algorithm::ALT_EnumPrune,
         ] {
             for task in tasks.clone() {
                 let task_str = task.to_string();
@@ -148,21 +150,29 @@ pub fn run(
                         duration,
                     } = run_one(sp.clone(), algorithm.clone());
 
-                    wtr.serialize(Record {
-                        suite,
-                        entry,
-                        task: &task_str,
+                    let r = Record {
+                        suite: suite.to_owned(),
+                        entry: entry.to_owned(),
+                        task: task_str.clone(),
                         algorithm: algorithm.clone(),
                         completed,
                         duration,
                         solution_count: results.len(),
                         solution_size: results.iter().map(|t| t.size()).sum(),
-                    })?;
+                    };
+
+                    if write_stdout {
+                        wtr.serialize(r.clone())?;
+                    }
+
+                    records.push(r);
                 }
-                wtr.flush()?;
+                if write_stdout {
+                    wtr.flush()?;
+                }
             }
         }
     }
 
-    Ok(())
+    Ok(records)
 }

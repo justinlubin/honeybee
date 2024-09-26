@@ -1,16 +1,21 @@
 #![allow(dead_code)]
 
+pub mod benchmark;
+pub mod run;
+
 mod analysis;
 mod backend;
 mod derivation;
 mod egglog_adapter;
+mod enumerate;
 mod ir;
 mod pbn;
 mod syntax;
 mod synthesis;
 mod task;
+mod util;
 
-use chumsky::Parser;
+pub use chumsky::Parser;
 
 use wasm_bindgen::prelude::*;
 
