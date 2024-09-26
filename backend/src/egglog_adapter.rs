@@ -1,3 +1,4 @@
+use chumsky::Parser;
 use std::collections::HashSet;
 
 use crate::ir::*;
@@ -142,6 +143,7 @@ impl Compiler {
         lib: &Library,
         cs: &ComputationSignature,
         ret_fact_signature: Option<&FactSignature>,
+        ruleset: &str,
     ) -> String {
         let ret_fact_signature = match ret_fact_signature {
             Some(fs) => fs,
@@ -192,7 +194,7 @@ impl Compiler {
         }
 
         format!(
-            "(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset all)",
+            "(rule\n  ({}\n   {})\n  (({} {}))\n  :ruleset {})",
             cs.params
                 .iter()
                 .filter_map(|(p, fact_name, _)| if forall_params.contains(p) {
@@ -235,6 +237,7 @@ impl Compiler {
                 .map(|(p, _)| format!("{}*{}", Query::RET, p))
                 .collect::<Vec<String>>()
                 .join(" "),
+            ruleset,
         )
     }
 
@@ -276,21 +279,9 @@ impl Compiler {
                 .join(" "),
         )
     }
-
-    pub fn query(&mut self, lib: &Library, q: &Query) -> String {
-        format!(
-            "{}\n\n{}",
-            self.fact_signature(&q.fact_signature),
-            self.computation_signature(
-                lib,
-                &q.computation_signature,
-                Some(&q.fact_signature)
-            ),
-        )
-    }
 }
 
-pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
+fn compile_header(lib: &Library, facts: &Vec<Fact>) -> String {
     let mut c = Compiler::new();
 
     let mut body = vec![];
@@ -306,7 +297,7 @@ pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
     let mut rules: std::collections::HashSet<String> =
         std::collections::HashSet::new();
     for cs in &lib.computation_signatures {
-        let rule = c.computation_signature(lib, cs, None);
+        let rule = c.computation_signature(lib, cs, None, "all");
         if rules.contains(&rule) {
             continue;
         }
@@ -319,12 +310,7 @@ pub fn compile(lib: &Library, facts: &Vec<Fact>, q: &Query) -> String {
         body.push(c.fact(lib, f));
     }
 
-    body.push("".to_owned());
-
-    body.push(c.query(lib, q));
-
     body.push("\n(run-schedule (saturate all))\n".to_owned());
-    body.push(format!("(print-function {} 1000)", q.fact_signature.name));
 
     format!("{}\n{}", c.header(), body.join("\n"))
 }
@@ -375,31 +361,81 @@ mod parse {
     }
 }
 
-use chumsky::Parser;
-
 pub fn query(lib: &Library, facts: &Vec<Fact>, q: &Query) -> Vec<Assignment> {
-    let egglog_src = compile(lib, facts, q);
+    let egglog_src = compile_header(lib, facts, q);
 
     log::debug!("Egglog Source:\n{}", egglog_src);
 
     let mut egraph = egglog::EGraph::default();
-    match egraph.parse_and_run_program(&egglog_src) {
-        Ok(messages) => {
-            if messages.len() != 1 {
-                panic!("{:?}", messages)
-            }
-            let assignments = parse::output(&q.fact_signature)
-                .parse(messages[0].clone())
-                .unwrap();
-            log::debug!("Egglog Assignments:\n{:?}", assignments);
-            assignments
-        }
-
-        Err(e) => panic!("{}", e),
+    let messages = egraph.parse_and_run_program(&egglog_src).unwrap();
+    if messages.len() != 1 {
+        panic!("{:?}", messages)
     }
+    let assignments = parse::output(&q.fact_signature)
+        .parse(messages[0].clone())
+        .unwrap();
+    log::debug!("Egglog Assignments:\n{:?}", assignments);
+    assignments
 }
 
 pub fn check_possible(lib: &Library, prog: &Program) -> bool {
     !query(&lib, &prog.annotations, &Query::from_fact(&prog.goal, "q"))
         .is_empty()
+}
+
+pub struct Instance<'a> {
+    lib: &'a Library,
+    facts: &'a Vec<Fact>,
+    egraph: Option<egglog::EGraph>,
+}
+
+impl<'a> Instance<'a> {
+    pub fn new(lib: &Library, facts: &Vec<Fact>, cache: bool) -> Self {
+        let egglog_src = compile_header(lib, facts);
+        log::debug!("Egglog Header Source:\n{}", egglog_src);
+
+        let egraph = if cache {
+            let mut egraph = egglog::EGraph::default();
+            egraph.parse_and_run_program(&egglog_src).unwrap();
+            Some(egraph)
+        } else {
+            None
+        };
+
+        Instance { lib, facts, egraph }
+    }
+
+    pub fn query(&mut self, q: &Query) -> Vec<Assignment> {
+        let mut c = Compiler::new();
+        let egglog_src = format!(
+            "{}\n\n{}\n\n{}\n\n{}\n(print-function {} {})",
+            "(ruleset query_rs)",
+            c.fact_signature(&q.fact_signature),
+            c.computation_signature(
+                self.lib,
+                &q.computation_signature,
+                Some(&q.fact_signature),
+                "query_ruleset"
+            ),
+            "(run-schedule (saturate query_rs))",
+            q.fact_signature.name,
+            1000,
+        );
+        log::debug!("Egglog Query Source:\n{}", egglog_src);
+
+        self.egraph.push();
+        let messages = self.egraph.parse_and_run_program(&egglog_src).unwrap();
+        self.egraph.pop().unwrap();
+
+        if messages.len() != 1 {
+            panic!("{:?}", messages)
+        }
+
+        let assignments = parse::output(&q.fact_signature)
+            .parse(messages[0].clone())
+            .unwrap();
+        log::debug!("Egglog Assignments:\n{:?}", assignments);
+
+        assignments
+    }
 }
