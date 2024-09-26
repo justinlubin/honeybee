@@ -11,6 +11,7 @@ use std::time::Instant;
 
 pub enum Config {
     Basic,
+    Memo,
 }
 
 pub fn synthesize(
@@ -29,6 +30,7 @@ pub fn synthesize(
         prog,
         match config {
             Config::Basic => false,
+            Config::Memo => true,
         },
     );
 

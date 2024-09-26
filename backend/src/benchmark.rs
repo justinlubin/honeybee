@@ -20,7 +20,7 @@ enum Algorithm {
     // True PBN
     PBN_Datalog,
     // Ablations
-    // PBN_DatalogMemo,
+    PBN_DatalogMemo,
     // PBN_Enum,
     // PBN_EnumPrune,
 }
@@ -55,6 +55,7 @@ fn run_one(
             enumerate::synthesize(sp, enumerate::Config::Prune)
         }
         Algorithm::PBN_Datalog => pbn::synthesize(sp, pbn::Config::Basic),
+        Algorithm::PBN_DatalogMemo => pbn::synthesize(sp, pbn::Config::Memo),
     };
     for t in &sr.results {
         // To be fair to LLMs, include Python conversion time
@@ -127,8 +128,9 @@ pub fn run(
 
         for algorithm in vec![
             Algorithm::PBN_Datalog,
+            Algorithm::PBN_DatalogMemo,
             // Algorithm::ALT_Enum,
-            Algorithm::ALT_EnumPrune,
+            // Algorithm::ALT_EnumPrune,
         ] {
             for task in tasks.clone() {
                 let task_str = task.to_string();
