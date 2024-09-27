@@ -4,9 +4,14 @@ use std::collections::HashMap;
 
 #[test]
 fn generic_counts_match() {
-    let records =
-        benchmark::run(&"../compendium/suites/generic/".into(), 1, 5000, true)
-            .unwrap();
+    let records = benchmark::run(
+        &"../compendium/suites/generic/".into(),
+        1,
+        5000,
+        "",
+        true,
+    )
+    .unwrap();
 
     let mut h: HashMap<
         String,
