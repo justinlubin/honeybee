@@ -1,12 +1,15 @@
 use crate::ir::*;
 
-use crate::derivation;
+use crate::derivation::*;
 use crate::egglog_adapter;
+use crate::enumerate;
+use crate::task;
 
 #[derive(Debug, Clone)]
 pub struct Synthesizer<'a> {
-    pub tree: derivation::Tree,
+    pub tree: Tree,
     lib: &'a Library,
+    prog: &'a Program,
 }
 
 #[derive(Debug, Clone)]
@@ -18,12 +21,12 @@ pub struct ComputationOption {
 #[derive(Debug, Clone)]
 pub enum GoalOption {
     Output {
-        path: Vec<derivation::PathEntry>,
+        path: Vec<PathEntry>,
         tag: String,
         computation_options: Vec<ComputationOption>,
     },
     Input {
-        path: Vec<derivation::PathEntry>,
+        path: Vec<PathEntry>,
         tag: String,
         fact_name: String,
         assignment_options: Vec<Assignment>,
@@ -47,6 +50,29 @@ pub enum Choice {
     },
 }
 
+fn restrict_one(assignment: &Assignment, var: &str) -> Vec<(String, Value)> {
+    let mut ret_args = vec![];
+
+    for (lhs, rhs) in assignment {
+        let components = lhs
+            .strip_prefix("fv%")
+            .unwrap()
+            .split("*")
+            .collect::<Vec<&str>>();
+
+        assert!(components.len() == 2);
+
+        let arg = components[0].to_owned();
+        let selector = components[1].to_owned();
+
+        if arg == *var {
+            ret_args.push((selector, rhs.clone()))
+        }
+    }
+
+    ret_args
+}
+
 fn restrict(assignments: &Vec<Assignment>, var: &str) -> Vec<Assignment> {
     let var_substr = format!("fv%{}*", var);
     let mut new_assignments = vec![];
@@ -68,16 +94,240 @@ fn restrict(assignments: &Vec<Assignment>, var: &str) -> Vec<Assignment> {
         .collect()
 }
 
+fn free_to_args(
+    lib: &Library,
+    params: &Vec<(String, String, Mode)>,
+    a: &Vec<(String, Value)>,
+) -> Vec<(String, Fact)> {
+    let mut ret = vec![];
+
+    for (param, fact_name, _) in params {
+        let fact_sig = lib.fact_signature(&fact_name).unwrap();
+
+        let mut args = vec![];
+        for (selector, _) in &fact_sig.params {
+            let key = format!("fv%{}*{}", param, selector);
+            args.push((
+                selector.clone(),
+                a.iter()
+                    .find_map(
+                        |(k, v)| if key == *k { Some(v.clone()) } else { None },
+                    )
+                    .unwrap(),
+            ));
+        }
+        ret.push((
+            param.clone(),
+            Fact {
+                name: fact_name.clone(),
+                args,
+            },
+        ));
+    }
+
+    ret
+}
+
 impl<'a> Synthesizer<'a> {
     pub fn new(lib: &'a Library, prog: &'a Program) -> Synthesizer<'a> {
         Synthesizer {
-            tree: derivation::Tree::from_goal(&prog.goal),
+            tree: Tree::from_goal(&prog.goal),
             lib,
+            prog,
         }
     }
 
+    pub fn options_enumerative(
+        &self,
+        soft_timeout: u128,
+        enumerate_config: enumerate::Config,
+    ) -> Option<Vec<GoalOption>> {
+        let mut ops = vec![];
+        let start = std::time::Instant::now();
+
+        for (path, query) in self.tree.queries(self.lib) {
+            let mut query_support: Vec<Vec<(String, Value)>> =
+                enumerate::support(
+                    &self.prog.annotations,
+                    &query.fact_signature.params,
+                );
+
+            match enumerate_config {
+                enumerate::Config::Basic => (),
+                enumerate::Config::Prune => {
+                    query_support = query_support
+                        .into_iter()
+                        .filter(|a| {
+                            query.computation_signature.precondition.iter().all(
+                                |pr| {
+                                    pr.sat(
+                                        &Fact {
+                                            name: query
+                                                .fact_signature
+                                                .name
+                                                .clone(),
+                                            args: a.clone(),
+                                        },
+                                        &free_to_args(
+                                            self.lib,
+                                            &query.computation_signature.params,
+                                            a,
+                                        ),
+                                    )
+                                },
+                            )
+                        })
+                        .collect();
+                }
+            }
+
+            let mut basic_assignments: Vec<Assignment> = vec![];
+            for query_args in &query_support {
+                let elapsed = start.elapsed().as_millis();
+
+                if elapsed > soft_timeout {
+                    return None;
+                }
+
+                let t = Tree::from_computation_signature(
+                    &query.computation_signature,
+                    query_args.clone(),
+                );
+                let basic_worklist = vec![t];
+
+                let task::SynthesisResult {
+                    completed: _,
+                    results,
+                } = enumerate::synthesize_worklist(
+                    task::SynthesisProblem {
+                        lib: self.lib,
+                        prog: self.prog,
+                        task: task::Task::AnyValid,
+                        soft_timeout: soft_timeout - elapsed,
+                    },
+                    enumerate_config.clone(),
+                    basic_worklist,
+                );
+
+                if !results.is_empty() {
+                    basic_assignments
+                        .push(query_args.iter().cloned().collect());
+                }
+            }
+
+            for (cut_param, cut_fact_name, _mode) in
+                &query.computation_signature.params
+            {
+                let cut_fact_sig =
+                    self.lib.fact_signature(&cut_fact_name).unwrap();
+
+                ops.push(match cut_fact_sig.kind {
+                    FactKind::Input => GoalOption::Input {
+                        fact_name: cut_fact_name.clone(),
+                        path: path.clone(),
+                        tag: cut_param.clone(),
+                        assignment_options: restrict(
+                            &basic_assignments,
+                            &cut_param,
+                        ),
+                    },
+                    FactKind::Output => {
+                        let mut computation_options = vec![];
+                        for lemma in self
+                            .lib
+                            .matching_computation_signatures(cut_fact_name)
+                        {
+                            let mut assignment_options: Vec<Assignment> =
+                                vec![];
+
+                            for query_args in &query_support {
+                                let elapsed = start.elapsed().as_millis();
+
+                                if elapsed > soft_timeout {
+                                    return None;
+                                }
+
+                                let t = Tree::from_computation_signature(
+                                    &query.computation_signature,
+                                    query_args.clone(),
+                                );
+                                let worklist = vec![t.replace(
+                                    &[cut_param.clone()],
+                                    &Tree::from_computation_signature(
+                                        lemma,
+                                        query_args
+                                            .iter()
+                                            .filter_map(|(lhs, rhs)| {
+                                                let components = lhs
+                                                    .strip_prefix("fv%")
+                                                    .unwrap()
+                                                    .split("*")
+                                                    .collect::<Vec<&str>>();
+
+                                                assert!(components.len() == 2);
+
+                                                let arg =
+                                                    components[0].to_owned();
+                                                let selector =
+                                                    components[1].to_owned();
+
+                                                if arg == *cut_param {
+                                                    Some((
+                                                        selector,
+                                                        rhs.clone(),
+                                                    ))
+                                                } else {
+                                                    None
+                                                }
+                                            })
+                                            .collect(),
+                                    ),
+                                )];
+
+                                let task::SynthesisResult {
+                                    completed: _,
+                                    results,
+                                } = enumerate::synthesize_worklist(
+                                    task::SynthesisProblem {
+                                        lib: self.lib,
+                                        prog: self.prog,
+                                        task: task::Task::AnyValid,
+                                        soft_timeout: soft_timeout - elapsed,
+                                    },
+                                    enumerate_config.clone(),
+                                    worklist,
+                                );
+
+                                if !results.is_empty() {
+                                    assignment_options.push(
+                                        query_args.iter().cloned().collect(),
+                                    );
+                                }
+                            }
+                            if assignment_options.is_empty() {
+                                continue;
+                            }
+                            computation_options.push(ComputationOption {
+                                name: lemma.name.clone(),
+                                assignment_options,
+                            });
+                        }
+
+                        GoalOption::Output {
+                            path: path.clone(),
+                            tag: cut_param.clone(),
+                            computation_options,
+                        }
+                    }
+                });
+            }
+        }
+
+        Some(ops)
+    }
+
     // Precondition: egg must have same lib and prog as synthesizer
-    pub fn options(
+    pub fn options_datalog(
         &self,
         egg: &mut egglog_adapter::Instance,
     ) -> Vec<GoalOption> {
@@ -86,14 +336,13 @@ impl<'a> Synthesizer<'a> {
         for (path, query) in self.tree.queries(self.lib) {
             let basic_assignments = egg.query(&query);
 
-            for (cut_param, goal_fact_name, _mode) in
+            for (cut_param, cut_fact_name, _mode) in
                 &query.computation_signature.params
             {
                 ops.push(
-                    match self.lib.fact_signature(goal_fact_name).unwrap().kind
-                    {
+                    match self.lib.fact_signature(cut_fact_name).unwrap().kind {
                         FactKind::Input => GoalOption::Input {
-                            fact_name: goal_fact_name.clone(),
+                            fact_name: cut_fact_name.clone(),
                             path: path.clone(),
                             tag: cut_param.clone(),
                             assignment_options: restrict(
@@ -101,10 +350,11 @@ impl<'a> Synthesizer<'a> {
                                 &cut_param,
                             ),
                         },
+                        // TODO restrict here too?
                         FactKind::Output => GoalOption::Output {
                             computation_options: self
                                 .lib
-                                .matching_computation_signatures(goal_fact_name)
+                                .matching_computation_signatures(cut_fact_name)
                                 .into_iter()
                                 .filter_map(|lemma| {
                                     let assignment_options = egg.query(
@@ -131,39 +381,8 @@ impl<'a> Synthesizer<'a> {
         ops
     }
 
-    fn args_and_condition(
-        assignment: &Assignment,
-        tag: &String,
-    ) -> (Vec<(String, Value)>, Predicate) {
-        let mut ret_args = vec![];
-        let mut additional_condition = vec![];
-
-        for (lhs, rhs) in assignment {
-            let components = lhs
-                .strip_prefix("fv%")
-                .unwrap()
-                .split("*")
-                .collect::<Vec<&str>>();
-
-            assert!(components.len() == 2);
-
-            let selector = components[0].to_owned();
-            let arg = components[1].to_owned();
-
-            if selector == *tag {
-                ret_args.push((arg.clone(), rhs.clone()))
-            } else {
-                additional_condition.push(PredicateRelation::BinOp(
-                    PredicateRelationBinOp::Eq,
-                    PredicateAtom::Select { selector, arg },
-                    PredicateAtom::Const(rhs.clone()),
-                ))
-            }
-        }
-
-        (ret_args, additional_condition)
-    }
-
+    // TODO it's possible that there is some bug because not adding to side
+    // condition?
     pub fn step(&mut self, choice: &Choice) {
         match choice {
             Choice::Input {
@@ -172,8 +391,7 @@ impl<'a> Synthesizer<'a> {
                 fact_name,
                 assignment,
             } => {
-                let (args, additional_condition) =
-                    Synthesizer::args_and_condition(&assignment, &tag);
+                let args = restrict_one(&assignment, &tag);
 
                 self.tree = self
                     .tree
@@ -183,12 +401,18 @@ impl<'a> Synthesizer<'a> {
                             .cloned()
                             .chain(std::iter::once(tag.clone()))
                             .collect::<Vec<String>>(),
-                        &derivation::Tree::Axiom(Fact {
+                        &Tree::Axiom(Fact {
                             name: fact_name.clone(),
-                            args,
+                            args: args.clone(),
                         }),
                     )
-                    .add_side_condition(&path[..], &additional_condition);
+                    .sub_side_condition(
+                        path,
+                        &args
+                            .into_iter()
+                            .map(|(s, v)| (s, tag.clone(), v))
+                            .collect(),
+                    )
             }
             Choice::Output {
                 path,
@@ -199,31 +423,7 @@ impl<'a> Synthesizer<'a> {
                 let cs =
                     self.lib.computation_signature(&computation_name).unwrap();
 
-                let mut ret_args = vec![];
-                let mut additional_condition = vec![];
-
-                for (lhs, rhs) in assignment {
-                    let components = lhs
-                        .strip_prefix("fv%")
-                        .unwrap()
-                        .split("*")
-                        .collect::<Vec<&str>>();
-
-                    assert!(components.len() == 2);
-
-                    let selector = components[0].to_owned();
-                    let arg = components[1].to_owned();
-
-                    if selector == *tag {
-                        ret_args.push((arg.clone(), rhs.clone()))
-                    } else {
-                        additional_condition.push(PredicateRelation::BinOp(
-                            PredicateRelationBinOp::Eq,
-                            PredicateAtom::Select { selector, arg },
-                            PredicateAtom::Const(rhs.clone()),
-                        ))
-                    }
-                }
+                let args = restrict_one(&assignment, &tag);
 
                 self.tree = self
                     .tree
@@ -233,11 +433,15 @@ impl<'a> Synthesizer<'a> {
                             .cloned()
                             .chain(std::iter::once(tag.clone()))
                             .collect::<Vec<String>>(),
-                        &derivation::Tree::from_computation_signature(
-                            cs, ret_args,
-                        ),
+                        &Tree::from_computation_signature(cs, args.clone()),
                     )
-                    .add_side_condition(&path[..], &additional_condition);
+                    .sub_side_condition(
+                        path,
+                        &args
+                            .into_iter()
+                            .map(|(s, v)| (s, tag.clone(), v))
+                            .collect(),
+                    )
             }
         }
     }

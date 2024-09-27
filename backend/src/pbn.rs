@@ -4,7 +4,9 @@ use crate::task::*;
 use crate::analysis;
 use crate::derivation;
 use crate::egglog_adapter;
+use crate::enumerate;
 use crate::synthesis;
+use crate::task;
 
 use std::collections::HashMap;
 use std::time::Instant;
@@ -12,6 +14,7 @@ use std::time::Instant;
 pub enum Config {
     Basic,
     Memo,
+    Enum(enumerate::Config),
 }
 
 pub fn synthesize(
@@ -29,16 +32,43 @@ pub fn synthesize(
         lib,
         prog,
         match config {
-            Config::Basic => false,
+            Config::Basic | Config::Enum(_) => false,
             Config::Memo => true,
         },
     );
 
-    if !egg.check_possible() {
-        return SynthesisResult {
-            results: vec![],
-            completed: true,
-        };
+    match &config {
+        Config::Basic | Config::Memo => {
+            if !egg.check_possible() {
+                return SynthesisResult {
+                    results: vec![],
+                    completed: true,
+                };
+            }
+        }
+        Config::Enum(enumerate_config) => {
+            let res = enumerate::synthesize(
+                SynthesisProblem {
+                    lib,
+                    prog,
+                    task: task::Task::AnyValid,
+                    soft_timeout,
+                },
+                enumerate_config.clone(),
+            );
+            if !res.completed {
+                return SynthesisResult {
+                    results: vec![],
+                    completed: false,
+                };
+            }
+            if res.results.is_empty() {
+                return SynthesisResult {
+                    results: vec![],
+                    completed: true,
+                };
+            }
+        }
     }
 
     match task {
@@ -46,13 +76,31 @@ pub fn synthesize(
             let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
 
             loop {
-                if now.elapsed().as_millis() > soft_timeout {
+                let elapsed = now.elapsed().as_millis();
+                if elapsed > soft_timeout {
                     return SynthesisResult {
                         results: vec![],
                         completed: false,
                     };
                 }
-                let options = synthesizer.options(&mut egg);
+                let options = match &config {
+                    Config::Basic | Config::Memo => {
+                        synthesizer.options_datalog(&mut egg)
+                    }
+                    Config::Enum(enumerate_config) => match synthesizer
+                        .options_enumerative(
+                            soft_timeout - elapsed,
+                            enumerate_config.clone(),
+                        ) {
+                        Some(o) => o,
+                        None => {
+                            return SynthesisResult {
+                                results: vec![],
+                                completed: false,
+                            }
+                        }
+                    },
+                };
                 if options.is_empty() {
                     return SynthesisResult {
                         results: vec![synthesizer.tree],
@@ -100,13 +148,33 @@ pub fn synthesize(
             let mut worklist = vec![synthesis::Synthesizer::new(lib, prog)];
             let mut results = vec![];
             while let Some(synthesizer) = worklist.pop() {
-                if now.elapsed().as_millis() > soft_timeout {
+                let elapsed = now.elapsed().as_millis();
+                if elapsed > soft_timeout {
                     return SynthesisResult {
                         results,
                         completed: false,
                     };
                 }
-                let options = synthesizer.options(&mut egg);
+
+                let options = match &config {
+                    Config::Basic | Config::Memo => {
+                        synthesizer.options_datalog(&mut egg)
+                    }
+                    Config::Enum(enumerate_config) => match synthesizer
+                        .options_enumerative(
+                            soft_timeout - elapsed,
+                            enumerate_config.clone(),
+                        ) {
+                        Some(o) => o,
+                        None => {
+                            return SynthesisResult {
+                                results,
+                                completed: false,
+                            }
+                        }
+                    },
+                };
+
                 if options.is_empty() {
                     results.push(synthesizer.tree);
                     continue;
@@ -164,13 +232,31 @@ pub fn synthesize(
             let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
 
             loop {
-                if now.elapsed().as_millis() > soft_timeout {
+                let elapsed = now.elapsed().as_millis();
+                if elapsed > soft_timeout {
                     return SynthesisResult {
                         results: vec![],
                         completed: false,
                     };
                 }
-                let options = synthesizer.options(&mut egg);
+                let options = match &config {
+                    Config::Basic | Config::Memo => {
+                        synthesizer.options_datalog(&mut egg)
+                    }
+                    Config::Enum(enumerate_config) => match synthesizer
+                        .options_enumerative(
+                            soft_timeout - elapsed,
+                            enumerate_config.clone(),
+                        ) {
+                        Some(o) => o,
+                        None => {
+                            return SynthesisResult {
+                                results: vec![],
+                                completed: false,
+                            }
+                        }
+                    },
+                };
                 if options.is_empty() {
                     return SynthesisResult {
                         results: vec![synthesizer.tree],
@@ -345,7 +431,9 @@ pub fn run(
             );
             print!("{}", synthesizer.tree.pretty());
         }
-        let options = synthesizer.options(&mut egg);
+        // let options = synthesizer.options_datalog(&mut egg);
+        let options = synthesizer
+            .options_enumerative(5 * 60 * 1000, enumerate::Config::Prune)?;
         if options.is_empty() {
             break;
         }

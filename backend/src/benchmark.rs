@@ -21,8 +21,8 @@ pub enum Algorithm {
     PBN_Datalog,
     // Ablations
     PBN_DatalogMemo,
-    // PBN_Enum,
-    // PBN_EnumPrune,
+    PBN_Enum,
+    PBN_EnumPrune,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -56,6 +56,12 @@ fn run_one(
         }
         Algorithm::PBN_Datalog => pbn::synthesize(sp, pbn::Config::Basic),
         Algorithm::PBN_DatalogMemo => pbn::synthesize(sp, pbn::Config::Memo),
+        Algorithm::PBN_Enum => {
+            pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Basic))
+        }
+        Algorithm::PBN_EnumPrune => {
+            pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Prune))
+        }
     };
     for t in &sr.results {
         // To be fair to LLMs, include Python conversion time
@@ -133,6 +139,8 @@ pub fn run(
             Algorithm::PBN_DatalogMemo,
             Algorithm::ALT_Enum,
             Algorithm::ALT_EnumPrune,
+            Algorithm::PBN_Enum,
+            Algorithm::PBN_EnumPrune,
         ] {
             for task in tasks.clone() {
                 let task_str = task.to_string();

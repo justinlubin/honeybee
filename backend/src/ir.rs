@@ -163,7 +163,7 @@ impl PredicateAtom {
     //     ret
     // }
 
-    pub fn eval(&self, ret: &Fact, args: &Vec<(&String, &Fact)>) -> Value {
+    pub fn eval(&self, ret: &Fact, args: &Vec<(String, Fact)>) -> Value {
         // println!("{:?}\n{:?}\n{:?}", self, ret, args);
         match self {
             PredicateAtom::Select { arg, selector } => {
@@ -180,7 +180,10 @@ impl PredicateAtom {
                                 }
                             },
                         )
-                        .expect("arg should match")
+                        .expect(&format!(
+                            "arg '{}' should match in {:?}",
+                            *arg, args
+                        ))
                 };
 
                 fact.args
@@ -243,7 +246,7 @@ impl PredicateRelation {
 
     pub fn substitute_all(
         &self,
-        subs: Vec<(&str, &str, &Value)>,
+        subs: &Vec<(String, String, Value)>,
     ) -> PredicateRelation {
         let mut ret = self.clone();
         for (selector, arg, rhs) in subs {
@@ -262,7 +265,7 @@ impl PredicateRelation {
         }
     }
 
-    pub fn sat(&self, ret: &Fact, args: &Vec<(&String, &Fact)>) -> bool {
+    pub fn sat(&self, ret: &Fact, args: &Vec<(String, Fact)>) -> bool {
         match self {
             PredicateRelation::BinOp(op, a1, a2) => {
                 match (op, a1.eval(ret, args), a2.eval(ret, args)) {

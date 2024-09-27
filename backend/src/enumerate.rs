@@ -11,7 +11,7 @@ pub enum Config {
     Prune,
 }
 
-enum ExpansionResult {
+pub enum ExpansionResult {
     Complete(derivation::Tree),
     Incomplete(Vec<derivation::Tree>),
     TimedOut,
@@ -33,7 +33,7 @@ fn support_one(annotations: &Vec<Fact>, vt: &ValueType) -> Vec<Value> {
     result
 }
 
-fn support(
+pub fn support(
     annotations: &Vec<Fact>,
     params: &Vec<(String, ValueType)>,
 ) -> Vec<Vec<(String, Value)>> {
@@ -62,7 +62,7 @@ fn should_keep(
                 .iter()
                 .map(|(s, t)| {
                     (
-                        s,
+                        s.clone(),
                         match t {
                             derivation::Tree::Axiom(f) => f,
                             derivation::Tree::Step { consequent, .. } => {
@@ -72,7 +72,8 @@ fn should_keep(
                                 panic!("Cannot prune goal antecedent")
                             }
                             derivation::Tree::Collect(_, _) => todo!(),
-                        },
+                        }
+                        .clone(),
                     )
                 })
                 .collect();
@@ -81,7 +82,7 @@ fn should_keep(
     }
 }
 
-fn expand(
+pub fn expand(
     lib: &Library,
     prog: &Program,
     tree: derivation::Tree,
@@ -210,7 +211,12 @@ fn expand(
     }
 }
 
-pub fn synthesize(
+pub fn synthesize(sp: SynthesisProblem, config: Config) -> SynthesisResult {
+    let worklist = vec![derivation::Tree::from_goal(&sp.prog.goal)];
+    synthesize_worklist(sp, config, worklist)
+}
+
+pub fn synthesize_worklist(
     SynthesisProblem {
         lib,
         prog,
@@ -218,9 +224,9 @@ pub fn synthesize(
         soft_timeout,
     }: SynthesisProblem,
     config: Config,
+    mut worklist: Vec<derivation::Tree>,
 ) -> SynthesisResult {
     let mut results = vec![];
-    let mut worklist = vec![derivation::Tree::from_goal(&prog.goal)];
 
     let now = Instant::now();
 

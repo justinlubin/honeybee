@@ -64,7 +64,7 @@ impl Tree {
         }
     }
 
-    fn from_query(q: &Query) -> Option<Tree> {
+    pub fn from_query(q: &Query) -> Option<Tree> {
         if !q.closed() {
             return None;
         }
@@ -132,10 +132,10 @@ impl Tree {
         }
     }
 
-    pub fn add_side_condition(
+    pub fn sub_side_condition(
         &self,
         path: &[String],
-        additional_condition: &Predicate,
+        sub: &Vec<(String, String, Value)>,
     ) -> Tree {
         match path.first() {
             Some(name) => match self {
@@ -152,10 +152,7 @@ impl Tree {
                             if x == name {
                                 (
                                     x.clone(),
-                                    t.add_side_condition(
-                                        &path[..path.len() - 1],
-                                        additional_condition,
-                                    ),
+                                    t.sub_side_condition(&path[1..], sub),
                                 )
                             } else {
                                 (x.clone(), t.clone())
@@ -179,8 +176,7 @@ impl Tree {
                     consequent: consequent.clone(),
                     side_condition: side_condition
                         .iter()
-                        .cloned()
-                        .chain(additional_condition.clone())
+                        .map(|pr| pr.substitute_all(sub))
                         .collect(),
                 },
                 _ => panic!("Invalid path for tree (ends in non-step)"),
@@ -198,6 +194,7 @@ impl Tree {
                 consequent,
                 ..
             } => {
+                // TODO might not need axiom equalities anymore
                 let mut axiom_equalities = vec![];
                 let mut goal_siblings = vec![];
                 let mut ret = vec![];
@@ -250,16 +247,20 @@ impl Tree {
                                     // TODO: probably don't need to substitute; just add more
                                     // equality constraints?
                                     pr.substitute_all(
-                                        consequent
+                                        &consequent
                                             .args
                                             .iter()
                                             .map(|(n, v)| {
-                                                (n.as_str(), Query::RET, v)
+                                                (
+                                                    n.clone(),
+                                                    Query::RET.to_owned(),
+                                                    v.clone(),
+                                                )
                                             })
                                             .collect(),
                                     )
                                 })
-                                .chain(axiom_equalities)
+                                // .chain(axiom_equalities)
                                 .collect(),
                         ),
                     ))
@@ -352,13 +353,14 @@ impl Tree {
                         return false;
                     }
                     antecedent_facts.push((
-                        tag,
+                        tag.clone(),
                         match subtree {
                             Tree::Axiom(f) => f,
                             Tree::Goal(_) => unreachable!(),
                             Tree::Collect(_, _) => todo!(),
                             Tree::Step { consequent, .. } => consequent,
-                        },
+                        }
+                        .clone(),
                     ));
                 }
                 side_condition
@@ -440,14 +442,15 @@ impl Tree {
                 label,
                 antecedents,
                 consequent,
-                ..
+                side_condition,
             } => {
                 let mut t = termtree::Tree::new(format!(
-                    "{} {} {} {}",
+                    "{} {} {} {} -- {}",
                     Green.paint("•"),
                     Blue.paint(prefix),
                     Green.paint(format!("({})", label)),
-                    Fixed(8).paint(unparse::fact(consequent))
+                    Fixed(8).paint(unparse::fact(consequent)),
+                    Fixed(8).paint(unparse::predicate(side_condition))
                 ))
                 .with_glyphs(gp);
                 for (tag, subtree) in antecedents {
