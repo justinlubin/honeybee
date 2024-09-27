@@ -86,6 +86,7 @@ pub fn run(
     suite_directory: &PathBuf,
     run_count: usize,
     soft_timeout: u128, // in milliseconds
+    filter: &str,
     write_stdout: bool,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     assert!(suite_directory.is_dir());
@@ -115,6 +116,10 @@ pub fn run(
             .unwrap()
             .to_str()
             .unwrap();
+
+        if !entry.contains(filter) {
+            continue;
+        }
 
         let prog_src = std::fs::read_to_string(&prog_filename).unwrap();
         let prog = syntax::parse::program()

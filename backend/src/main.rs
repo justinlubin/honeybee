@@ -51,6 +51,10 @@ enum Commands {
             default_value_t = 2000
         )]
         timeout: u128,
+
+        /// Filter to benchmark entries that contain this substring
+        #[arg(short, long, value_name = "SUBSTRING", default_value = "")]
+        filter: String,
     },
 }
 
@@ -70,7 +74,9 @@ fn main() {
             suite,
             run_count,
             timeout,
-        } => benchmark::run(suite, *run_count, *timeout, true).map(|_| ()),
+            filter,
+        } => benchmark::run(suite, *run_count, *timeout, filter, true)
+            .map(|_| ()),
     };
 
     match result {
