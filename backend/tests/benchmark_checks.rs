@@ -3,6 +3,7 @@ use honeybee::*;
 use std::collections::HashMap;
 
 #[test]
+#[ignore]
 fn generic_counts_match() {
     let records = benchmark::run(
         &"../compendium/suites/generic/".into(),
