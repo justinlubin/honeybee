@@ -402,6 +402,7 @@ impl<'a> Instance<'a> {
 
         let messages = match &mut self.egraph {
             Some(egraph) => {
+                // TODO: might not need to push/pop here
                 egraph.push();
                 let m = egraph.parse_and_run_program(&egglog_src).unwrap();
                 egraph.pop().unwrap();
