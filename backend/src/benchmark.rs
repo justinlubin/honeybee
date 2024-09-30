@@ -101,6 +101,8 @@ pub fn run(
     let lib = syntax::parse::library()
         .parse(lib_src)
         .map_err(|_| "Library parse error")?;
+    lib.check()
+        .map_err(|e| format!("[Library type error] {}", e))?;
 
     let mut records = vec![];
     let mut wtr = csv::Writer::from_writer(std::io::stdout());
@@ -126,7 +128,7 @@ pub fn run(
             .parse(prog_src)
             .map_err(|_| "Program parse error")?;
         prog.check(&lib)
-            .map_err(|e| format!("[program type error] {}", e))?;
+            .map_err(|e| format!("[Program type error] {}", e))?;
 
         let mut tasks = vec![Task::AnyValid, Task::AllValid];
 

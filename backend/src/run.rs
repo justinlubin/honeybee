@@ -80,6 +80,9 @@ pub fn run(
         }
     };
 
+    lib.check()
+        .map_err(|e| format!("[Library type error] {}", e))?;
+
     let prog = match syntax::parse::program().parse(prog_src.to_owned()) {
         Ok(prog) => prog,
         Err(errs) => {

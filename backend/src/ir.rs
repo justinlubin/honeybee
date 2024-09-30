@@ -133,6 +133,7 @@ pub enum PredicateAtom {
 }
 
 impl PredicateAtom {
+    // TODO: needs ret somehow?
     pub fn typ(
         &self,
         lib: &Library,
@@ -158,6 +159,42 @@ impl PredicateAtom {
                     })
                 }),
             PredicateAtom::Const(_) => None,
+        }
+    }
+
+    // TODO redundant with above?
+    pub fn infer(
+        &self,
+        ret: &FactSignature,
+        params: &Vec<(String, FactSignature)>,
+    ) -> Result<ValueType, String> {
+        match self {
+            PredicateAtom::Select { selector, arg } => {
+                let fs = if arg == Query::RET {
+                    ret
+                } else {
+                    params
+                        .iter()
+                        .find_map(
+                            |(k, fs)| if k == arg { Some(fs) } else { None },
+                        )
+                        .ok_or(format!("cannot find argument '{}'", arg))?
+                };
+                fs.params
+                    .iter()
+                    .find_map(|(k, vt)| {
+                        if k == selector {
+                            Some(vt.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .ok_or(format!(
+                        "cannot find selector '{}' in argument '{}'",
+                        selector, arg
+                    ))
+            }
+            PredicateAtom::Const(v) => Ok(v.infer()),
         }
     }
 
@@ -337,6 +374,42 @@ impl PredicateRelation {
             }
         }
     }
+
+    pub fn check(
+        &self,
+        ret: &FactSignature,
+        params: &Vec<(String, FactSignature)>,
+    ) -> Result<(), String> {
+        match self {
+            PredicateRelation::BinOp(op, a1, a2) => {
+                let vt1 = a1.infer(ret, params)?;
+                let vt2 = a2.infer(ret, params)?;
+                match op {
+                    PredicateRelationBinOp::Eq => {
+                        if vt1 != vt2 {
+                            let lhs = format!("LHS {:?} is {:?}", a1, vt1);
+                            let rhs = format!("RHS {:?} is {:?}", a2, vt2);
+                            return Err(format!(
+                                "unequal types: {}, {}",
+                                lhs, rhs
+                            ));
+                        };
+                    }
+                    PredicateRelationBinOp::Lt
+                    | PredicateRelationBinOp::Lte => {
+                        if vt1 != ValueType::Int {
+                            return Err(format!("LHS not an Int: {:?}", a1));
+                        };
+                        if vt2 != ValueType::Int {
+                            return Err(format!("RHS not an Int: {:?}", a2));
+                        };
+                    }
+                    PredicateRelationBinOp::Contains => todo!(),
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 pub type Predicate = Vec<PredicateRelation>;
@@ -497,6 +570,15 @@ impl Library {
             .filter(|cs| cs.ret == fact_name)
             .collect()
     }
+
+    pub fn check(&self) -> Result<(), String> {
+        for cs in &self.computation_signatures {
+            cs.check(self).map_err(|e| {
+                format!("Type error in computation '{}': {}", cs.name, e)
+            })?;
+        }
+        Ok(())
+    }
 }
 
 impl ComputationSignature {
@@ -556,6 +638,34 @@ impl ComputationSignature {
                 )
                 .collect(),
         }
+    }
+
+    pub fn check(&self, lib: &Library) -> Result<(), String> {
+        let ret_sig = match lib.fact_signature(&self.ret) {
+            Some(fs) => match fs.kind {
+                FactKind::Input => {
+                    return Err(format!("ret fact kind must be Output"))
+                }
+                FactKind::Output => fs,
+            },
+            None => return Err(format!("unknown ret fact name: {}", self.ret)),
+        };
+        let mut param_sigs = vec![];
+        for (p, fact_name, _mode) in &self.params {
+            match lib.fact_signature(fact_name) {
+                Some(fs) => param_sigs.push((p.clone(), fs.clone())),
+                None => {
+                    return Err(format!(
+                        "unknown fact name for param '{}': {}",
+                        p, self.name
+                    ));
+                }
+            }
+        }
+        for pr in &self.precondition {
+            pr.check(&ret_sig, &param_sigs)?;
+        }
+        Ok(())
     }
 }
 
