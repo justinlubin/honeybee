@@ -125,6 +125,8 @@ pub fn run(
         let prog = syntax::parse::program()
             .parse(prog_src)
             .map_err(|_| "Program parse error")?;
+        prog.check(&lib)
+            .map_err(|e| format!("[program type error] {}", e))?;
 
         let mut tasks = vec![Task::AnyValid, Task::AllValid];
 

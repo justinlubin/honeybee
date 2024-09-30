@@ -33,7 +33,7 @@ pub type Assignment = HashMap<String, Value>;
 
 pub type FactName = String;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FactKind {
     Input,
     Output,
@@ -63,6 +63,57 @@ impl PartialEq for Fact {
 }
 
 impl Eq for Fact {}
+
+impl Fact {
+    pub fn check(
+        &self,
+        lib: &Library,
+        expected_kind: Option<FactKind>,
+    ) -> Result<(), String> {
+        match lib.fact_signature(&self.name) {
+            Some(fs) => {
+                match expected_kind {
+                    Some(k) => {
+                        if fs.kind != k {
+                            return Err(format!(
+                                "{} '{:?}', got '{:?}' fact {:?}",
+                                "expected fact kind", k, fs.kind, self,
+                            ));
+                        };
+                    }
+                    None => (),
+                };
+                if self.args.len() != fs.params.len() {
+                    return Err(format!(
+                        "fact {:?} should have {} arguments",
+                        self,
+                        fs.params.len()
+                    ));
+                };
+                for (k, v) in &self.args {
+                    match fs.params.iter().find(|(k2, _)| *k2 == *k) {
+                        Some((_, vt)) => {
+                            if v.infer() != *vt {
+                                return Err(format!(
+                                    "argument '{}' is {:?} {} {:?}",
+                                    k, v, "but should have type", vt
+                                ));
+                            };
+                        }
+                        None => {
+                            return Err(format!(
+                                "unknown fact argument '{}'",
+                                k
+                            ));
+                        }
+                    }
+                }
+                Ok(())
+            }
+            None => Err(format!("unknown fact name: {}", self.name)),
+        }
+    }
+}
 
 impl std::hash::Hash for Fact {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -505,5 +556,18 @@ impl ComputationSignature {
                 )
                 .collect(),
         }
+    }
+}
+
+impl Program {
+    pub fn check(&self, lib: &Library) -> Result<(), String> {
+        self.goal
+            .check(lib, Some(FactKind::Output))
+            .map_err(|e| format!("goal error: {}", e))?;
+        for a in &self.annotations {
+            a.check(lib, Some(FactKind::Input))
+                .map_err(|e| format!("annotation error: {}", e))?;
+        }
+        Ok(())
     }
 }

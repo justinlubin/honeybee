@@ -94,6 +94,9 @@ pub fn run(
         }
     };
 
+    prog.check(&lib)
+        .map_err(|e| format!("[program type error] {}", e))?;
+
     match pbn::run(&lib, &prog, true) {
         Some(tree) => {
             println!(
