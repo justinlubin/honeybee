@@ -3,6 +3,10 @@
 import polars as pl
 import altair as alt
 
+# %% Constants
+
+OUTPUT = "output"
+
 # %% Data loading
 
 raw = pl.read_csv("../data/data.csv")
@@ -49,7 +53,7 @@ alt.Chart(data.reverse(), width=100).mark_bar(
     alt.datum["completed"],
 ).configure_view(
     stroke=None,
-).save("completed.html")
+).save(f"{OUTPUT}/completed.html")
 
 
 # %% Histograms
@@ -103,4 +107,4 @@ for task in tasks:
 
     chart.configure_view(
         stroke=None,
-    ).save(f"{task}.html")
+    ).save(f"{OUTPUT}/{task}.html")
