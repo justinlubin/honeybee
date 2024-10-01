@@ -65,96 +65,88 @@
   ((= (.x ret) (.z s))))
 
 (output fact Top)
-(output fact Branch1 (.x Int))
-(output fact Branch2 (.x Int))
-(output fact Branch3 (.x Int))
-(output fact Branch4 (.x Int))
-(output fact Branch5 (.x Int))
+(output fact Branch1 (.a Int) (.b Int) (.c Int) (.d Int))
+(output fact Branch2 (.b Int) (.c Int) (.d Int))
+(output fact Branch3 (.c Int) (.d Int))
+(output fact Branch4 (.d Int))
 
 (computation top Top
   ((b Branch1))
-  ())
+  ((< (.a b) (.b b))
+   (< (.c b) (.d b))))
 
 (computation bf11 Branch1
-  ((b Branch2) (i In))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 1)))
+  ((b Branch2))
+  ((= (.a ret) 1)
+   (= (.b ret) (.b b))
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf12 Branch1
   ((b Branch2))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 2)))
+  ((= (.a ret) 2)
+   (= (.b ret) (.b b))
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf13 Branch1
   ((b Branch2))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 3)))
+  ((= (.a ret) 3)
+   (= (.b ret) (.b b))
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf14 Branch1
   ((b Branch2))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 4)))
+  ((= (.a ret) 4)
+   (= (.b ret) (.b b))
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf21 Branch2
   ((b Branch3))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 1)))
+  ((= (.b ret) 1)
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf22 Branch2
   ((b Branch3))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 2)))
+  ((= (.b ret) 2)
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
-(computation bf23 Branch2
+(computation bf22 Branch2
   ((b Branch3))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 3)))
+  ((= (.b ret) 2)
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf24 Branch2
   ((b Branch3))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 4)))
+  ((= (.b ret) 4)
+   (= (.c ret) (.c b))
+   (= (.d ret) (.d b))))
 
 (computation bf31 Branch3
   ((b Branch4))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 1)))
+  ((= (.c ret) 1)
+   (= (.d ret) (.d b))))
 
 (computation bf32 Branch3
   ((b Branch4))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 2)))
+  ((= (.c ret) 2)
+   (= (.d ret) (.d b))))
 
 (computation bf33 Branch3
   ((b Branch4))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 3)))
+  ((= (.c ret) 3)
+   (= (.d ret) (.d b))))
 
 (computation bf34 Branch3
   ((b Branch4))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 4)))
+  ((= (.c ret) 4)
+   (= (.d ret) (.d b))))
 
 (computation bf41 Branch4
-  ((b Branch5))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 1)))
-
-(computation bf42 Branch4
-  ((b Branch5))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 2)))
-
-(computation bf43 Branch4
-  ((b Branch5))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 3)))
-
-(computation bf44 Branch4
-  ((b Branch5))
-  ((= (.x ret) (.x b))
-   (< (.x ret) 4)))
-
-(computation bf5 Branch5
-  ((in In))
-  ((= (.x ret) (.x in))))
+  ((i In))
+  ((= (.d ret) (.x i))))
