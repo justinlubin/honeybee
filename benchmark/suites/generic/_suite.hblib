@@ -1,0 +1,160 @@
+(input fact In (.x Int))
+(input fact In2 (.x Int) (.y Int))
+
+(output fact Sorted4 (.w Int) (.x Int) (.y Int) (.z Int))
+
+(computation sorted4 Sorted4
+  ((i1 In) (i2 In) (i3 In) (i4 In))
+  ((= (.w ret) (.x i1))
+   (= (.x ret) (.x i2))
+   (= (.y ret) (.x i3))
+   (= (.z ret) (.x i4))
+   (< (.x i1) (.x i2))
+   (< (.x i2) (.x i3))
+   (< (.x i3) (.x i4))))
+
+(output fact A (.x Int))
+(output fact B (.w Int) (.x Int) (.y Int) (.z Int))
+(output fact C (.left Int) (.right Int))
+
+(computation fa A
+  ((b B))
+  ((= (.x ret) (.x b))))
+
+(computation fb1 B
+  ((s Sorted4))
+  ((= (.w ret) (.w s))
+   (= (.x ret) (.x s))
+   (= (.y ret) (.y s))
+   (= (.z ret) (.z s))))
+
+(computation fb2 B
+  ((i1 In) (i2 In))
+  ((= (.w ret) (.x i1))
+   (= (.x ret) (.x i2))
+   (= (.y ret) (.x i1))
+   (= (.z ret) (.x i2))
+   (< (.x i1) (.x i2))))
+
+(computation fb3 B
+  ((i1 In2) (i2 In2))
+  ((= (.w ret) (.x i1))
+   (= (.x ret) (.y i1))
+   (= (.y ret) (.x i2))
+   (= (.z ret) (.y i2))
+   (< (.x i1) (.x i2))))
+
+(computation fb4 B
+  ((c1 C) (c2 C))
+  ((= (.w ret) (.left c1))
+   (= (.x ret) (.right c1))
+   (= (.y ret) (.left c2))
+   (= (.z ret) (.right c2))
+   (= (.w ret) (.y ret))
+   (= (.x ret) (.z ret))))
+
+(computation fc C
+  ((in1 In) (in2 In))
+  ((= (.left ret) (.x in1))
+   (= (.right ret) (.x in2))))
+
+(output fact BoundedSorted4 (.x Int))
+
+(computation bounded_sort BoundedSorted4
+  ((s Sorted4))
+  ((= (.x ret) (.z s))))
+
+(output fact Top)
+(output fact Branch1 (.x Int))
+(output fact Branch2 (.x Int))
+(output fact Branch3 (.x Int))
+(output fact Branch4 (.x Int))
+(output fact Branch5 (.x Int))
+
+(computation top Top
+  ((b Branch1))
+  ())
+
+(computation bf11 Branch1
+  ((b Branch2) (i In))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 1)))
+
+(computation bf12 Branch1
+  ((b Branch2))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 2)))
+
+(computation bf13 Branch1
+  ((b Branch2))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 3)))
+
+(computation bf14 Branch1
+  ((b Branch2))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 4)))
+
+(computation bf21 Branch2
+  ((b Branch3))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 1)))
+
+(computation bf22 Branch2
+  ((b Branch3))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 2)))
+
+(computation bf23 Branch2
+  ((b Branch3))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 3)))
+
+(computation bf24 Branch2
+  ((b Branch3))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 4)))
+
+(computation bf31 Branch3
+  ((b Branch4))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 1)))
+
+(computation bf32 Branch3
+  ((b Branch4))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 2)))
+
+(computation bf33 Branch3
+  ((b Branch4))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 3)))
+
+(computation bf34 Branch3
+  ((b Branch4))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 4)))
+
+(computation bf41 Branch4
+  ((b Branch5))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 1)))
+
+(computation bf42 Branch4
+  ((b Branch5))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 2)))
+
+(computation bf43 Branch4
+  ((b Branch5))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 3)))
+
+(computation bf44 Branch4
+  ((b Branch5))
+  ((= (.x ret) (.x b))
+   (< (.x ret) 4)))
+
+(computation bf5 Branch5
+  ((in In))
+  ((= (.x ret) (.x in))))

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300, "stroke": null}}, "vconcat": [{"vconcat": [{"mark": {"type": "bar", "color": "antiquewhite", "stroke": "black"}, "encoding": {"x": {"axis": {"labels": false, "values": [0, 2, 4, 6, 8, 10, 12, 14]}, "bin": {"step": 2}, "field": "duration_med", "scale": {"domain": [0, 14]}, "title": null, "type": "quantitative"}, "y": {"aggregate": "count", "axis": {"grid": false, "values": [0, 2, 4, 6, 8]}, "scale": {"domain": [0, 8]}, "title": "# Entries", "type": "quantitative"}}, "height": 70, "title": "PBN_Datalog (solved 6/9)"}, {"mark": {"type": "boxplot", "box": {"color": "antiquewhite", "stroke": "black"}, "color": "black", "median": {"stroke": "red"}}, "encoding": {"x": {"axis": {"grid": false, "values": [0, 2, 4, 6, 8, 10, 12, 14]}, "field": "duration_med", "scale": {"domain": [0, 14]}, "title": "Duration (seconds)", "type": "quantitative"}}}], "spacing": 0, "transform": [{"filter": "(datum['algorithm'] === 'PBN_Datalog')"}]}, {"vconcat": [{"mark": {"type": "bar", "color": "lightgreen", "stroke": "black"}, "encoding": {"x": {"axis": {"labels": false, "values": [0, 2, 4, 6, 8, 10, 12, 14]}, "bin": {"step": 2}, "field": "duration_med", "scale": {"domain": [0, 14]}, "title": null, "type": "quantitative"}, "y": {"aggregate": "count", "axis": {"grid": false, "values": [0, 2, 4, 6, 8]}, "scale": {"domain": [0, 8]}, "title": "# Entries", "type": "quantitative"}}, "height": 70, "title": "PBN_DatalogMemo (solved 7/9)"}, {"mark": {"type": "boxplot", "box": {"color": "lightgreen", "stroke": "black"}, "color": "black", "median": {"stroke": "red"}}, "encoding": {"x": {"axis": {"grid": false, "values": [0, 2, 4, 6, 8, 10, 12, 14]}, "field": "duration_med", "scale": {"domain": [0, 14]}, "title": "Duration (seconds)", "type": "quantitative"}}}], "spacing": 0, "transform": [{"filter": "(datum['algorithm'] === 'PBN_DatalogMemo')"}]}, {"vconcat": [{"mark": {"type": "bar", "color": "lightblue", "stroke": "black"}, "encoding": {"x": {"axis": {"labels": false, "values": [0, 2, 4, 6, 8, 10, 12, 14]}, "bin": {"step": 2}, "field": "duration_med", "scale": {"domain": [0, 14]}, "title": null, "type": "quantitative"}, "y": {"aggregate": "count", "axis": {"grid": false, "values": [0, 2, 4, 6, 8]}, "scale": {"domain": [0, 8]}, "title": "# Entries", "type": "quantitative"}}, "height": 70, "title": "ALT_EnumPrune (solved 6/9)"}, {"mark": {"type": "boxplot", "box": {"color": "lightblue", "stroke": "black"}, "color": "black", "median": {"stroke": "red"}}, "encoding": {"x": {"axis": {"grid": false, "values": [0, 2, 4, 6, 8, 10, 12, 14]}, "field": "duration_med", "scale": {"domain": [0, 14]}, "title": "Duration (seconds)", "type": "quantitative"}}}], "spacing": 0, "transform": [{"filter": "(datum['algorithm'] === 'ALT_EnumPrune')"}]}], "data": {"name": "data-eaa7eedb01773f84c66e67993cfdde91"}, "$schema": "https://vega.github.io/schema/vega-lite/v5.20.1.json", "datasets": {"data-eaa7eedb01773f84c66e67993cfdde91": [{"entry": "ex5", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 2.33, "completed": true}, {"entry": "ex3", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.23700000000000002, "completed": true}, {"entry": "ex1", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 1.555, "completed": true}, {"entry": "ex4", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 1.154, "completed": true}, {"entry": "ex4", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 3.422, "completed": true}, {"entry": "ex8", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 12.775, "completed": true}, {"entry": "ex5", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.002, "completed": true}, {"entry": "ex1", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 3.986, "completed": true}, {"entry": "ex8", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.215, "completed": true}, {"entry": "ex3", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 0.91, "completed": true}, {"entry": "ex3", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 0.362, "completed": true}, {"entry": "ex2", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 12.745000000000001, "completed": true}, {"entry": "ex4", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 0.836, "completed": true}, {"entry": "ex6", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 1.0050000000000001, "completed": true}, {"entry": "ex1", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 1.806, "completed": true}, {"entry": "ex2", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 3.728, "completed": true}, {"entry": "ex9", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.843, "completed": true}, {"entry": "ex5", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 0.737, "completed": true}, {"entry": "ex6", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 4.343, "completed": true}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

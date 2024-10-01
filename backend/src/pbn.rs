@@ -431,9 +431,10 @@ pub fn run(
             );
             print!("{}", synthesizer.tree.pretty());
         }
-        // let options = synthesizer.options_datalog(&mut egg);
-        let options = synthesizer
-            .options_enumerative(5 * 60 * 1000, enumerate::Config::Prune)?;
+        let options = synthesizer.options_datalog(&mut egg);
+        // Enable for swapping in alternative oracle
+        // let options = synthesizer
+        //     .options_enumerative(5 * 60 * 1000, enumerate::Config::Prune)?;
         if options.is_empty() {
             break;
         }

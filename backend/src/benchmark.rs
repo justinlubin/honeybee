@@ -146,10 +146,10 @@ pub fn run(
         for algorithm in vec![
             Algorithm::PBN_Datalog,
             Algorithm::PBN_DatalogMemo,
-            Algorithm::ALT_Enum,
+            // Algorithm::ALT_Enum,
             Algorithm::ALT_EnumPrune,
-            Algorithm::PBN_Enum,
-            Algorithm::PBN_EnumPrune,
+            // Algorithm::PBN_Enum,
+            // Algorithm::PBN_EnumPrune,
         ] {
             for task in tasks.clone() {
                 let task_str = task.to_string();

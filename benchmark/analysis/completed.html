@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300, "stroke": null}}, "data": {"name": "data-c1a822d67a4a5ea34e5a1e70040b17f3"}, "mark": {"type": "bar", "color": "gray", "stroke": "black"}, "encoding": {"color": {"field": "algorithm", "scale": {"domain": ["PBN_Datalog", "PBN_DatalogMemo", "ALT_EnumPrune"], "range": ["antiquewhite", "lightgreen", "lightblue"]}, "type": "nominal"}, "column": {"field": "task", "sort": ["Any", "All"], "title": null, "type": "nominal"}, "x": {"field": "algorithm", "scale": {"domain": ["PBN_Datalog", "PBN_DatalogMemo", "ALT_EnumPrune"]}, "title": "Algorithm", "type": "nominal"}, "y": {"aggregate": "count", "axis": {"grid": false}, "title": "Number solved", "type": "quantitative"}}, "transform": [{"filter": "datum['completed']"}], "width": 100, "$schema": "https://vega.github.io/schema/vega-lite/v5.20.1.json", "datasets": {"data-c1a822d67a4a5ea34e5a1e70040b17f3": [{"entry": "ex3", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 0.265, "completed": true}, {"entry": "ex5", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 0.002, "completed": true}, {"entry": "ex7", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 30.244, "completed": false}, {"entry": "ex6", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 4.343, "completed": true}, {"entry": "ex6", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 30.181, "completed": false}, {"entry": "ex5", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 0.737, "completed": true}, {"entry": "ex6", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 4.146, "completed": true}, {"entry": "ex9", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.843, "completed": true}, {"entry": "ex4", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 3.345, "completed": true}, {"entry": "ex8", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.59, "completed": true}, {"entry": "ex2", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 3.728, "completed": true}, {"entry": "ex7", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 4.542, "completed": true}, {"entry": "ex9", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 24.657, "completed": true}, {"entry": "ex7", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 30.041, "completed": false}, {"entry": "ex5", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 2.38, "completed": true}, {"entry": "ex7", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.92, "completed": true}, {"entry": "ex8", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 1.893, "completed": true}, {"entry": "ex3", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 0.929, "completed": true}, {"entry": "ex7", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 30.18, "completed": false}, {"entry": "ex1", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 1.806, "completed": true}, {"entry": "ex5", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.7030000000000001, "completed": true}, {"entry": "ex6", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 1.0050000000000001, "completed": true}, {"entry": "ex6", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 30.123, "completed": false}, {"entry": "ex6", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.97, "completed": true}, {"entry": "ex1", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 0.852, "completed": true}, {"entry": "ex1", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 0.278, "completed": true}, {"entry": "ex4", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 0.836, "completed": true}, {"entry": "ex2", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 12.745000000000001, "completed": true}, {"entry": "ex3", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 0.362, "completed": true}, {"entry": "ex9", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 33.173, "completed": false}, {"entry": "ex3", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 0.91, "completed": true}, {"entry": "ex1", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.311, "completed": true}, {"entry": "ex2", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 30.016000000000002, "completed": false}, {"entry": "ex8", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 0.003, "completed": true}, {"entry": "ex2", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 10.700000000000001, "completed": true}, {"entry": "ex4", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 1.229, "completed": true}, {"entry": "ex2", "task": "Any", "algorithm": "PBN_Datalog", "duration_med": 1.17, "completed": true}, {"entry": "ex8", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.215, "completed": true}, {"entry": "ex4", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.873, "completed": true}, {"entry": "ex2", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.401, "completed": true}, {"entry": "ex9", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 3.19, "completed": true}, {"entry": "ex1", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 3.986, "completed": true}, {"entry": "ex5", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.002, "completed": true}, {"entry": "ex9", "task": "Any", "algorithm": "ALT_EnumPrune", "duration_med": 0.008, "completed": true}, {"entry": "ex7", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 30.066, "completed": false}, {"entry": "ex9", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 30.074, "completed": false}, {"entry": "ex3", "task": "Any", "algorithm": "PBN_DatalogMemo", "duration_med": 0.339, "completed": true}, {"entry": "ex8", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 12.775, "completed": true}, {"entry": "ex4", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 3.422, "completed": true}, {"entry": "ex4", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 1.154, "completed": true}, {"entry": "ex1", "task": "All", "algorithm": "PBN_DatalogMemo", "duration_med": 1.555, "completed": true}, {"entry": "ex3", "task": "All", "algorithm": "ALT_EnumPrune", "duration_med": 0.23700000000000002, "completed": true}, {"entry": "ex8", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 30.181, "completed": false}, {"entry": "ex5", "task": "All", "algorithm": "PBN_Datalog", "duration_med": 2.33, "completed": true}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>
