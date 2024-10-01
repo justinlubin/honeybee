@@ -1,6 +1,11 @@
 backend/target
 backend/output/*.ipynb
-compendium/data/*
+
+benchmark/data
+benchmark/analysis/output
+
+compendium/data
+
 .venv
 node_modules
 gh-pages
