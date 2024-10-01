@@ -23,7 +23,7 @@ fn generic_counts_match() {
     > = HashMap::new();
 
     for r in records {
-        if r.completed && r.task == "All" {
+        if r.completed && r.task == benchmark::Task::All {
             let data = (r.algorithm.clone(), r.solution_count);
             match h.get_mut(&r.entry) {
                 Some((_, vec)) => vec.push(data),

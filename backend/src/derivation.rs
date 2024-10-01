@@ -500,7 +500,7 @@ impl PartialEq for Tree {
         match (self, other) {
             (Tree::Axiom(f), Tree::Axiom(f2)) => *f == *f2,
             (Tree::Axiom(_), _) => false,
-            (Tree::Goal(s), Tree::Goal(s2)) => s == s2,
+            (Tree::Goal(s), Tree::Goal(s2)) => *s == *s2,
             (Tree::Goal(_), _) => false,
             (Tree::Collect(_, _), _) => todo!(),
             (

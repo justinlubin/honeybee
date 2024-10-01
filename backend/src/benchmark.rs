@@ -1,10 +1,10 @@
 use crate::task::*;
 
 use crate::backend;
-use crate::derivation;
 use crate::enumerate;
 use crate::pbn;
 use crate::syntax;
+use crate::task;
 
 use chumsky::Parser;
 use serde::Serialize;
@@ -14,22 +14,26 @@ use std::time::Instant;
 #[derive(Debug, Clone, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Algorithm {
-    // Baselines/alternatives
-    ALT_Enum,
-    ALT_EnumPrune,
-    // True PBN
-    PBN_Datalog,
-    // Ablations
-    PBN_DatalogMemo,
-    PBN_Enum,
-    PBN_EnumPrune,
+    E,
+    EP,
+    PBN_E,
+    PBN_EP,
+    PBN_DL,
+    PBN_DLmem,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum Task {
+    Any,
+    All,
+    Particular,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Record {
     pub suite: String,
     pub entry: String,
-    pub task: String,
+    pub task: Task,
     pub algorithm: Algorithm,
     pub completed: bool,
     pub duration: u128,
@@ -48,18 +52,14 @@ fn run_one(
 ) -> Timed<SynthesisResult> {
     let now = Instant::now();
     let sr = match algorithm {
-        Algorithm::ALT_Enum => {
-            enumerate::synthesize(sp, enumerate::Config::Basic)
-        }
-        Algorithm::ALT_EnumPrune => {
-            enumerate::synthesize(sp, enumerate::Config::Prune)
-        }
-        Algorithm::PBN_Datalog => pbn::synthesize(sp, pbn::Config::Basic),
-        Algorithm::PBN_DatalogMemo => pbn::synthesize(sp, pbn::Config::Memo),
-        Algorithm::PBN_Enum => {
+        Algorithm::E => enumerate::synthesize(sp, enumerate::Config::Basic),
+        Algorithm::EP => enumerate::synthesize(sp, enumerate::Config::Prune),
+        Algorithm::PBN_DL => pbn::synthesize(sp, pbn::Config::Basic),
+        Algorithm::PBN_DLmem => pbn::synthesize(sp, pbn::Config::Memo),
+        Algorithm::PBN_E => {
             pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Basic))
         }
-        Algorithm::PBN_EnumPrune => {
+        Algorithm::PBN_EP => {
             pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Prune))
         }
     };
@@ -130,62 +130,81 @@ pub fn run(
         prog.check(&lib)
             .map_err(|e| format!("[Program type error] {}", e))?;
 
-        let mut tasks = vec![Task::AnyValid, Task::AllValid];
+        let particulars = {
+            let sr = pbn::synthesize(
+                SynthesisProblem {
+                    lib: &lib,
+                    prog: &prog,
+                    task: task::Task::AllValid,
+                    soft_timeout,
+                },
+                pbn::Config::Memo,
+            );
 
-        let particular_filename = prog_filename.with_extension("json");
-
-        match std::fs::read_to_string(&particular_filename) {
-            Ok(particular_src) => {
-                let particular: derivation::Tree =
-                    serde_json::from_str(&particular_src).unwrap();
-                tasks.push(Task::Particular(particular));
+            if sr.completed {
+                Some(sr.results)
+            } else {
+                None
             }
-            Err(_) => (),
         };
 
         for algorithm in vec![
-            Algorithm::PBN_Datalog,
-            Algorithm::PBN_DatalogMemo,
-            // Algorithm::ALT_Enum,
-            Algorithm::ALT_EnumPrune,
-            // Algorithm::PBN_Enum,
-            // Algorithm::PBN_EnumPrune,
+            Algorithm::E,
+            Algorithm::EP,
+            Algorithm::PBN_E,
+            Algorithm::PBN_EP,
+            Algorithm::PBN_DL,
+            Algorithm::PBN_DLmem,
         ] {
-            for task in tasks.clone() {
-                let task_str = task.to_string();
-
-                let sp = SynthesisProblem {
-                    lib: &lib,
-                    prog: &prog,
-                    task,
-                    soft_timeout,
+            for task in vec![Task::Particular, Task::Any, Task::All] {
+                let synthesis_tasks = match task {
+                    Task::Any => vec![task::Task::AnyValid],
+                    Task::All => vec![task::Task::AllValid],
+                    Task::Particular => match &particulars {
+                        Some(ps) => ps
+                            .iter()
+                            .map(|dt| task::Task::Particular(dt.clone()))
+                            .collect(),
+                        None => continue,
+                    },
                 };
-
-                for _ in 0..run_count {
-                    let Timed {
-                        val: SynthesisResult { results, completed },
-                        duration,
-                    } = run_one(sp.clone(), algorithm.clone());
-
-                    let r = Record {
-                        suite: suite.to_owned(),
-                        entry: entry.to_owned(),
-                        task: task_str.clone(),
-                        algorithm: algorithm.clone(),
-                        completed,
-                        duration,
-                        solution_count: results.len(),
-                        solution_size: results.iter().map(|t| t.size()).sum(),
+                for synthesis_task in synthesis_tasks {
+                    let sp = SynthesisProblem {
+                        lib: &lib,
+                        prog: &prog,
+                        task: synthesis_task,
+                        soft_timeout,
                     };
 
-                    if write_stdout {
-                        wtr.serialize(r.clone())?;
-                    }
+                    for _ in 0..run_count {
+                        let Timed {
+                            val: SynthesisResult { results, completed },
+                            duration,
+                        } = run_one(sp.clone(), algorithm.clone());
 
-                    records.push(r);
-                }
-                if write_stdout {
-                    wtr.flush()?;
+                        let r = Record {
+                            suite: suite.to_owned(),
+                            entry: entry.to_owned(),
+                            task: task.clone(),
+                            algorithm: algorithm.clone(),
+                            completed,
+                            duration,
+                            solution_count: results.len(),
+                            solution_size: results
+                                .iter()
+                                .map(|t| t.size())
+                                .sum(),
+                        };
+
+                        if write_stdout {
+                            wtr.serialize(r.clone())?;
+                        }
+
+                        records.push(r);
+                    }
+                    if write_stdout {
+                        wtr.flush()?;
+                    }
                 }
             }
         }
