@@ -11,6 +11,7 @@ fn generic_counts_match() {
         5000,
         "",
         true,
+        true,
     )
     .unwrap();
 

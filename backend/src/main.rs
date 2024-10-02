@@ -55,6 +55,10 @@ enum Commands {
         /// Filter to benchmark entries that contain this substring
         #[arg(short, long, value_name = "SUBSTRING", default_value = "")]
         filter: String,
+
+        /// Use a quick (parallel) approximation - not for publication use
+        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
+        quick: bool,
     },
 }
 
@@ -75,7 +79,8 @@ fn main() {
             run_count,
             timeout,
             filter,
-        } => benchmark::run(suite, *run_count, *timeout, filter, true)
+            quick,
+        } => benchmark::run(suite, *run_count, *timeout, filter, true, *quick)
             .map(|_| ()),
     };
 

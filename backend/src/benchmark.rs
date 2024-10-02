@@ -1,14 +1,20 @@
+use crate::ir::*;
 use crate::task::*;
 
 use crate::backend;
+use crate::derivation;
 use crate::enumerate;
 use crate::pbn;
 use crate::syntax;
 use crate::task;
 
+use rayon::prelude::*;
+
 use chumsky::Parser;
 use serde::Serialize;
+
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize)]
@@ -71,6 +77,203 @@ fn run_one(
     Timed { val: sr, duration }
 }
 
+fn task_results(
+    lib: &Library,
+    prog: &Program,
+    soft_timeout: u128,
+    run_count: usize,
+    suite: &str,
+    entry: &str,
+    algorithm: Algorithm,
+    task: Task,
+    synthesis_task: task::Task,
+    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
+) -> Vec<Record> {
+    let sp = SynthesisProblem {
+        lib: &lib,
+        prog: &prog,
+        task: synthesis_task,
+        soft_timeout,
+    };
+
+    let mut records = vec![];
+
+    for _ in 0..run_count {
+        let Timed {
+            val: SynthesisResult { results, completed },
+            duration,
+        } = run_one(sp.clone(), algorithm.clone());
+
+        let r = Record {
+            suite: suite.to_owned(),
+            entry: entry.to_owned(),
+            task: task.clone(),
+            algorithm: algorithm.clone(),
+            completed,
+            duration,
+            solution_count: results.len(),
+            solution_size: results.iter().map(|t| t.size()).sum(),
+        };
+
+        records.push(r.clone());
+
+        Arc::clone(wtr).lock().unwrap().as_mut().map(|wtr| {
+            wtr.serialize(r).unwrap();
+            wtr.flush().unwrap();
+        });
+    }
+
+    records
+}
+
+fn results(
+    lib: &Library,
+    prog: &Program,
+    particulars: &Option<Vec<derivation::Tree>>,
+    soft_timeout: u128,
+    run_count: usize,
+    suite: &str,
+    entry: &str,
+    algorithm: Algorithm,
+    task: Task,
+    parallel: bool,
+    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
+) -> Vec<Record> {
+    let synthesis_tasks = match task {
+        Task::Any => vec![task::Task::AnyValid],
+        Task::All => vec![task::Task::AllValid],
+        Task::Particular => match particulars {
+            Some(ps) => ps
+                .iter()
+                .map(|dt| task::Task::Particular(dt.clone()))
+                .collect(),
+            None => return vec![],
+        },
+    };
+
+    if parallel {
+        synthesis_tasks
+            .par_iter()
+            .flat_map(|synthesis_task| {
+                task_results(
+                    &lib,
+                    &prog,
+                    soft_timeout,
+                    run_count,
+                    &suite,
+                    &entry,
+                    algorithm.clone(),
+                    task.clone(),
+                    synthesis_task.clone(),
+                    wtr,
+                )
+            })
+            .collect()
+    } else {
+        synthesis_tasks
+            .iter()
+            .flat_map(|synthesis_task| {
+                task_results(
+                    &lib,
+                    &prog,
+                    soft_timeout,
+                    run_count,
+                    &suite,
+                    &entry,
+                    algorithm.clone(),
+                    task.clone(),
+                    synthesis_task.clone(),
+                    wtr,
+                )
+            })
+            .collect()
+    }
+}
+
+fn entry_results(
+    lib: &Library,
+    prog: &Program,
+    entry: &str,
+    soft_timeout: u128,
+    run_count: usize,
+    suite: &str,
+    parallel: bool,
+    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
+) -> Vec<Record> {
+    let particulars = {
+        let sr = pbn::synthesize(
+            SynthesisProblem {
+                lib: &lib,
+                prog: &prog,
+                task: task::Task::AllValid,
+                soft_timeout,
+            },
+            pbn::Config::Memo,
+        );
+
+        if sr.completed {
+            Some(sr.results)
+        } else {
+            None
+        }
+    };
+
+    let algorithms = vec![
+        Algorithm::E,
+        Algorithm::EP,
+        Algorithm::PBN_E,
+        Algorithm::PBN_EP,
+        Algorithm::PBN_DL,
+        Algorithm::PBN_DLmem,
+    ];
+
+    let tasks = vec![Task::Particular, Task::Any, Task::All];
+
+    if parallel {
+        algorithms
+            .par_iter()
+            .flat_map(|algorithm| {
+                tasks.par_iter().flat_map(|task| {
+                    results(
+                        &lib,
+                        &prog,
+                        &particulars,
+                        soft_timeout,
+                        run_count,
+                        &suite,
+                        &entry,
+                        algorithm.clone(),
+                        task.clone(),
+                        parallel,
+                        wtr,
+                    )
+                })
+            })
+            .collect()
+    } else {
+        algorithms
+            .iter()
+            .flat_map(|algorithm| {
+                tasks.iter().flat_map(|task| {
+                    results(
+                        &lib,
+                        &prog,
+                        &particulars,
+                        soft_timeout,
+                        run_count,
+                        &suite,
+                        &entry,
+                        algorithm.clone(),
+                        task.clone(),
+                        parallel,
+                        wtr,
+                    )
+                })
+            })
+            .collect()
+    }
+}
+
 // Directory format:
 // - suite_directory/
 //   - _suite.hblib
@@ -88,6 +291,7 @@ pub fn run(
     soft_timeout: u128, // in milliseconds
     filter: &str,
     write_stdout: bool,
+    parallel: bool,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     assert!(suite_directory.is_dir());
 
@@ -104,8 +308,13 @@ pub fn run(
     lib.check()
         .map_err(|e| format!("[Library type error] {}", e))?;
 
-    let mut records = vec![];
-    let mut wtr = csv::Writer::from_writer(std::io::stdout());
+    let wtr = Arc::new(Mutex::new(if write_stdout {
+        Some(csv::Writer::from_writer(std::io::stdout()))
+    } else {
+        None
+    }));
+
+    let mut progs = vec![];
 
     for prog_filename in
         glob::glob(suite_directory.join("*.hb").to_str().unwrap())
@@ -117,7 +326,8 @@ pub fn run(
             .file_name()
             .unwrap()
             .to_str()
-            .unwrap();
+            .unwrap()
+            .to_owned();
 
         if !entry.contains(filter) {
             continue;
@@ -130,85 +340,40 @@ pub fn run(
         prog.check(&lib)
             .map_err(|e| format!("[Program type error] {}", e))?;
 
-        let particulars = {
-            let sr = pbn::synthesize(
-                SynthesisProblem {
-                    lib: &lib,
-                    prog: &prog,
-                    task: task::Task::AllValid,
-                    soft_timeout,
-                },
-                pbn::Config::Memo,
-            );
-
-            if sr.completed {
-                Some(sr.results)
-            } else {
-                None
-            }
-        };
-
-        for algorithm in vec![
-            Algorithm::E,
-            Algorithm::EP,
-            Algorithm::PBN_E,
-            Algorithm::PBN_EP,
-            Algorithm::PBN_DL,
-            Algorithm::PBN_DLmem,
-        ] {
-            for task in vec![Task::Particular, Task::Any, Task::All] {
-                let synthesis_tasks = match task {
-                    Task::Any => vec![task::Task::AnyValid],
-                    Task::All => vec![task::Task::AllValid],
-                    Task::Particular => match &particulars {
-                        Some(ps) => ps
-                            .iter()
-                            .map(|dt| task::Task::Particular(dt.clone()))
-                            .collect(),
-                        None => continue,
-                    },
-                };
-                for synthesis_task in synthesis_tasks {
-                    let sp = SynthesisProblem {
-                        lib: &lib,
-                        prog: &prog,
-                        task: synthesis_task,
-                        soft_timeout,
-                    };
-
-                    for _ in 0..run_count {
-                        let Timed {
-                            val: SynthesisResult { results, completed },
-                            duration,
-                        } = run_one(sp.clone(), algorithm.clone());
-
-                        let r = Record {
-                            suite: suite.to_owned(),
-                            entry: entry.to_owned(),
-                            task: task.clone(),
-                            algorithm: algorithm.clone(),
-                            completed,
-                            duration,
-                            solution_count: results.len(),
-                            solution_size: results
-                                .iter()
-                                .map(|t| t.size())
-                                .sum(),
-                        };
-
-                        if write_stdout {
-                            wtr.serialize(r.clone())?;
-                        }
-
-                        records.push(r);
-                    }
-                    if write_stdout {
-                        wtr.flush()?;
-                    }
-                }
-            }
-        }
+        progs.push((prog, entry));
     }
 
-    Ok(records)
+    Ok(if parallel {
+        progs
+            .par_iter()
+            .flat_map(|(prog, entry)| {
+                entry_results(
+                    &lib,
+                    prog,
+                    entry,
+                    soft_timeout,
+                    run_count,
+                    suite,
+                    parallel,
+                    &wtr,
+                )
+            })
+            .collect()
+    } else {
+        progs
+            .iter()
+            .flat_map(|(prog, entry)| {
+                entry_results(
+                    &lib,
+                    prog,
+                    entry,
+                    soft_timeout,
+                    run_count,
+                    suite,
+                    parallel,
+                    &wtr,
+                )
+            })
+            .collect()
+    })
 }
