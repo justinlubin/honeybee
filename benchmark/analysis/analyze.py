@@ -1,43 +1,119 @@
-# %% Imports
+# %% Imports and monkey patching
 
-import polars as pl
 import altair as alt
+import matplotlib.pyplot as plt
+import numpy as np
+import polars as pl
 
-# %% Constants
 
-OUTPUT = "output"
+def group_by_sel(self, by, sel):
+    for (n,), g in self.group_by(by):
+        yield n, g[sel]
 
-# %% Data loading
 
-raw = pl.read_csv("../data/data.csv")
+pl.DataFrame.group_by_sel = group_by_sel
+
+# %% Setup
+
+OUTPUT_DIR = "output"
+raw_data = pl.read_csv("../data/data.csv")
+
 
 # %% Data processing
 
-raw_sucs = raw.filter(pl.col("completed"))
-
+key = ["entry", "task", "algorithm"]
 replicates = None
 
-key = ["entry", "task", "algorithm"]
+for n, g in raw_data.filter(pl.col("completed")).group_by(key):
+    if n[1] == "Particular":
+        continue
 
-for n, g in raw_sucs.group_by(key):
     if replicates:
-        assert len(g) == replicates, n
+        pass
+        # assert len(g) == replicates, n
     else:
         replicates = len(g)
 
     for c in ["solution_count", "solution_size"]:
-        vals = g.get_column(c)
-        assert (vals == vals[0]).all(), (n, c)
+        assert (g[c] == g[0, c]).all(), (n, c)
 
-data = raw.group_by(key).agg(
+data = raw_data.group_by(key).agg(
     duration_med=pl.col("duration").median() / 1000,
     completed=pl.col("completed").all(),
 )
 
-algorithms = ["PBN_Datalog", "PBN_DatalogMemo", "ALT_EnumPrune"]
-algorithm_colors = ["antiquewhite", "lightgreen", "lightblue"]
-tasks = ["Any", "All"]
-entries = data.select(pl.col("entry")).unique()
+algorithms = [
+    "E",
+    "EP",
+    "PBN_E",
+    "PBN_EP",
+    "PBN_DL",
+    "PBN_DLmem",
+]
+
+algorithm_colors = [
+    "#4477AA",
+    "#66CCEE",
+    "#228833",
+    "#CCBB44",
+    "#EE6677",
+    "#AA3377",
+]
+
+tasks = ["Particular", "Any", "All"]
+entries = data["entry"].unique()
+
+# %%
+
+
+def distributions(groups, *, order, colors, bins):
+    groups = sorted(groups, key=lambda x: order.index(x[0]))
+    fig, ax = plt.subplots(
+        2 * len(groups),
+        1,
+        gridspec_kw={"height_ratios": [2, 1] * len(groups)},
+        figsize=(5, 15),
+        sharex=True,
+    )
+
+    max_count = 0
+    for i in range(0, len(groups)):
+        (name, vals) = groups[i]
+        color = colors[i]
+
+        axa = ax[2 * i]
+
+        n, _, _ = axa.hist(vals, bins=bins, color=color)
+        max_count = max(max_count, max(n))
+
+        axa.set_xticks(bins)
+        axa.spines[["top", "right"]].set_visible(False)
+
+        axb = ax[2 * i + 1]
+        axb.boxplot(
+            vals,
+            vert=False,
+        )
+        axb.tick_params(
+            top=True, labeltop=True, bottom=False, labelbottom=False
+        )
+        axb.spines[["right", "bottom", "left"]].set_visible(False)
+
+    for i in range(0, len(groups)):
+        ax[2 * i].set_yticks(np.arange(0, max_count, 1))
+
+    fig.tight_layout()
+    return fig
+
+
+distributions(
+    data.filter(pl.col("task") == "Particular").group_by_sel(
+        "algorithm", "duration_med"
+    ),
+    order=algorithms,
+    colors=algorithm_colors,
+    bins=np.arange(0, 30, 2),
+).savefig(f"{OUTPUT_DIR}/particular.pdf")
 
 # %% Completion percentages
 
