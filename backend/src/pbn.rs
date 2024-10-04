@@ -11,6 +11,7 @@ use crate::task;
 use std::collections::HashMap;
 use std::time::Instant;
 
+#[derive(Debug)]
 pub enum Config {
     Basic,
     Memo,
@@ -116,7 +117,10 @@ pub fn synthesize(
                         let synthesis::ComputationOption {
                             name,
                             assignment_options,
-                        } = computation_options.into_iter().next().unwrap();
+                        } = computation_options
+                            .into_iter()
+                            .next()
+                            .expect(&format!("{:?}", config));
                         synthesis::Choice::Output {
                             path: derivation::into_tags(path),
                             tag,
@@ -338,16 +342,11 @@ pub fn synthesize(
                         let assignment = assignment_options
                             .into_iter()
                             .find(|a| {
-                                // TODO I'm not sure this is strong enough
-                                // of a condition?
                                 a.iter().all(|(k, v)| {
-                                    match assignment_choice.get(k) {
-                                        None => true,
-                                        Some(v_choice) => v == v_choice,
-                                    }
+                                    assignment_choice.get(k) == Some(v)
                                 })
                             })
-                            .unwrap();
+                            .expect(&format!("{:?}", config));
 
                         synthesis::Choice::Output {
                             path,
