@@ -338,8 +338,13 @@ pub fn synthesize(
                         let assignment = assignment_options
                             .into_iter()
                             .find(|a| {
+                                // TODO I'm not sure this is strong enough
+                                // of a condition?
                                 a.iter().all(|(k, v)| {
-                                    assignment_choice.get(k) == Some(v)
+                                    match assignment_choice.get(k) {
+                                        None => true,
+                                        Some(v_choice) => v == v_choice,
+                                    }
                                 })
                             })
                             .unwrap();

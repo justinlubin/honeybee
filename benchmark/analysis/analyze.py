@@ -71,7 +71,7 @@ def distributions(groups, *, order, colors, bins):
     fig, ax = plt.subplots(
         2 * len(groups),
         1,
-        gridspec_kw={"height_ratios": [2, 1] * len(groups)},
+        gridspec_kw={"height_ratios": [3, 1] * len(groups)},
         figsize=(5, 15),
         sharex=True,
     )
@@ -83,7 +83,12 @@ def distributions(groups, *, order, colors, bins):
 
         axa = ax[2 * i]
 
-        n, _, _ = axa.hist(vals, bins=bins, color=color)
+        n, _, _ = axa.hist(
+            vals,
+            bins=bins,
+            color=color,
+            edgecolor="black",
+        )
         max_count = max(max_count, max(n))
 
         axa.set_xticks(bins)
@@ -93,11 +98,16 @@ def distributions(groups, *, order, colors, bins):
         axb.boxplot(
             vals,
             vert=False,
+            widths=0.5,
+            patch_artist=True,
+            boxprops=dict(facecolor=color),
+            medianprops=dict(color="black"),
         )
         axb.tick_params(
-            top=True, labeltop=True, bottom=False, labelbottom=False
+            top=False, labeltop=False, bottom=True, labelbottom=True
         )
-        axb.spines[["right", "bottom", "left"]].set_visible(False)
+        axb.spines[["right", "top", "left"]].set_visible(False)
+        axb.get_yaxis().set_visible(False)
 
     for i in range(0, len(groups)):
         ax[2 * i].set_yticks(np.arange(0, max_count, 1))
