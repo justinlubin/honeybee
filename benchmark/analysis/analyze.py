@@ -28,98 +28,19 @@ def group_by_sel(self, by, *, sel):
 
 pl.DataFrame.group_by_sel = group_by_sel
 
-# %% Setup
-
-OUTPUT_DIR = "output"
-raw_data = pl.read_csv("../data/data.csv")
-
-# %% Config
-
-ALGORITHMS = [
-    "E",
-    "EP",
-    "PBN_E",
-    "PBN_EP",
-    "PBN_DL",
-    "PBN_DLmem",
-]
-
-ALGORITHM_COLORS = [
-    "#4477AA",
-    "#66CCEE",
-    "#228833",
-    "#CCBB44",
-    "#EE6677",
-    "#AA3377",
-]
-
-TASKS = ["Particular", "Any", "All"]
-
-# %% Data processing
-
-REPLICATE_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
-
-# Check that completed replicates agree
-for n, g in raw_data.filter(pl.col("completed")).group_by(REPLICATE_KEY):
-    for c in ["solution_count", "solution_size"]:
-        assert (g[c] == g[0, c]).all(), (n, c)
-
-data = raw_data.group_by(REPLICATE_KEY).agg(
-    duration=pl.col("duration").median() / 1000,
-    completed=pl.col("completed").all(),
-    solution_count=pl.col("solution_count").first(),
-    solution_size=pl.col("solution_size").first(),
-)
-
-completed = data.filter(pl.col("completed")).drop("completed")
-
-# Check that different approaches agree
-# TODO ensure this!!
-# for n, g in completed.group_by("suite", "entry", "task", "subentry"):
-#     for c in ["solution_count", "solution_size"]:
-#         assert (g[c] == g[0, c]).all(), (n, c, g)
-
-solutions = (
-    completed.filter(pl.col("task") == "All")
-    .group_by(["suite", "entry"])
-    .agg(count=pl.col("solution_count").first())
-)
-
-total_entries = {}
-for (suite,), g in solutions.group_by("suite"):
-    # TODO: Should simply be len(g) once every task has a solution
-    entry_count = len(data.filter(pl.col("suite") == suite)["entry"].unique())
-    total_entries[suite] = {
-        "Any": entry_count,
-        "All": entry_count,
-        "Particular": g["count"].sum(),
-    }
-
-comparisons = (
-    completed.join(
-        completed,
-        on=["suite", "entry", "task", "subentry"],
-        suffix="2",
-    )
-    .filter(pl.col("algorithm") != pl.col("algorithm2"))
-    .with_columns(
-        log10_speedup=(pl.col("duration2") / pl.col("duration")).log10()
-    )
-)
-
-# %% Summary distributions
+# %% Plotting functions
 
 
 def distributions(
     groups,
     *,
-    total_entries,
     order,
     colors,
     bins,
     figsize,
     xlabel,
     ylabel="Count",
+    total=None,
 ):
     groups = sorted(groups, key=lambda x: order.index(x[0]))
     fig, ax = plt.subplots(
@@ -161,21 +82,18 @@ def distributions(
                 fontsize=16,
             )
 
+        if total:
+            if name:
+                y = 0.83
+                text = f"({len(vals)}/{total} solved)"
+            else:
+                y = 1
+                text = f"(on {len(vals)}/{total} entries)"
+
             axa.text(
                 1,
-                0.83,
-                f"({len(vals)}/{total_entries} solved)",
-                transform=axa.transAxes,
-                color=color,
-                ha="right",
-                va="top",
-                fontsize=10,
-            )
-        else:
-            axa.text(
-                1,
-                1,
-                f"(on {len(vals)}/{total_entries} entries)",
+                y,
+                text,
                 transform=axa.transAxes,
                 color=color,
                 ha="right",
@@ -227,37 +145,6 @@ def distribution(
     )
 
 
-for (suite, task), df in completed.group_by("suite", "task"):
-    fig, ax = distributions(
-        df.group_by_sel("algorithm", sel="duration"),
-        total_entries=total_entries[suite][task],
-        order=ALGORITHMS,
-        colors=ALGORITHM_COLORS,
-        bins=np.arange(0, 30.1, 2),
-        figsize=(5, 15),
-        xlabel="Time taken (s)",
-    )
-
-    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.pdf")
-
-for (suite, task, alg1, alg2), df in comparisons.group_by(
-    "suite", "task", "algorithm", "algorithm2"
-):
-    fig, ax = distribution(
-        df["log10_speedup"],
-        color=ALGORITHM_COLORS[0],
-        total_entries=total_entries[suite][task],
-        bins=np.arange(-2, 2.1, 0.5),
-        figsize=(5, 3),
-        xlabel=r"$\log_{10}($Speedup$)$",
-    )
-
-    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.pdf")
-
-
-# %% Trapezoid plots
-
-
 def trapezoid(
     vals1,
     vals2,
@@ -278,7 +165,7 @@ def trapezoid(
         zorder = 0
 
         if label in highlight_labels:
-            color = ALGORITHM_COLORS[0]
+            color = "red"
             marker = "."
             zorder = 1
 
@@ -309,28 +196,6 @@ def trapezoid(
 
     fig.tight_layout()
     return fig, ax
-
-
-for (suite, entry, alg1, alg2), df in comparisons.group_by(
-    "suite", "entry", "algorithm", "algorithm2"
-):
-    df = df.group_by("task").agg(
-        duration_med=pl.col("duration").median(),
-        duration2_med=pl.col("duration2").median(),
-    )
-    fig, ax = trapezoid(
-        df["duration_med"],
-        df["duration2_med"],
-        df["task"],
-        xticklabel1=alg1,
-        xticklabel2=alg2,
-        ylabel="Time taken (s)",
-        highlight_labels={"Particular"},
-        figsize=(4, 3),
-    )
-    fig.save(f"{OUTPUT_DIR}/{suite}/trapezoid/{entry}-{alg1}-{alg2}.pdf")
-
-# %% Completion percentage
 
 
 def completion(vals, *, best, order, colors, figsize, xlabel):
@@ -368,6 +233,159 @@ def completion(vals, *, best, order, colors, figsize, xlabel):
     fig.tight_layout()
     return fig, ax
 
+
+# %% Config
+
+OUTPUT_DIR = "output"
+
+ALGORITHMS = [
+    "E",
+    "EP",
+    "PBN_E",
+    "PBN_EP",
+    "PBN_DL",
+    "PBN_DLmem",
+]
+
+ALGORITHM_COLORS = [
+    "#4477AA",
+    "#66CCEE",
+    "#228833",
+    "#CCBB44",
+    "#EE6677",
+    "#AA3377",
+]
+
+# %% Load data
+
+raw_data = pl.read_csv("../data/data.csv")
+
+# %% Process and check data
+
+REPLICATE_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
+
+# Check that completed replicates agree
+for n, g in raw_data.filter(pl.col("completed")).group_by(REPLICATE_KEY):
+    for c in ["solution_count", "solution_size"]:
+        assert (g[c] == g[0, c]).all(), (n, c)
+
+data = raw_data.group_by(REPLICATE_KEY).agg(
+    duration=pl.col("duration").median() / 1000,
+    completed=pl.col("completed").all(),
+    solution_count=pl.col("solution_count").first(),
+    solution_size=pl.col("solution_size").first(),
+)
+
+completed = data.filter(pl.col("completed")).drop("completed")
+
+# Check that different approaches agree
+# TODO ensure this!!
+# for n, g in completed.group_by("suite", "entry", "task", "subentry"):
+#     for c in ["solution_count", "solution_size"]:
+#         assert (g[c] == g[0, c]).all(), (n, c, g)
+
+solutions = (
+    completed.filter(pl.col("task") == "All")
+    .group_by(["suite", "entry"])
+    .agg(count=pl.col("solution_count").first())
+)
+
+total_entries = {}
+for (suite,), g in solutions.group_by("suite"):
+    # TODO: Should simply be len(g) once every task has a solution
+    entry_count = len(data.filter(pl.col("suite") == suite)["entry"].unique())
+    total_entries[suite] = {
+        "Any": entry_count,
+        "All": entry_count,
+        "Particular": g["count"].sum(),
+    }
+
+comparisons = (
+    completed.join(
+        completed,
+        on=["suite", "entry", "task", "subentry"],
+        suffix="2",
+    )
+    .filter(pl.col("algorithm") != pl.col("algorithm2"))
+    .with_columns(
+        log10_speedup=(pl.col("duration2") / pl.col("duration")).log10()
+    )
+)
+
+# %% Plot summaries
+
+for (suite, task), df in completed.group_by("suite", "task"):
+    fig, ax = distributions(
+        df.group_by_sel("algorithm", sel="duration"),
+        total=total_entries[suite][task],
+        order=ALGORITHMS,
+        colors=ALGORITHM_COLORS,
+        bins=np.arange(0, 30.1, 2),
+        figsize=(5, 15),
+        xlabel="Time taken (s)",
+    )
+
+    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.pdf")
+
+# %% Plot speedup comparisons
+
+for (suite, task, alg1, alg2), df in comparisons.group_by(
+    "suite", "task", "algorithm", "algorithm2"
+):
+    fig, ax = distribution(
+        df["log10_speedup"],
+        color=ALGORITHM_COLORS[0],
+        total=total_entries[suite][task],
+        bins=np.arange(-2, 2.1, 0.5),
+        figsize=(5, 3),
+        xlabel=r"$\log_{10}($Speedup$)$",
+    )
+
+    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.pdf")
+
+# %% Plot space explored
+
+for (suite,), df in (
+    data.filter(pl.col("task") == "All")
+    .join(solutions, on=["suite", "entry"])
+    .group_by("suite")
+):
+    df = df.with_columns(explored=pl.col("solution_count") / pl.col("count"))
+
+    fig, ax = distributions(
+        df.group_by_sel("algorithm", sel="explored"),
+        order=ALGORITHMS,
+        colors=ALGORITHM_COLORS,
+        bins=np.arange(0, 1.01, 0.1),
+        figsize=(5, 15),
+        xlabel="% explored",
+    )
+
+    fig.save(f"{OUTPUT_DIR}/{suite}/explored/explored.pdf")
+
+
+# %% Plot trapezoids
+
+for (suite, entry, alg1, alg2), df in comparisons.group_by(
+    "suite", "entry", "algorithm", "algorithm2"
+):
+    df = df.group_by("task").agg(
+        duration_med=pl.col("duration").median(),
+        duration2_med=pl.col("duration2").median(),
+    )
+    fig, ax = trapezoid(
+        df["duration_med"],
+        df["duration2_med"],
+        df["task"],
+        xticklabel1=alg1,
+        xticklabel2=alg2,
+        ylabel="Time taken (s)",
+        highlight_labels={"Particular"},
+        figsize=(4, 3),
+    )
+    fig.save(f"{OUTPUT_DIR}/{suite}/trapezoid/{entry}-{alg1}-{alg2}.pdf")
+
+# %% Plot completions
 
 for (suite, task), df in completed.group_by("suite", "task"):
     fig, ax = completion(
