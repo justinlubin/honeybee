@@ -69,9 +69,9 @@ entries = data["entry"].unique()
 def distributions(groups, *, order, colors, bins):
     groups = sorted(groups, key=lambda x: order.index(x[0]))
     fig, ax = plt.subplots(
-        2 * len(groups),
+        3 * len(groups),
         1,
-        gridspec_kw={"height_ratios": [3, 1] * len(groups)},
+        gridspec_kw={"height_ratios": [3, 1, 1] * len(groups)},
         figsize=(5, 15),
         sharex=True,
     )
@@ -81,7 +81,7 @@ def distributions(groups, *, order, colors, bins):
         (name, vals) = groups[i]
         color = colors[i]
 
-        axa = ax[2 * i]
+        axa = ax[3 * i]
 
         n, _, _ = axa.hist(
             vals,
@@ -94,7 +94,30 @@ def distributions(groups, *, order, colors, bins):
         axa.set_xticks(bins)
         axa.spines[["top", "right"]].set_visible(False)
 
-        axb = ax[2 * i + 1]
+        axa.text(
+            1,
+            1,
+            name,
+            transform=axa.transAxes,
+            color=color,
+            ha="right",
+            va="top",
+            fontweight="bold",
+            fontsize=16,
+        )
+
+        axa.text(
+            1,
+            0.83,
+            f"({len(vals)}/TODO solved)",
+            transform=axa.transAxes,
+            color=color,
+            ha="right",
+            va="top",
+            fontsize=10,
+        )
+
+        axb = ax[3 * i + 1]
         axb.boxplot(
             vals,
             vert=False,
@@ -109,21 +132,28 @@ def distributions(groups, *, order, colors, bins):
         axb.spines[["right", "top", "left"]].set_visible(False)
         axb.get_yaxis().set_visible(False)
 
+        axc = ax[3 * i + 2]
+        axc.set_visible(False)
+
     for i in range(0, len(groups)):
-        ax[2 * i].set_yticks(np.arange(0, max_count, 1))
+        ax[3 * i].set_yticks(np.arange(0, max_count + 1, 1))
 
     fig.tight_layout()
-    return fig
+    fig.subplots_adjust(hspace=0.1)
+    return fig, ax
 
 
-distributions(
-    data.filter(pl.col("task") == "Particular").group_by_sel(
-        "algorithm", "duration_med"
-    ),
+fig, ax = distributions(
+    data.filter(
+        pl.col("completed") & (pl.col("task") == "Particular")
+    ).group_by_sel("algorithm", "duration_med"),
     order=algorithms,
     colors=algorithm_colors,
     bins=np.arange(0, 30, 2),
-).savefig(f"{OUTPUT_DIR}/particular.pdf")
+)
+
+fig.savefig(f"{OUTPUT_DIR}/particular.pdf")
+plt.close(fig)
 
 # %% Completion percentages
 
