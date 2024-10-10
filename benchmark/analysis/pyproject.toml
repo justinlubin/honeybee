@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "altair>=5.4.1",
-    "ipython>=8.27.0",
     "matplotlib>=3.9.2",
     "numpy>=2.1.1",
     "polars-lts-cpu>=1.9.0",
@@ -14,3 +13,8 @@ dependencies = [
 
 [tool.ruff]
 line-length = 80
+
+[tool.uv]
+dev-dependencies = [
+    "ipython>=8.27.0",
+]

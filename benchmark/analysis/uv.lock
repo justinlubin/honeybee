@@ -23,20 +23,26 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "altair" },
-    { name = "ipython" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "polars-lts-cpu" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ipython" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "altair", specifier = ">=5.4.1" },
-    { name = "ipython", specifier = ">=8.27.0" },
     { name = "matplotlib", specifier = ">=3.9.2" },
     { name = "numpy", specifier = ">=2.1.1" },
     { name = "polars-lts-cpu", specifier = ">=1.9.0" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ipython", specifier = ">=8.27.0" }]
 
 [[package]]
 name = "asttokens"
