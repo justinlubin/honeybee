@@ -195,19 +195,21 @@ impl<'a> Synthesizer<'a> {
                 );
                 let basic_worklist = vec![t];
 
-                let task::SynthesisResult {
-                    completed: _,
-                    results,
-                } = enumerate::synthesize_worklist(
-                    task::SynthesisProblem {
-                        lib: self.lib,
-                        prog: self.prog,
-                        task: task::Task::AnyValid,
-                        soft_timeout: soft_timeout - elapsed,
-                    },
-                    enumerate_config.clone(),
-                    basic_worklist,
-                );
+                let task::SynthesisResult { completed, results } =
+                    enumerate::synthesize_worklist(
+                        task::SynthesisProblem {
+                            lib: self.lib,
+                            prog: self.prog,
+                            task: task::Task::AnyValid,
+                            soft_timeout: soft_timeout - elapsed,
+                        },
+                        enumerate_config.clone(),
+                        basic_worklist,
+                    );
+
+                if !completed {
+                    return None;
+                }
 
                 if !results.is_empty() {
                     basic_assignments
@@ -251,41 +253,39 @@ impl<'a> Synthesizer<'a> {
                                     &query.computation_signature,
                                     query_args.clone(),
                                 );
+
+                                let lemma_ret_args: Vec<_> = query_args
+                                    .iter()
+                                    .filter_map(|(lhs, rhs)| {
+                                        let components = lhs
+                                            .strip_prefix("fv%")
+                                            .unwrap()
+                                            .split("*")
+                                            .collect::<Vec<&str>>();
+
+                                        assert!(components.len() == 2);
+
+                                        let arg = components[0].to_owned();
+                                        let selector = components[1].to_owned();
+
+                                        if arg == *cut_param {
+                                            Some((selector, rhs.clone()))
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect();
+
                                 let worklist = vec![t.replace(
                                     &[cut_param.clone()],
                                     &Tree::from_computation_signature(
                                         lemma,
-                                        query_args
-                                            .iter()
-                                            .filter_map(|(lhs, rhs)| {
-                                                let components = lhs
-                                                    .strip_prefix("fv%")
-                                                    .unwrap()
-                                                    .split("*")
-                                                    .collect::<Vec<&str>>();
-
-                                                assert!(components.len() == 2);
-
-                                                let arg =
-                                                    components[0].to_owned();
-                                                let selector =
-                                                    components[1].to_owned();
-
-                                                if arg == *cut_param {
-                                                    Some((
-                                                        selector,
-                                                        rhs.clone(),
-                                                    ))
-                                                } else {
-                                                    None
-                                                }
-                                            })
-                                            .collect(),
+                                        lemma_ret_args,
                                     ),
                                 )];
 
                                 let task::SynthesisResult {
-                                    completed: _,
+                                    completed,
                                     results,
                                 } = enumerate::synthesize_worklist(
                                     task::SynthesisProblem {
@@ -297,6 +297,10 @@ impl<'a> Synthesizer<'a> {
                                     enumerate_config.clone(),
                                     worklist,
                                 );
+
+                                if !completed {
+                                    return None;
+                                }
 
                                 if !results.is_empty() {
                                     assignment_options.push(
@@ -350,7 +354,6 @@ impl<'a> Synthesizer<'a> {
                                 &cut_param,
                             ),
                         },
-                        // TODO restrict here too?
                         FactKind::Output => GoalOption::Output {
                             computation_options: self
                                 .lib
@@ -364,7 +367,10 @@ impl<'a> Synthesizer<'a> {
                                         None
                                     } else {
                                         Some(ComputationOption {
-                                            assignment_options,
+                                            assignment_options: restrict(
+                                                &assignment_options,
+                                                &cut_param,
+                                            ),
                                             name: lemma.name.clone(),
                                         })
                                     }
