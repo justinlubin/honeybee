@@ -40,6 +40,8 @@ pub struct Record {
     pub suite: String,
     pub entry: String,
     pub task: Task,
+    pub subentry: usize,
+    pub replicate: usize,
     pub algorithm: Algorithm,
     pub completed: bool,
     pub duration: u128,
@@ -87,6 +89,7 @@ fn task_results(
     algorithm: Algorithm,
     task: Task,
     synthesis_task: task::Task,
+    subentry: usize,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
     let sp = SynthesisProblem {
@@ -98,7 +101,7 @@ fn task_results(
 
     let mut records = vec![];
 
-    for _ in 0..run_count {
+    for replicate in 0..run_count {
         let Timed {
             val: SynthesisResult { results, completed },
             duration,
@@ -108,6 +111,8 @@ fn task_results(
             suite: suite.to_owned(),
             entry: entry.to_owned(),
             task: task.clone(),
+            subentry,
+            replicate,
             algorithm: algorithm.clone(),
             completed,
             duration,
@@ -154,7 +159,8 @@ fn results(
     if parallel {
         synthesis_tasks
             .par_iter()
-            .flat_map(|synthesis_task| {
+            .enumerate()
+            .flat_map(|(subentry, synthesis_task)| {
                 task_results(
                     &lib,
                     &prog,
@@ -165,6 +171,7 @@ fn results(
                     algorithm.clone(),
                     task.clone(),
                     synthesis_task.clone(),
+                    subentry,
                     wtr,
                 )
             })
@@ -172,7 +179,8 @@ fn results(
     } else {
         synthesis_tasks
             .iter()
-            .flat_map(|synthesis_task| {
+            .enumerate()
+            .flat_map(|(subentry, synthesis_task)| {
                 task_results(
                     &lib,
                     &prog,
@@ -183,6 +191,7 @@ fn results(
                     algorithm.clone(),
                     task.clone(),
                     synthesis_task.clone(),
+                    subentry,
                     wtr,
                 )
             })

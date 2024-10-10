@@ -57,60 +57,55 @@ TASKS = ["Particular", "Any", "All"]
 
 # %% Data processing
 
-KEY = ["entry", "task", "algorithm"]
-REPLICATES = 0
+REPLICATE_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
 
-for n, g in raw_data.filter(pl.col("completed")).group_by(KEY):
-    if n[1] == "Particular":
-        continue
-
-    # Some replicates may not be completed
-    REPLICATES = max(REPLICATES, len(g))
-
-    # Check that replicates agree
+# Check that completed replicates agree
+for n, g in raw_data.filter(pl.col("completed")).group_by(REPLICATE_KEY):
     for c in ["solution_count", "solution_size"]:
         assert (g[c] == g[0, c]).all(), (n, c)
 
-data = raw_data.group_by(KEY).agg(
-    duration_med=pl.col("duration").median() / 1000,
+data = raw_data.group_by(REPLICATE_KEY).agg(
+    duration=pl.col("duration").median() / 1000,
     completed=pl.col("completed").all(),
+    solution_count=pl.col("solution_count").first(),
+    solution_size=pl.col("solution_size").first(),
 )
-
-entries = data["entry"].unique()
 
 completed = data.filter(pl.col("completed")).drop("completed")
 
-comparisons = (
-    completed.join(completed, on=["entry", "task"], suffix="2")
-    .filter(pl.col("algorithm") != pl.col("algorithm2"))
-    .with_columns(
-        log10_speedup=(pl.col("duration_med2") / pl.col("duration_med")).log10()
-    )
+# Check that different approaches agree
+# TODO ensure this!!
+# for n, g in completed.group_by("suite", "entry", "task", "subentry"):
+#     for c in ["solution_count", "solution_size"]:
+#         assert (g[c] == g[0, c]).all(), (n, c, g)
+
+solutions = (
+    completed.filter(pl.col("task") == "All")
+    .group_by(["suite", "entry"])
+    .agg(count=pl.col("solution_count").first())
 )
 
-solution_counts = {}
+total_entries = {}
+for (suite,), g in solutions.group_by("suite"):
+    # TODO: Should simply be len(g) once every task has a solution
+    entry_count = len(data.filter(pl.col("suite") == suite)["entry"].unique())
+    total_entries[suite] = {
+        "Any": entry_count,
+        "All": entry_count,
+        "Particular": g["count"].sum(),
+    }
 
-# = raw_data.filter(pl.col("completed") & (pl.algo))
-
-for (entry,), g in raw_data.filter(
-    pl.col("completed") & (pl.col("task") == "All")
-).group_by("entry"):
-    count = g[0, "solution_count"]
-    size = g[0, "solution_size"]
-
-    # Check that different approaches agree
-    assert (g["solution_count"] == count).all(), (entry, c)
-    assert (g["solution_size"] == size).all(), (entry, c)
-
-    solution_counts[entry] = count
-
-
-total_entries = {
-    "Any": len(entries),
-    "All": len(entries),
-    "Particular": sum(solution_counts.values()),
-}
-
+comparisons = (
+    completed.join(
+        completed,
+        on=["suite", "entry", "task", "subentry"],
+        suffix="2",
+    )
+    .filter(pl.col("algorithm") != pl.col("algorithm2"))
+    .with_columns(
+        log10_speedup=(pl.col("duration2") / pl.col("duration")).log10()
+    )
+)
 
 # %% Summary distributions
 
@@ -153,28 +148,40 @@ def distributions(
         axa.set_xticks(bins)
         axa.spines[["top", "right"]].set_visible(False)
 
-        axa.text(
-            1,
-            1,
-            name,
-            transform=axa.transAxes,
-            color=color,
-            ha="right",
-            va="top",
-            fontweight="bold",
-            fontsize=16,
-        )
+        if name:
+            axa.text(
+                1,
+                1,
+                name,
+                transform=axa.transAxes,
+                color=color,
+                ha="right",
+                va="top",
+                fontweight="bold",
+                fontsize=16,
+            )
 
-        axa.text(
-            1,
-            0.83,
-            f"({len(vals)}/{total_entries} solved)",
-            transform=axa.transAxes,
-            color=color,
-            ha="right",
-            va="top",
-            fontsize=10,
-        )
+            axa.text(
+                1,
+                0.83,
+                f"({len(vals)}/{total_entries} solved)",
+                transform=axa.transAxes,
+                color=color,
+                ha="right",
+                va="top",
+                fontsize=10,
+            )
+        else:
+            axa.text(
+                1,
+                1,
+                f"(on {len(vals)}/{total_entries} entries)",
+                transform=axa.transAxes,
+                color=color,
+                ha="right",
+                va="top",
+                fontsize=10,
+            )
 
         axa.set_ylabel(ylabel)
 
@@ -209,7 +216,7 @@ def distribution(
     df,
     *,
     color,
-    name="",
+    name=None,
     **kwargs,
 ):
     return distributions(
@@ -220,12 +227,10 @@ def distribution(
     )
 
 
-for task in TASKS:
+for (suite, task), df in completed.group_by("suite", "task"):
     fig, ax = distributions(
-        data.filter(
-            pl.col("completed") & (pl.col("task") == task)
-        ).group_by_sel("algorithm", sel="duration_med"),
-        total_entries=total_entries[task],
+        df.group_by_sel("algorithm", sel="duration"),
+        total_entries=total_entries[suite][task],
         order=ALGORITHMS,
         colors=ALGORITHM_COLORS,
         bins=np.arange(0, 30.1, 2),
@@ -233,23 +238,21 @@ for task in TASKS:
         xlabel="Time taken (s)",
     )
 
-    fig.save(f"{OUTPUT_DIR}/summary/{task}.pdf")
+    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.pdf")
 
-    for (alg1, alg2), df in comparisons.filter(pl.col("task") == task).group_by(
-        ["algorithm", "algorithm2"]
-    ):
-        if alg1 != "PBN_EP" or alg2 != "PBN_DLmem":
-            continue
-        fig, ax = distribution(
-            df["log10_speedup"],
-            color=ALGORITHM_COLORS[0],
-            total_entries=total_entries[task],
-            bins=np.arange(-2, 2.1, 1),
-            figsize=(5, 3),
-            xlabel=r"$\log_{10}($Speedup$)$",
-        )
+for (suite, task, alg1, alg2), df in comparisons.group_by(
+    "suite", "task", "algorithm", "algorithm2"
+):
+    fig, ax = distribution(
+        df["log10_speedup"],
+        color=ALGORITHM_COLORS[0],
+        total_entries=total_entries[suite][task],
+        bins=np.arange(-2, 2.1, 0.5),
+        figsize=(5, 3),
+        xlabel=r"$\log_{10}($Speedup$)$",
+    )
 
-        fig.save(f"{OUTPUT_DIR}/speedup/{task}-{alg1}-{alg2}.pdf")
+    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.pdf")
 
 
 # %% Trapezoid plots
@@ -308,14 +311,16 @@ def trapezoid(
     return fig, ax
 
 
-for (entry, alg1, alg2), df in comparisons.group_by(
-    ["entry", "algorithm", "algorithm2"]
+for (suite, entry, alg1, alg2), df in comparisons.group_by(
+    "suite", "entry", "algorithm", "algorithm2"
 ):
-    if alg1 != "EP" or alg2 != "PBN_DLmem":
-        continue
+    df = df.group_by("task").agg(
+        duration_med=pl.col("duration").median(),
+        duration2_med=pl.col("duration2").median(),
+    )
     fig, ax = trapezoid(
         df["duration_med"],
-        df["duration_med2"],
+        df["duration2_med"],
         df["task"],
         xticklabel1=alg1,
         xticklabel2=alg2,
@@ -323,7 +328,7 @@ for (entry, alg1, alg2), df in comparisons.group_by(
         highlight_labels={"Particular"},
         figsize=(4, 3),
     )
-    fig.save(f"{OUTPUT_DIR}/trapezoid/{entry}-{alg1}-{alg2}.pdf")
+    fig.save(f"{OUTPUT_DIR}/{suite}/trapezoid/{entry}-{alg1}-{alg2}.pdf")
 
 # %% Completion percentage
 
@@ -364,20 +369,17 @@ def completion(vals, *, best, order, colors, figsize, xlabel):
     return fig, ax
 
 
-for task in TASKS:
+for (suite, task), df in completed.group_by("suite", "task"):
     fig, ax = completion(
-        data.filter(pl.col("completed") & (pl.col("task") == task))
-        .group_by("algorithm")
-        .len()
-        .rows(),
-        best=total_entries[task],
+        df.group_by("algorithm").len().rows(),
+        best=total_entries[suite][task],
         order=ALGORITHMS,
         colors=ALGORITHM_COLORS,
         figsize=(5, 3),
         xlabel="Algorithm",
     )
 
-    fig.save(f"{OUTPUT_DIR}/completion/{task}.pdf")
+    fig.save(f"{OUTPUT_DIR}/{suite}/completion/{task}.pdf")
 
 
 # %% Completion percentages
