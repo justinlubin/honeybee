@@ -1,10 +1,10 @@
 # %% Imports and monkey patching
 
-import altair as alt
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
+
+import matplotlib.figure
 
 import os
 
@@ -262,12 +262,22 @@ raw_data = pl.read_csv("../data/data.csv")
 
 # %% Process and check data
 
+# Whether or not to perform validity checks of benchmark csv
+CHECK = True
+
 REPLICATE_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
 
+# Check that completed entries have at least one solution
+if CHECK:
+    df = raw_data.filter(pl.col("completed") & (pl.col("solution_count") == 0))
+    with pl.Config(tbl_cols=-1):
+        assert df.is_empty(), str(df)
+
 # Check that completed replicates agree
-for n, g in raw_data.filter(pl.col("completed")).group_by(REPLICATE_KEY):
-    for c in ["solution_count", "solution_size"]:
-        assert (g[c] == g[0, c]).all(), (n, c)
+if CHECK:
+    for n, g in raw_data.filter(pl.col("completed")).group_by(REPLICATE_KEY):
+        for c in ["solution_count", "solution_size"]:
+            assert (g[c] == g[0, c]).all(), (n, c)
 
 data = raw_data.group_by(REPLICATE_KEY).agg(
     duration=pl.col("duration").median() / 1000,
@@ -279,10 +289,10 @@ data = raw_data.group_by(REPLICATE_KEY).agg(
 completed = data.filter(pl.col("completed")).drop("completed")
 
 # Check that different approaches agree
-# TODO ensure this!!
-# for n, g in completed.group_by("suite", "entry", "task", "subentry"):
-#     for c in ["solution_count", "solution_size"]:
-#         assert (g[c] == g[0, c]).all(), (n, c, g)
+if CHECK:
+    for n, g in completed.group_by("suite", "entry", "task", "subentry"):
+        for c in ["solution_count", "solution_size"]:
+            assert (g[c] == g[0, c]).all(), (n, c, g)
 
 solutions = (
     completed.filter(pl.col("task") == "All")
