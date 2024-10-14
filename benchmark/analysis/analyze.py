@@ -123,7 +123,9 @@ def distributions(
         axc.set_visible(False)
 
     for i in range(0, len(groups)):
-        ax[3 * i].set_yticks(np.arange(0, max_count + 1, 1))
+        ax[3 * i].set_yticks(
+            np.arange(0, max_count + 1, max(1, max_count // 4))
+        )
 
     fig.tight_layout()
     fig.subplots_adjust(hspace=0.1)
