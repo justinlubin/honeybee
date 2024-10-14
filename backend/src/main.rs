@@ -60,11 +60,17 @@ enum Commands {
         #[arg(short, long, value_name = "BOOL", default_value_t = false)]
         quick: bool,
 
+        /// Use only certain algorithms (e.g. EP,PBN_DLmem)
         #[arg(short, long, value_name = "A1,A2,...", default_value = "")]
         algorithms: String,
 
+        /// Solve only certain tasks (e.g. Any,Particular)
         #[arg(long, value_name = "T1,T2,...", default_value = "")]
         tasks: String,
+
+        /// Show results for each benchmark row (results in invalid TSV)
+        #[arg(long, value_name = "BOOL", default_value_t = false)]
+        show_results: bool,
     },
 }
 
@@ -108,6 +114,7 @@ fn main() {
             quick,
             algorithms,
             tasks,
+            show_results,
         } => {
             let algorithms = parse_algorithms(&algorithms);
             let tasks = parse_tasks(&tasks);
@@ -118,6 +125,7 @@ fn main() {
                 filter,
                 true,
                 *quick,
+                *show_results,
                 &algorithms,
                 &tasks,
             )

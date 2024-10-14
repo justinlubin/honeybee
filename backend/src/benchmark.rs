@@ -73,6 +73,7 @@ fn task_results(
     task: Task,
     synthesis_task: task::Task,
     subentry: usize,
+    show_results: bool,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
     let sp = task::SynthesisProblem {
@@ -108,6 +109,13 @@ fn task_results(
         Arc::clone(wtr).lock().unwrap().as_mut().map(|wtr| {
             wtr.serialize(r).unwrap();
             wtr.flush().unwrap();
+            if show_results {
+                println!(">>> Start Results >>>\n");
+                for r in results {
+                    println!("{}", r);
+                }
+                println!("<<< End Results <<<");
+            }
         });
     }
 
@@ -125,6 +133,7 @@ fn results(
     algorithm: Algorithm,
     task: Task,
     parallel: bool,
+    show_results: bool,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
     let synthesis_tasks = match task {
@@ -155,6 +164,7 @@ fn results(
                     task.clone(),
                     synthesis_task.clone(),
                     subentry,
+                    show_results,
                     wtr,
                 )
             })
@@ -175,6 +185,7 @@ fn results(
                     task.clone(),
                     synthesis_task.clone(),
                     subentry,
+                    show_results,
                     wtr,
                 )
             })
@@ -190,6 +201,7 @@ fn entry_results(
     run_count: usize,
     suite: &str,
     parallel: bool,
+    show_results: bool,
     algorithms: &Vec<Algorithm>,
     tasks: &Vec<Task>,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
@@ -228,6 +240,7 @@ fn entry_results(
                         algorithm.clone(),
                         task.clone(),
                         parallel,
+                        show_results,
                         wtr,
                     )
                 })
@@ -249,6 +262,7 @@ fn entry_results(
                         algorithm.clone(),
                         task.clone(),
                         parallel,
+                        show_results,
                         wtr,
                     )
                 })
@@ -275,6 +289,7 @@ pub fn run(
     filter: &str,
     write_stdout: bool,
     parallel: bool,
+    show_results: bool,
     algorithms: &Vec<Algorithm>,
     tasks: &Vec<Task>,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
@@ -294,7 +309,11 @@ pub fn run(
         .map_err(|e| format!("[Library type error] {}", e))?;
 
     let wtr = Arc::new(Mutex::new(if write_stdout {
-        Some(csv::Writer::from_writer(std::io::stdout()))
+        Some(
+            csv::WriterBuilder::new()
+                .delimiter(b'\t')
+                .from_writer(std::io::stdout()),
+        )
     } else {
         None
     }));
@@ -340,6 +359,7 @@ pub fn run(
                     run_count,
                     suite,
                     parallel,
+                    show_results,
                     algorithms,
                     tasks,
                     &wtr,
@@ -358,6 +378,7 @@ pub fn run(
                     run_count,
                     suite,
                     parallel,
+                    show_results,
                     algorithms,
                     tasks,
                     &wtr,

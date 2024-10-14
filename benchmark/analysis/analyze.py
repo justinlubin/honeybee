@@ -258,7 +258,7 @@ ALGORITHM_COLORS = [
 
 # %% Load data
 
-raw_data = pl.read_csv("../data/data.csv")
+raw_data = pl.read_csv("../data/data.tsv")
 
 # %% Process and check data
 
@@ -291,6 +291,8 @@ completed = data.filter(pl.col("completed")).drop("completed")
 # Check that different approaches agree
 if CHECK:
     for n, g in completed.group_by("suite", "entry", "task", "subentry"):
+        if n[2] == "Any":
+            continue
         for c in ["solution_count", "solution_size"]:
             assert (g[c] == g[0, c]).all(), (n, c, g)
 

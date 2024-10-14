@@ -9,7 +9,7 @@ quick-benchmark:
 	    -t 30000 \
 	    -r 2 \
 	    -q \
-	    > ../benchmark/data/data.csv
+	    > ../benchmark/data/data.tsv
 
 .PHONY: wasm
 wasm:
