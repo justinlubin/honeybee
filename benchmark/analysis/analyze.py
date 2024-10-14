@@ -258,7 +258,7 @@ ALGORITHM_COLORS = [
 
 # %% Load data
 
-raw_data = pl.read_csv("../data/data.tsv")
+raw_data = pl.read_csv("../data/data.tsv", separator="\t")
 
 # %% Process and check data
 
