@@ -41,32 +41,47 @@ def distributions(
     xlabel,
     ylabel="Count",
     total=None,
+    flip=False,
 ):
     groups = sorted(groups, key=lambda x: order.index(x[0]))
-    fig, ax = plt.subplots(
-        3 * len(groups),
-        1,
-        gridspec_kw={"height_ratios": [3, 1, 1] * len(groups)},
-        figsize=figsize,
-        sharex=True,
-    )
+    if flip:
+        fig, ax = plt.subplots(
+            1,
+            3 * len(groups),
+            gridspec_kw={"width_ratios": [1, 3, 1] * len(groups)},
+            figsize=figsize,
+            sharey=True,
+        )
+    else:
+        fig, ax = plt.subplots(
+            3 * len(groups),
+            1,
+            gridspec_kw={"height_ratios": [3, 1, 1] * len(groups)},
+            figsize=figsize,
+            sharex=True,
+        )
 
     max_count = 0
     for i in range(0, len(groups)):
         (name, vals) = groups[i]
         color = colors[i]
 
-        axa = ax[3 * i]
+        axa = ax[3 * i + 1] if flip else ax[3 * i]
 
         n, _, _ = axa.hist(
             vals,
             bins=bins,
             color=color,
             edgecolor="black",
+            orientation="horizontal" if flip else "vertical",
         )
         max_count = max(max_count, max(n))
 
-        axa.set_xticks(bins)
+        if flip:
+            axa.set_yticks(bins)
+        else:
+            axa.set_xticks(bins)
+
         axa.spines[["top", "right"]].set_visible(False)
 
         if name:
@@ -84,7 +99,7 @@ def distributions(
 
         if total:
             if name:
-                y = 0.83
+                y = 0.93 if flip else 0.83
                 text = f"({len(vals)}/{total} solved)"
             else:
                 y = 1
@@ -101,34 +116,46 @@ def distributions(
                 fontsize=10,
             )
 
-        axa.set_ylabel(ylabel)
+        if flip:
+            axa.set_xlabel(ylabel)
+        else:
+            axa.set_ylabel(ylabel)
 
-        axb = ax[3 * i + 1]
+        axb = ax[3 * i] if flip else ax[3 * i + 1]
         axb.boxplot(
             vals,
-            vert=False,
+            vert=flip,
             widths=0.5,
             patch_artist=True,
             boxprops=dict(facecolor=color),
             medianprops=dict(color="black"),
         )
-        axb.tick_params(
-            top=False, labeltop=False, bottom=True, labelbottom=True
-        )
-        axb.spines[["right", "top", "left"]].set_visible(False)
-        axb.get_yaxis().set_visible(False)
-        axb.set_xlabel(xlabel)
+        if flip:
+            axb.tick_params(left=True, labelleft=True)
+            axb.spines[["right", "top", "bottom"]].set_visible(False)
+            axb.get_xaxis().set_visible(False)
+            axb.set_ylabel(xlabel)
+        else:
+            axb.tick_params(bottom=True, labelbottom=True)
+            axb.spines[["right", "top", "left"]].set_visible(False)
+            axb.get_yaxis().set_visible(False)
+            axb.set_xlabel(xlabel)
 
         axc = ax[3 * i + 2]
         axc.set_visible(False)
 
+    ticks = np.arange(0, max_count + 1, max(1, max_count // 4))
     for i in range(0, len(groups)):
-        ax[3 * i].set_yticks(
-            np.arange(0, max_count + 1, max(1, max_count // 4))
-        )
+        if flip:
+            ax[3 * i + 1].set_xticks(ticks)
+        else:
+            ax[3 * i].set_yticks(ticks)
 
     fig.tight_layout()
-    fig.subplots_adjust(hspace=0.1)
+    if flip:
+        fig.subplots_adjust(wspace=0.1)
+    else:
+        fig.subplots_adjust(hspace=0.1)
     return fig, ax
 
 
@@ -335,8 +362,9 @@ for (suite, task), df in completed.group_by("suite", "task"):
         order=ALGORITHMS,
         colors=ALGORITHM_COLORS,
         bins=np.arange(0, 30.1, 2),
-        figsize=(5, 15),
+        figsize=(20, 5),
         xlabel="Time taken (s)",
+        flip=True,
     )
 
     fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.pdf")
