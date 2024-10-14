@@ -1,5 +1,4 @@
 use crate::ir::*;
-use crate::task::*;
 
 use crate::backend;
 use crate::derivation;
@@ -17,23 +16,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-#[derive(Debug, Clone, Serialize)]
-#[allow(non_camel_case_types)]
-pub enum Algorithm {
-    E,
-    EP,
-    PBN_E,
-    PBN_EP,
-    PBN_DL,
-    PBN_DLmem,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub enum Task {
-    Any,
-    All,
-    Particular,
-}
+use crate::benchmark_data::*;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Record {
@@ -55,9 +38,9 @@ struct Timed<T> {
 }
 
 fn run_one(
-    sp: SynthesisProblem,
+    sp: task::SynthesisProblem,
     algorithm: Algorithm,
-) -> Timed<SynthesisResult> {
+) -> Timed<task::SynthesisResult> {
     let now = Instant::now();
     let sr = match algorithm {
         Algorithm::E => enumerate::synthesize(sp, enumerate::Config::Basic),
@@ -92,7 +75,7 @@ fn task_results(
     subentry: usize,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
-    let sp = SynthesisProblem {
+    let sp = task::SynthesisProblem {
         lib: &lib,
         prog: &prog,
         task: synthesis_task,
@@ -103,7 +86,7 @@ fn task_results(
 
     for replicate in 0..run_count {
         let Timed {
-            val: SynthesisResult { results, completed },
+            val: task::SynthesisResult { results, completed },
             duration,
         } = run_one(sp.clone(), algorithm.clone());
 
@@ -207,11 +190,13 @@ fn entry_results(
     run_count: usize,
     suite: &str,
     parallel: bool,
+    algorithms: &Vec<Algorithm>,
+    tasks: &Vec<Task>,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
     let particulars = {
         let sr = pbn::synthesize(
-            SynthesisProblem {
+            task::SynthesisProblem {
                 lib: &lib,
                 prog: &prog,
                 task: task::Task::AllValid,
@@ -226,17 +211,6 @@ fn entry_results(
             None
         }
     };
-
-    let algorithms = vec![
-        Algorithm::E,
-        Algorithm::EP,
-        Algorithm::PBN_E,
-        Algorithm::PBN_EP,
-        Algorithm::PBN_DL,
-        Algorithm::PBN_DLmem,
-    ];
-
-    let tasks = vec![Task::Particular, Task::Any, Task::All];
 
     if parallel {
         algorithms
@@ -301,6 +275,8 @@ pub fn run(
     filter: &str,
     write_stdout: bool,
     parallel: bool,
+    algorithms: &Vec<Algorithm>,
+    tasks: &Vec<Task>,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     assert!(suite_directory.is_dir());
 
@@ -364,6 +340,8 @@ pub fn run(
                     run_count,
                     suite,
                     parallel,
+                    algorithms,
+                    tasks,
                     &wtr,
                 )
             })
@@ -380,6 +358,8 @@ pub fn run(
                     run_count,
                     suite,
                     parallel,
+                    algorithms,
+                    tasks,
                     &wtr,
                 )
             })

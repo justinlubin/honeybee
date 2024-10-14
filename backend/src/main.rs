@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
+use honeybee::*;
+
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-
-use honeybee::*;
 
 /// Programming by Navigation with 🐝 Honeybee
 #[derive(Parser)]
@@ -59,7 +59,33 @@ enum Commands {
         /// Use a quick (parallel) approximation - not for publication use
         #[arg(short, long, value_name = "BOOL", default_value_t = false)]
         quick: bool,
+
+        #[arg(short, long, value_name = "A1,A2,...", default_value = "")]
+        algorithms: String,
+
+        #[arg(long, value_name = "T1,T2,...", default_value = "")]
+        tasks: String,
     },
+}
+
+fn parse_algorithms(s: &str) -> Vec<benchmark_data::Algorithm> {
+    if s.is_empty() {
+        benchmark_data::ALGORITHMS.to_vec()
+    } else {
+        s.split(",")
+            .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
+            .collect()
+    }
+}
+
+fn parse_tasks(s: &str) -> Vec<benchmark_data::Task> {
+    if s.is_empty() {
+        benchmark_data::TASKS.to_vec()
+    } else {
+        s.split(",")
+            .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
+            .collect()
+    }
 }
 
 fn main() {
@@ -80,8 +106,23 @@ fn main() {
             timeout,
             filter,
             quick,
-        } => benchmark::run(suite, *run_count, *timeout, filter, true, *quick)
-            .map(|_| ()),
+            algorithms,
+            tasks,
+        } => {
+            let algorithms = parse_algorithms(&algorithms);
+            let tasks = parse_tasks(&tasks);
+            benchmark::run(
+                suite,
+                *run_count,
+                *timeout,
+                filter,
+                true,
+                *quick,
+                &algorithms,
+                &tasks,
+            )
+            .map(|_| ())
+        }
     };
 
     match result {

@@ -36,6 +36,3 @@ rayon = "1.10.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-
-[profile.dev]
-debug = false

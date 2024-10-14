@@ -270,7 +270,7 @@ REPLICATE_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
 # Check that completed entries have at least one solution
 if CHECK:
     df = raw_data.filter(pl.col("completed") & (pl.col("solution_count") == 0))
-    with pl.Config(tbl_cols=-1):
+    with pl.Config(tbl_rows=-1, tbl_cols=-1):
         assert df.is_empty(), str(df)
 
 # Check that completed replicates agree

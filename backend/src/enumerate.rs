@@ -261,7 +261,7 @@ pub fn synthesize_worklist(
                 }
                 Task::AllSimplyTyped => results.push(new_t),
                 Task::Particular(ref choice) => {
-                    if new_t == *choice {
+                    if new_t.eq_ignoring_conditions(choice) {
                         return SynthesisResult {
                             results: vec![new_t],
                             completed: true,

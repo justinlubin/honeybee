@@ -487,16 +487,8 @@ impl Tree {
         }
         res
     }
-}
 
-impl std::fmt::Display for Tree {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.pretty())
-    }
-}
-
-impl PartialEq for Tree {
-    fn eq(&self, other: &Self) -> bool {
+    pub fn eq_ignoring_conditions(&self, other: &Self) -> bool {
         match (self, other) {
             (Tree::Axiom(f), Tree::Axiom(f2)) => *f == *f2,
             (Tree::Axiom(_), _) => false,
@@ -508,31 +500,37 @@ impl PartialEq for Tree {
                     label,
                     antecedents,
                     consequent,
-                    side_condition,
+                    side_condition: _,
                 },
                 Tree::Step {
                     label: label2,
                     antecedents: antecedents2,
                     consequent: consequent2,
-                    side_condition: side_condition2,
+                    side_condition: _,
                 },
             ) => {
+                if antecedents.len() != antecedents2.len() {
+                    return false;
+                }
                 let mut antecedents = antecedents.clone();
                 antecedents.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
                 let mut antecedents2 = antecedents2.clone();
                 antecedents2.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
-                let mut side_condition = side_condition.clone();
-                side_condition.sort();
-                let mut side_condition2 = side_condition2.clone();
-                side_condition2.sort();
                 label == label2
-                    && antecedents == antecedents2
+                    && antecedents.into_iter().zip(antecedents2).all(
+                        |((k1, v1), (k2, v2))| {
+                            k1 == k2 && v1.eq_ignoring_conditions(&v2)
+                        },
+                    )
                     && consequent == consequent2
-                    && side_condition == side_condition2
             }
             (Tree::Step { .. }, _) => false,
         }
     }
 }
 
-impl Eq for Tree {}
+impl std::fmt::Display for Tree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.pretty())
+    }
+}

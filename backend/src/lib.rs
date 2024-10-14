@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub mod benchmark;
+pub mod benchmark_data;
 pub mod run;
 
 mod analysis;
