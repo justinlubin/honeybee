@@ -71,6 +71,9 @@ def distributions(
         (name, vals) = groups[i]
         color = colors[i]
 
+        assert min(vals) >= min(bins)
+        assert max(vals) <= max(bins)
+
         axa = ax[3 * i + 1] if flip else ax[3 * i]
 
         n, _, _ = axa.hist(
@@ -400,7 +403,13 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
     "suite", "task", "algorithm", "algorithm2"
 ):
     base = 2
-    magnitude_lim = 4
+    magnitude_lim = int(
+        max(
+            abs(math.log(df["speedup"].min(), base)),
+            abs(math.log(df["speedup"].max(), base)),
+        )
+        + 1
+    )
     magnitudes = np.arange(-magnitude_lim, magnitude_lim + 0.1, 1)
     bins = [base**m for m in magnitudes]
     fig, ax = distribution(
@@ -408,7 +417,7 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
         color=ALGORITHM_COLORS[0],
         total=total_entries[suite][task],
         bins=bins,
-        figsize=(5, 3),
+        figsize=(8, 3),
         xlabel="Speedup (log scale)",
     )
 
@@ -416,7 +425,10 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
 
     ax[1].set_xticks(
         bins,
-        labels=[pretty_abs_speedup(b, base=base) for b in bins],
+        labels=[
+            pretty_abs_speedup(b, base=base) if i % 1 == 0 else ""
+            for i, b in enumerate(bins)
+        ],
     )
 
     y = -0.66
