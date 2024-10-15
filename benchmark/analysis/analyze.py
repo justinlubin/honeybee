@@ -399,8 +399,6 @@ def is_int_pow(x, *, base, eps=1e-6):
 for (suite, task, alg1, alg2), df in comparisons.group_by(
     "suite", "task", "algorithm", "algorithm2"
 ):
-    if alg1 != "PBN_DL" or alg2 != "PBN_DLmem":
-        continue
     base = 2
     magnitude_lim = 4
     magnitudes = np.arange(-magnitude_lim, magnitude_lim + 0.1, 1)
