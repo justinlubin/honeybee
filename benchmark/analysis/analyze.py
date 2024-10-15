@@ -7,6 +7,7 @@ import polars as pl
 import matplotlib.figure
 
 import os
+import math
 
 
 def save(self, filename, *args):
@@ -42,7 +43,11 @@ def distributions(
     ylabel="Count",
     total=None,
     flip=False,
+    xticklabels=None,
 ):
+    if xticklabels is not None:
+        assert len(xticklabels) == len(bins)
+
     groups = sorted(groups, key=lambda x: order.index(x[0]))
     if flip:
         fig, ax = plt.subplots(
@@ -122,6 +127,7 @@ def distributions(
             axa.set_ylabel(ylabel)
 
         axb = ax[3 * i] if flip else ax[3 * i + 1]
+
         axb.boxplot(
             vals,
             vert=flip,
@@ -130,13 +136,18 @@ def distributions(
             boxprops=dict(facecolor=color),
             medianprops=dict(color="black"),
         )
+
         if flip:
             axb.tick_params(left=True, labelleft=True)
+            if xticklabels:
+                axb.set_yticks(bins, labels=xticklabels)
             axb.spines[["right", "top", "bottom"]].set_visible(False)
             axb.get_xaxis().set_visible(False)
             axb.set_ylabel(xlabel)
         else:
             axb.tick_params(bottom=True, labelbottom=True)
+            if xticklabels:
+                axb.set_xticks(bins, labels=xticklabels)
             axb.spines[["right", "top", "left"]].set_visible(False)
             axb.get_yaxis().set_visible(False)
             axb.set_xlabel(xlabel)
@@ -144,12 +155,12 @@ def distributions(
         axc = ax[3 * i + 2]
         axc.set_visible(False)
 
-    ticks = np.arange(0, max_count + 1, max(1, max_count // 4))
+    count_ticks = np.arange(0, max_count + 1, max(1, max_count // 4))
     for i in range(0, len(groups)):
         if flip:
-            ax[3 * i + 1].set_xticks(ticks)
+            ax[3 * i + 1].set_xticks(count_ticks)
         else:
-            ax[3 * i].set_yticks(ticks)
+            ax[3 * i].set_yticks(count_ticks)
 
     fig.tight_layout()
     if flip:
@@ -348,9 +359,7 @@ comparisons = (
         suffix="2",
     )
     .filter(pl.col("algorithm") != pl.col("algorithm2"))
-    .with_columns(
-        log10_speedup=(pl.col("duration2") / pl.col("duration")).log10()
-    )
+    .with_columns(speedup=pl.col("duration") / pl.col("duration2"))
 )
 
 # %% Plot summaries
@@ -371,17 +380,82 @@ for (suite, task), df in completed.group_by("suite", "task"):
 
 # %% Plot speedup comparisons
 
+
+def pretty_abs_speedup(x, *, base, eps=1e-6):
+    if x < 0:
+        raise ValueError(f"impossible speedup: {x}")
+    if abs(x - 1) < eps:
+        return "1x\n"
+    if x < 1:
+        x = 1 / x
+    return f"{int(x)}x"
+
+
+def is_int_pow(x, *, base, eps=1e-6):
+    log = math.log(x, base)
+    return abs(log - round(log)) < eps
+
+
 for (suite, task, alg1, alg2), df in comparisons.group_by(
     "suite", "task", "algorithm", "algorithm2"
 ):
+    if alg1 != "PBN_DL" or alg2 != "PBN_DLmem":
+        continue
+    base = 2
+    magnitude_lim = 4
+    magnitudes = np.arange(-magnitude_lim, magnitude_lim + 0.1, 1)
+    bins = [base**m for m in magnitudes]
     fig, ax = distribution(
-        df["log10_speedup"],
+        df["speedup"],
         color=ALGORITHM_COLORS[0],
         total=total_entries[suite][task],
-        bins=np.arange(-2, 2.1, 0.5),
+        bins=bins,
         figsize=(5, 3),
-        xlabel=r"$\log_{10}($Speedup$)$",
+        xlabel="Speedup (log scale)",
     )
+
+    ax[0].set_xscale("log", base=2)
+
+    ax[1].set_xticks(
+        bins,
+        labels=[pretty_abs_speedup(b, base=base) for b in bins],
+    )
+
+    y = -0.66
+    hpad = 0.05
+    arrowprops = dict(
+        facecolor="black",
+        width=2,
+        headwidth=6,
+        headlength=4,
+        shrink=0.1,
+    )
+
+    ax[1].annotate(
+        alg1 + " faster",
+        xy=(0, y),
+        xytext=(hpad, y),
+        xycoords=ax[1].transAxes,
+        ha="left",
+        va="center",
+        fontweight="bold",
+        arrowprops=arrowprops,
+    )
+
+    ax[1].annotate(
+        alg2 + " faster",
+        xy=(1, y),
+        xytext=(1 - hpad, y),
+        xycoords=ax[1].transAxes,
+        ha="right",
+        va="center",
+        fontweight="bold",
+        arrowprops=arrowprops,
+    )
+
+    for a in ax:
+        a.axvline(x=1, color="gray", ls="dotted")
+        # a.tick_params(axis="x", which="minor", bottom=False)
 
     fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.pdf")
 
