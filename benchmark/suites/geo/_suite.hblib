@@ -74,11 +74,11 @@
   (< 2 (.bands raster)))
 
 (output fact NDVI
-  (.name Str) (.data Str) (.resolution Int) (.projection Str))
+  (.name Str) (.data Str) (.resolution Int) (.projection Str) (.sensor Str))
 
 (computation ndwi NDWI
   ((raster Raster) (red Int) (nir Int))
   (< 2 (.bands raster)))
 
 (output fact NDWI
-  (.name Str) (.data Str) (.resolution Int) (.projection Str))
+  (.name Str) (.data Str) (.resolution Int) (.projection Str) (.sensor Str))
