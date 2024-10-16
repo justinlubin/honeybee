@@ -69,14 +69,14 @@
 
 ; Remote Sensing
 
-(computation ndvi Raster
+(computation ndvi NDVI
   ((raster Raster) (red Int) (nir Int))
   (< 2 (.bands raster)))
 
 (output fact NDVI
   (.name Str) (.data Str) (.resolution Int) (.projection Str))
 
-(computation ndwi Raster
+(computation ndwi NDWI
   ((raster Raster) (red Int) (nir Int))
   (< 2 (.bands raster)))
 
