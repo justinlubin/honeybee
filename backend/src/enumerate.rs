@@ -230,53 +230,59 @@ pub fn synthesize_worklist(
 
     let now = Instant::now();
 
-    while let Some(t) = worklist.pop() {
-        if now.elapsed().as_millis() > soft_timeout {
-            return SynthesisResult {
-                results,
-                completed: false,
-            };
-        }
+    while !worklist.is_empty() {
+        let mut new_worklist = vec![];
 
-        match expand(lib, prog, t, config.clone(), now, soft_timeout) {
-            ExpansionResult::Complete(new_t) => match task {
-                Task::AnyValid => {
-                    if new_t.valid(&prog.annotations) {
-                        return SynthesisResult {
-                            results: vec![new_t],
-                            completed: true,
-                        };
-                    }
-                }
-                Task::AllValid => {
-                    if new_t.valid(&prog.annotations) {
-                        results.push(new_t)
-                    }
-                }
-                Task::AnySimplyTyped => {
-                    return SynthesisResult {
-                        results: vec![new_t],
-                        completed: true,
-                    }
-                }
-                Task::AllSimplyTyped => results.push(new_t),
-                Task::Particular(ref choice) => {
-                    if new_t.eq_ignoring_conditions(choice) {
-                        return SynthesisResult {
-                            results: vec![new_t],
-                            completed: true,
-                        };
-                    }
-                }
-            },
-            ExpansionResult::Incomplete(ts) => worklist.extend(ts),
-            ExpansionResult::TimedOut => {
+        for t in worklist.into_iter() {
+            if now.elapsed().as_millis() > soft_timeout {
                 return SynthesisResult {
                     results,
                     completed: false,
                 };
             }
+
+            match expand(lib, prog, t, config.clone(), now, soft_timeout) {
+                ExpansionResult::Complete(new_t) => match task {
+                    Task::AnyValid => {
+                        if new_t.valid(&prog.annotations) {
+                            return SynthesisResult {
+                                results: vec![new_t],
+                                completed: true,
+                            };
+                        }
+                    }
+                    Task::AllValid => {
+                        if new_t.valid(&prog.annotations) {
+                            results.push(new_t)
+                        }
+                    }
+                    Task::AnySimplyTyped => {
+                        return SynthesisResult {
+                            results: vec![new_t],
+                            completed: true,
+                        }
+                    }
+                    Task::AllSimplyTyped => results.push(new_t),
+                    Task::Particular(ref choice) => {
+                        if new_t.eq_ignoring_conditions(choice) {
+                            return SynthesisResult {
+                                results: vec![new_t],
+                                completed: true,
+                            };
+                        }
+                    }
+                },
+                ExpansionResult::Incomplete(ts) => new_worklist.extend(ts),
+                ExpansionResult::TimedOut => {
+                    return SynthesisResult {
+                        results,
+                        completed: false,
+                    };
+                }
+            }
         }
+
+        worklist = new_worklist;
     }
     SynthesisResult {
         results,

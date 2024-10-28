@@ -151,81 +151,87 @@ pub fn synthesize(
         Task::AllValid => {
             let mut worklist = vec![synthesis::Synthesizer::new(lib, prog)];
             let mut results = vec![];
-            while let Some(synthesizer) = worklist.pop() {
-                let elapsed = now.elapsed().as_millis();
-                if elapsed > soft_timeout {
-                    return SynthesisResult {
-                        results,
-                        completed: false,
-                    };
-                }
+            while !worklist.is_empty() {
+                let mut new_worklist = vec![];
 
-                let options = match &config {
-                    Config::Basic | Config::Memo => {
-                        synthesizer.options_datalog(&mut egg)
+                for synthesizer in worklist.into_iter() {
+                    let elapsed = now.elapsed().as_millis();
+                    if elapsed > soft_timeout {
+                        return SynthesisResult {
+                            results,
+                            completed: false,
+                        };
                     }
-                    Config::Enum(enumerate_config) => match synthesizer
-                        .options_enumerative(
-                            soft_timeout - elapsed,
-                            enumerate_config.clone(),
-                        ) {
-                        Some(o) => o,
-                        None => {
-                            return SynthesisResult {
-                                results,
-                                completed: false,
+
+                    let options = match &config {
+                        Config::Basic | Config::Memo => {
+                            synthesizer.options_datalog(&mut egg)
+                        }
+                        Config::Enum(enumerate_config) => match synthesizer
+                            .options_enumerative(
+                                soft_timeout - elapsed,
+                                enumerate_config.clone(),
+                            ) {
+                            Some(o) => o,
+                            None => {
+                                return SynthesisResult {
+                                    results,
+                                    completed: false,
+                                }
+                            }
+                        },
+                    };
+
+                    if options.is_empty() {
+                        results.push(synthesizer.tree);
+                        continue;
+                    }
+                    match options.into_iter().next().unwrap() {
+                        synthesis::GoalOption::Output {
+                            path,
+                            tag,
+                            computation_options,
+                        } => {
+                            let path = derivation::into_tags(path);
+                            for computation_option in computation_options {
+                                let synthesis::ComputationOption {
+                                    name,
+                                    assignment_options,
+                                } = computation_option;
+                                for assignment in assignment_options {
+                                    let mut new = synthesizer.clone();
+                                    new.step(&synthesis::Choice::Output {
+                                        path: path.clone(),
+                                        tag: tag.clone(),
+                                        computation_name: name.clone(),
+                                        assignment,
+                                    });
+                                    new_worklist.push(new);
+                                }
                             }
                         }
-                    },
-                };
-
-                if options.is_empty() {
-                    results.push(synthesizer.tree);
-                    continue;
-                }
-                match options.into_iter().next().unwrap() {
-                    synthesis::GoalOption::Output {
-                        path,
-                        tag,
-                        computation_options,
-                    } => {
-                        let path = derivation::into_tags(path);
-                        for computation_option in computation_options {
-                            let synthesis::ComputationOption {
-                                name,
-                                assignment_options,
-                            } = computation_option;
+                        synthesis::GoalOption::Input {
+                            path,
+                            tag,
+                            fact_name,
+                            assignment_options,
+                        } => {
+                            let path = derivation::into_tags(path);
                             for assignment in assignment_options {
                                 let mut new = synthesizer.clone();
-                                new.step(&synthesis::Choice::Output {
-                                    path: path.clone(),
+                                new.step(&synthesis::Choice::Input {
                                     tag: tag.clone(),
-                                    computation_name: name.clone(),
+                                    fact_name: fact_name.clone(),
                                     assignment,
+                                    path: path.clone(),
                                 });
-                                worklist.push(new);
+                                new_worklist.push(new);
                             }
                         }
                     }
-                    synthesis::GoalOption::Input {
-                        path,
-                        tag,
-                        fact_name,
-                        assignment_options,
-                    } => {
-                        let path = derivation::into_tags(path);
-                        for assignment in assignment_options {
-                            let mut new = synthesizer.clone();
-                            new.step(&synthesis::Choice::Input {
-                                tag: tag.clone(),
-                                fact_name: fact_name.clone(),
-                                assignment,
-                                path: path.clone(),
-                            });
-                            worklist.push(new);
-                        }
-                    }
                 }
+
+                worklist = new_worklist;
             }
             SynthesisResult {
                 results,
