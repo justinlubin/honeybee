@@ -373,10 +373,10 @@ for (suite, task), df in completed.group_by("suite", "task"):
         total=total_entries[suite][task],
         order=ALGORITHMS,
         colors=ALGORITHM_COLORS,
-        bins=np.arange(0, 30.1, 2),
-        figsize=(20, 5),
+        bins=np.arange(0, 10.1, 1),
+        figsize=(5, 20),
         xlabel="Time taken (s)",
-        flip=True,
+        flip=False,
     )
 
     fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.pdf")

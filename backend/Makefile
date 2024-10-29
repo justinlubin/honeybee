@@ -4,16 +4,16 @@ build:
 
 .PHONY: quick-benchmark
 quick-benchmark:
-	RAYON_NUM_THREADS=8 \
+	RAYON_NUM_THREADS=16 \
 	cargo run -- benchmark \
 	    -s ../benchmark/suites/generic/ \
-	    -t 10000 \
-	    -r 2 \
+	    -t 7000 \
+	    -r 1 \
 	    -q \
 	    > ../benchmark/data/data.tsv
 
 .PHONY: full-benchmark
-quick-benchmark:
+full-benchmark:
 	cargo run -- benchmark \
 	    -s ../benchmark/suites/generic/ \
 	    -t 60000 \

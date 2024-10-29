@@ -212,7 +212,7 @@ fn entry_results(
                 lib: &lib,
                 prog: &prog,
                 task: task::Task::AllValid,
-                soft_timeout,
+                soft_timeout: 30_000, // soft_timeout,
             },
             pbn::Config::Memo,
         );
