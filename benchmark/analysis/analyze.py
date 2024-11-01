@@ -10,12 +10,12 @@ import os
 import math
 
 
-def save(self, filename, *args):
+def save(self, filename, *args, **kwargs):
     os.makedirs(
         os.path.dirname(filename),
         exist_ok=True,
     )
-    self.savefig(filename, *args)
+    self.savefig(filename, *args, **kwargs)
     plt.close(self)
 
 
@@ -71,8 +71,8 @@ def distributions(
         (name, vals) = groups[i]
         color = colors[i]
 
-        assert min(vals) >= min(bins)
-        assert max(vals) <= max(bins)
+        assert min(vals) >= min(bins), (name, min(vals))
+        assert max(vals) <= max(bins), (name, max(vals))
 
         axa = ax[3 * i + 1] if flip else ax[3 * i]
 
@@ -137,7 +137,7 @@ def distributions(
             widths=0.5,
             patch_artist=True,
             boxprops=dict(facecolor=color),
-            medianprops=dict(color="black"),
+            medianprops=dict(color="black", lw=2),
         )
 
         if flip:
@@ -293,9 +293,9 @@ ALGORITHMS = [
 ALGORITHM_COLORS = [
     "#4477AA",
     "#66CCEE",
-    "#228833",
-    "#CCBB44",
-    "#EE6677",
+    # "#228833",
+    # "#CCBB44",
+    # "#EE6677",
     "#AA3377",
 ]
 
@@ -308,7 +308,8 @@ raw_data = pl.read_csv("../data/data.tsv", separator="\t")
 # Whether or not to perform validity checks of benchmark csv
 CHECK = True
 
-REPLICATE_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
+ENTRY_KEY = ["suite", "entry", "task", "algorithm"]
+SUBENTRY_KEY = ["suite", "entry", "task", "algorithm", "subentry"]
 
 # Check that completed entries have at least one solution
 if CHECK:
@@ -318,16 +319,25 @@ if CHECK:
 
 # Check that completed replicates agree
 if CHECK:
-    for n, g in raw_data.filter(pl.col("completed")).group_by(REPLICATE_KEY):
+    for n, g in raw_data.filter(pl.col("completed")).group_by(SUBENTRY_KEY):
         for c in ["solution_count", "solution_size"]:
             assert (g[c] == g[0, c]).all(), (n, c)
 
-data = raw_data.group_by(REPLICATE_KEY).agg(
+data = raw_data.group_by(SUBENTRY_KEY).agg(
     duration=pl.col("duration").median() / 1000,
     completed=pl.col("completed").all(),
     solution_count=pl.col("solution_count").first(),
     solution_size=pl.col("solution_size").first(),
 )
+
+# Aggregate particulars
+# data = data.group_by(ENTRY_KEY).agg(
+#     duration=pl.col("duration").median(),
+#     completed=pl.col("completed").all(),
+#     solution_count=pl.col("solution_count").median(),
+#     solution_size=pl.col("solution_size").median(),
+#     subentry=pl.lit(0),
+# )
 
 completed = data.filter(pl.col("completed")).drop("completed")
 
@@ -340,10 +350,14 @@ if CHECK:
             assert (g[c] == g[0, c]).all(), (n, c, g)
 
 solutions = (
-    completed.filter(pl.col("task") == "All")
+    completed.filter(
+        (pl.col("task") == "All") & (pl.col("algorithm") == "PBN_DLmem")
+    )
     .group_by(["suite", "entry"])
     .agg(count=pl.col("solution_count").first())
 )
+
+data = data.filter(pl.col("entry").is_in(solutions["entry"].unique()))
 
 total_entries = {}
 for (suite,), g in solutions.group_by("suite"):
@@ -365,21 +379,28 @@ comparisons = (
     .with_columns(speedup=pl.col("duration") / pl.col("duration2"))
 )
 
+
 # %% Plot summaries
 
 for (suite, task), df in completed.group_by("suite", "task"):
+    if task != "Particular":
+        continue
     fig, ax = distributions(
-        df.group_by_sel("algorithm", sel="duration"),
+        [
+            (n, g)
+            for n, g in df.group_by_sel("algorithm", sel="duration")
+            if n != "PBN_DL"
+        ],
         total=total_entries[suite][task],
         order=ALGORITHMS,
         colors=ALGORITHM_COLORS,
         bins=np.arange(0, 10.1, 1),
-        figsize=(5, 20),
+        figsize=(5, 12),
         xlabel="Time taken (s)",
         flip=False,
     )
 
-    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.pdf")
+    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.png", dpi=300)
 
 # %% Plot speedup comparisons
 
@@ -402,14 +423,22 @@ def is_int_pow(x, *, base, eps=1e-6):
 for (suite, task, alg1, alg2), df in comparisons.group_by(
     "suite", "task", "algorithm", "algorithm2"
 ):
+    if alg1 not in ["PBN_DL", "EP"] or alg2 != "PBN_DLmem":
+        continue
+
     base = 2
-    magnitude_lim = int(
-        max(
-            abs(math.log(df["speedup"].min(), base)),
-            abs(math.log(df["speedup"].max(), base)),
+
+    try:
+        magnitude_lim = int(
+            max(
+                abs(math.log(df["speedup"].min(), base)),
+                abs(math.log(df["speedup"].max(), base)),
+            )
+            + 1
         )
-        + 1
-    )
+    except:
+        continue
+
     magnitudes = np.arange(-magnitude_lim, magnitude_lim + 0.1, 1)
     bins = [base**m for m in magnitudes]
     fig, ax = distribution(
@@ -417,7 +446,7 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
         color=ALGORITHM_COLORS[0],
         total=total_entries[suite][task],
         bins=bins,
-        figsize=(8, 3),
+        figsize=(9, 3),
         xlabel="Speedup (log scale)",
     )
 
@@ -467,7 +496,7 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
         a.axvline(x=1, color="gray", ls="dotted")
         # a.tick_params(axis="x", which="minor", bottom=False)
 
-    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.pdf")
+    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.png", dpi=300)
 
 # %% Plot space explored
 
