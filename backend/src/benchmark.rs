@@ -212,7 +212,7 @@ fn entry_results(
                 lib: &lib,
                 prog: &prog,
                 task: task::Task::AllValid,
-                soft_timeout: 30_000, // soft_timeout,
+                soft_timeout,
             },
             pbn::Config::Memo,
         );
@@ -271,30 +271,17 @@ fn entry_results(
     }
 }
 
-// Directory format:
-// - suite_directory/
-//   - _suite.hblib
-//   - _suite.py
-//   - some_benchmark_name.hb
-//   - some_benchmark_name.txt (the particular solution)
-//   - another_benchmark.hb
-//   - another_benchmark.txt
-//   - yet_another.hb
-//   - yet_another.txt
-//   - ...
-pub fn run(
+pub fn suite_results(
     suite_directory: &PathBuf,
     run_count: usize,
     soft_timeout: u128, // in milliseconds
     filter: &str,
-    write_stdout: bool,
     parallel: bool,
     show_results: bool,
     algorithms: &Vec<Algorithm>,
     tasks: &Vec<Task>,
+    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
-    assert!(suite_directory.is_dir());
-
     let suite = suite_directory.file_name().unwrap().to_str().unwrap();
     let lib_filename = suite_directory.join("_suite.hblib");
     let imp_filename = suite_directory.join("_suite.py");
@@ -307,16 +294,6 @@ pub fn run(
         .map_err(|_| "Library parse error")?;
     lib.check()
         .map_err(|e| format!("[Library type error] {}", e))?;
-
-    let wtr = Arc::new(Mutex::new(if write_stdout {
-        Some(
-            csv::WriterBuilder::new()
-                .delimiter(b'\t')
-                .from_writer(std::io::stdout()),
-        )
-    } else {
-        None
-    }));
 
     let mut progs = vec![];
 
@@ -386,4 +363,59 @@ pub fn run(
             })
             .collect()
     })
+}
+
+// Directory format:
+// - suite_directory/
+//   - _suite.hblib
+//   - _suite.py
+//   - some_benchmark_name.hb
+//   - some_benchmark_name.txt (the particular solution)
+//   - another_benchmark.hb
+//   - another_benchmark.txt
+//   - yet_another.hb
+//   - yet_another.txt
+//   - ...
+pub fn run(
+    suite_directories: &Vec<PathBuf>,
+    run_count: usize,
+    soft_timeout: u128, // in milliseconds
+    filter: &str,
+    write_stdout: bool,
+    parallel: bool,
+    show_results: bool,
+    algorithms: &Vec<Algorithm>,
+    tasks: &Vec<Task>,
+) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
+    for suite_directory in suite_directories {
+        assert!(suite_directory.is_dir());
+    }
+
+    let wtr = Arc::new(Mutex::new(if write_stdout {
+        Some(
+            csv::WriterBuilder::new()
+                .delimiter(b'\t')
+                .from_writer(std::io::stdout()),
+        )
+    } else {
+        None
+    }));
+
+    let mut results = vec![];
+
+    for suite_directory in suite_directories {
+        results.extend(suite_results(
+            &suite_directory,
+            run_count,
+            soft_timeout,
+            filter,
+            parallel,
+            show_results,
+            algorithms,
+            tasks,
+            &wtr,
+        )?);
+    }
+
+    Ok(results)
 }

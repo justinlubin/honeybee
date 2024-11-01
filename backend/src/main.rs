@@ -35,9 +35,9 @@ enum Commands {
     },
     /// Benchmark Honeybee and baselines
     Benchmark {
-        /// The benchmark suite directory to use
-        #[arg(short, long, value_name = "DIR")]
-        suite: PathBuf,
+        /// The benchmark suite directories to use (comma-separated list)
+        #[arg(short, long, value_name = "DIRS")]
+        suite: String,
 
         /// The number of times to run each benchmark entry
         #[arg(short, long, value_name = "N", default_value_t = 1)]
@@ -72,6 +72,19 @@ enum Commands {
         #[arg(long, value_name = "BOOL", default_value_t = false)]
         show_results: bool,
     },
+}
+
+fn parse_suites(s: &str) -> Vec<PathBuf> {
+    if s.is_empty() {
+        println!(
+            "{} {}",
+            ansi_term::Color::Red.bold().paint("error:"),
+            "--suite must be nonempty"
+        );
+        std::process::exit(1)
+    } else {
+        s.split(",").map(|x| PathBuf::from(x)).collect()
+    }
 }
 
 fn parse_algorithms(s: &str) -> Vec<benchmark_data::Algorithm> {
@@ -116,10 +129,11 @@ fn main() {
             tasks,
             show_results,
         } => {
+            let suites = parse_suites(suite);
             let algorithms = parse_algorithms(&algorithms);
             let tasks = parse_tasks(&tasks);
             benchmark::run(
-                suite,
+                &suites,
                 *run_count,
                 *timeout,
                 filter,
