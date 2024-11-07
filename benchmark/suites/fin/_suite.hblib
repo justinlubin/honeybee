@@ -1,0 +1,85 @@
+(input fact In (.x Int))
+
+;;; independent_choices
+
+(output fact Step1)
+(output fact Step2)
+(output fact Step3)
+(output fact Step4)
+(output fact Step5)
+(output fact Step6)
+(output fact Step7)
+(output fact Step8)
+(output fact Step9)
+(output fact Step10)
+
+(computation a1 Step1 ((in In)) ())
+(computation b1 Step1 ((in In)) ())
+(computation c1 Step1 ((in In)) ())
+(computation d1 Step1 ((in In)) ())
+(computation e1 Step1 ((in In)) ())
+
+(computation a2 Step2 ((in Step1)) ())
+(computation b2 Step2 ((in Step1)) ())
+(computation c2 Step2 ((in Step1)) ())
+(computation d2 Step2 ((in Step1)) ())
+(computation e2 Step2 ((in Step1)) ())
+
+(computation a3 Step3 ((in Step2)) ())
+(computation b3 Step3 ((in Step2)) ())
+(computation c3 Step3 ((in Step2)) ())
+(computation d3 Step3 ((in Step2)) ())
+(computation e3 Step3 ((in Step2)) ())
+
+(computation a4 Step4 ((in Step3)) ())
+(computation b4 Step4 ((in Step3)) ())
+(computation c4 Step4 ((in Step3)) ())
+(computation d4 Step4 ((in Step3)) ())
+(computation e4 Step4 ((in Step3)) ())
+
+(computation a5 Step5 ((in Step4)) ())
+(computation b5 Step5 ((in Step4)) ())
+(computation c5 Step5 ((in Step4)) ())
+(computation d5 Step5 ((in Step4)) ())
+(computation e5 Step5 ((in Step4)) ())
+
+(computation a6 Step6 ((in Step5)) ())
+(computation b6 Step6 ((in Step5)) ())
+(computation c6 Step6 ((in Step5)) ())
+(computation d6 Step6 ((in Step5)) ())
+(computation e6 Step6 ((in Step5)) ())
+
+(computation a7 Step7 ((in Step6)) ())
+(computation b7 Step7 ((in Step6)) ())
+(computation c7 Step7 ((in Step6)) ())
+(computation d7 Step7 ((in Step6)) ())
+(computation e7 Step7 ((in Step6)) ())
+
+(computation a8 Step8 ((in Step7)) ())
+(computation b8 Step8 ((in Step7)) ())
+(computation c8 Step8 ((in Step7)) ())
+(computation d8 Step8 ((in Step7)) ())
+(computation e8 Step8 ((in Step7)) ())
+
+(computation a9 Step9 ((in Step8)) ())
+(computation b9 Step9 ((in Step8)) ())
+(computation c9 Step9 ((in Step8)) ())
+(computation d9 Step9 ((in Step8)) ())
+(computation e9 Step9 ((in Step8)) ())
+
+(computation a10 Step10 ((in Step9)) ())
+(computation b10 Step10 ((in Step9)) ())
+(computation c10 Step10 ((in Step9)) ())
+(computation d10 Step10 ((in Step9)) ())
+(computation e10 Step10 ((in Step9)) ())
+
+;;; rabbit_hole
+
+(output fact RabbitHole)
+(output fact NonRabbitHole)
+(output fact RabbitHoleAnswer)
+
+(computation start_rh RabbitHole ((in In)) ())
+(computation rh RabbitHole ((in RabbitHole)) ())
+(computation non_rh NonRabbitHole ((in In)) ())
+(computation rh_ans RabbitHoleAnswer ((in NonRabbitHole)) ())

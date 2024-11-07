@@ -54,10 +54,10 @@ fn run_one(
             pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Prune))
         }
     };
-    for t in &sr.results {
-        // To be fair to LLMs, include Python conversion time
-        let _ = backend::Python::new(t).emit().plain_text("");
-    }
+    // for t in &sr.results {
+    //     // To be fair to LLMs, include Python conversion time
+    //     let _ = backend::Python::new(t).emit().plain_text("");
+    // }
     let duration = now.elapsed().as_millis();
     Timed { val: sr, duration }
 }
