@@ -6,11 +6,10 @@ build:
 quick-benchmark:
 	RAYON_NUM_THREADS=8 \
 	cargo run -- benchmark \
-	    -s ../benchmark/suites/ff/ \
-	    -t 30000 \
+	    -s ../benchmark/suites/fin/ \
+	    -t 2000 \
 	    -r 1 \
 	    -q \
-	    --algorithms E,EP,PBN_DLmem,PBN_DL \
 	    > ../benchmark/data/data.tsv
 
 .PHONY: full-benchmark

@@ -12,6 +12,12 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 #[derive(Debug)]
+pub enum InteractiveMode {
+    Len,
+    Full,
+}
+
+#[derive(Debug)]
 pub enum Config {
     Basic,
     Memo,
@@ -407,7 +413,7 @@ pub fn synthesize(
 pub fn run(
     lib: &Library,
     prog: &Program,
-    interactive: bool,
+    analyzer: analysis::CLI,
 ) -> Option<derivation::Tree> {
     let mut egg = egglog_adapter::Instance::new(lib, prog, false);
 
@@ -416,22 +422,12 @@ pub fn run(
     }
 
     let mut synthesizer = synthesis::Synthesizer::new(lib, prog);
-    let analyzer = if interactive {
-        analysis::CLI {
-            // mode: analysis::CLIMode::FastForward,
-            mode: analysis::CLIMode::Manual,
-            print: true,
-        }
-    } else {
-        analysis::CLI {
-            mode: analysis::CLIMode::Auto,
-            print: false,
-        }
-    };
+
+    let print_tree = analyzer.print_mode == analysis::CLIPrintMode::Full;
 
     let mut step = 1;
     loop {
-        if interactive {
+        if print_tree {
             println!(
                 "{} {} {}\n\n{}",
                 ansi_term::Color::Fixed(8).paint("═".repeat(2)),
@@ -442,13 +438,10 @@ pub fn run(
             print!("{}", synthesizer.tree.pretty());
         }
         let options = synthesizer.options_datalog(&mut egg);
-        // Enable for swapping in alternative oracle
-        // let options = synthesizer
-        //     .options_enumerative(5 * 60 * 1000, enumerate::Config::Prune)?;
         if options.is_empty() {
             break;
         }
-        if interactive {
+        if print_tree {
             println!();
         }
         let choice = analyzer.analyze(options);

@@ -1,6 +1,5 @@
 use crate::ir::*;
 
-use crate::backend;
 use crate::derivation;
 use crate::enumerate;
 use crate::pbn;
@@ -125,7 +124,7 @@ fn task_results(
 fn results(
     lib: &Library,
     prog: &Program,
-    particulars: &Option<Vec<derivation::Tree>>,
+    particulars: &Vec<derivation::Tree>,
     soft_timeout: u128,
     run_count: usize,
     suite: &str,
@@ -139,13 +138,10 @@ fn results(
     let synthesis_tasks = match task {
         Task::Any => vec![task::Task::AnyValid],
         Task::All => vec![task::Task::AllValid],
-        Task::Particular => match particulars {
-            Some(ps) => ps
-                .iter()
-                .map(|dt| task::Task::Particular(dt.clone()))
-                .collect(),
-            None => return vec![],
-        },
+        Task::Particular => particulars
+            .iter()
+            .map(|dt| task::Task::Particular(dt.clone()))
+            .collect(),
     };
 
     if parallel {
@@ -197,75 +193,71 @@ fn entry_results(
     lib: &Library,
     prog: &Program,
     entry: &str,
+    particulars: &Vec<derivation::Tree>,
     soft_timeout: u128,
     run_count: usize,
     suite: &str,
     parallel: bool,
     show_results: bool,
-    algorithms: &Vec<Algorithm>,
-    tasks: &Vec<Task>,
+    algotasks: &Vec<(Algorithm, Task)>,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
-    let particulars = {
-        let sr = pbn::synthesize(
-            task::SynthesisProblem {
-                lib: &lib,
-                prog: &prog,
-                task: task::Task::AllValid,
-                soft_timeout,
-            },
-            pbn::Config::Memo,
-        );
+    // let particulars = {
+    //     let sr = pbn::synthesize(
+    //         task::SynthesisProblem {
+    //             lib: &lib,
+    //             prog: &prog,
+    //             task: task::Task::AllValid,
+    //             soft_timeout,
+    //         },
+    //         pbn::Config::Memo,
+    //     );
 
-        if sr.completed {
-            Some(sr.results)
-        } else {
-            None
-        }
-    };
+    //     if sr.completed {
+    //         Some(sr.results)
+    //     } else {
+    //         None
+    //     }
+    // };
 
     if parallel {
-        algorithms
+        algotasks
             .par_iter()
-            .flat_map(|algorithm| {
-                tasks.par_iter().flat_map(|task| {
-                    results(
-                        &lib,
-                        &prog,
-                        &particulars,
-                        soft_timeout,
-                        run_count,
-                        &suite,
-                        &entry,
-                        algorithm.clone(),
-                        task.clone(),
-                        parallel,
-                        show_results,
-                        wtr,
-                    )
-                })
+            .flat_map(|(algorithm, task)| {
+                results(
+                    &lib,
+                    &prog,
+                    &particulars,
+                    soft_timeout,
+                    run_count,
+                    &suite,
+                    &entry,
+                    algorithm.clone(),
+                    task.clone(),
+                    parallel,
+                    show_results,
+                    wtr,
+                )
             })
             .collect()
     } else {
-        algorithms
+        algotasks
             .iter()
-            .flat_map(|algorithm| {
-                tasks.iter().flat_map(|task| {
-                    results(
-                        &lib,
-                        &prog,
-                        &particulars,
-                        soft_timeout,
-                        run_count,
-                        &suite,
-                        &entry,
-                        algorithm.clone(),
-                        task.clone(),
-                        parallel,
-                        show_results,
-                        wtr,
-                    )
-                })
+            .flat_map(|(algorithm, task)| {
+                results(
+                    &lib,
+                    &prog,
+                    &particulars,
+                    soft_timeout,
+                    run_count,
+                    &suite,
+                    &entry,
+                    algorithm.clone(),
+                    task.clone(),
+                    parallel,
+                    show_results,
+                    wtr,
+                )
             })
             .collect()
     }
@@ -278,8 +270,7 @@ pub fn suite_results(
     filter: &str,
     parallel: bool,
     show_results: bool,
-    algorithms: &Vec<Algorithm>,
-    tasks: &Vec<Task>,
+    algotasks: &Vec<(Algorithm, Task)>,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     let suite = suite_directory.file_name().unwrap().to_str().unwrap();
@@ -321,24 +312,42 @@ pub fn suite_results(
         prog.check(&lib)
             .map_err(|e| format!("[Program type error] {}", e))?;
 
-        progs.push((prog, entry));
+        let mut particulars = vec![];
+        for particular_filename in glob::glob(
+            prog_filename_without_extension
+                .join("*.json")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap()
+        .filter_map(Result::ok)
+        {
+            let particular_json =
+                std::fs::read_to_string(&particular_filename).unwrap();
+            let particular = serde_json::from_str(&particular_json).expect(
+                &format!("unparseable particular: {:?}", particular_filename),
+            );
+            particulars.push(particular);
+        }
+
+        progs.push((prog, entry, particulars));
     }
 
     Ok(if parallel {
         progs
             .par_iter()
-            .flat_map(|(prog, entry)| {
+            .flat_map(|(prog, entry, particulars)| {
                 entry_results(
                     &lib,
                     prog,
                     entry,
+                    particulars,
                     soft_timeout,
                     run_count,
                     suite,
                     parallel,
                     show_results,
-                    algorithms,
-                    tasks,
+                    algotasks,
                     &wtr,
                 )
             })
@@ -346,18 +355,18 @@ pub fn suite_results(
     } else {
         progs
             .iter()
-            .flat_map(|(prog, entry)| {
+            .flat_map(|(prog, entry, particulars)| {
                 entry_results(
                     &lib,
                     prog,
                     entry,
+                    particulars,
                     soft_timeout,
                     run_count,
                     suite,
                     parallel,
                     show_results,
-                    algorithms,
-                    tasks,
+                    algotasks,
                     &wtr,
                 )
             })
@@ -384,8 +393,7 @@ pub fn run(
     write_stdout: bool,
     parallel: bool,
     show_results: bool,
-    algorithms: &Vec<Algorithm>,
-    tasks: &Vec<Task>,
+    algotasks: &Vec<(Algorithm, Task)>,
 ) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     for suite_directory in suite_directories {
         assert!(suite_directory.is_dir());
@@ -411,8 +419,7 @@ pub fn run(
             filter,
             parallel,
             show_results,
-            algorithms,
-            tasks,
+            algotasks,
             &wtr,
         )?);
     }

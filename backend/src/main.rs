@@ -3,7 +3,34 @@
 use honeybee::*;
 
 use clap::{Parser, Subcommand};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
+enum RunMode {
+    Interactive,
+    Auto,
+    ProcessInteractive,
+}
+
+impl RunMode {
+    pub fn analyzer(&self) -> analysis::CLI {
+        match self {
+            RunMode::Interactive => analysis::CLI {
+                mode: analysis::CLIMode::Manual,
+                print_mode: analysis::CLIPrintMode::Full,
+            },
+            RunMode::Auto => analysis::CLI {
+                mode: analysis::CLIMode::Auto,
+                print_mode: analysis::CLIPrintMode::NoPrint,
+            },
+            RunMode::ProcessInteractive => analysis::CLI {
+                mode: analysis::CLIMode::Manual,
+                print_mode: analysis::CLIPrintMode::LenPrint,
+            },
+        }
+    }
+}
 
 /// Programming by Navigation with 🐝 Honeybee
 #[derive(Parser)]
@@ -29,9 +56,13 @@ enum Commands {
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
 
-        /// Whether to output JSON of synthesized derivation tree (same directory as program)
-        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
-        json: bool,
+        /// The run mode
+        #[arg(short, long, value_name = "MODE", value_enum, default_value_t = RunMode::Interactive)]
+        mode: RunMode,
+
+        /// Path to output JSON of synthesized derivation tree (blank for no output)
+        #[arg(short, long, value_name = "FILE", default_value = "")]
+        json: String,
     },
     /// Benchmark Honeybee and baselines
     Benchmark {
@@ -41,7 +72,7 @@ enum Commands {
 
         /// The number of times to run each benchmark entry
         #[arg(short, long, value_name = "N", default_value_t = 1)]
-        run_count: usize,
+        replicates: usize,
 
         /// The (soft) time cutoff to use for synthesis in milliseconds
         #[arg(
@@ -60,18 +91,27 @@ enum Commands {
         #[arg(short, long, value_name = "BOOL", default_value_t = false)]
         quick: bool,
 
-        /// Use only certain algorithms (e.g. EP,PBN_DLmem)
-        #[arg(short, long, value_name = "A1,A2,...", default_value = "")]
-        algorithms: String,
-
-        /// Solve only certain tasks (e.g. Any,Particular)
-        #[arg(long, value_name = "T1,T2,...", default_value = "")]
-        tasks: String,
+        /// Set the algorithms and tasks
+        #[arg(
+            short,
+            long,
+            value_name = "A1:T1,A2:T2,...",
+            default_value = "PBN_DLmem:Particular,EP:All,E:All"
+        )]
+        algotasks: String,
 
         /// Show results for each benchmark row (results in invalid TSV)
         #[arg(long, value_name = "BOOL", default_value_t = false)]
         show_results: bool,
     },
+}
+
+fn parse_json_path(s: &str) -> Option<PathBuf> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(s))
+    }
 }
 
 fn parse_suites(s: &str) -> Vec<PathBuf> {
@@ -87,24 +127,20 @@ fn parse_suites(s: &str) -> Vec<PathBuf> {
     }
 }
 
-fn parse_algorithms(s: &str) -> Vec<benchmark_data::Algorithm> {
-    if s.is_empty() {
-        benchmark_data::ALGORITHMS.to_vec()
-    } else {
-        s.split(",")
-            .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
-            .collect()
-    }
-}
-
-fn parse_tasks(s: &str) -> Vec<benchmark_data::Task> {
-    if s.is_empty() {
-        benchmark_data::TASKS.to_vec()
-    } else {
-        s.split(",")
-            .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
-            .collect()
-    }
+fn parse_algotasks(
+    s: &str,
+) -> Vec<(benchmark_data::Algorithm, benchmark_data::Task)> {
+    s.split(",")
+        .map(|at| {
+            let (a, t) = at
+                .split_once(":")
+                .expect(&format!("malformed algotask: {}", at));
+            (
+                serde_json::from_str(&format!("\"{}\"", a)).unwrap(),
+                serde_json::from_str(&format!("\"{}\"", t)).unwrap(),
+            )
+        })
+        .collect()
 }
 
 fn main() {
@@ -117,31 +153,32 @@ fn main() {
             library,
             implementation,
             program,
+            mode,
             json,
-        } => run::run(library, implementation, program, *json),
+        } => {
+            let json = parse_json_path(json);
+            run::run(mode.analyzer(), library, implementation, program, &json)
+        }
         Commands::Benchmark {
             suite,
-            run_count,
+            replicates,
             timeout,
             filter,
             quick,
-            algorithms,
-            tasks,
+            algotasks,
             show_results,
         } => {
             let suites = parse_suites(suite);
-            let algorithms = parse_algorithms(&algorithms);
-            let tasks = parse_tasks(&tasks);
+            let algotasks = parse_algotasks(&algotasks);
             benchmark::run(
                 &suites,
-                *run_count,
+                *replicates,
                 *timeout,
                 filter,
                 true,
                 *quick,
                 *show_results,
-                &algorithms,
-                &tasks,
+                &algotasks,
             )
             .map(|_| ())
         }

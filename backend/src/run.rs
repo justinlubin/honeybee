@@ -1,3 +1,4 @@
+use crate::analysis;
 use crate::backend;
 use crate::pbn;
 use crate::syntax;
@@ -57,10 +58,11 @@ fn parse_error(
 }
 
 pub fn run(
+    analyzer: analysis::CLI,
     lib_filename: &PathBuf,
     imp_filename: &PathBuf,
     prog_filename: &PathBuf,
-    json: bool,
+    json: &Option<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let lib_src = std::fs::read_to_string(lib_filename).unwrap();
     let imp_src = std::fs::read_to_string(imp_filename).unwrap();
@@ -100,7 +102,7 @@ pub fn run(
     prog.check(&lib)
         .map_err(|e| format!("[program type error] {}", e))?;
 
-    match pbn::run(&lib, &prog, true) {
+    match pbn::run(&lib, &prog, analyzer) {
         Some(tree) => {
             println!(
                 "\n{}",
@@ -110,8 +112,7 @@ pub fn run(
                 "\n{}",
                 backend::Python::new(&tree).emit().plain_text(&imp_src)
             );
-            if json {
-                let json_filename = prog_filename.with_extension("json");
+            if let Some(json_filename) = json {
                 let mut json_file = File::create(json_filename)?;
                 write!(
                     json_file,

@@ -4,6 +4,13 @@ use crate::synthesis;
 
 use crate::ir::*;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CLIPrintMode {
+    NoPrint,
+    LenPrint,
+    Full,
+}
+
 #[derive(Debug, Clone)]
 pub enum CLIMode {
     Manual,
@@ -13,7 +20,7 @@ pub enum CLIMode {
 
 pub struct CLI {
     pub mode: CLIMode,
-    pub print: bool,
+    pub print_mode: CLIPrintMode,
 }
 
 impl CLI {
@@ -30,29 +37,35 @@ impl CLI {
             CLIMode::Manual => false,
         };
 
-        if self.print {
-            println!("{}", title);
-            for (i, (label, _)) in options.iter().enumerate() {
-                println!(
-                    "  {}) {}{}",
-                    i,
-                    label,
-                    if auto && i == 0 {
-                        ansi_term::Color::Red
-                            .paint(" (auto-selected)")
-                            .to_string()
-                    } else {
-                        "".to_owned()
-                    }
-                );
+        match self.print_mode {
+            CLIPrintMode::Full => {
+                println!("{}", title);
+                for (i, (label, _)) in options.iter().enumerate() {
+                    println!(
+                        "  {}) {}{}",
+                        i,
+                        label,
+                        if auto && i == 0 {
+                            ansi_term::Color::Red
+                                .paint(" (auto-selected)")
+                                .to_string()
+                        } else {
+                            "".to_owned()
+                        }
+                    );
+                }
             }
-        }
+            CLIPrintMode::NoPrint => (),
+            CLIPrintMode::LenPrint => println!("{}", options.len()),
+        };
 
         loop {
             if !auto {
-                if self.print {
-                    print!("> ");
-                }
+                match self.print_mode {
+                    CLIPrintMode::Full => print!("> "),
+                    CLIPrintMode::NoPrint => (),
+                    CLIPrintMode::LenPrint => (),
+                };
                 let _ = std::io::stdout().flush();
             }
 
@@ -75,9 +88,11 @@ impl CLI {
                 continue;
             }
 
-            if self.print {
-                println!();
-            }
+            match self.print_mode {
+                CLIPrintMode::Full => println!(),
+                CLIPrintMode::NoPrint => (),
+                CLIPrintMode::LenPrint => (),
+            };
 
             return options.swap_remove(idx).1;
         }

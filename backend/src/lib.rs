@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
+pub mod analysis;
 pub mod benchmark;
 pub mod benchmark_data;
 pub mod run;
 
-mod analysis;
 mod backend;
 mod derivation;
 mod egglog_adapter;
@@ -39,7 +39,14 @@ pub fn generate_notebook(
         .parse(prog_src)
         .map_err(|_| "Program parse error")?;
 
-    match pbn::run(&lib, &prog, false) {
+    match pbn::run(
+        &lib,
+        &prog,
+        analysis::CLI {
+            mode: analysis::CLIMode::Auto,
+            print_mode: analysis::CLIPrintMode::NoPrint,
+        },
+    ) {
         Some(tree) => Ok(backend::Python::new(&tree).emit().nbformat(&imp_src)),
         None => Err("Not possible".to_owned()),
     }
