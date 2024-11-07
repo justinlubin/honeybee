@@ -1,0 +1,137 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "advanced_sorted",
+            "antecedents": [
+              [
+                "in1",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 12
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in2",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 15
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in3",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 16
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in4",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 20
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "AdvancedSorted4",
+              "args": []
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 12
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 15
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 15
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 16
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 16
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 20
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

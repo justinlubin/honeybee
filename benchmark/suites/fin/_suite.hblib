@@ -146,3 +146,9 @@
 ;;; advanced_sorted
 
 (output fact AdvancedSorted4)
+
+(computation advanced_sorted AdvancedSorted4
+  ((in1 In) (in2 In) (in3 In) (in4 In))
+  ((< (.x in1) (.x in2))
+   (< (.x in2) (.x in3))
+   (< (.x in3) (.x in4))))
