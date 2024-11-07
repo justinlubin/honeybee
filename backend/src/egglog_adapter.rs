@@ -281,7 +281,7 @@ impl Compiler {
     }
 }
 
-fn compile_header(lib: &Library, facts: &Vec<Fact>) -> String {
+fn compile_header(lib: &Library, facts: &Vec<Fact>, goal: &Fact) -> String {
     let mut c = Compiler::new();
 
     let mut body = vec![];
@@ -309,6 +309,8 @@ fn compile_header(lib: &Library, facts: &Vec<Fact>) -> String {
     for f in facts.iter() {
         body.push(c.fact(lib, f));
     }
+    // Add literals from goal fact, but do not emit anything
+    let _ = c.fact(lib, goal);
 
     body.push("\n(run-schedule (saturate all))\n".to_owned());
 
@@ -370,7 +372,8 @@ pub struct Instance<'a> {
 impl<'a> Instance<'a> {
     pub fn new(lib: &'a Library, prog: &'a Program, cache: bool) -> Self {
         let egraph = if cache {
-            let egglog_header_src = compile_header(lib, &prog.annotations);
+            let egglog_header_src =
+                compile_header(lib, &prog.annotations, &prog.goal);
             log::debug!("Egglog Header Source Cache:\n{}", egglog_header_src);
             let mut egraph = egglog::EGraph::default();
             egraph.parse_and_run_program(&egglog_header_src).unwrap();
@@ -411,7 +414,11 @@ impl<'a> Instance<'a> {
             None => {
                 let egglog_combined_src = format!(
                     "{}\n{}",
-                    compile_header(self.lib, &self.prog.annotations),
+                    compile_header(
+                        self.lib,
+                        &self.prog.annotations,
+                        &self.prog.goal
+                    ),
                     egglog_src
                 );
                 log::debug!("Egglog Combined Source:\n{}", egglog_combined_src);
