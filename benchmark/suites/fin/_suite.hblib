@@ -83,3 +83,52 @@
 (computation rh RabbitHole ((in RabbitHole)) ())
 (computation non_rh NonRabbitHole ((in In)) ())
 (computation rh_ans RabbitHoleAnswer ((in NonRabbitHole)) ())
+
+;;; limited_cycle
+
+(output fact LimitedCycle (.count Int))
+(output fact LimitedCycleAnswer)
+
+(computation start_lc LimitedCycle
+  ((in In))
+  ((= (.count ret) (.x in))))
+
+(computation continue_lc LimitedCycle
+  ((in LimitedCycle))
+  ((< (.count ret) (.count in))
+   (< 0 (.count ret))))
+
+(computation end_lc LimitedCycleAnswer
+  ((in LimitedCycle))
+  ())
+
+;;; branches
+
+(output fact BranchTop)
+(output fact BranchMid)
+
+(computation btop BranchTop
+  ((b1 BranchMid) (b2 BranchMid) (b3 BranchMid) (b4 BranchMid))
+  ())
+
+(computation bmid1 BranchMid
+  ((in1 In) (in2 In))
+  ())
+
+(computation bmid2 BranchMid
+  ((in1 In) (in2 In))
+  ())
+
+(computation bmid3 BranchMid
+  ((in1 In) (in2 In))
+  ())
+
+(computation bmid_impossible1 BranchMid
+  ((in1 In) (in2 In))
+  ((= (.x in1) (.x in2))
+   (< (.x in1) (.x in2))))
+
+(computation bmid_impossible2 BranchMid
+  ((in1 In) (in2 In))
+  ((< (.x in2) (.x in1))
+   (< (.x in1) (.x in2))))
