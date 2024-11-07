@@ -25,3 +25,28 @@
 
 (computation bt2_end BigThree2 ((in In)) ())
 (computation bt3_end BigThree3 ((in In)) ())
+
+;;; infinite_bin
+
+(output fact Bin)
+
+(computation branch Bin ((left Bin) (right Bin)) ())
+(computation leaf Bin ((in In)) ())
+
+;;; eventually_stabilize
+
+(output fact ES (.count Int))
+
+(computation es_lt ES ((in ES)) ((< (.count ret) (.count in))))
+(computation es_eq ES ((in ES)) ((= (.count ret) (.count in))))
+(computation es_end ES ((in In)) ((= (.count ret) (.x in))))
+
+;;; staged_cycles
+
+(output fact Cycle1)
+(output fact Cycle2)
+
+(computation c10 Cycle1 ((in In)) ())
+(computation c1 Cycle1 ((in Cycle1)) ())
+(computation c12 Cycle2 ((in Cycle1)) ())
+(computation c2 Cycle2 ((in Cycle2)) ())
