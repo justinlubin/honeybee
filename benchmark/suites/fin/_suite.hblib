@@ -132,3 +132,17 @@
   ((in1 In) (in2 In))
   ((< (.x in2) (.x in1))
    (< (.x in1) (.x in2))))
+
+;;; simple_sorted
+
+(output fact SimpleSorted4)
+
+(computation simple_sorted SimpleSorted4
+  ((in1 In) (in2 In) (in3 In) (in4 In))
+  ((< (.x in1) (.x in2))
+   (< (.x in2) (.x in3))
+   (< (.x in3) (.x in4))))
+
+;;; advanced_sorted
+
+(output fact AdvancedSorted4)

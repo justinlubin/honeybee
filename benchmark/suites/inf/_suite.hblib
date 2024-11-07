@@ -1,0 +1,27 @@
+(input fact In (.x Int))
+
+;;; small_three
+
+(output fact SmallThree)
+
+(computation st1 SmallThree ((in SmallThree)) ())
+(computation st2 SmallThree ((in SmallThree)) ())
+(computation st3 SmallThree ((in SmallThree)) ())
+(computation st_end SmallThree ((in In)) ())
+
+;;; big_three
+
+(output fact BigThree)
+(output fact BigThree1)
+(output fact BigThree2)
+(output fact BigThree3)
+
+(computation bt1_start BigThree ((in BigThree1)) ())
+(computation bt2_start BigThree ((in BigThree2)) ())
+
+(computation bt12 BigThree2 ((in BigThree1)) ())
+(computation bt23 BigThree3 ((in BigThree2)) ())
+(computation bt31 BigThree1 ((in BigThree3)) ())
+
+(computation bt2_end BigThree2 ((in In)) ())
+(computation bt3_end BigThree3 ((in In)) ())
