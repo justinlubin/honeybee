@@ -1,14 +1,24 @@
 ; Raster
 
-(input fact Raster
-  (.name Str) (.data Str) (.resolution Int) (.projection Str) (.bands Int) (.sensor Str))
+(input fact InputRaster
+  (.name Str) (.data Str) (.resolution Int) (.crs Str) (.bands Int) (.sensor Str))
 
 (output fact Raster
-  (.name Str) (.data Str) (.resolution Int) (.projection Str) (.bands Int) (.sensor Str))
+  (.name Str) (.resolution Int) (.crs Str) (.bands Int))
+
+(computation loadRaster Raster
+  ((raster InputRaster))
+  ((= (.name ret) (.name raster))
+   (= (.resolution ret) (.resolution raster))
+   (= (.crs ret) (.crs raster))
+   (= (.bands ret) (.bands raster))))
 
 ; Resampling
 
-(input fact ResamplingMethod
+(output fact Resolution
+  (.resolution Int))
+
+(output fact ResamplingMethod
   (.method Str))
 
 (computation nearest ResamplingMethod
@@ -57,28 +67,25 @@
   () ())
 
 (computation resample Raster
-  ((raster Raster) (resolution Int) (method ResamplingMethod))
-  ((= (.resolution ret) resolution)
-   (< 0 resolution)))
+  ((raster Raster) (method ResamplingMethod))
+    ((< (.resolution raster) (.resolution ret))
+    (< 0 (.resolution ret))))
 
 ; Reprojection
 
 (computation warp Raster
-  ((raster Raster) (projection Str))
-  ((= (.projection ret) projection)))
+  ((raster Raster))
+    ((= (.bands ret) (.bands raster))
+     (= (.resolution ret) (.resolution raster))))
 
 ; Remote Sensing
 
-(computation ndvi NDVI
-  ((raster Raster) (red Int) (nir Int))
-  (< 2 (.bands raster)))
+(computation ndvi Raster
+  ((raster Raster))
+  ((< 1 (.bands raster))
+   (= (.bands ret) 1)))
 
-(output fact NDVI
-  (.name Str) (.data Str) (.resolution Int) (.projection Str) (.sensor Str))
-
-(computation ndwi NDWI
-  ((raster Raster) (red Int) (nir Int))
-  (< 2 (.bands raster)))
-
-(output fact NDWI
-  (.name Str) (.data Str) (.resolution Int) (.projection Str) (.sensor Str))
+(computation ndwi Raster
+  ((raster Raster))
+  ((< 1 (.bands raster))
+   (= (.bands ret) 1)))
