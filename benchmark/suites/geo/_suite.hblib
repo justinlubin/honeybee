@@ -113,4 +113,5 @@
 
 (computation clipRaster Raster
   ((raster Raster) (mask Vector))
-  ((= (.crs raster) (.crs mask))))
+  ((= (.crs raster) (.crs mask))
+   (= (.crs ret) (.crs raster))))
