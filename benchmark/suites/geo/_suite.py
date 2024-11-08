@@ -2,13 +2,14 @@ from dataclasses import dataclass
 
 import rasterio
 from rasterio.io import DatasetReader
+import geopandas as gpd
 
 @dataclass
 class InputRaster:
     name: str
     data: str
     resolution: int
-    projection: str
+    crs: str
     bands: int
     sensor: str
 
@@ -18,7 +19,7 @@ class Raster:
     class M:
         name: str
         resolution: int
-        projection: str
+        crs: str
         bands: int
 
     @dataclass
@@ -102,7 +103,7 @@ def resample(raster: Raster, resolution: int, method: ResamplingMethod) -> Raste
 
 # Reprojection
 
-def warp(raster: Raster, projection: str) -> Raster.D:
+def warp(raster: Raster, crs: str) -> Raster.D:
     dataset = ...
     return Raster.D(dataset=dataset)
 
@@ -113,5 +114,42 @@ def ndvi(raster: Raster, red: int, nir: int) -> Raster.D:
     return Raster.D(dataset=dataset)
 
 def ndwi(raster: Raster, green: int, nir: int) -> Raster.D:
+    dataset = ...
+    return Raster.D(dataset=dataset)
+
+# Vector
+@dataclass
+class InputVector:
+    name: str
+    data: str
+    crs: str
+
+@dataclass
+class Vector:
+    @dataclass
+    class M:
+        name: str
+        crs: str
+
+    @dataclass
+    class D:
+        gdf: gpd.GeoDataFrame
+
+    m: M
+    d: D
+
+def load_vector(vector: InputVector) -> Vector.D:
+    gdf = gpd.read_file(vector.data)
+    return Vector.D(gdf=gdf)
+
+# Reproject
+
+def reproject(vector: Vector, crs: str) -> Vector.D:
+    gdf = ...
+    return Vector.D(gdf=gdf)
+
+# Clip
+
+def clipRaster(raster: Raster, mask: Vector) -> Raster.D:
     dataset = ...
     return Raster.D(dataset=dataset)

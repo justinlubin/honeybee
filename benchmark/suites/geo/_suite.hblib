@@ -68,15 +68,15 @@
 
 (computation resample Raster
   ((raster Raster) (method ResamplingMethod))
-    ((< (.resolution raster) (.resolution ret))
-    (< 0 (.resolution ret))))
+  ((< (.resolution raster) (.resolution ret))
+   (< 0 (.resolution ret))))
 
-; Reprojection
+; Warp
 
 (computation warp Raster
   ((raster Raster))
-    ((= (.bands ret) (.bands raster))
-     (= (.resolution ret) (.resolution raster))))
+  ((= (.bands ret) (.bands raster))
+   (= (.resolution ret) (.resolution raster))))
 
 ; Remote Sensing
 
@@ -89,3 +89,28 @@
   ((raster Raster))
   ((< 1 (.bands raster))
    (= (.bands ret) 1)))
+
+; Vector
+
+(input fact InputVector
+  (.name Str) (.data Str) (.crs Str))
+
+(output fact Vector
+  (.name Str) (.crs Str))
+
+(computation loadVector Vector
+  ((vector InputVector))
+  ((= (.name ret) (.name vector))
+   (= (.crs ret) (.crs vector))))
+
+; Reproject
+
+(computation reproject Vector
+  ((vector Vector))
+  ())
+
+; Clip
+
+(computation clipRaster Raster
+  ((raster Raster) (mask Vector))
+  ((= (.crs raster) (.crs mask))))
