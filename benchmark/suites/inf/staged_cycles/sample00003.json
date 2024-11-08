@@ -1,0 +1,133 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "c2",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Step": {
+                    "label": "c12",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Step": {
+                            "label": "c1",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Step": {
+                                    "label": "c1",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Step": {
+                                            "label": "c1",
+                                            "antecedents": [
+                                              [
+                                                "in",
+                                                {
+                                                  "Step": {
+                                                    "label": "c1",
+                                                    "antecedents": [
+                                                      [
+                                                        "in",
+                                                        {
+                                                          "Step": {
+                                                            "label": "c10",
+                                                            "antecedents": [
+                                                              [
+                                                                "in",
+                                                                {
+                                                                  "Axiom": {
+                                                                    "name": "In",
+                                                                    "args": [
+                                                                      [
+                                                                        "x",
+                                                                        {
+                                                                          "Int": 0
+                                                                        }
+                                                                      ]
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              ]
+                                                            ],
+                                                            "consequent": {
+                                                              "name": "Cycle1",
+                                                              "args": []
+                                                            },
+                                                            "side_condition": []
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Cycle1",
+                                                      "args": []
+                                                    },
+                                                    "side_condition": []
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Cycle1",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Cycle1",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Cycle1",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Cycle2",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Cycle2",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

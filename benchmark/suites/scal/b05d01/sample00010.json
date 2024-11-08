@@ -1,0 +1,43 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "f01",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 1
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Step01",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

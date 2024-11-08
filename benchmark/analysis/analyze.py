@@ -298,6 +298,8 @@ ALGOTASKS = [
     "PBN_DLmem:Particular",
 ]
 
+ALGORITHMS = [at.split(":")[0] for at in ALGOTASKS]
+
 # https://personal.sron.nl/~pault/
 ALGORITHM_COLORS = [
     "#4477AA",
@@ -350,14 +352,14 @@ if CHECK:
         assert_group_same(g, name=n, on="replicate")
 
 # Aggregate particulars
-data = data.group_by(ENTRY_KEY).agg(
+aggdata = data.group_by(ENTRY_KEY).agg(
     duration=pl.col("duration").median(),
     completed=pl.col("completed").all(),
     solution_count=pl.col("solution_count").median(),
     solution_size=pl.col("solution_size").median(),
 )
 
-completed = data.filter(pl.col("completed")).drop("completed")
+completed = aggdata.filter(pl.col("completed")).drop("completed")
 
 total_entries = {}
 for (suite,), g in raw_data.group_by("suite"):
@@ -373,11 +375,13 @@ comparisons = (
     .with_columns(speedup=pl.col("duration") / pl.col("duration2"))
 )
 
-show(data)
+show(aggdata)
 
 # %% Plot summaries
 
-for (suite,), df in completed.group_by("suite"):
+for (suite,), df in completed.filter(
+    pl.col("algorithm").is_in(ALGORITHMS)
+).group_by("suite"):
     fig, ax = distributions(
         [
             (a + ":" + t, g["duration"])
@@ -412,12 +416,9 @@ def is_int_pow(x, *, base, eps=1e-6):
     return abs(log - round(log)) < eps
 
 
-for (suite, task, alg1, alg2), df in comparisons.group_by(
-    "suite", "task", "algorithm", "algorithm2"
-):
-    if alg1 not in ["PBN_DL", "EP"] or alg2 != "PBN_DLmem":
-        continue
-
+for (suite, task, alg1, alg2), df in comparisons.filter(
+    (pl.col("algorithm") == "PBN_DL") & (pl.col("algorithm2") == "PBN_DLmem")
+).group_by("suite", "task", "algorithm", "algorithm2"):
     base = 2
 
     try:
@@ -428,7 +429,7 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
             )
             + 1
         )
-    except:
+    except ValueError:
         continue
 
     magnitudes = np.arange(-magnitude_lim, magnitude_lim + 0.1, 1)
@@ -436,7 +437,7 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
     fig, ax = distribution(
         df["speedup"],
         color=ALGORITHM_COLORS[0],
-        total=total_entries[suite][task],
+        total=total_entries[suite],
         bins=bins,
         figsize=(9, 3),
         xlabel="Speedup (log scale)",
@@ -488,7 +489,14 @@ for (suite, task, alg1, alg2), df in comparisons.group_by(
         a.axvline(x=1, color="gray", ls="dotted")
         # a.tick_params(axis="x", which="minor", bottom=False)
 
-    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.png", dpi=300)
+    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.svg")
+
+
+### OLD STUFF ###
+
+import sys
+
+sys.exit(0)
 
 # %% Plot space explored
 

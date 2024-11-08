@@ -6,42 +6,27 @@
         "output",
         {
           "Step": {
-            "label": "rh_ans",
+            "label": "non_rh",
             "antecedents": [
               [
                 "in",
                 {
-                  "Step": {
-                    "label": "non_rh",
-                    "antecedents": [
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
                       [
-                        "in",
+                        "x",
                         {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 0
-                                }
-                              ]
-                            ]
-                          }
+                          "Int": 0
                         }
                       ]
-                    ],
-                    "consequent": {
-                      "name": "NonRabbitHole",
-                      "args": []
-                    },
-                    "side_condition": []
+                    ]
                   }
                 }
               ]
             ],
             "consequent": {
-              "name": "RabbitHoleAnswer",
+              "name": "RHGoal",
               "args": []
             },
             "side_condition": []
