@@ -34,6 +34,11 @@ def assert_group_same(g, *, name, on):
     assert (g[on] == g[0, on]).all(), (name, on)
 
 
+def show(df, sort_by=["algorithm", "entry"]):
+    with pl.Config(tbl_cols=-1, tbl_rows=-1):
+        print(df.sort(by=sort_by))
+
+
 # %% Plotting functions
 
 
@@ -368,6 +373,7 @@ comparisons = (
     .with_columns(speedup=pl.col("duration") / pl.col("duration2"))
 )
 
+show(data)
 
 # %% Plot summaries
 
