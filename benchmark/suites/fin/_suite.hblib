@@ -76,13 +76,11 @@
 ;;; rabbit_hole
 
 (output fact RabbitHole)
-(output fact NonRabbitHole)
-(output fact RabbitHoleAnswer)
+(output fact RHGoal)
 
-(computation start_rh RabbitHole ((in In)) ())
-(computation rh RabbitHole ((in RabbitHole)) ())
-(computation non_rh NonRabbitHole ((in In)) ())
-(computation rh_ans RabbitHoleAnswer ((in NonRabbitHole)) ())
+(computation rh_continue RabbitHole ((in RabbitHole)) ())
+(computation rh RHGoal ((in RabbitHole)) ())
+(computation non_rh RHGoal ((in In)) ())
 
 ;;; limited_cycle
 
