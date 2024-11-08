@@ -29,6 +29,11 @@ def group_by_sel(self, by, *, sel):
 
 pl.DataFrame.group_by_sel = group_by_sel
 
+
+def assert_group_same(g, *, name, on):
+    assert (g[on] == g[0, on]).all(), (name, on)
+
+
 # %% Plotting functions
 
 
@@ -94,32 +99,30 @@ def distributions(
 
         if name:
             axa.text(
-                1,
-                1,
+                0.5,
+                1.05,
                 name,
                 transform=axa.transAxes,
                 color=color,
-                ha="right",
-                va="top",
+                ha="center",
+                va="bottom",
                 fontweight="bold",
                 fontsize=16,
             )
 
         if total:
             if name:
-                y = 0.93 if flip else 0.83
                 text = f"({len(vals)}/{total} solved)"
             else:
-                y = 1
                 text = f"(on {len(vals)}/{total} entries)"
 
             axa.text(
-                1,
-                y,
+                0.5,
+                1.03,
                 text,
                 transform=axa.transAxes,
                 color=color,
-                ha="right",
+                ha="center",
                 va="top",
                 fontsize=10,
             )
@@ -281,15 +284,16 @@ def completion(vals, *, best, order, colors, figsize, xlabel):
 
 OUTPUT_DIR = "output"
 
-ALGORITHMS = [
-    "E",
-    "EP",
-    "PBN_E",
-    "PBN_EP",
-    "PBN_DL",
-    "PBN_DLmem",
+ALGOTASKS = [
+    "E:All",
+    "EP:All",
+    # "PBN_E",
+    # "PBN_EP",
+    # "PBN_DL",
+    "PBN_DLmem:Particular",
 ]
 
+# https://personal.sron.nl/~pault/
 ALGORITHM_COLORS = [
     "#4477AA",
     "#66CCEE",
@@ -317,11 +321,16 @@ if CHECK:
     with pl.Config(tbl_rows=-1, tbl_cols=-1):
         assert df.is_empty(), str(df)
 
+# Check that completed subentries have all completed replicates
+if CHECK:
+    for n, g in raw_data.group_by(SUBENTRY_KEY):
+        assert_group_same(g, name=n, on="replicate")
+
 # Check that completed replicates agree
 if CHECK:
     for n, g in raw_data.filter(pl.col("completed")).group_by(SUBENTRY_KEY):
         for c in ["solution_count", "solution_size"]:
-            assert (g[c] == g[0, c]).all(), (n, c)
+            assert_group_same(g, name=n, on=c)
 
 data = raw_data.group_by(SUBENTRY_KEY).agg(
     duration=pl.col("duration").median() / 1000,
@@ -330,49 +339,29 @@ data = raw_data.group_by(SUBENTRY_KEY).agg(
     solution_size=pl.col("solution_size").first(),
 )
 
+# Check that completed entries have all completed subentries
+if CHECK:
+    for n, g in raw_data.group_by(ENTRY_KEY):
+        assert_group_same(g, name=n, on="replicate")
+
 # Aggregate particulars
-# data = data.group_by(ENTRY_KEY).agg(
-#     duration=pl.col("duration").median(),
-#     completed=pl.col("completed").all(),
-#     solution_count=pl.col("solution_count").median(),
-#     solution_size=pl.col("solution_size").median(),
-#     subentry=pl.lit(0),
-# )
+data = data.group_by(ENTRY_KEY).agg(
+    duration=pl.col("duration").median(),
+    completed=pl.col("completed").all(),
+    solution_count=pl.col("solution_count").median(),
+    solution_size=pl.col("solution_size").median(),
+)
 
 completed = data.filter(pl.col("completed")).drop("completed")
 
-# Check that different approaches agree
-if CHECK:
-    for n, g in completed.group_by("suite", "entry", "task", "subentry"):
-        if n[2] == "Any":
-            continue
-        for c in ["solution_count", "solution_size"]:
-            assert (g[c] == g[0, c]).all(), (n, c, g)
-
-solutions = (
-    completed.filter(
-        (pl.col("task") == "All") & (pl.col("algorithm") == "PBN_DLmem")
-    )
-    .group_by(["suite", "entry"])
-    .agg(count=pl.col("solution_count").first())
-)
-
-data = data.filter(pl.col("entry").is_in(solutions["entry"].unique()))
-
 total_entries = {}
-for (suite,), g in solutions.group_by("suite"):
-    # TODO: Should simply be len(g) once every task has a solution
-    entry_count = len(data.filter(pl.col("suite") == suite)["entry"].unique())
-    total_entries[suite] = {
-        "Any": entry_count,
-        "All": entry_count,
-        "Particular": g["count"].sum(),
-    }
+for (suite,), g in raw_data.group_by("suite"):
+    total_entries[suite] = g["entry"].unique().len()
 
 comparisons = (
     completed.join(
         completed,
-        on=["suite", "entry", "task", "subentry"],
+        on=["suite", "entry", "task"],
         suffix="2",
     )
     .filter(pl.col("algorithm") != pl.col("algorithm2"))
@@ -382,25 +371,22 @@ comparisons = (
 
 # %% Plot summaries
 
-for (suite, task), df in completed.group_by("suite", "task"):
-    if task != "Particular":
-        continue
+for (suite,), df in completed.group_by("suite"):
     fig, ax = distributions(
         [
-            (n, g)
-            for n, g in df.group_by_sel("algorithm", sel="duration")
-            if n != "PBN_DL"
+            (a + ":" + t, g["duration"])
+            for (a, t), g in df.group_by("algorithm", "task")
         ],
-        total=total_entries[suite][task],
-        order=ALGORITHMS,
+        total=total_entries[suite],
+        order=ALGOTASKS,
         colors=ALGORITHM_COLORS,
         bins=np.arange(0, 10.1, 1),
-        figsize=(5, 12),
+        figsize=(12, 5),
         xlabel="Time taken (s)",
-        flip=False,
+        flip=True,
     )
 
-    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{task}.png", dpi=300)
+    fig.save(f"{OUTPUT_DIR}/{suite}/summary/summary.svg")
 
 # %% Plot speedup comparisons
 

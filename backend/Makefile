@@ -7,7 +7,7 @@ quick-benchmark:
 	RAYON_NUM_THREADS=8 \
 	cargo run -- benchmark \
 	    -s ../benchmark/suites/fin/ \
-	    -t 2000 \
+	    -t 10000 \
 	    -r 1 \
 	    -q \
 	    > ../benchmark/data/data.tsv

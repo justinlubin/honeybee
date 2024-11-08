@@ -22,7 +22,7 @@ pub struct Record {
     pub suite: String,
     pub entry: String,
     pub task: Task,
-    pub subentry: usize,
+    pub subentry: String,
     pub replicate: usize,
     pub algorithm: Algorithm,
     pub completed: bool,
@@ -71,7 +71,7 @@ fn task_results(
     algorithm: Algorithm,
     task: Task,
     synthesis_task: task::Task,
-    subentry: usize,
+    subentry: &str,
     show_results: bool,
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
@@ -94,7 +94,7 @@ fn task_results(
             suite: suite.to_owned(),
             entry: entry.to_owned(),
             task: task.clone(),
-            subentry,
+            subentry: subentry.to_owned(),
             replicate,
             algorithm: algorithm.clone(),
             completed,
@@ -124,7 +124,7 @@ fn task_results(
 fn results(
     lib: &Library,
     prog: &Program,
-    particulars: &Vec<derivation::Tree>,
+    particulars: &Vec<(String, derivation::Tree)>,
     soft_timeout: u128,
     run_count: usize,
     suite: &str,
@@ -136,18 +136,19 @@ fn results(
     wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
 ) -> Vec<Record> {
     let synthesis_tasks = match task {
-        Task::Any => vec![task::Task::AnyValid],
-        Task::All => vec![task::Task::AllValid],
+        Task::Any => vec![("NA".to_owned(), task::Task::AnyValid)],
+        Task::All => vec![("NA".to_owned(), task::Task::AllValid)],
         Task::Particular => particulars
             .iter()
-            .map(|dt| task::Task::Particular(dt.clone()))
+            .map(|(subentry, dt)| {
+                (subentry.clone(), task::Task::Particular(dt.clone()))
+            })
             .collect(),
     };
 
     if parallel {
         synthesis_tasks
             .par_iter()
-            .enumerate()
             .flat_map(|(subentry, synthesis_task)| {
                 task_results(
                     &lib,
@@ -168,7 +169,6 @@ fn results(
     } else {
         synthesis_tasks
             .iter()
-            .enumerate()
             .flat_map(|(subentry, synthesis_task)| {
                 task_results(
                     &lib,
@@ -193,7 +193,7 @@ fn entry_results(
     lib: &Library,
     prog: &Program,
     entry: &str,
-    particulars: &Vec<derivation::Tree>,
+    particulars: &Vec<(String, derivation::Tree)>,
     soft_timeout: u128,
     run_count: usize,
     suite: &str,
@@ -327,7 +327,16 @@ pub fn suite_results(
             let particular = serde_json::from_str(&particular_json).expect(
                 &format!("unparseable particular: {:?}", particular_filename),
             );
-            particulars.push(particular);
+            particulars.push((
+                particular_filename
+                    .with_extension("")
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned(),
+                particular,
+            ));
         }
 
         progs.push((prog, entry, particulars));
