@@ -96,7 +96,7 @@ enum Commands {
             short,
             long,
             value_name = "A1:T1,A2:T2,...",
-            default_value = "PBN_DLmem:Particular,EP:All,E:All"
+            default_value = "PBN_DLmem:Particular,PBN_DL:Particular,EP:All,E:All"
         )]
         algotasks: String,
 

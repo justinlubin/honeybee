@@ -6,7 +6,7 @@ build:
 quick-benchmark:
 	RAYON_NUM_THREADS=8 \
 	cargo run -- benchmark \
-	    -s ../benchmark/suites/fin/ \
+	    -s ../benchmark/suites/fin,../benchmark/suites/scal/ \
 	    -t 10000 \
 	    -r 1 \
 	    -q \
@@ -15,10 +15,10 @@ quick-benchmark:
 .PHONY: full-benchmark
 full-benchmark:
 	cargo run -- benchmark \
-	    -s ../benchmarks/suites/ff,../benchmark/suites/if/ \
+	    -s ../benchmarks/suites/fin/,../benchmark/suites/inf/ \
 	    -t 60000 \
 	    -r 5 \
-	    > ../benchmark/data/data.tsv
+	    > ../benchmark/data/full.tsv
 
 .PHONY: wasm
 wasm:
