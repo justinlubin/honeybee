@@ -129,13 +129,13 @@ def distributions(
                 color=color,
                 ha="center",
                 va="top",
-                fontsize=10,
+                fontsize=14,
             )
 
         if flip:
-            axa.set_xlabel(ylabel)
+            axa.set_xlabel(ylabel, fontweight="bold")
         else:
-            axa.set_ylabel(ylabel)
+            axa.set_ylabel(ylabel, fontweight="bold")
 
         axb = ax[3 * i] if flip else ax[3 * i + 1]
 
@@ -154,14 +154,14 @@ def distributions(
                 axb.set_yticks(bins, labels=xticklabels)
             axb.spines[["right", "top", "bottom"]].set_visible(False)
             axb.get_xaxis().set_visible(False)
-            axb.set_ylabel(xlabel)
+            axb.set_ylabel(xlabel, fontweight="bold")
         else:
             axb.tick_params(bottom=True, labelbottom=True)
             if xticklabels:
                 axb.set_xticks(bins, labels=xticklabels)
             axb.spines[["right", "top", "left"]].set_visible(False)
             axb.get_yaxis().set_visible(False)
-            axb.set_xlabel(xlabel)
+            axb.set_xlabel(xlabel, fontweight="bold")
 
         axc = ax[3 * i + 2]
         axc.set_visible(False)
@@ -298,17 +298,26 @@ ALGOTASKS = [
     "PBN_DLmem:Particular",
 ]
 
+APPROACH = [
+    "Naïve Enumeration",
+    "Pruned Enumeration",
+    "Programming By Navigation",
+]
+
 ALGORITHMS = [at.split(":")[0] for at in ALGOTASKS]
 
 # https://personal.sron.nl/~pault/
 ALGORITHM_COLORS = [
-    "#4477AA",
     "#66CCEE",
+    "#4477AA",
     # "#228833",
     # "#CCBB44",
     # "#EE6677",
     "#AA3377",
 ]
+
+CONST_DEPTH = 5
+CONST_BREADTH = 5
 
 # %% Load data
 
@@ -375,6 +384,15 @@ comparisons = (
     .with_columns(speedup=pl.col("duration") / pl.col("duration2"))
 )
 
+scal = (
+    aggdata.filter(pl.col("suite") == "scal")
+    .with_columns(
+        breadth=pl.col("entry").str.slice(1, 2).cast(int),
+        depth=pl.col("entry").str.slice(4, 2).cast(int),
+    )
+    .drop("suite", "entry", "solution_count", "solution_size")
+)
+
 show(aggdata)
 
 # %% Plot summaries
@@ -382,21 +400,26 @@ show(aggdata)
 for (suite,), df in completed.filter(
     pl.col("algorithm").is_in(ALGORITHMS)
 ).group_by("suite"):
-    fig, ax = distributions(
+    groups = sorted(
         [
-            (a + ":" + t, g["duration"])
+            (APPROACH[ALGOTASKS.index(a + ":" + t)], g["duration"])
             for (a, t), g in df.group_by("algorithm", "task")
         ],
+        key=lambda x: APPROACH.index(x[0]),
+    )
+    colors = [ALGORITHM_COLORS[APPROACH.index(at)] for at, _ in groups]
+    fig, ax = distributions(
+        groups,
         total=total_entries[suite],
-        order=ALGOTASKS,
-        colors=ALGORITHM_COLORS,
+        order=APPROACH,
+        colors=colors,
         bins=np.arange(0, 10.1, 1),
-        figsize=(12, 5),
+        figsize=(4 * len(groups), 5),
         xlabel="Time taken (s)",
         flip=True,
     )
 
-    fig.save(f"{OUTPUT_DIR}/{suite}/summary/summary.svg")
+    fig.save(f"{OUTPUT_DIR}/{suite}/summary/{suite}-summary.pdf")
 
 # %% Plot speedup comparisons
 
@@ -489,10 +512,120 @@ for (suite, task, alg1, alg2), df in comparisons.filter(
         a.axvline(x=1, color="gray", ls="dotted")
         # a.tick_params(axis="x", which="minor", bottom=False)
 
-    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{task}-{alg1}-{alg2}.svg")
+    fig.save(f"{OUTPUT_DIR}/{suite}/speedup/{suite}-{task}-{alg1}-{alg2}.pdf")
 
+# %% Plot speedup comparisons, v2
 
-### OLD STUFF ###
+for (task, alg1, alg2), df in comparisons.filter(
+    (pl.col("algorithm") == "PBN_DL") & (pl.col("algorithm2") == "PBN_DLmem")
+    # & (pl.col("suite").is_in(["fin", "inf"]))
+).group_by("task", "algorithm", "algorithm2"):
+    approach1 = "Ablation"
+    approach2 = "Full"
+    total = len(df)
+    better1 = len(df.filter(pl.col("duration") < pl.col("duration2")))
+    better2 = len(df.filter(pl.col("duration2") < pl.col("duration")))
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    ax.scatter(
+        df["duration"],
+        df["duration2"],
+        zorder=2,
+        c=ALGORITHM_COLORS[2],
+        # edgecolor="black",
+        # linewidth=0.5,
+    )
+    max_duration = int(max(df["duration"].max(), df["duration2"].max())) + 1
+    ax.set_xlim([0, max_duration])
+    ax.set_ylim([0, max_duration])
+    ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
+    ax.set_xlabel(r"$\bf{" + approach1 + "}$" + "\nTime taken (s)")
+    ax.set_ylabel(r"$\bf{" + approach2 + "}$" + "\nTime taken (s)")
+    padding = 0.05
+    ax.text(
+        padding,
+        1 - padding,
+        r"$\bf{" + approach1 + "}$" + f" better ({better1}/{total})",
+        ha="left",
+        va="top",
+        transform=ax.transAxes,
+    )
+    ax.text(
+        1 - padding,
+        padding,
+        r"$\bf{" + approach2 + "}$" + f" better ({better2}/{total})",
+        ha="right",
+        va="bottom",
+        transform=ax.transAxes,
+    )
+
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_aspect("equal", adjustable="box")
+    fig.tight_layout()
+
+    fig.save(f"{OUTPUT_DIR}/overall-speedup/{task}-{alg1}-{alg2}.pdf")
+
+# %% Plot scalability
+
+fig, ax = plt.subplots(
+    1,
+    2,
+    figsize=(8, 4),
+    sharey=True,
+)
+
+for i, (feature, other, const) in enumerate(
+    [
+        ("depth", "breadth", CONST_BREADTH),
+        ("breadth", "depth", CONST_DEPTH),
+    ]
+):
+    df = scal.filter(
+        (pl.col(other) == const)
+        & pl.col("completed")
+        & pl.col("algorithm").is_in(ALGORITHMS)
+    ).sort(by=feature)
+
+    groups = sorted(
+        df.group_by("algorithm", "task"),
+        key=lambda x: ALGOTASKS.index(x[0][0] + ":" + x[0][1]),
+    )
+
+    markers = ["s", "^", "o"]
+    for j, ((a, t), g) in enumerate(groups):
+        ati = ALGOTASKS.index(a + ":" + t)
+        ax[i].plot(
+            g[feature],
+            g["duration"],
+            c=ALGORITHM_COLORS[ati],
+            marker=markers[j],
+            label=APPROACH[ati] if i == 0 else None,
+        )
+
+    ax[i].spines[["top", "right"]].set_visible(False)
+    ax[i].set_aspect("equal", adjustable="box")
+    featureUpper = feature[0].upper() + feature[1:]
+    otherUpper = other[0].upper() + other[1:]
+    ax[i].set_xlabel(
+        r"$\bf{"
+        + featureUpper
+        + r"}$ $\bf{of}$ $\bf{search}$ $\bf{space}$"
+        + f"\n(for {other} = {const})",
+    )
+    ax[i].set_ylabel(
+        "Time taken (s)",
+        fontweight="bold",
+    )
+    ax[i].set_xlim([0, 10.5])
+    ax[i].set_ylim([0, 10.5])
+    ax[i].set_xticks(np.arange(0, 10.1, 1))
+    ax[i].set_yticks(np.arange(0, 10.1, 1))
+    ax[i].yaxis.set_tick_params(labelleft=True)
+
+fig.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 0))
+fig.tight_layout()
+fig.save(f"{OUTPUT_DIR}/scalability/scalability.pdf", bbox_inches="tight")
+
+# %% ### OLD STUFF ###
 
 import sys
 

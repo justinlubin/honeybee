@@ -4,9 +4,9 @@ build:
 
 .PHONY: quick-benchmark
 quick-benchmark:
-	RAYON_NUM_THREADS=8 \
+	RAYON_NUM_THREADS=7 \
 	cargo run -- benchmark \
-	    -s ../benchmark/suites/fin,../benchmark/suites/scal/ \
+	    -s ../benchmark/suites/fin,../benchmark/suites/inf,../benchmark/suites/scal/ \
 	    -t 10000 \
 	    -r 1 \
 	    -q \

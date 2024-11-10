@@ -131,22 +131,77 @@
   ((< (.x in2) (.x in1))
    (< (.x in1) (.x in2))))
 
-;;; simple_sorted
+;;; breadth_sorted
 
-(output fact SimpleSorted4)
+(output fact BreadthSorted)
 
-(computation simple_sorted SimpleSorted4
-  ((in1 In) (in2 In) (in3 In) (in4 In))
+(computation breadth_sorted BreadthSorted
+  ((in1 In) (in2 In) (in3 In) (in4 In) (in5 In))
   ((< (.x in1) (.x in2))
    (< (.x in2) (.x in3))
-   (< (.x in3) (.x in4))))
+   (< (.x in3) (.x in4))
+   (< (.x in4) (.x in5))))
 
-;;; advanced_sorted
+;;; depth_sorted
 
-(output fact AdvancedSorted4)
+(output fact DepthSorted)
 
-(computation advanced_sorted AdvancedSorted4
-  ((in1 In) (in2 In) (in3 In) (in4 In))
-  ((< (.x in1) (.x in2))
-   (< (.x in2) (.x in3))
-   (< (.x in3) (.x in4))))
+(output fact DS1 (.x Int))
+(output fact DS2 (.x Int))
+(output fact DS3 (.x Int))
+(output fact DS4 (.x Int))
+
+(computation as0 DepthSorted
+  ((in DS1)) ())
+
+(computation as1 DS1
+  ((in DS2))
+  ((< (.x ret) (.x in))))
+
+(computation as2 DS2
+  ((in DS3))
+  ((< (.x ret) (.x in))))
+
+(computation as3 DS3
+  ((in DS4))
+  ((< (.x ret) (.x in))))
+
+(computation as4 DS4
+  ((in In))
+  ((< (.x ret) (.x in))))
+
+;;; same
+
+(output fact Same)
+(output fact SameOption (.x Int))
+
+(computation same Same
+  ((s1 SameOption) (s2 SameOption) (s3 SameOption) (s4 SameOption)
+   (s5 SameOption) (s6 SameOption) (s7 SameOption) (s8 SameOption)
+   (s9 SameOption) (s10 SameOption))
+  ((= (.x s1) (.x s2))
+   (= (.x s2) (.x s3))
+   (= (.x s3) (.x s4))
+   (= (.x s4) (.x s5))
+   (= (.x s5) (.x s6))
+   (= (.x s6) (.x s7))
+   (= (.x s7) (.x s8))
+   (= (.x s8) (.x s9))
+   (= (.x s9) (.x s10))))
+
+(computation same_option SameOption
+  ((in In))
+  ((= (.x ret) (.x in))))
+
+;;; descending_tree
+
+(output fact DTree (.x Int))
+
+(computation dtree DTree
+  ((dt1 DTree) (dt2 DTree))
+  ((< (.x dt1) (.x ret))
+   (< (.x dt2) (.x ret))
+   (< (.x dt2) (.x dt1))))
+
+(computation dtree_leaf DTree
+  () ())
