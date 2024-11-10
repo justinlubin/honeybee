@@ -2,6 +2,7 @@ import asyncio
 import glob
 import os
 import random
+import shutil
 import sys
 
 random.seed(0)
@@ -49,10 +50,16 @@ async def run_all(suite, max_retries=3):
     hblib = suite + "/_suite.hblib"
     py = suite + "/_suite.py"
 
-    for prog in sorted(glob.glob(suite + "/*.hb")):
+    progs = sorted(glob.glob(suite + "/*.hb"))
+
+    for prog in progs:
+        base = prog[:-3]
+        shutil.rmtree(base, ignore_errors=True)
+
+    for prog in progs:
         print(f"Working on '{prog}'... ", end="", flush=True)
         base = prog[:-3]
-        os.makedirs(base, exist_ok=True)
+        os.makedirs(base)
         outputs = set()
         for sample in range(1, N + 1):
             print(f"{sample}, ", end="", flush=True)

@@ -1,0 +1,168 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "breadth_sorted",
+            "antecedents": [
+              [
+                "in1",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 4
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in2",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 6
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in3",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 7
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in4",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 8
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "in5",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 10
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "BreadthSorted",
+              "args": []
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 4
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 6
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 6
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 7
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 7
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 10
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}
