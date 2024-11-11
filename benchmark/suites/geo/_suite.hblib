@@ -78,6 +78,21 @@
   ((= (.bands ret) (.bands raster))
    (= (.resolution ret) (.resolution raster))))
 
+; Mosaic
+
+(computation mosaic Raster
+  ((r1 Raster) (r2 Raster))
+  ((= (.bands r1) (.bands r2))
+   (= (.bands ret) (.bands r1))
+   (= (.crs r1) (.crs r2))
+   (= (.crs ret) (.crs r1))))
+
+; Band Extration
+
+(computation extractBand Raster
+  ((raster Raster))
+  ((= (.bands ret) 1)))
+
 ; Remote Sensing
 
 (computation ndvi Raster

@@ -107,6 +107,17 @@ def warp(raster: Raster, crs: str) -> Raster.D:
     dataset = ...
     return Raster.D(dataset=dataset)
 
+# Band Extraction
+
+def extract_band(raster: Raster, band: int) -> Raster.D:
+    dataset = ...
+    return Raster.D(dataset=dataset)
+
+# Mosaic
+def mosaic(r1: Raster, r2: Raster) -> Raster.D:
+    dataset = ...
+    return Raster.D(dataset=dataset)
+
 # Remote Sensing
 
 def ndvi(raster: Raster, red: int, nir: int) -> Raster.D:
