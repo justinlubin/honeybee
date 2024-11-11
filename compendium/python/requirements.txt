@@ -3,3 +3,5 @@ altair[all]
 requests
 cutadapt
 HTSeq
+geopandas
+rasterio
