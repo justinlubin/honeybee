@@ -15,9 +15,6 @@
 
 ; Resampling
 
-(output fact Resolution
-  (.resolution Int))
-
 (output fact ResamplingMethod
   (.method Str))
 
@@ -69,7 +66,9 @@
 (computation resample Raster
   ((raster Raster) (method ResamplingMethod))
   ((< (.resolution raster) (.resolution ret))
-   (< 0 (.resolution ret))))
+   (< 0 (.resolution ret))
+   (= (.crs ret) (.crs raster))
+   (= (.bands ret) (.bands raster))))
 
 ; Warp
 
@@ -85,25 +84,32 @@
   ((= (.bands r1) (.bands r2))
    (= (.bands ret) (.bands r1))
    (= (.crs r1) (.crs r2))
-   (= (.crs ret) (.crs r1))))
+   (= (.crs ret) (.crs r1))
+   (= (.resolution ret) (.resolution r1))))
 
 ; Band Extration
 
 (computation extractBand Raster
   ((raster Raster))
-  ((= (.bands ret) 1)))
+  ((= (.bands ret) 1)
+   (= (.resolution ret) (.resolution raster))
+   (= (.crs ret) (.crs raster))))
 
 ; Remote Sensing
 
 (computation ndvi Raster
   ((raster Raster))
   ((< 1 (.bands raster))
-   (= (.bands ret) 1)))
+   (= (.bands ret) 1)
+   (= (.resolution ret) (.resolution raster))
+   (= (.crs ret) (.crs raster))))
 
 (computation ndwi Raster
   ((raster Raster))
   ((< 1 (.bands raster))
-   (= (.bands ret) 1)))
+   (= (.bands ret) 1)
+   (= (.resolution ret) (.resolution raster))
+   (= (.crs ret) (.crs raster))))
 
 ; Vector
 
@@ -129,4 +135,6 @@
 (computation clipRaster Raster
   ((raster Raster) (mask Vector))
   ((= (.crs raster) (.crs mask))
-   (= (.crs ret) (.crs raster))))
+   (= (.crs ret) (.crs raster))
+   (= (.resolution ret) (.resolution raster))
+   (= (.bands ret) (.bands raster))))

@@ -9,7 +9,7 @@
 
 (goal
   (Raster
-    (.name "Landsat NVDI")
+    (.name "Landsat NDVI")
     (.resolution 90)
     (.crs "EPSG:26943")
     (.bands 1)))
