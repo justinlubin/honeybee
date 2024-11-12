@@ -1,63 +1,121 @@
-; Sequencing
+; Raw inputs
 
 (input fact Seq
   (.sample Str) (.at Int) (.data Str))
 
-(output fact ReadCountMatrix1
+(input fact ReferenceGenome
+  (.data Str))
+
+; Datatypes
+
+(output fact Reference
+  (.data Str))
+
+(output fact Alignment
   (.sample Str) (.at Int))
 
-(output fact ReadCountMatrix2
+(output fact ReadCounts
+  (.sample Str) (.at Int))
+
+(output fact ReadCountMatrix
   (.sample1 Str) (.sample2 Str) (.at Int) (.bc Int))
-
-(computation load_local_reads ReadCountMatrix1
-  ((seq Seq))
-  ((= (.sample ret) (.sample seq))
-   (= (.at ret) (.at seq))))
-
-(computation aggregate_reads ReadCountMatrix2
-  ((rcm1 ReadCountMatrix1) (rcm2 ReadCountMatrix1))
-  ((= (.sample1 ret) (.sample rcm1))
-   (= (.sample2 ret) (.sample rcm2))
-   (= (.at ret) (.at rcm1))
-   (= (.at rcm1) (.at rcm2))
-   (= (.bc ret) 0)))
-
-; Bulk RNA-seq
 
 (output fact DifferentialGeneExpression
   (.sample1 Str) (.sample2 Str) (.at Int))
 
-(computation combat_seq ReadCountMatrix2
-  ((rcm ReadCountMatrix2))
+; Load reference genome
+
+(computation load_local_reference_genome Reference
+  ((rg ReferenceGenome))
+  ((= (.data ret) (.data rg))))
+
+(computation load_hg38 Reference () ())
+
+; Quantifiers
+
+(computation kallisto ReadCounts
+  ((seq Seq) (ref Reference))
+  ((= (.sample ret) (.sample seq))
+   (= (.at ret) (.at seq))))
+
+(computation salmon ReadCounts
+  ((seq Seq) (ref Reference))
+  ((= (.sample ret) (.sample seq))
+   (= (.at ret) (.at seq))))
+
+; Aligners
+
+(computation bowtie2 Alignment
+  ((seq Seq) (ref Reference))
+  ((= (.sample ret) (.sample seq))
+   (= (.at ret) (.at seq))))
+
+(computation star Alignment
+  ((seq Seq) (ref Reference))
+  ((= (.sample ret) (.sample seq))
+   (= (.at ret) (.at seq))))
+
+; Read summarization
+
+(computation featureCounts ReadCounts
+  ((a Alignment))
+  ((= (.sample ret) (.sample a))
+   (= (.at ret) (.at a))))
+
+; Combine reads
+
+(computation combine_reads ReadCountMatrix
+  ((r1 ReadCounts) (r2 ReadCounts))
+  ((= (.sample1 ret) (.sample r1))
+   (= (.sample2 ret) (.sample r2))
+   (= (.at ret) (.at r1))
+   (= (.at r1) (.at r2))
+   (= (.bc ret) 0)))
+
+; Batch correction
+
+(computation combat_seq ReadCountMatrix
+  ((rcm ReadCountMatrix))
   ((= (.sample1 ret) (.sample1 rcm))
    (= (.sample2 ret) (.sample2 rcm))
    (= (.at ret) (.at rcm))
    (= (.bc rcm) 0)
    (= (.bc ret) 1)))
 
+; Differential gene expression
+
 (computation deseq2 DifferentialGeneExpression
-  ((rcm ReadCountMatrix2))
+  ((rcm ReadCountMatrix))
   ((= (.sample1 ret) (.sample1 rcm))
    (= (.sample2 ret) (.sample2 rcm))
    (= (.at ret) (.at rcm))))
 
-; Transfection and growth
+; Pooled CRISPR screen
 
-(input fact Transfect
+(input fact Transfection
   (.sample Str) (.at Int) (.library Str))
 
-(output fact GrowthPhenotype
+(output fact Enrichment
   (.sample Str) (.start Int) (.end Int))
 
-(computation growth_phenotype GrowthPhenotype
-  ((t Transfect)
-   (rcm1 ReadCountMatrix1)
-   (rcm2 ReadCountMatrix1))
-  ((= (.sample ret) (.sample t))
-   (= (.start ret) (.at rcm1))
-   (= (.end ret) (.at rcm2))
-   (= (.sample t) (.sample rcm1))
-   (= (.sample t) (.sample rcm2))
-   (< (.at t) (.at rcm1))
-   (< (.at rcm1) (.at rcm2))))
+(computation reference_from_transfection Reference
+  ((t Transfection))
+  ((= (.data ret) (.library t))))
 
+(computation mageck Enrichment
+  ((t Transfection) (s1 Seq) (s2 Seq))
+  ((= (.sample ret) (.sample t))
+   (= (.start ret) (.at s1))
+   (= (.end ret) (.at s2))
+   (= (.sample t) (.sample s1))
+   (= (.sample t) (.sample s2))
+   (< (.at t) (.at s1))
+   (< (.at s1) (.at s2))))
+
+(computation l2fc Enrichment
+  ((r1 ReadCounts) (r2 ReadCounts))
+  ((= (.start ret) (.at r1))
+   (= (.end ret) (.at r2))
+   (= (.sample ret) (.sample r1))
+   (= (.sample ret) (.sample r2))
+   (< (.at r1) (.at r2))))
