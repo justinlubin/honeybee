@@ -1,0 +1,641 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "branch",
+            "antecedents": [
+              [
+                "left",
+                {
+                  "Step": {
+                    "label": "branch",
+                    "antecedents": [
+                      [
+                        "left",
+                        {
+                          "Step": {
+                            "label": "leaf",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Axiom": {
+                                    "name": "In",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 5
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Bin",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ],
+                      [
+                        "right",
+                        {
+                          "Step": {
+                            "label": "branch",
+                            "antecedents": [
+                              [
+                                "left",
+                                {
+                                  "Step": {
+                                    "label": "leaf",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Axiom": {
+                                            "name": "In",
+                                            "args": [
+                                              [
+                                                "x",
+                                                {
+                                                  "Int": 4
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Bin",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ],
+                              [
+                                "right",
+                                {
+                                  "Step": {
+                                    "label": "branch",
+                                    "antecedents": [
+                                      [
+                                        "left",
+                                        {
+                                          "Step": {
+                                            "label": "leaf",
+                                            "antecedents": [
+                                              [
+                                                "in",
+                                                {
+                                                  "Axiom": {
+                                                    "name": "In",
+                                                    "args": [
+                                                      [
+                                                        "x",
+                                                        {
+                                                          "Int": 3
+                                                        }
+                                                      ]
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Bin",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ],
+                                      [
+                                        "right",
+                                        {
+                                          "Step": {
+                                            "label": "branch",
+                                            "antecedents": [
+                                              [
+                                                "left",
+                                                {
+                                                  "Step": {
+                                                    "label": "branch",
+                                                    "antecedents": [
+                                                      [
+                                                        "left",
+                                                        {
+                                                          "Step": {
+                                                            "label": "leaf",
+                                                            "antecedents": [
+                                                              [
+                                                                "in",
+                                                                {
+                                                                  "Axiom": {
+                                                                    "name": "In",
+                                                                    "args": [
+                                                                      [
+                                                                        "x",
+                                                                        {
+                                                                          "Int": 4
+                                                                        }
+                                                                      ]
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              ]
+                                                            ],
+                                                            "consequent": {
+                                                              "name": "Bin",
+                                                              "args": []
+                                                            },
+                                                            "side_condition": []
+                                                          }
+                                                        }
+                                                      ],
+                                                      [
+                                                        "right",
+                                                        {
+                                                          "Step": {
+                                                            "label": "branch",
+                                                            "antecedents": [
+                                                              [
+                                                                "left",
+                                                                {
+                                                                  "Step": {
+                                                                    "label": "branch",
+                                                                    "antecedents": [
+                                                                      [
+                                                                        "left",
+                                                                        {
+                                                                          "Step": {
+                                                                            "label": "leaf",
+                                                                            "antecedents": [
+                                                                              [
+                                                                                "in",
+                                                                                {
+                                                                                  "Axiom": {
+                                                                                    "name": "In",
+                                                                                    "args": [
+                                                                                      [
+                                                                                        "x",
+                                                                                        {
+                                                                                          "Int": 5
+                                                                                        }
+                                                                                      ]
+                                                                                    ]
+                                                                                  }
+                                                                                }
+                                                                              ]
+                                                                            ],
+                                                                            "consequent": {
+                                                                              "name": "Bin",
+                                                                              "args": []
+                                                                            },
+                                                                            "side_condition": []
+                                                                          }
+                                                                        }
+                                                                      ],
+                                                                      [
+                                                                        "right",
+                                                                        {
+                                                                          "Step": {
+                                                                            "label": "branch",
+                                                                            "antecedents": [
+                                                                              [
+                                                                                "left",
+                                                                                {
+                                                                                  "Step": {
+                                                                                    "label": "leaf",
+                                                                                    "antecedents": [
+                                                                                      [
+                                                                                        "in",
+                                                                                        {
+                                                                                          "Axiom": {
+                                                                                            "name": "In",
+                                                                                            "args": [
+                                                                                              [
+                                                                                                "x",
+                                                                                                {
+                                                                                                  "Int": 1
+                                                                                                }
+                                                                                              ]
+                                                                                            ]
+                                                                                          }
+                                                                                        }
+                                                                                      ]
+                                                                                    ],
+                                                                                    "consequent": {
+                                                                                      "name": "Bin",
+                                                                                      "args": []
+                                                                                    },
+                                                                                    "side_condition": []
+                                                                                  }
+                                                                                }
+                                                                              ],
+                                                                              [
+                                                                                "right",
+                                                                                {
+                                                                                  "Step": {
+                                                                                    "label": "leaf",
+                                                                                    "antecedents": [
+                                                                                      [
+                                                                                        "in",
+                                                                                        {
+                                                                                          "Axiom": {
+                                                                                            "name": "In",
+                                                                                            "args": [
+                                                                                              [
+                                                                                                "x",
+                                                                                                {
+                                                                                                  "Int": 5
+                                                                                                }
+                                                                                              ]
+                                                                                            ]
+                                                                                          }
+                                                                                        }
+                                                                                      ]
+                                                                                    ],
+                                                                                    "consequent": {
+                                                                                      "name": "Bin",
+                                                                                      "args": []
+                                                                                    },
+                                                                                    "side_condition": []
+                                                                                  }
+                                                                                }
+                                                                              ]
+                                                                            ],
+                                                                            "consequent": {
+                                                                              "name": "Bin",
+                                                                              "args": []
+                                                                            },
+                                                                            "side_condition": []
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    ],
+                                                                    "consequent": {
+                                                                      "name": "Bin",
+                                                                      "args": []
+                                                                    },
+                                                                    "side_condition": []
+                                                                  }
+                                                                }
+                                                              ],
+                                                              [
+                                                                "right",
+                                                                {
+                                                                  "Step": {
+                                                                    "label": "leaf",
+                                                                    "antecedents": [
+                                                                      [
+                                                                        "in",
+                                                                        {
+                                                                          "Axiom": {
+                                                                            "name": "In",
+                                                                            "args": [
+                                                                              [
+                                                                                "x",
+                                                                                {
+                                                                                  "Int": 3
+                                                                                }
+                                                                              ]
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    ],
+                                                                    "consequent": {
+                                                                      "name": "Bin",
+                                                                      "args": []
+                                                                    },
+                                                                    "side_condition": []
+                                                                  }
+                                                                }
+                                                              ]
+                                                            ],
+                                                            "consequent": {
+                                                              "name": "Bin",
+                                                              "args": []
+                                                            },
+                                                            "side_condition": []
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Bin",
+                                                      "args": []
+                                                    },
+                                                    "side_condition": []
+                                                  }
+                                                }
+                                              ],
+                                              [
+                                                "right",
+                                                {
+                                                  "Step": {
+                                                    "label": "leaf",
+                                                    "antecedents": [
+                                                      [
+                                                        "in",
+                                                        {
+                                                          "Axiom": {
+                                                            "name": "In",
+                                                            "args": [
+                                                              [
+                                                                "x",
+                                                                {
+                                                                  "Int": 2
+                                                                }
+                                                              ]
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Bin",
+                                                      "args": []
+                                                    },
+                                                    "side_condition": []
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Bin",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Bin",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Bin",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Bin",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ],
+              [
+                "right",
+                {
+                  "Step": {
+                    "label": "branch",
+                    "antecedents": [
+                      [
+                        "left",
+                        {
+                          "Step": {
+                            "label": "branch",
+                            "antecedents": [
+                              [
+                                "left",
+                                {
+                                  "Step": {
+                                    "label": "branch",
+                                    "antecedents": [
+                                      [
+                                        "left",
+                                        {
+                                          "Step": {
+                                            "label": "leaf",
+                                            "antecedents": [
+                                              [
+                                                "in",
+                                                {
+                                                  "Axiom": {
+                                                    "name": "In",
+                                                    "args": [
+                                                      [
+                                                        "x",
+                                                        {
+                                                          "Int": 3
+                                                        }
+                                                      ]
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Bin",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ],
+                                      [
+                                        "right",
+                                        {
+                                          "Step": {
+                                            "label": "branch",
+                                            "antecedents": [
+                                              [
+                                                "left",
+                                                {
+                                                  "Step": {
+                                                    "label": "leaf",
+                                                    "antecedents": [
+                                                      [
+                                                        "in",
+                                                        {
+                                                          "Axiom": {
+                                                            "name": "In",
+                                                            "args": [
+                                                              [
+                                                                "x",
+                                                                {
+                                                                  "Int": 5
+                                                                }
+                                                              ]
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Bin",
+                                                      "args": []
+                                                    },
+                                                    "side_condition": []
+                                                  }
+                                                }
+                                              ],
+                                              [
+                                                "right",
+                                                {
+                                                  "Step": {
+                                                    "label": "leaf",
+                                                    "antecedents": [
+                                                      [
+                                                        "in",
+                                                        {
+                                                          "Axiom": {
+                                                            "name": "In",
+                                                            "args": [
+                                                              [
+                                                                "x",
+                                                                {
+                                                                  "Int": 3
+                                                                }
+                                                              ]
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Bin",
+                                                      "args": []
+                                                    },
+                                                    "side_condition": []
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Bin",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Bin",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ],
+                              [
+                                "right",
+                                {
+                                  "Step": {
+                                    "label": "leaf",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Axiom": {
+                                            "name": "In",
+                                            "args": [
+                                              [
+                                                "x",
+                                                {
+                                                  "Int": 1
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Bin",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Bin",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ],
+                      [
+                        "right",
+                        {
+                          "Step": {
+                            "label": "leaf",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Axiom": {
+                                    "name": "In",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 3
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Bin",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Bin",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Bin",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

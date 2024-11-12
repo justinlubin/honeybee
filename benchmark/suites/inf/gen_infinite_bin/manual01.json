@@ -1,0 +1,43 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "leaf",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 4
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Bin",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}
