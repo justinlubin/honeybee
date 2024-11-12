@@ -12,7 +12,7 @@
                 "b1",
                 {
                   "Step": {
-                    "label": "bmid3",
+                    "label": "bmid1",
                     "antecedents": [
                       [
                         "in1",
@@ -23,7 +23,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 2
+                                  "Int": 1
                                 }
                               ]
                             ]
@@ -39,7 +39,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 1
+                                  "Int": 2
                                 }
                               ]
                             ]
@@ -59,7 +59,7 @@
                 "b2",
                 {
                   "Step": {
-                    "label": "bmid3",
+                    "label": "bmid1",
                     "antecedents": [
                       [
                         "in1",
@@ -70,7 +70,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 1
+                                  "Int": 2
                                 }
                               ]
                             ]
@@ -106,7 +106,7 @@
                 "b3",
                 {
                   "Step": {
-                    "label": "bmid2",
+                    "label": "bmid3",
                     "antecedents": [
                       [
                         "in1",
@@ -117,7 +117,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 1
+                                  "Int": 2
                                 }
                               ]
                             ]

@@ -12,20 +12,59 @@
                 "in",
                 {
                   "Step": {
-                    "label": "start_lc",
+                    "label": "continue_lc",
                     "antecedents": [
                       [
                         "in",
                         {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
+                          "Step": {
+                            "label": "start_lc",
+                            "antecedents": [
                               [
-                                "x",
+                                "in",
                                 {
-                                  "Int": 13
+                                  "Axiom": {
+                                    "name": "In",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 20
+                                        }
+                                      ]
+                                    ]
+                                  }
                                 }
                               ]
+                            ],
+                            "consequent": {
+                              "name": "LimitedCycle",
+                              "args": [
+                                [
+                                  "count",
+                                  {
+                                    "Int": 20
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "count",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 20
+                                    }
+                                  }
+                                ]
+                              }
                             ]
                           }
                         }
@@ -37,7 +76,7 @@
                         [
                           "count",
                           {
-                            "Int": 13
+                            "Int": 9
                           }
                         ]
                       ]
@@ -45,7 +84,7 @@
                     "side_condition": [
                       {
                         "BinOp": [
-                          "Eq",
+                          "Lt",
                           {
                             "Select": {
                               "selector": "count",
@@ -54,7 +93,23 @@
                           },
                           {
                             "Const": {
-                              "Int": 13
+                              "Int": 20
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Lt",
+                          {
+                            "Const": {
+                              "Int": 0
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "count",
+                              "arg": "ret"
                             }
                           }
                         ]

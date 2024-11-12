@@ -1,0 +1,285 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "mageck",
+            "antecedents": [
+              [
+                "t",
+                {
+                  "Axiom": {
+                    "name": "Transfection",
+                    "args": [
+                      [
+                        "library",
+                        {
+                          "Str": "library.csv"
+                        }
+                      ],
+                      [
+                        "sample",
+                        {
+                          "Str": "A"
+                        }
+                      ],
+                      [
+                        "at",
+                        {
+                          "Int": 1
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "s1",
+                {
+                  "Axiom": {
+                    "name": "Seq",
+                    "args": [
+                      [
+                        "at",
+                        {
+                          "Int": 2
+                        }
+                      ],
+                      [
+                        "data",
+                        {
+                          "Str": "initial.fastq"
+                        }
+                      ],
+                      [
+                        "sample",
+                        {
+                          "Str": "A"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "s2",
+                {
+                  "Axiom": {
+                    "name": "Seq",
+                    "args": [
+                      [
+                        "sample",
+                        {
+                          "Str": "A"
+                        }
+                      ],
+                      [
+                        "data",
+                        {
+                          "Str": "final.fastq"
+                        }
+                      ],
+                      [
+                        "at",
+                        {
+                          "Int": 3
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Enrichment",
+              "args": [
+                [
+                  "sample",
+                  {
+                    "Str": "A"
+                  }
+                ],
+                [
+                  "start",
+                  {
+                    "Int": 2
+                  }
+                ],
+                [
+                  "end",
+                  {
+                    "Int": 3
+                  }
+                ]
+              ]
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "sample",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "start",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "end",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 3
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "A"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 1
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 2
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 3
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": [
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Str": "A"
+            }
+          },
+          {
+            "Const": {
+              "Str": "A"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Int": 2
+            }
+          },
+          {
+            "Const": {
+              "Int": 2
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Int": 3
+            }
+          },
+          {
+            "Const": {
+              "Int": 3
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

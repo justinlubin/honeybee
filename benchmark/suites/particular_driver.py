@@ -46,7 +46,7 @@ async def run_one(hblib, py, prog, json):
         await hb.stdin.drain()
 
 
-async def run_all(suite, max_retries=3):
+async def run_all(suite, max_retries=30):
     hblib = suite + "/_suite.hblib"
     py = suite + "/_suite.py"
 
@@ -75,6 +75,7 @@ async def run_all(suite, max_retries=3):
                     break
             else:
                 print("failed, ", end="")
+                os.remove(json)
         print("done!")
 
 

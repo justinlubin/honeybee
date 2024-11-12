@@ -18,20 +18,59 @@
                         "in",
                         {
                           "Step": {
-                            "label": "start_lc",
+                            "label": "continue_lc",
                             "antecedents": [
                               [
                                 "in",
                                 {
-                                  "Axiom": {
-                                    "name": "In",
-                                    "args": [
+                                  "Step": {
+                                    "label": "start_lc",
+                                    "antecedents": [
                                       [
-                                        "x",
+                                        "in",
                                         {
-                                          "Int": 18
+                                          "Axiom": {
+                                            "name": "In",
+                                            "args": [
+                                              [
+                                                "x",
+                                                {
+                                                  "Int": 19
+                                                }
+                                              ]
+                                            ]
+                                          }
                                         }
                                       ]
+                                    ],
+                                    "consequent": {
+                                      "name": "LimitedCycle",
+                                      "args": [
+                                        [
+                                          "count",
+                                          {
+                                            "Int": 19
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": [
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "count",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Int": 19
+                                            }
+                                          }
+                                        ]
+                                      }
                                     ]
                                   }
                                 }
@@ -51,7 +90,7 @@
                             "side_condition": [
                               {
                                 "BinOp": [
-                                  "Eq",
+                                  "Lt",
                                   {
                                     "Select": {
                                       "selector": "count",
@@ -60,7 +99,23 @@
                                   },
                                   {
                                     "Const": {
-                                      "Int": 18
+                                      "Int": 19
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Const": {
+                                      "Int": 0
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "count",
+                                      "arg": "ret"
                                     }
                                   }
                                 ]
@@ -76,7 +131,7 @@
                         [
                           "count",
                           {
-                            "Int": 16
+                            "Int": 13
                           }
                         ]
                       ]

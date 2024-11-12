@@ -12,7 +12,7 @@
                 "b1",
                 {
                   "Step": {
-                    "label": "bmid3",
+                    "label": "bmid2",
                     "antecedents": [
                       [
                         "in1",
@@ -23,7 +23,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 5
+                                  "Int": 3
                                 }
                               ]
                             ]
@@ -39,7 +39,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 1
+                                  "Int": 4
                                 }
                               ]
                             ]
@@ -59,7 +59,7 @@
                 "b2",
                 {
                   "Step": {
-                    "label": "bmid2",
+                    "label": "bmid1",
                     "antecedents": [
                       [
                         "in1",
@@ -71,6 +71,53 @@
                                 "x",
                                 {
                                   "Int": 1
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ],
+                      [
+                        "in2",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 3
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "BranchMid",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ],
+              [
+                "b3",
+                {
+                  "Step": {
+                    "label": "bmid3",
+                    "antecedents": [
+                      [
+                        "in1",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 3
                                 }
                               ]
                             ]
@@ -103,57 +150,10 @@
                 }
               ],
               [
-                "b3",
-                {
-                  "Step": {
-                    "label": "bmid3",
-                    "antecedents": [
-                      [
-                        "in1",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 4
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ],
-                      [
-                        "in2",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 4
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ]
-                    ],
-                    "consequent": {
-                      "name": "BranchMid",
-                      "args": []
-                    },
-                    "side_condition": []
-                  }
-                }
-              ],
-              [
                 "b4",
                 {
                   "Step": {
-                    "label": "bmid1",
+                    "label": "bmid2",
                     "antecedents": [
                       [
                         "in1",
@@ -180,7 +180,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 4
+                                  "Int": 1
                                 }
                               ]
                             ]

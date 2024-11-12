@@ -12,87 +12,27 @@
                 "in",
                 {
                   "Step": {
-                    "label": "st1",
+                    "label": "st2",
                     "antecedents": [
                       [
                         "in",
                         {
                           "Step": {
-                            "label": "st3",
+                            "label": "st_end",
                             "antecedents": [
                               [
                                 "in",
                                 {
-                                  "Step": {
-                                    "label": "st2",
-                                    "antecedents": [
+                                  "Axiom": {
+                                    "name": "In",
+                                    "args": [
                                       [
-                                        "in",
+                                        "x",
                                         {
-                                          "Step": {
-                                            "label": "st3",
-                                            "antecedents": [
-                                              [
-                                                "in",
-                                                {
-                                                  "Step": {
-                                                    "label": "st3",
-                                                    "antecedents": [
-                                                      [
-                                                        "in",
-                                                        {
-                                                          "Step": {
-                                                            "label": "st_end",
-                                                            "antecedents": [
-                                                              [
-                                                                "in",
-                                                                {
-                                                                  "Axiom": {
-                                                                    "name": "In",
-                                                                    "args": [
-                                                                      [
-                                                                        "x",
-                                                                        {
-                                                                          "Int": 0
-                                                                        }
-                                                                      ]
-                                                                    ]
-                                                                  }
-                                                                }
-                                                              ]
-                                                            ],
-                                                            "consequent": {
-                                                              "name": "SmallThree",
-                                                              "args": []
-                                                            },
-                                                            "side_condition": []
-                                                          }
-                                                        }
-                                                      ]
-                                                    ],
-                                                    "consequent": {
-                                                      "name": "SmallThree",
-                                                      "args": []
-                                                    },
-                                                    "side_condition": []
-                                                  }
-                                                }
-                                              ]
-                                            ],
-                                            "consequent": {
-                                              "name": "SmallThree",
-                                              "args": []
-                                            },
-                                            "side_condition": []
-                                          }
+                                          "Int": 0
                                         }
                                       ]
-                                    ],
-                                    "consequent": {
-                                      "name": "SmallThree",
-                                      "args": []
-                                    },
-                                    "side_condition": []
+                                    ]
                                   }
                                 }
                               ]

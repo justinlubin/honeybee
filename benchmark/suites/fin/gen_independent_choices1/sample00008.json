@@ -6,19 +6,19 @@
         "output",
         {
           "Step": {
-            "label": "c5",
+            "label": "d5",
             "antecedents": [
               [
                 "in",
                 {
                   "Step": {
-                    "label": "e4",
+                    "label": "d4",
                     "antecedents": [
                       [
                         "in",
                         {
                           "Step": {
-                            "label": "d3",
+                            "label": "a3",
                             "antecedents": [
                               [
                                 "in",

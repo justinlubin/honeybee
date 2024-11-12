@@ -6,26 +6,455 @@
         "output",
         {
           "Step": {
-            "label": "es_lt",
+            "label": "es_eq",
             "antecedents": [
               [
                 "in",
                 {
                   "Step": {
-                    "label": "es_end",
+                    "label": "es_eq",
                     "antecedents": [
                       [
                         "in",
                         {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
+                          "Step": {
+                            "label": "es_eq",
+                            "antecedents": [
                               [
-                                "x",
+                                "in",
                                 {
-                                  "Int": 5
+                                  "Step": {
+                                    "label": "es_eq",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Step": {
+                                            "label": "es_eq",
+                                            "antecedents": [
+                                              [
+                                                "in",
+                                                {
+                                                  "Step": {
+                                                    "label": "es_eq",
+                                                    "antecedents": [
+                                                      [
+                                                        "in",
+                                                        {
+                                                          "Step": {
+                                                            "label": "es_eq",
+                                                            "antecedents": [
+                                                              [
+                                                                "in",
+                                                                {
+                                                                  "Step": {
+                                                                    "label": "es_lt",
+                                                                    "antecedents": [
+                                                                      [
+                                                                        "in",
+                                                                        {
+                                                                          "Step": {
+                                                                            "label": "es_eq",
+                                                                            "antecedents": [
+                                                                              [
+                                                                                "in",
+                                                                                {
+                                                                                  "Step": {
+                                                                                    "label": "es_lt",
+                                                                                    "antecedents": [
+                                                                                      [
+                                                                                        "in",
+                                                                                        {
+                                                                                          "Step": {
+                                                                                            "label": "es_eq",
+                                                                                            "antecedents": [
+                                                                                              [
+                                                                                                "in",
+                                                                                                {
+                                                                                                  "Step": {
+                                                                                                    "label": "es_eq",
+                                                                                                    "antecedents": [
+                                                                                                      [
+                                                                                                        "in",
+                                                                                                        {
+                                                                                                          "Step": {
+                                                                                                            "label": "es_end",
+                                                                                                            "antecedents": [
+                                                                                                              [
+                                                                                                                "in",
+                                                                                                                {
+                                                                                                                  "Axiom": {
+                                                                                                                    "name": "In",
+                                                                                                                    "args": [
+                                                                                                                      [
+                                                                                                                        "x",
+                                                                                                                        {
+                                                                                                                          "Int": 5
+                                                                                                                        }
+                                                                                                                      ]
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                }
+                                                                                                              ]
+                                                                                                            ],
+                                                                                                            "consequent": {
+                                                                                                              "name": "ES",
+                                                                                                              "args": [
+                                                                                                                [
+                                                                                                                  "count",
+                                                                                                                  {
+                                                                                                                    "Int": 5
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              ]
+                                                                                                            },
+                                                                                                            "side_condition": [
+                                                                                                              {
+                                                                                                                "BinOp": [
+                                                                                                                  "Eq",
+                                                                                                                  {
+                                                                                                                    "Select": {
+                                                                                                                      "selector": "count",
+                                                                                                                      "arg": "ret"
+                                                                                                                    }
+                                                                                                                  },
+                                                                                                                  {
+                                                                                                                    "Const": {
+                                                                                                                      "Int": 5
+                                                                                                                    }
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        }
+                                                                                                      ]
+                                                                                                    ],
+                                                                                                    "consequent": {
+                                                                                                      "name": "ES",
+                                                                                                      "args": [
+                                                                                                        [
+                                                                                                          "count",
+                                                                                                          {
+                                                                                                            "Int": 5
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      ]
+                                                                                                    },
+                                                                                                    "side_condition": [
+                                                                                                      {
+                                                                                                        "BinOp": [
+                                                                                                          "Eq",
+                                                                                                          {
+                                                                                                            "Select": {
+                                                                                                              "selector": "count",
+                                                                                                              "arg": "ret"
+                                                                                                            }
+                                                                                                          },
+                                                                                                          {
+                                                                                                            "Const": {
+                                                                                                              "Int": 5
+                                                                                                            }
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                }
+                                                                                              ]
+                                                                                            ],
+                                                                                            "consequent": {
+                                                                                              "name": "ES",
+                                                                                              "args": [
+                                                                                                [
+                                                                                                  "count",
+                                                                                                  {
+                                                                                                    "Int": 5
+                                                                                                  }
+                                                                                                ]
+                                                                                              ]
+                                                                                            },
+                                                                                            "side_condition": [
+                                                                                              {
+                                                                                                "BinOp": [
+                                                                                                  "Eq",
+                                                                                                  {
+                                                                                                    "Select": {
+                                                                                                      "selector": "count",
+                                                                                                      "arg": "ret"
+                                                                                                    }
+                                                                                                  },
+                                                                                                  {
+                                                                                                    "Const": {
+                                                                                                      "Int": 5
+                                                                                                    }
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        }
+                                                                                      ]
+                                                                                    ],
+                                                                                    "consequent": {
+                                                                                      "name": "ES",
+                                                                                      "args": [
+                                                                                        [
+                                                                                          "count",
+                                                                                          {
+                                                                                            "Int": 4
+                                                                                          }
+                                                                                        ]
+                                                                                      ]
+                                                                                    },
+                                                                                    "side_condition": [
+                                                                                      {
+                                                                                        "BinOp": [
+                                                                                          "Lt",
+                                                                                          {
+                                                                                            "Select": {
+                                                                                              "selector": "count",
+                                                                                              "arg": "ret"
+                                                                                            }
+                                                                                          },
+                                                                                          {
+                                                                                            "Const": {
+                                                                                              "Int": 5
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                }
+                                                                              ]
+                                                                            ],
+                                                                            "consequent": {
+                                                                              "name": "ES",
+                                                                              "args": [
+                                                                                [
+                                                                                  "count",
+                                                                                  {
+                                                                                    "Int": 4
+                                                                                  }
+                                                                                ]
+                                                                              ]
+                                                                            },
+                                                                            "side_condition": [
+                                                                              {
+                                                                                "BinOp": [
+                                                                                  "Eq",
+                                                                                  {
+                                                                                    "Select": {
+                                                                                      "selector": "count",
+                                                                                      "arg": "ret"
+                                                                                    }
+                                                                                  },
+                                                                                  {
+                                                                                    "Const": {
+                                                                                      "Int": 4
+                                                                                    }
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    ],
+                                                                    "consequent": {
+                                                                      "name": "ES",
+                                                                      "args": [
+                                                                        [
+                                                                          "count",
+                                                                          {
+                                                                            "Int": 0
+                                                                          }
+                                                                        ]
+                                                                      ]
+                                                                    },
+                                                                    "side_condition": [
+                                                                      {
+                                                                        "BinOp": [
+                                                                          "Lt",
+                                                                          {
+                                                                            "Select": {
+                                                                              "selector": "count",
+                                                                              "arg": "ret"
+                                                                            }
+                                                                          },
+                                                                          {
+                                                                            "Const": {
+                                                                              "Int": 4
+                                                                            }
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              ]
+                                                            ],
+                                                            "consequent": {
+                                                              "name": "ES",
+                                                              "args": [
+                                                                [
+                                                                  "count",
+                                                                  {
+                                                                    "Int": 0
+                                                                  }
+                                                                ]
+                                                              ]
+                                                            },
+                                                            "side_condition": [
+                                                              {
+                                                                "BinOp": [
+                                                                  "Eq",
+                                                                  {
+                                                                    "Select": {
+                                                                      "selector": "count",
+                                                                      "arg": "ret"
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "Const": {
+                                                                      "Int": 0
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "ES",
+                                                      "args": [
+                                                        [
+                                                          "count",
+                                                          {
+                                                            "Int": 0
+                                                          }
+                                                        ]
+                                                      ]
+                                                    },
+                                                    "side_condition": [
+                                                      {
+                                                        "BinOp": [
+                                                          "Eq",
+                                                          {
+                                                            "Select": {
+                                                              "selector": "count",
+                                                              "arg": "ret"
+                                                            }
+                                                          },
+                                                          {
+                                                            "Const": {
+                                                              "Int": 0
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "ES",
+                                              "args": [
+                                                [
+                                                  "count",
+                                                  {
+                                                    "Int": 0
+                                                  }
+                                                ]
+                                              ]
+                                            },
+                                            "side_condition": [
+                                              {
+                                                "BinOp": [
+                                                  "Eq",
+                                                  {
+                                                    "Select": {
+                                                      "selector": "count",
+                                                      "arg": "ret"
+                                                    }
+                                                  },
+                                                  {
+                                                    "Const": {
+                                                      "Int": 0
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "ES",
+                                      "args": [
+                                        [
+                                          "count",
+                                          {
+                                            "Int": 0
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": [
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "count",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Int": 0
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
                                 }
                               ]
+                            ],
+                            "consequent": {
+                              "name": "ES",
+                              "args": [
+                                [
+                                  "count",
+                                  {
+                                    "Int": 0
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "count",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 0
+                                    }
+                                  }
+                                ]
+                              }
                             ]
                           }
                         }
@@ -37,7 +466,7 @@
                         [
                           "count",
                           {
-                            "Int": 5
+                            "Int": 0
                           }
                         ]
                       ]
@@ -54,7 +483,7 @@
                           },
                           {
                             "Const": {
-                              "Int": 5
+                              "Int": 0
                             }
                           }
                         ]
@@ -78,7 +507,7 @@
             "side_condition": [
               {
                 "BinOp": [
-                  "Lt",
+                  "Eq",
                   {
                     "Select": {
                       "selector": "count",
@@ -87,7 +516,7 @@
                   },
                   {
                     "Const": {
-                      "Int": 5
+                      "Int": 0
                     }
                   }
                 ]

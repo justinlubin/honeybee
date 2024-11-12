@@ -12,27 +12,6 @@
                 "dt1",
                 {
                   "Step": {
-                    "label": "dtree_leaf",
-                    "antecedents": [],
-                    "consequent": {
-                      "name": "DTree",
-                      "args": [
-                        [
-                          "x",
-                          {
-                            "Int": 4
-                          }
-                        ]
-                      ]
-                    },
-                    "side_condition": []
-                  }
-                }
-              ],
-              [
-                "dt2",
-                {
-                  "Step": {
                     "label": "dtree",
                     "antecedents": [
                       [
@@ -47,12 +26,215 @@
                                 [
                                   "x",
                                   {
-                                    "Int": 1
+                                    "Int": 6
                                   }
                                 ]
                               ]
                             },
                             "side_condition": []
+                          }
+                        }
+                      ],
+                      [
+                        "dt2",
+                        {
+                          "Step": {
+                            "label": "dtree_leaf",
+                            "antecedents": [],
+                            "consequent": {
+                              "name": "DTree",
+                              "args": [
+                                [
+                                  "x",
+                                  {
+                                    "Int": 2
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "DTree",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 7
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Lt",
+                          {
+                            "Const": {
+                              "Int": 6
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Lt",
+                          {
+                            "Const": {
+                              "Int": 2
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Lt",
+                          {
+                            "Const": {
+                              "Int": 2
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 6
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "dt2",
+                {
+                  "Step": {
+                    "label": "dtree",
+                    "antecedents": [
+                      [
+                        "dt1",
+                        {
+                          "Step": {
+                            "label": "dtree",
+                            "antecedents": [
+                              [
+                                "dt1",
+                                {
+                                  "Step": {
+                                    "label": "dtree_leaf",
+                                    "antecedents": [],
+                                    "consequent": {
+                                      "name": "DTree",
+                                      "args": [
+                                        [
+                                          "x",
+                                          {
+                                            "Int": 1
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ],
+                              [
+                                "dt2",
+                                {
+                                  "Step": {
+                                    "label": "dtree_leaf",
+                                    "antecedents": [],
+                                    "consequent": {
+                                      "name": "DTree",
+                                      "args": [
+                                        [
+                                          "x",
+                                          {
+                                            "Int": 0
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "DTree",
+                              "args": [
+                                [
+                                  "x",
+                                  {
+                                    "Int": 2
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Const": {
+                                      "Int": 1
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "ret"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Const": {
+                                      "Int": 0
+                                    }
+                                  },
+                                  {
+                                    "Select": {
+                                      "selector": "x",
+                                      "arg": "ret"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Const": {
+                                      "Int": 0
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 1
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         }
                       ],
@@ -84,7 +266,7 @@
                         [
                           "x",
                           {
-                            "Int": 2
+                            "Int": 3
                           }
                         ]
                       ]
@@ -95,7 +277,7 @@
                           "Lt",
                           {
                             "Const": {
-                              "Int": 1
+                              "Int": 2
                             }
                           },
                           {
@@ -132,7 +314,7 @@
                           },
                           {
                             "Const": {
-                              "Int": 1
+                              "Int": 2
                             }
                           }
                         ]
@@ -159,7 +341,7 @@
                   "Lt",
                   {
                     "Const": {
-                      "Int": 4
+                      "Int": 7
                     }
                   },
                   {
@@ -175,7 +357,7 @@
                   "Lt",
                   {
                     "Const": {
-                      "Int": 2
+                      "Int": 3
                     }
                   },
                   {
@@ -191,12 +373,12 @@
                   "Lt",
                   {
                     "Const": {
-                      "Int": 2
+                      "Int": 3
                     }
                   },
                   {
                     "Const": {
-                      "Int": 4
+                      "Int": 7
                     }
                   }
                 ]

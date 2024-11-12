@@ -75,7 +75,7 @@
 (output fact Raster
   (.name Str)
   (.resolution Int)
-  (.crs Str
+  (.crs Str)
   (.bands Int))
 
 (computation loadRaster Raster

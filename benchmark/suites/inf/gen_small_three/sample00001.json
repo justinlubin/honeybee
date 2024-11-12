@@ -6,21 +6,51 @@
         "output",
         {
           "Step": {
-            "label": "st_end",
+            "label": "st1",
             "antecedents": [
               [
                 "in",
                 {
-                  "Axiom": {
-                    "name": "In",
-                    "args": [
+                  "Step": {
+                    "label": "st1",
+                    "antecedents": [
                       [
-                        "x",
+                        "in",
                         {
-                          "Int": 0
+                          "Step": {
+                            "label": "st_end",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Axiom": {
+                                    "name": "In",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 0
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "SmallThree",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
                         }
                       ]
-                    ]
+                    ],
+                    "consequent": {
+                      "name": "SmallThree",
+                      "args": []
+                    },
+                    "side_condition": []
                   }
                 }
               ]

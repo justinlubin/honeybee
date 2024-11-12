@@ -12,13 +12,13 @@
                 "in",
                 {
                   "Step": {
-                    "label": "c12",
+                    "label": "c2",
                     "antecedents": [
                       [
                         "in",
                         {
                           "Step": {
-                            "label": "c1",
+                            "label": "c12",
                             "antecedents": [
                               [
                                 "in",
@@ -30,51 +30,21 @@
                                         "in",
                                         {
                                           "Step": {
-                                            "label": "c1",
+                                            "label": "c10",
                                             "antecedents": [
                                               [
                                                 "in",
                                                 {
-                                                  "Step": {
-                                                    "label": "c1",
-                                                    "antecedents": [
+                                                  "Axiom": {
+                                                    "name": "In",
+                                                    "args": [
                                                       [
-                                                        "in",
+                                                        "x",
                                                         {
-                                                          "Step": {
-                                                            "label": "c10",
-                                                            "antecedents": [
-                                                              [
-                                                                "in",
-                                                                {
-                                                                  "Axiom": {
-                                                                    "name": "In",
-                                                                    "args": [
-                                                                      [
-                                                                        "x",
-                                                                        {
-                                                                          "Int": 0
-                                                                        }
-                                                                      ]
-                                                                    ]
-                                                                  }
-                                                                }
-                                                              ]
-                                                            ],
-                                                            "consequent": {
-                                                              "name": "Cycle1",
-                                                              "args": []
-                                                            },
-                                                            "side_condition": []
-                                                          }
+                                                          "Int": 0
                                                         }
                                                       ]
-                                                    ],
-                                                    "consequent": {
-                                                      "name": "Cycle1",
-                                                      "args": []
-                                                    },
-                                                    "side_condition": []
+                                                    ]
                                                   }
                                                 }
                                               ]
@@ -98,7 +68,7 @@
                               ]
                             ],
                             "consequent": {
-                              "name": "Cycle1",
+                              "name": "Cycle2",
                               "args": []
                             },
                             "side_condition": []

@@ -6,7 +6,7 @@
         "output",
         {
           "Step": {
-            "label": "st3",
+            "label": "st1",
             "antecedents": [
               [
                 "in",

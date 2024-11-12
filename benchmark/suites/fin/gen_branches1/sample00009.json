@@ -12,53 +12,6 @@
                 "b1",
                 {
                   "Step": {
-                    "label": "bmid2",
-                    "antecedents": [
-                      [
-                        "in1",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 2
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ],
-                      [
-                        "in2",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 1
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ]
-                    ],
-                    "consequent": {
-                      "name": "BranchMid",
-                      "args": []
-                    },
-                    "side_condition": []
-                  }
-                }
-              ],
-              [
-                "b2",
-                {
-                  "Step": {
                     "label": "bmid3",
                     "antecedents": [
                       [
@@ -103,10 +56,10 @@
                 }
               ],
               [
-                "b3",
+                "b2",
                 {
                   "Step": {
-                    "label": "bmid1",
+                    "label": "bmid3",
                     "antecedents": [
                       [
                         "in1",
@@ -117,7 +70,54 @@
                               [
                                 "x",
                                 {
+                                  "Int": 2
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ],
+                      [
+                        "in2",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
                                   "Int": 1
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "BranchMid",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ],
+              [
+                "b3",
+                {
+                  "Step": {
+                    "label": "bmid2",
+                    "antecedents": [
+                      [
+                        "in1",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 2
                                 }
                               ]
                             ]
@@ -153,7 +153,7 @@
                 "b4",
                 {
                   "Step": {
-                    "label": "bmid3",
+                    "label": "bmid1",
                     "antecedents": [
                       [
                         "in1",

@@ -12,7 +12,7 @@
                 "b1",
                 {
                   "Step": {
-                    "label": "bmid3",
+                    "label": "bmid2",
                     "antecedents": [
                       [
                         "in1",
@@ -59,7 +59,7 @@
                 "b2",
                 {
                   "Step": {
-                    "label": "bmid1",
+                    "label": "bmid3",
                     "antecedents": [
                       [
                         "in1",
@@ -86,7 +86,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 2
+                                  "Int": 1
                                 }
                               ]
                             ]
@@ -153,7 +153,7 @@
                 "b4",
                 {
                   "Step": {
-                    "label": "bmid3",
+                    "label": "bmid1",
                     "antecedents": [
                       [
                         "in1",
@@ -180,7 +180,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 1
+                                  "Int": 2
                                 }
                               ]
                             ]

@@ -6,7 +6,7 @@
         "output",
         {
           "Step": {
-            "label": "non_rh",
+            "label": "st_end",
             "antecedents": [
               [
                 "in",
@@ -26,7 +26,7 @@
               ]
             ],
             "consequent": {
-              "name": "RHGoal",
+              "name": "SmallThree",
               "args": []
             },
             "side_condition": []

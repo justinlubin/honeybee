@@ -26,7 +26,7 @@
                                 [
                                   "x",
                                   {
-                                    "Int": 1
+                                    "Int": 3
                                   }
                                 ]
                               ]
@@ -47,7 +47,7 @@
                                 [
                                   "x",
                                   {
-                                    "Int": 0
+                                    "Int": 1
                                   }
                                 ]
                               ]
@@ -74,6 +74,22 @@
                           "Lt",
                           {
                             "Const": {
+                              "Int": 3
+                            }
+                          },
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Lt",
+                          {
+                            "Const": {
                               "Int": 1
                             }
                           },
@@ -90,28 +106,12 @@
                           "Lt",
                           {
                             "Const": {
-                              "Int": 0
-                            }
-                          },
-                          {
-                            "Select": {
-                              "selector": "x",
-                              "arg": "ret"
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "BinOp": [
-                          "Lt",
-                          {
-                            "Const": {
-                              "Int": 0
-                            }
-                          },
-                          {
-                            "Const": {
                               "Int": 1
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 3
                             }
                           }
                         ]

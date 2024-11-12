@@ -12,7 +12,7 @@
                 "b1",
                 {
                   "Step": {
-                    "label": "bmid2",
+                    "label": "bmid1",
                     "antecedents": [
                       [
                         "in1",
@@ -59,7 +59,7 @@
                 "b2",
                 {
                   "Step": {
-                    "label": "bmid2",
+                    "label": "bmid3",
                     "antecedents": [
                       [
                         "in1",
@@ -70,54 +70,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 2
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ],
-                      [
-                        "in2",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 2
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ]
-                    ],
-                    "consequent": {
-                      "name": "BranchMid",
-                      "args": []
-                    },
-                    "side_condition": []
-                  }
-                }
-              ],
-              [
-                "b3",
-                {
-                  "Step": {
-                    "label": "bmid2",
-                    "antecedents": [
-                      [
-                        "in1",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 4
+                                  "Int": 3
                                 }
                               ]
                             ]
@@ -150,10 +103,10 @@
                 }
               ],
               [
-                "b4",
+                "b3",
                 {
                   "Step": {
-                    "label": "bmid2",
+                    "label": "bmid3",
                     "antecedents": [
                       [
                         "in1",
@@ -164,7 +117,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 3
+                                  "Int": 1
                                 }
                               ]
                             ]
@@ -180,7 +133,54 @@
                               [
                                 "x",
                                 {
-                                  "Int": 3
+                                  "Int": 4
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "BranchMid",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ],
+              [
+                "b4",
+                {
+                  "Step": {
+                    "label": "bmid3",
+                    "antecedents": [
+                      [
+                        "in1",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 1
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ],
+                      [
+                        "in2",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 5
                                 }
                               ]
                             ]

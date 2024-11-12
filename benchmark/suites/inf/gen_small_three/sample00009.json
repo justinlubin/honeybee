@@ -6,13 +6,13 @@
         "output",
         {
           "Step": {
-            "label": "branch",
+            "label": "st2",
             "antecedents": [
               [
-                "left",
+                "in",
                 {
                   "Step": {
-                    "label": "leaf",
+                    "label": "st_end",
                     "antecedents": [
                       [
                         "in",
@@ -23,7 +23,7 @@
                               [
                                 "x",
                                 {
-                                  "Int": 5
+                                  "Int": 0
                                 }
                               ]
                             ]
@@ -32,38 +32,7 @@
                       ]
                     ],
                     "consequent": {
-                      "name": "Bin",
-                      "args": []
-                    },
-                    "side_condition": []
-                  }
-                }
-              ],
-              [
-                "right",
-                {
-                  "Step": {
-                    "label": "leaf",
-                    "antecedents": [
-                      [
-                        "in",
-                        {
-                          "Axiom": {
-                            "name": "In",
-                            "args": [
-                              [
-                                "x",
-                                {
-                                  "Int": 4
-                                }
-                              ]
-                            ]
-                          }
-                        }
-                      ]
-                    ],
-                    "consequent": {
-                      "name": "Bin",
+                      "name": "SmallThree",
                       "args": []
                     },
                     "side_condition": []
@@ -72,7 +41,7 @@
               ]
             ],
             "consequent": {
-              "name": "Bin",
+              "name": "SmallThree",
               "args": []
             },
             "side_condition": []
