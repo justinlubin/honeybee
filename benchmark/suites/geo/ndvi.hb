@@ -1,4 +1,9 @@
 (facts
+  (Resolution (.val 30))
+  (Resolution (.val 90))
+  (CRS (.val "EPSG:32610"))
+  (CRS (.val "EPSG:26943"))
+
   (InputRaster
     (.name "Landsat Scene")
     (.data "LC09_L1TP_044034_20240508_20240508_02_T1.tif")

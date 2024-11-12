@@ -1,5 +1,8 @@
 ; Raster
 
+(input fact Resolution (.val Int))
+(input fact CRS (.val Str))
+
 (input fact InputRaster
   (.name Str) (.data Str) (.resolution Int) (.crs Str) (.bands Int) (.sensor Str))
 
@@ -64,17 +67,21 @@
   () ())
 
 (computation resample Raster
-  ((raster Raster) (method ResamplingMethod))
+  ((raster Raster) (method ResamplingMethod) (res Resolution))
   ((< (.resolution raster) (.resolution ret))
    (< 0 (.resolution ret))
    (= (.crs ret) (.crs raster))
-   (= (.bands ret) (.bands raster))))
+   (= (.bands ret) (.bands raster))
+   (= (.name ret) (.name raster))
+   (= (.resolution ret) (.val res))))
 
 ; Warp
 
 (computation warp Raster
-  ((raster Raster))
+  ((raster Raster) (c CRS))
   ((= (.bands ret) (.bands raster))
+   (= (.crs ret) (.val c))
+   (= (.name ret) (.name raster))
    (= (.resolution ret) (.resolution raster))))
 
 ; Mosaic
@@ -85,6 +92,7 @@
    (= (.bands ret) (.bands r1))
    (= (.crs r1) (.crs r2))
    (= (.crs ret) (.crs r1))
+   (= (.name ret) (.name r1))
    (= (.resolution ret) (.resolution r1))))
 
 ; Band Extration
@@ -93,6 +101,7 @@
   ((raster Raster))
   ((= (.bands ret) 1)
    (= (.resolution ret) (.resolution raster))
+   (= (.name ret) (.name raster))
    (= (.crs ret) (.crs raster))))
 
 ; Remote Sensing
@@ -102,6 +111,7 @@
   ((< 1 (.bands raster))
    (= (.bands ret) 1)
    (= (.resolution ret) (.resolution raster))
+   (= (.name ret) (.name raster))
    (= (.crs ret) (.crs raster))))
 
 (computation ndwi Raster
@@ -109,6 +119,7 @@
   ((< 1 (.bands raster))
    (= (.bands ret) 1)
    (= (.resolution ret) (.resolution raster))
+   (= (.name ret) (.name raster))
    (= (.crs ret) (.crs raster))))
 
 ; Vector
@@ -136,5 +147,14 @@
   ((raster Raster) (mask Vector))
   ((= (.crs raster) (.crs mask))
    (= (.crs ret) (.crs raster))
+   (= (.name ret) (.name raster))
+   (= (.resolution ret) (.resolution raster))
+   (= (.bands ret) (.bands raster))))
+
+; Rename
+
+(computation rename Raster
+  ((raster Raster))
+  ((= (.crs ret) (.crs raster))
    (= (.resolution ret) (.resolution raster))
    (= (.bands ret) (.bands raster))))

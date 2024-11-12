@@ -1,4 +1,8 @@
 (facts
+  (Resolution (.val 10))
+  (CRS (.val "EPSG:26943"))
+  (CRS (.val "EPSG:4326"))
+
   (InputRaster
     (.name "NED 10m DEM")
     (.data "ned10.tif")
