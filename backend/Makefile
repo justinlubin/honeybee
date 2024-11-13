@@ -12,13 +12,31 @@ quick-benchmark:
 	    -q \
 	    > ../benchmark/data/data.tsv
 
-.PHONY: full-benchmark
-full-benchmark:
+.PHONY: fin-benchmark
+fin-benchmark:
 	cargo run -- benchmark \
-	    -s ../benchmarks/suites/fin/,../benchmark/suites/inf/ \
-	    -t 60000 \
+	    -s ../benchmark/suites/fin/ \
+	    -t 120000 \
 	    -r 5 \
-	    > ../benchmark/data/full.tsv
+	    > ../benchmark/data/fin.tsv
+
+.PHONY: inf-benchmark
+fin-benchmark:
+	cargo run -- benchmark \
+	    -s ../benchmark/suites/inf/ \
+	    -t 120000 \
+	    -r 5 \
+	    -a PBN_DL:Particular,PBN_DLmem:Particular \
+	    > ../benchmark/data/inf.tsv
+
+.PHONY: scal-benchmark
+fin-benchmark:
+	cargo run -- benchmark \
+	    -s ../benchmark/suites/scal/ \
+	    -t 120000 \
+	    -r 5 \
+	    -a E:All,EP:All,PBN_DLmem:Particular \
+	    > ../benchmark/data/inf.tsv
 
 .PHONY: wasm
 wasm:

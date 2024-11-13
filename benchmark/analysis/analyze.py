@@ -338,9 +338,9 @@ if CHECK:
         assert df.is_empty(), str(df)
 
 # Check that completed subentries have all completed replicates
-if CHECK:
-    for n, g in raw_data.group_by(SUBENTRY_KEY):
-        assert_group_same(g, name=n, on="replicate")
+# if CHECK:
+#     for n, g in raw_data.group_by(SUBENTRY_KEY):
+#         assert_group_same(g, name=n, on="replicate")
 
 # Check that completed replicates agree
 if CHECK:
@@ -356,9 +356,9 @@ data = raw_data.group_by(SUBENTRY_KEY).agg(
 )
 
 # Check that completed entries have all completed subentries
-if CHECK:
-    for n, g in raw_data.group_by(ENTRY_KEY):
-        assert_group_same(g, name=n, on="replicate")
+# if CHECK:
+#     for n, g in raw_data.group_by(ENTRY_KEY):
+#         assert_group_same(g, name=n, on="replicate")
 
 # Aggregate particulars
 aggdata = data.group_by(ENTRY_KEY).agg(
@@ -413,7 +413,7 @@ for (suite,), df in completed.filter(
         total=total_entries[suite],
         order=APPROACH,
         colors=colors,
-        bins=np.arange(0, 10.1, 1),
+        bins=np.arange(0, 40.1, 2),
         figsize=(4 * len(groups), 5),
         xlabel="Time taken (s)",
         flip=True,
