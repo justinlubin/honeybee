@@ -1,0 +1,933 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "resample",
+            "antecedents": [
+              [
+                "raster",
+                {
+                  "Step": {
+                    "label": "rename",
+                    "antecedents": [
+                      [
+                        "raster",
+                        {
+                          "Step": {
+                            "label": "ndvi",
+                            "antecedents": [
+                              [
+                                "raster",
+                                {
+                                  "Step": {
+                                    "label": "warp",
+                                    "antecedents": [
+                                      [
+                                        "raster",
+                                        {
+                                          "Step": {
+                                            "label": "warp",
+                                            "antecedents": [
+                                              [
+                                                "raster",
+                                                {
+                                                  "Step": {
+                                                    "label": "rename",
+                                                    "antecedents": [
+                                                      [
+                                                        "raster",
+                                                        {
+                                                          "Step": {
+                                                            "label": "loadRaster",
+                                                            "antecedents": [
+                                                              [
+                                                                "raster",
+                                                                {
+                                                                  "Axiom": {
+                                                                    "name": "InputRaster",
+                                                                    "args": [
+                                                                      [
+                                                                        "sensor",
+                                                                        {
+                                                                          "Str": "landsat-9"
+                                                                        }
+                                                                      ],
+                                                                      [
+                                                                        "crs",
+                                                                        {
+                                                                          "Str": "EPSG:32610"
+                                                                        }
+                                                                      ],
+                                                                      [
+                                                                        "resolution",
+                                                                        {
+                                                                          "Int": 30
+                                                                        }
+                                                                      ],
+                                                                      [
+                                                                        "data",
+                                                                        {
+                                                                          "Str": "LC09_L1TP_044034_20240508_20240508_02_T1.tif"
+                                                                        }
+                                                                      ],
+                                                                      [
+                                                                        "name",
+                                                                        {
+                                                                          "Str": "Landsat Scene"
+                                                                        }
+                                                                      ],
+                                                                      [
+                                                                        "bands",
+                                                                        {
+                                                                          "Int": 11
+                                                                        }
+                                                                      ]
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              ]
+                                                            ],
+                                                            "consequent": {
+                                                              "name": "Raster",
+                                                              "args": [
+                                                                [
+                                                                  "crs",
+                                                                  {
+                                                                    "Str": "EPSG:32610"
+                                                                  }
+                                                                ],
+                                                                [
+                                                                  "bands",
+                                                                  {
+                                                                    "Int": 11
+                                                                  }
+                                                                ],
+                                                                [
+                                                                  "resolution",
+                                                                  {
+                                                                    "Int": 30
+                                                                  }
+                                                                ],
+                                                                [
+                                                                  "name",
+                                                                  {
+                                                                    "Str": "Landsat Scene"
+                                                                  }
+                                                                ]
+                                                              ]
+                                                            },
+                                                            "side_condition": [
+                                                              {
+                                                                "BinOp": [
+                                                                  "Eq",
+                                                                  {
+                                                                    "Select": {
+                                                                      "selector": "name",
+                                                                      "arg": "ret"
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "Const": {
+                                                                      "Str": "Landsat Scene"
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "BinOp": [
+                                                                  "Eq",
+                                                                  {
+                                                                    "Select": {
+                                                                      "selector": "resolution",
+                                                                      "arg": "ret"
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "Const": {
+                                                                      "Int": 30
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "BinOp": [
+                                                                  "Eq",
+                                                                  {
+                                                                    "Select": {
+                                                                      "selector": "crs",
+                                                                      "arg": "ret"
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "Const": {
+                                                                      "Str": "EPSG:32610"
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "BinOp": [
+                                                                  "Eq",
+                                                                  {
+                                                                    "Select": {
+                                                                      "selector": "bands",
+                                                                      "arg": "ret"
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "Const": {
+                                                                      "Int": 11
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Raster",
+                                                      "args": [
+                                                        [
+                                                          "name",
+                                                          {
+                                                            "Str": "Landsat NDVI"
+                                                          }
+                                                        ],
+                                                        [
+                                                          "bands",
+                                                          {
+                                                            "Int": 11
+                                                          }
+                                                        ],
+                                                        [
+                                                          "resolution",
+                                                          {
+                                                            "Int": 30
+                                                          }
+                                                        ],
+                                                        [
+                                                          "crs",
+                                                          {
+                                                            "Str": "EPSG:32610"
+                                                          }
+                                                        ]
+                                                      ]
+                                                    },
+                                                    "side_condition": [
+                                                      {
+                                                        "BinOp": [
+                                                          "Eq",
+                                                          {
+                                                            "Select": {
+                                                              "selector": "crs",
+                                                              "arg": "ret"
+                                                            }
+                                                          },
+                                                          {
+                                                            "Const": {
+                                                              "Str": "EPSG:32610"
+                                                            }
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "BinOp": [
+                                                          "Eq",
+                                                          {
+                                                            "Select": {
+                                                              "selector": "resolution",
+                                                              "arg": "ret"
+                                                            }
+                                                          },
+                                                          {
+                                                            "Const": {
+                                                              "Int": 30
+                                                            }
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "BinOp": [
+                                                          "Eq",
+                                                          {
+                                                            "Select": {
+                                                              "selector": "bands",
+                                                              "arg": "ret"
+                                                            }
+                                                          },
+                                                          {
+                                                            "Const": {
+                                                              "Int": 11
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ],
+                                              [
+                                                "c",
+                                                {
+                                                  "Axiom": {
+                                                    "name": "CRS",
+                                                    "args": [
+                                                      [
+                                                        "val",
+                                                        {
+                                                          "Str": "EPSG:26943"
+                                                        }
+                                                      ]
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Raster",
+                                              "args": [
+                                                [
+                                                  "crs",
+                                                  {
+                                                    "Str": "EPSG:26943"
+                                                  }
+                                                ],
+                                                [
+                                                  "name",
+                                                  {
+                                                    "Str": "Landsat NDVI"
+                                                  }
+                                                ],
+                                                [
+                                                  "bands",
+                                                  {
+                                                    "Int": 11
+                                                  }
+                                                ],
+                                                [
+                                                  "resolution",
+                                                  {
+                                                    "Int": 30
+                                                  }
+                                                ]
+                                              ]
+                                            },
+                                            "side_condition": [
+                                              {
+                                                "BinOp": [
+                                                  "Eq",
+                                                  {
+                                                    "Select": {
+                                                      "selector": "bands",
+                                                      "arg": "ret"
+                                                    }
+                                                  },
+                                                  {
+                                                    "Const": {
+                                                      "Int": 11
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "BinOp": [
+                                                  "Eq",
+                                                  {
+                                                    "Select": {
+                                                      "selector": "crs",
+                                                      "arg": "ret"
+                                                    }
+                                                  },
+                                                  {
+                                                    "Const": {
+                                                      "Str": "EPSG:26943"
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "BinOp": [
+                                                  "Eq",
+                                                  {
+                                                    "Select": {
+                                                      "selector": "name",
+                                                      "arg": "ret"
+                                                    }
+                                                  },
+                                                  {
+                                                    "Const": {
+                                                      "Str": "Landsat NDVI"
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "BinOp": [
+                                                  "Eq",
+                                                  {
+                                                    "Select": {
+                                                      "selector": "resolution",
+                                                      "arg": "ret"
+                                                    }
+                                                  },
+                                                  {
+                                                    "Const": {
+                                                      "Int": 30
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ],
+                                      [
+                                        "c",
+                                        {
+                                          "Axiom": {
+                                            "name": "CRS",
+                                            "args": [
+                                              [
+                                                "val",
+                                                {
+                                                  "Str": "EPSG:26943"
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Raster",
+                                      "args": [
+                                        [
+                                          "crs",
+                                          {
+                                            "Str": "EPSG:26943"
+                                          }
+                                        ],
+                                        [
+                                          "resolution",
+                                          {
+                                            "Int": 30
+                                          }
+                                        ],
+                                        [
+                                          "bands",
+                                          {
+                                            "Int": 11
+                                          }
+                                        ],
+                                        [
+                                          "name",
+                                          {
+                                            "Str": "Landsat NDVI"
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": [
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "bands",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Int": 11
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "crs",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Str": "EPSG:26943"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "name",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Str": "Landsat NDVI"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "resolution",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Int": 30
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Raster",
+                              "args": [
+                                [
+                                  "resolution",
+                                  {
+                                    "Int": 30
+                                  }
+                                ],
+                                [
+                                  "crs",
+                                  {
+                                    "Str": "EPSG:26943"
+                                  }
+                                ],
+                                [
+                                  "name",
+                                  {
+                                    "Str": "Landsat NDVI"
+                                  }
+                                ],
+                                [
+                                  "bands",
+                                  {
+                                    "Int": 1
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Lt",
+                                  {
+                                    "Const": {
+                                      "Int": 1
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 11
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "bands",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 1
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "resolution",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 30
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "name",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Str": "Landsat NDVI"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "crs",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Str": "EPSG:26943"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Raster",
+                      "args": [
+                        [
+                          "crs",
+                          {
+                            "Str": "EPSG:26943"
+                          }
+                        ],
+                        [
+                          "resolution",
+                          {
+                            "Int": 30
+                          }
+                        ],
+                        [
+                          "bands",
+                          {
+                            "Int": 1
+                          }
+                        ],
+                        [
+                          "name",
+                          {
+                            "Str": "Landsat NDVI"
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "crs",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Str": "EPSG:26943"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "resolution",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 30
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "bands",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 1
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "method",
+                {
+                  "Axiom": {
+                    "name": "ResamplingMethod",
+                    "args": [
+                      [
+                        "val",
+                        {
+                          "Str": "bilinear"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "res",
+                {
+                  "Axiom": {
+                    "name": "Resolution",
+                    "args": [
+                      [
+                        "val",
+                        {
+                          "Int": 90
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Raster",
+              "args": [
+                [
+                  "name",
+                  {
+                    "Str": "Landsat NDVI"
+                  }
+                ],
+                [
+                  "crs",
+                  {
+                    "Str": "EPSG:26943"
+                  }
+                ],
+                [
+                  "bands",
+                  {
+                    "Int": 1
+                  }
+                ],
+                [
+                  "resolution",
+                  {
+                    "Int": 90
+                  }
+                ]
+              ]
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 30
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "resolution",
+                      "arg": "ret"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Lt",
+                  {
+                    "Const": {
+                      "Int": 0
+                    }
+                  },
+                  {
+                    "Select": {
+                      "selector": "resolution",
+                      "arg": "ret"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "crs",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "EPSG:26943"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "bands",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "name",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "Landsat NDVI"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "resolution",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 90
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": [
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Str": "Landsat NDVI"
+            }
+          },
+          {
+            "Const": {
+              "Str": "Landsat NDVI"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Int": 90
+            }
+          },
+          {
+            "Const": {
+              "Int": 90
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Str": "EPSG:26943"
+            }
+          },
+          {
+            "Const": {
+              "Str": "EPSG:26943"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Int": 1
+            }
+          },
+          {
+            "Const": {
+              "Int": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
