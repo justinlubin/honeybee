@@ -4,9 +4,6 @@ backend/output/*.ipynb
 benchmark/data
 benchmark/analysis/output
 
-benchmark/suites/scal/*.hblib
-benchmark/suites/scal/*.hb
-
 compendium/data
 
 .venv
