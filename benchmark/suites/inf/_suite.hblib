@@ -87,53 +87,8 @@
 
 ; Resampling
 
-(output fact ResamplingMethod
-  (.method Str))
-
-(computation nearest ResamplingMethod
-  () ())
-
-(computation bilinear ResamplingMethod
-  () ())
-
-(computation cubic ResamplingMethod
-  () ())
-
-(computation cubic_spline ResamplingMethod
-  () ())
-
-(computation lanczos ResamplingMethod
-  () ())
-
-(computation average ResamplingMethod
-  () ())
-
-(computation mode ResamplingMethod
-  () ())
-
-(computation gauss ResamplingMethod
-  () ())
-
-(computation max ResamplingMethod
-  () ())
-
-(computation min ResamplingMethod
-  () ())
-
-(computation med ResamplingMethod
-  () ())
-
-(computation q1 ResamplingMethod
-  () ())
-
-(computation q3 ResamplingMethod
-  () ())
-
-(computation sum ResamplingMethod
-  () ())
-
-(computation rms ResamplingMethod
-  () ())
+(input fact ResamplingMethod
+  (.val Str))
 
 (computation resample Raster
   ((raster Raster) (method ResamplingMethod) (res Resolution))

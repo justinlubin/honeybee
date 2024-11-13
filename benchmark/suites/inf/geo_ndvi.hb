@@ -3,6 +3,7 @@
   (Resolution (.val 90))
   (CRS (.val "EPSG:32610"))
   (CRS (.val "EPSG:26943"))
+  (ResamplingMethod (.val "bilinear"))
 
   (InputRaster
     (.name "Landsat Scene")

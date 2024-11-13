@@ -1,4 +1,7 @@
 (facts
+  (CRS (.val "EPSG:32610"))
+  (CRS (.val "EPSG:32611"))
+
   (InputRaster
     (.name "Hillshade 1")
     (.data "hillshade-1.tif")
