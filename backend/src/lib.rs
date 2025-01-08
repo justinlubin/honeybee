@@ -16,6 +16,8 @@ mod synthesis;
 mod task;
 mod util;
 
+mod next;
+
 pub use chumsky::Parser;
 
 use wasm_bindgen::prelude::*;
