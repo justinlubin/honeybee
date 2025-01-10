@@ -4,6 +4,8 @@ backend/output/*.ipynb
 benchmark/data
 benchmark/analysis/**/*.pdf
 benchmark/analysis/**/*.png
+benchmark/analysis/**/*.html
+benchmark/analysis/**/*.svg
 
 compendium/data
 
