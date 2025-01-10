@@ -147,10 +147,7 @@ impl<'a> Synthesizer<'a> {
 
         for (path, query) in self.tree.queries(self.lib) {
             let mut query_support: Vec<Vec<(String, Value)>> =
-                enumerate::support(
-                    &self.prog.annotations,
-                    &query.fact_signature.params,
-                );
+                enumerate::support(&self.prog, &query.fact_signature.params);
 
             match enumerate_config {
                 enumerate::Config::Basic => (),

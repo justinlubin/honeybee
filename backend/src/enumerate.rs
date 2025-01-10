@@ -17,30 +17,35 @@ pub enum ExpansionResult {
     TimedOut,
 }
 
-fn support_one(annotations: &Vec<Fact>, vt: &ValueType) -> Vec<Value> {
+fn support_one(prog: &Program, vt: &ValueType) -> Vec<Value> {
     let mut result = match vt {
         // 0 and 1 for bool false/true
         ValueType::Int => vec![Value::Int(0), Value::Int(1)],
         _ => vec![],
     };
-    for f in annotations {
+    for f in &prog.annotations {
         for (_, v) in &f.args {
             if v.infer() == *vt && !result.contains(v) {
                 result.push(v.clone())
             }
         }
     }
+    for (_, v) in &prog.goal.args {
+        if v.infer() == *vt && !result.contains(v) {
+            result.push(v.clone())
+        }
+    }
     result
 }
 
 pub fn support(
-    annotations: &Vec<Fact>,
+    prog: &Program,
     params: &Vec<(String, ValueType)>,
 ) -> Vec<Vec<(String, Value)>> {
     let choices = params
         .iter()
         .map(|(p, vt)| {
-            support_one(annotations, vt)
+            support_one(prog, vt)
                 .into_iter()
                 .map(|v| (p.clone(), v))
                 .collect()
@@ -112,7 +117,7 @@ pub fn expand(
                     for cs in lib.matching_computation_signatures(&fact_name) {
                         let fact_params =
                             &lib.fact_signature(&fact_name).unwrap().params;
-                        for args in support(&prog.annotations, fact_params) {
+                        for args in support(&prog, fact_params) {
                             let consequent = Fact {
                                 name: fact_name.clone(),
                                 args,

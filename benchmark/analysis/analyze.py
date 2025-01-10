@@ -287,21 +287,30 @@ def completion(vals, *, best, order, colors, figsize, xlabel):
 
 # %% Config
 
-OUTPUT_DIR = "output"
+DO_ANY = False
+
+if DO_ANY:
+    OUTPUT_DIR = "output-any"
+else:
+    OUTPUT_DIR = "output"
 
 ALGOTASKS = [
     "E:All",
     "EP:All",
-    # "PBN_E",
-    # "PBN_EP",
-    # "PBN_DL",
-    "PBN_DLmem:Particular",
+    "PBN_EP:Particular",
 ]
+
+if DO_ANY:
+    ALGOTASKS = [
+        "E:Any",
+        "EP:Any",
+        "PBN_DLmem:Any",
+    ]
 
 APPROACH = [
     "Naïve Enumeration",
     "Pruned Enumeration",
-    "Programming By Navigation",
+    "Honeybee",
 ]
 
 ALGORITHMS = [at.split(":")[0] for at in ALGOTASKS]
@@ -319,11 +328,20 @@ ALGORITHM_COLORS = [
 CONST_DEPTH = 5
 CONST_BREADTH = 5
 
+MAX_DEPTH = 10
+MAX_BREADTH = 10
+
 # %% Load data
 
-raw_data = pl.read_csv("../data/data.tsv", separator="\t")
+if DO_ANY:
+    raw_data = pl.read_csv("../data/any.tsv", separator="\t")
+else:
+    raw_data = pl.read_csv("../data/particular.tsv", separator="\t")
 
 # %% Process and check data
+
+if DO_ANY:
+    raw_data = raw_data.with_columns(suite=pl.lit("combined-ANY"))
 
 # Whether or not to perform validity checks of benchmark csv
 CHECK = True
@@ -343,7 +361,7 @@ if CHECK:
 #         assert_group_same(g, name=n, on="replicate")
 
 # Check that completed replicates agree
-if CHECK:
+if CHECK and not DO_ANY:
     for n, g in raw_data.filter(pl.col("completed")).group_by(SUBENTRY_KEY):
         for c in ["solution_count", "solution_size"]:
             assert_group_same(g, name=n, on=c)
@@ -400,6 +418,10 @@ show(aggdata)
 for (suite,), df in completed.filter(
     pl.col("algorithm").is_in(ALGORITHMS)
 ).group_by("suite"):
+    if suite == "scal":
+        continue
+    if DO_ANY:
+        assert (df["task"] == "Any").all()
     groups = sorted(
         [
             (APPROACH[ALGOTASKS.index(a + ":" + t)], g["duration"])
@@ -520,8 +542,10 @@ for (task, alg1, alg2), df in comparisons.filter(
     (pl.col("algorithm") == "PBN_DL") & (pl.col("algorithm2") == "PBN_DLmem")
     # & (pl.col("suite").is_in(["fin", "inf"]))
 ).group_by("task", "algorithm", "algorithm2"):
-    approach1 = "Ablation"
-    approach2 = "Full"
+    approach1 = r"Honeybee\ (Ablation)"
+    approach2 = r"Honeybee\ (Full)"
+    approach1_short = "Ablation"
+    approach2_short = "Full"
     total = len(df)
     better1 = len(df.filter(pl.col("duration") < pl.col("duration2")))
     better2 = len(df.filter(pl.col("duration2") < pl.col("duration")))
@@ -534,7 +558,7 @@ for (task, alg1, alg2), df in comparisons.filter(
         # edgecolor="black",
         # linewidth=0.5,
     )
-    max_duration = int(max(df["duration"].max(), df["duration2"].max())) + 1
+    max_duration = int(max(df["duration"].max(), df["duration2"].max())) + 1.5
     ax.set_xlim([0, max_duration])
     ax.set_ylim([0, max_duration])
     ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
@@ -544,7 +568,7 @@ for (task, alg1, alg2), df in comparisons.filter(
     ax.text(
         padding,
         1 - padding,
-        r"$\bf{" + approach1 + "}$" + f" better ({better1}/{total})",
+        r"$\bf{" + approach1_short + "}$" + f" better ({better1}/{total})",
         ha="left",
         va="top",
         transform=ax.transAxes,
@@ -552,7 +576,7 @@ for (task, alg1, alg2), df in comparisons.filter(
     ax.text(
         1 - padding,
         padding,
-        r"$\bf{" + approach2 + "}$" + f" better ({better2}/{total})",
+        r"$\bf{" + approach2_short + "}$" + f" better ({better2}/{total})",
         ha="right",
         va="bottom",
         transform=ax.transAxes,
@@ -564,19 +588,25 @@ for (task, alg1, alg2), df in comparisons.filter(
 
     fig.save(f"{OUTPUT_DIR}/overall-speedup/{task}-{alg1}-{alg2}.pdf")
 
+    print("Median ablation speedup:", df["speedup"].median())
+
 # %% Plot scalability
 
+# Broken axis from:
+#   https://matplotlib.org/stable/gallery/subplots_axes_and_figures/broken_axis.html
+
 fig, ax = plt.subplots(
-    1,
     2,
-    figsize=(8, 4),
-    sharey=True,
+    2,
+    figsize=(8, 5),
+    sharex="col",
+    sharey="row",
 )
 
-for i, (feature, other, const) in enumerate(
+for i, (feature, other, const, x_max) in enumerate(
     [
-        ("depth", "breadth", CONST_BREADTH),
-        ("breadth", "depth", CONST_DEPTH),
+        ("depth", "breadth", CONST_BREADTH, MAX_DEPTH),
+        ("breadth", "depth", CONST_DEPTH, MAX_BREADTH),
     ]
 ):
     df = scal.filter(
@@ -593,36 +623,68 @@ for i, (feature, other, const) in enumerate(
     markers = ["s", "^", "o"]
     for j, ((a, t), g) in enumerate(groups):
         ati = ALGOTASKS.index(a + ":" + t)
-        ax[i].plot(
-            g[feature],
-            g["duration"],
-            c=ALGORITHM_COLORS[ati],
-            marker=markers[j],
-            label=APPROACH[ati] if i == 0 else None,
-        )
+        for row in range(0, 2):
+            ax[row, i].plot(
+                g[feature],
+                g["duration"],
+                c=ALGORITHM_COLORS[ati],
+                marker=markers[j],
+                label=APPROACH[ati] if i == 0 and row == 0 else None,
+            )
 
-    ax[i].spines[["top", "right"]].set_visible(False)
-    ax[i].set_aspect("equal", adjustable="box")
+    ax[1, i].spines[["top", "right"]].set_visible(False)
+    # ax[i].set_aspect("equal", adjustable="box")
     featureUpper = feature[0].upper() + feature[1:]
     otherUpper = other[0].upper() + other[1:]
-    ax[i].set_xlabel(
+    ax[1, i].set_xlabel(
         r"$\bf{"
         + featureUpper
         + r"}$ $\bf{of}$ $\bf{search}$ $\bf{space}$"
         + f"\n(for {other} = {const})",
     )
-    ax[i].set_ylabel(
+    ax[1, i].set_ylabel(
         "Time taken (s)",
         fontweight="bold",
     )
-    ax[i].set_xlim([0, 10.5])
-    ax[i].set_ylim([0, 10.5])
-    ax[i].set_xticks(np.arange(0, 10.1, 1))
-    ax[i].set_yticks(np.arange(0, 10.1, 1))
-    ax[i].yaxis.set_tick_params(labelleft=True)
+    y_max = 12
+    step = 2
+    ax[1, i].set_xlim([0, x_max + 0.5])
+    ax[1, i].set_ylim([0, y_max + step - 1])
+    ax[1, i].set_xticks(np.arange(0, x_max + 0.1, 1))
+    ax[1, i].set_yticks(np.arange(0, y_max + 0.1, step))
+    ax[1, i].yaxis.set_tick_params(labelleft=True)
+
+    outliers_min = 65
+    outliers_max = outliers_min + y_max
+
+    assert (
+        df[feature].is_between(0, y_max + step - 1)
+        | df[feature].is_between(outliers_min - (step - 1), outliers_max)
+    ).all()
+
+    ax[0, i].set_ylim([outliers_min - (step - 1), outliers_max])
+    ax[0, i].set_yticks(np.arange(outliers_min, outliers_max + 0.1, step))
+    ax[0, i].spines[["top", "right", "bottom"]].set_visible(False)
+    ax[0, i].xaxis.set_tick_params(bottom=False)
+    ax[0, i].yaxis.set_tick_params(labelleft=True)
+
+    d = 0.5  # proportion of vertical to horizontal extent of the slanted line
+    kwargs = dict(
+        marker=[(-1, -d), (1, d)],
+        markersize=12,
+        linestyle="none",
+        color="k",
+        mec="k",
+        mew=1,
+        clip_on=False,
+    )
+
+    ax[0, i].plot([0], [0], transform=ax[0, i].transAxes, **kwargs)
+    ax[1, i].plot([0], [1], transform=ax[1, i].transAxes, **kwargs)
 
 fig.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 0))
 fig.tight_layout()
+fig.subplots_adjust(hspace=0.1)
 fig.save(f"{OUTPUT_DIR}/scalability/scalability.pdf", bbox_inches="tight")
 
 # %% ### OLD STUFF ###

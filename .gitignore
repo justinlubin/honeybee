@@ -2,7 +2,8 @@ backend/target
 backend/output/*.ipynb
 
 benchmark/data
-benchmark/analysis/output
+benchmark/analysis/**/*.pdf
+benchmark/analysis/**/*.png
 
 compendium/data
 

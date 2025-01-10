@@ -18,6 +18,7 @@ fin-benchmark:
 	    -s ../benchmark/suites/fin/ \
 	    -t 120000 \
 	    -r 5 \
+	    -a E:All,EP:All,PBN_DL:Particular,PBN_DLmem:Particular \
 	    > ../benchmark/data/fin.tsv
 
 .PHONY: inf-benchmark
@@ -35,8 +36,28 @@ scal-benchmark:
 	    -s ../benchmark/suites/scal/ \
 	    -t 120000 \
 	    -r 5 \
-	    -a E:All,EP:All,PBN_DLmem:Particular \
+	    -a E:All,EP:All,PBN_DL:Particular,PBN_DLmem:Particular \
 	    > ../benchmark/data/scal.tsv
+
+.PHONY: any-benchmark
+any-benchmark:
+	cargo run -- benchmark \
+	    -s ../benchmark/suites/fin/,../benchmark/suites/inf/ \
+	    -t 120000 \
+	    -r 5 \
+	    -a E:Any,EP:Any,PBN_DLmem:Any \
+	    > ../benchmark/data/any.tsv
+
+.PHONY: ep-oracle-benchmark
+ep-oracle-benchmark:
+	RAYON_NUM_THREADS=12 \
+	cargo run -- benchmark \
+	    -s ../benchmark/suites/fin/,../benchmark/suites/inf/,../benchmark/suites/scal/ \
+	    -t 10000 \
+	    -r 1 \
+	    -a PBN_EP:Particular \
+	    -q \
+	    > ../benchmark/data/pbn-ep-3.tsv
 
 .PHONY: wasm
 wasm:
