@@ -1,3 +1,5 @@
+type Error = String;
+
 use indexmap::IndexMap;
 
 // Programming By Navigation
@@ -17,20 +19,20 @@ pub trait StepProvider {
 pub type HoleName = usize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FParam(String);
+pub struct FunParam(String);
 
 pub trait Function: Clone + Eq {
-    fn arity(&self) -> Vec<FParam>;
+    fn arity(&self) -> Vec<FunParam>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sketch<F: Function> {
     Hole(HoleName),
-    App(F, IndexMap<FParam, Self>),
+    App(F, IndexMap<FunParam, Self>),
 }
 
 pub enum TDStep<F: Function> {
-    Extend(HoleName, F, IndexMap<FParam, Sketch<F>>),
+    Extend(HoleName, F, IndexMap<FunParam, Sketch<F>>),
     Seq(Box<Self>, Box<Self>),
 }
 
@@ -121,87 +123,6 @@ impl<O: InhabitationOracle> StepProvider for TDCCSynthesis<O> {
             ));
         }
         ret
-    }
-}
-
-// Formalizing validity
-
-pub mod core {
-    use indexmap::IndexMap;
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct MParam(String);
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct BaseFunction(String);
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct TypeName(String);
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct PropName(String);
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum ValueType {
-        Int,
-        Str,
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum Value {
-        Int(i64),
-        Str(String),
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct Function {
-        pub name: BaseFunction,
-        pub metadata: IndexMap<MParam, Value>,
-        arity: Vec<super::FParam>,
-    }
-
-    pub struct Type {
-        name: TypeName,
-        args: IndexMap<MParam, Value>,
-    }
-
-    pub struct AtomicProposition {
-        name: PropName,
-        args: IndexMap<MParam, Value>,
-    }
-
-    impl super::Function for Function {
-        fn arity(&self) -> Vec<super::FParam> {
-            return self.arity.clone();
-        }
-    }
-
-    pub enum FormulaAtom {
-        Param(super::FParam, MParam),
-        Ret,
-        Lit(Value),
-    }
-
-    pub enum Formula {
-        True,
-        Eq(FormulaAtom, FormulaAtom),
-        Lt(FormulaAtom, FormulaAtom),
-        AtomProp(PropName, IndexMap<MParam, FormulaAtom>),
-        And(Box<Formula>, Box<Formula>),
-    }
-
-    pub struct FunctionSignature {
-        params: IndexMap<super::FParam, Type>,
-        ret: Type,
-        condition: Formula,
-    }
-
-    pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
-
-    pub struct Problem {
-        library: FunctionLibrary,
-        props: Vec<AtomicProposition>,
-        goal: Type,
     }
 }
 

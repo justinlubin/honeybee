@@ -1,18 +1,46 @@
-use crate::pbn;
+// Formalizing validity
 
-use im::hashmap::HashMap;
-use im::hashset::HashSet;
-use im::vector::Vector;
+use crate::next::pbn::*;
 
-// Values
+use indexmap::IndexMap;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+/// The type of errors used by this module.
+pub struct Error(String);
+
+impl Error {
+    fn fp(fp: &FunParam) -> Self {
+        Error(format!("unknown function parameter {:?}", fp))
+    }
+
+    fn tn(name: &TypeName) -> Self {
+        Error(format!("unknown type name {:?}", name))
+    }
+
+    fn mp(mp: &MetParam) -> Self {
+        Error(format!("unknown metadata parameter {:?}", mp))
+    }
+
+    fn argcount(got: usize, expected: usize) -> Self {
+        Error(format!("got {} args, expected {}", got, expected))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MetParam(String);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BaseFunction(String);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeName(String);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueType {
     Int,
     Str,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Int(i64),
     Str(String),
@@ -27,252 +55,272 @@ impl Value {
     }
 }
 
-// Parameters
-
-pub type FactParam = String;
-pub type FunctionParam = String;
-
-// Assignments
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct AssignmentType {
-    pub map: HashMap<FactParam, ValueType>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeSignature {
+    params: IndexMap<MetParam, ValueType>,
+    kind: TypeKind,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Assignment {
-    pub map: HashMap<FactParam, Value>,
+pub type TypeLibrary = IndexMap<TypeName, TypeSignature>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeKind {
+    Atomic,
+    Derived,
 }
 
-impl Assignment {
-    pub fn infer(&self) -> AssignmentType {
-        AssignmentType {
-            map: self
-                .map
-                .iter()
-                .map(|(fp, v)| (fp.clone(), v.infer()))
-                .collect(),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Type {
+    name: TypeName,
+    args: IndexMap<MetParam, Value>,
+}
+
+impl Type {
+    fn infer(&self, tlib: &TypeLibrary) -> Result<TypeSignature, Error> {
+        let sig = tlib.get(&self.name).ok_or(Error::tn(&self.name))?;
+
+        if self.args.len() != sig.params.len() {
+            return Err(Error::argcount(self.args.len(), sig.params.len()));
         }
+
+        for (mp, v) in &self.args {
+            let expected_vt = sig.params.get(mp).ok_or(Error::mp(mp))?;
+            let got_vt = v.infer();
+
+            if got_vt != *expected_vt {
+                return Err(Error(format!(
+                    "argument {:?} of type {:?} is type {:?} but expected {:?}",
+                    v, self.name, got_vt, expected_vt
+                )));
+            }
+        }
+
+        Ok(sig.clone())
     }
 }
 
-// Facts
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct FactType {
-    pub params: AssignmentType,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParameterizedFunction {
+    pub name: BaseFunction,
+    pub metadata: IndexMap<MetParam, Value>,
+    arity: Vec<FunParam>,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Fact {
-    pub name: FactName,
-    pub args: Assignment,
+impl Function for ParameterizedFunction {
+    fn arity(&self) -> Vec<FunParam> {
+        return self.arity.clone();
+    }
 }
 
-pub type FactName = String;
-pub type FactLibrary = HashMap<FactName, FactType>;
-
-pub type FactSet = HashSet<Fact>;
-
-// Formulas
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormulaAtom {
-    Param {
-        function_param: FunctionParam,
-        fact_param: FactParam,
-    },
-    Ret {
-        fact_param: FactParam,
-    },
-    Value(Value),
+    Param(FunParam, MetParam),
+    Ret(MetParam),
+    Lit(Value),
 }
 
 impl FormulaAtom {
-    pub fn infer(
+    fn infer(
         &self,
-        olib: &FactLibrary,
-        params: &HashMap<FunctionParam, FactName>,
-        ret_name: &FactName,
-    ) -> Option<ValueType> {
-        Some(match self {
-            FormulaAtom::Param {
-                function_param,
-                fact_param,
-            } => olib
-                .get(params.get(function_param)?)?
-                .params
-                .map
-                .get(fact_param)?
-                .clone(),
-            FormulaAtom::Ret { fact_param } => {
-                olib.get(ret_name)?.params.map.get(fact_param)?.clone()
+        tlib: &TypeLibrary,
+        fs: &FunctionSignature,
+    ) -> Result<ValueType, Error> {
+        match self {
+            FormulaAtom::Param(fp, mp) => {
+                let name = &fs.params.get(fp).ok_or(Error::fp(fp))?.name;
+
+                tlib.get(name)
+                    .ok_or(Error::tn(name))?
+                    .params
+                    .get(mp)
+                    .ok_or(Error::mp(mp))
+                    .cloned()
             }
-            FormulaAtom::Value(v) => v.infer(),
-        })
+            FormulaAtom::Ret(mp) => tlib
+                .get(&fs.ret.name)
+                .ok_or(Error::tn(&fs.ret.name))?
+                .params
+                .get(mp)
+                .ok_or(Error::mp(mp))
+                .cloned(),
+            FormulaAtom::Lit(v) => Ok(v.infer()),
+        }
     }
 
-    pub fn eval(
-        &self,
-        args: &HashMap<FunctionParam, Assignment>,
-        ret: &Assignment,
-    ) -> Value {
+    fn eval(&self, fs: &FunctionSignature) -> Result<Value, Error> {
         match self {
-            FormulaAtom::Param {
-                function_param,
-                fact_param,
-            } => args
-                .get(function_param)
-                .unwrap()
-                .map
-                .get(fact_param)
-                .unwrap()
-                .clone(),
-            FormulaAtom::Ret { fact_param } => {
-                ret.map.get(fact_param).unwrap().clone()
+            FormulaAtom::Param(fp, mp) => fs
+                .params
+                .get(fp)
+                .ok_or(Error::fp(fp))?
+                .args
+                .get(mp)
+                .ok_or(Error::mp(mp))
+                .cloned(),
+            FormulaAtom::Ret(mp) => {
+                fs.ret.args.get(mp).ok_or(Error::mp(mp)).cloned()
             }
-            FormulaAtom::Value(v) => v.clone(),
+            FormulaAtom::Lit(v) => Ok(v.clone()),
         }
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct AtomicPropositionFormula {
+    name: TypeName,
+    args: IndexMap<MetParam, FormulaAtom>,
+}
+
+impl AtomicPropositionFormula {
+    fn check(
+        &self,
+        tlib: &TypeLibrary,
+        fs: &FunctionSignature,
+    ) -> Result<(), Error> {
+        let sig = tlib.get(&self.name).ok_or(Error::tn(&self.name))?;
+
+        if self.args.len() != sig.params.len() {
+            return Err(Error::argcount(self.args.len(), sig.params.len()));
+        }
+
+        for (mp, fa) in &self.args {
+            let expected_vt = sig.params.get(mp).ok_or(Error::mp(mp))?;
+            let got_vt = fa.infer(tlib, fs)?;
+
+            if got_vt != *expected_vt {
+                return Err(Error(format!(
+                    "argument {:?} of atomic proposition {:?} is type {:?} but expected {:?}",
+                    fa,
+                    self.name,
+                    got_vt,
+                    expected_vt
+                )));
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub enum Formula {
     True,
     Eq(FormulaAtom, FormulaAtom),
     Lt(FormulaAtom, FormulaAtom),
-    Fact(FactName, HashMap<String, FormulaAtom>),
+    Ap(AtomicPropositionFormula),
     And(Box<Formula>, Box<Formula>),
 }
 
 impl Formula {
-    pub fn check(
+    fn check_equal_types(
+        tlib: &TypeLibrary,
+        fs: &FunctionSignature,
+        fa1: &FormulaAtom,
+        fa2: &FormulaAtom,
+    ) -> Result<(), Error> {
+        let vt1 = fa1.infer(tlib, fs)?;
+        let vt2 = fa2.infer(tlib, fs)?;
+        if vt1 != vt2 {
+            return Err(Error(format!(
+                "formula atom {:?} has different type ({:?}) than formula atom {:?} ({:?})",
+                fa1, vt1, fa2, vt2
+            )));
+        }
+        Ok(())
+    }
+
+    fn check(
         &self,
-        olib: &FactLibrary,
-        ilib: &FactLibrary,
-        params: &HashMap<FunctionParam, FactName>,
-        ret_name: &FactName,
-    ) -> bool {
+        tlib: &TypeLibrary,
+        fs: &FunctionSignature,
+    ) -> Result<(), Error> {
         match self {
-            Formula::True => true,
-            Formula::Eq(a1, a2) => match (
-                a1.infer(olib, params, ret_name),
-                a2.infer(olib, params, ret_name),
-            ) {
-                (Some(vt1), Some(vt2)) => vt1 == vt2,
-                _ => false,
-            },
-            Formula::Lt(a1, a2) => match (
-                a1.infer(olib, params, ret_name),
-                a2.infer(olib, params, ret_name),
-            ) {
-                (Some(ValueType::Int), Some(ValueType::Int)) => true,
-                _ => false,
-            },
-            Formula::Fact(fact_name, fact_args) => {
-                let expected = match ilib.get(fact_name) {
-                    Some(ft) => &ft.params.map,
-                    None => return false,
-                };
-
-                let actual = HashMap::new();
-                for (x, a) in fact_args {
-                    match a.infer(olib, params, ret_name) {
-                        Some(vt) => actual.update(x.clone(), vt),
-                        None => return false,
-                    };
+            Formula::True => Ok(()),
+            Formula::Eq(fa1, fa2) => {
+                Self::check_equal_types(tlib, fs, fa1, fa2)
+            }
+            Formula::Lt(fa1, fa2) => {
+                let vt1 = fa1.infer(tlib, fs)?;
+                if vt1 != ValueType::Int {
+                    return Err(Error(format!(
+                        "formula atom {:?} has type {:?}, expected Int",
+                        fa1, vt1,
+                    )));
                 }
-
-                *expected == actual
+                Self::check_equal_types(tlib, fs, fa1, fa2)
             }
+            Formula::Ap(ap) => ap.check(tlib, fs),
             Formula::And(phi1, phi2) => {
-                phi1.check(olib, ilib, params, ret_name)
-                    && phi2.check(olib, ilib, params, ret_name)
-            }
-        }
-    }
-
-    pub fn sat(
-        &self,
-        args: &HashMap<FunctionParam, Assignment>,
-        ret: &Assignment,
-        facts: &FactSet,
-    ) -> bool {
-        match self {
-            Formula::True => true,
-            Formula::Eq(a1, a2) => a1.eval(args, ret) == a2.eval(args, ret),
-            Formula::Lt(a1, a2) => {
-                match (a1.eval(args, ret), a2.eval(args, ret)) {
-                    (Value::Int(i1), Value::Int(i2)) => i1 < i2,
-                    _ => panic!(),
-                }
-            }
-            Formula::Fact(fact_name, fact_args) => facts.contains(&Fact {
-                name: fact_name.clone(),
-                args: Assignment {
-                    map: fact_args
-                        .iter()
-                        .map(|(x, a)| (x.clone(), a.eval(args, ret)))
-                        .collect(),
-                },
-            }),
-            Formula::And(phi1, phi2) => {
-                phi1.sat(args, ret, facts) && phi2.sat(args, ret, facts)
+                phi1.check(tlib, fs)?;
+                phi2.check(tlib, fs)
             }
         }
     }
 }
 
-// Functions
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct FunctionType {
-    pub params: HashMap<FunctionParam, FactName>,
-    pub ret: FactName,
-    pub precondition: Formula,
+pub struct FunctionSignature {
+    params: IndexMap<FunParam, Type>,
+    ret: Type,
+    condition: Formula,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Function {
-    pub name: FunctionName,
-    pub metadata: Assignment,
-    _arity: HashSet<String>,
-}
-
-impl pbn::Function for Function {
-    fn arity(&self) -> HashSet<String> {
-        self._arity.clone()
+impl FunctionSignature {
+    fn check(&self, tlib: &TypeLibrary) -> Result<(), Error> {
+        for t in self.params.values() {
+            let _ = t.infer(tlib)?;
+        }
+        let _ = self.ret.infer(tlib)?;
+        self.condition.check(tlib, self)
     }
 }
 
-type FunctionName = String;
-pub type FunctionLibrary = HashMap<FunctionName, FunctionType>;
+pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
 
-// Libraries
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Library {
-    pub input: FactLibrary,
-    pub output: FactLibrary,
-    pub function: FunctionLibrary,
+pub struct Problem {
+    tlib: TypeLibrary,
+    flib: FunctionLibrary,
+    props: Vec<Type>,
+    goal: Type,
 }
 
-// Judgments
+impl Problem {
+    pub fn new(
+        tlib: TypeLibrary,
+        flib: FunctionLibrary,
+        props: Vec<Type>,
+        goal: Type,
+    ) -> Result<Self, Error> {
+        let ret = Self {
+            tlib,
+            flib,
+            props,
+            goal,
+        };
+        ret.check()?;
+        Ok(ret)
+    }
 
-pub fn check(
-    lib: Library,
-    input_facts: FactSet,
-    e: pbn::Exp<Function>,
-    alpha: Fact,
-) -> bool {
-    match e {
-        pbn::Exp::Hole(_) => false,
-        pbn::Exp::App(f, args) => {
-            let fun_sig = lib.function.get(&f.name).unwrap();
-            if f.metadata != alpha.args {
-                return false;
-            }
-            todo!()
+    fn check(&self) -> Result<(), Error> {
+        for fs in self.flib.values() {
+            fs.check(&self.tlib)?;
         }
+
+        for t in &self.props {
+            let sig = t.infer(&self.tlib)?;
+            if sig.kind != TypeKind::Atomic {
+                return Err(Error(format!(
+                    "atomic proposition {:?} is not actually atomic",
+                    t
+                )));
+            }
+        }
+
+        let goal_sig = self.goal.infer(&self.tlib)?;
+        if goal_sig.kind != TypeKind::Derived {
+            return Err(Error(format!(
+                "goal type {:?} is not derived",
+                self.goal
+            )));
+        }
+
+        Ok(())
     }
 }

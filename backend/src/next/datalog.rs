@@ -37,7 +37,7 @@ pub type Domain = IndexSet<Value>;
 impl Value {
     fn check_domain(&self, dom: &Domain) -> Result<(), Error> {
         if !dom.contains(self) {
-            return Err(format!("Value {:?} not in provided domain", self));
+            return Err(format!("value {:?} not in provided domain", self));
         }
         Ok(())
     }
@@ -271,7 +271,7 @@ impl Program {
     fn check(&self) -> Result<(), Error> {
         for v in &self.dom {
             if !v.is_ground() {
-                return Err(format!("Value {:?} in domain is not ground", v));
+                return Err(format!("value {:?} in domain is not ground", v));
             }
         }
 
@@ -282,7 +282,7 @@ impl Program {
         for f in &self.ground_facts {
             if !f.is_ground() {
                 return Err(format!(
-                    "Ground fact {:?} is not actually ground",
+                    "ground fact {:?} is not actually ground",
                     f
                 ));
             }
