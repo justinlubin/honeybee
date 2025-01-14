@@ -1,0 +1,154 @@
+//! # Top-down steps for Programming By Navigation
+//!
+//! This module defines a particular kind of steps and expressions to work with
+//! the Programming By Navigation framework. In the instantiation provided by
+//! this module, expressions are sketches (function applications and holes), and
+//! steps extend these holes with a new function application.
+//!
+//! A variety of notions of validity could be built on top of this concrete
+//! instantiation; this module makes no requirement on which sketches are valid
+//! beyoned the requirement that functions be applied to the correct number of
+//! arguments (with the right keyword arguments).
+
+////////////////////////////////////////////////////////////////////////////////
+// Expressions
+
+/// The type of hole names (used to identify holes).
+pub type HoleName = usize;
+
+/// The type of function parameter keys.
+///
+/// All functions will use keyword-only arguments; these keywords are
+/// represented by values of this type.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FunParam(String);
+
+/// The type of functions.
+///
+/// The only requirement is that a function take in a fixed arity of keyword
+/// arguments.
+pub trait Function: Clone + Eq {
+    fn arity(&self) -> Vec<FunParam>;
+}
+
+/// The type of sketches parameterized by a notion of functions.
+///
+/// Sketches can either be a hole or an application of the function to more
+/// sketches. To be valid, the arguments to function applications must match
+/// the function's arity; downstream applications are likely to put additional
+/// constraints on what a sketch must be in order to be valid.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Sketch<F: Function> {
+    Hole(HoleName),
+    App(F, IndexMap<FunParam, Self>),
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Steps
+
+/// The type of top-down steps.
+///
+/// Top-down steps can either extend a hole with a new function application, or
+/// they can be a sequence of other top-down steps.
+pub enum TopDownStep<F: Function> {
+    Extend(HoleName, F, IndexMap<FunParam, Sketch<F>>),
+    Seq(Box<Self>, Box<Self>),
+}
+
+impl<F: Function> Sketch<F> {
+    fn has_subterm(&self, e: &Self) -> bool {
+        if self == e {
+            return true;
+        }
+        match self {
+            Self::Hole(_) => false,
+            Self::App(_, args) => args.values().any(|v| v.has_subterm(e)),
+        }
+    }
+
+    fn substitute(&self, h: HoleName, e: &Self) -> Self {
+        match self {
+            Self::Hole(h2) => {
+                if *h2 == h {
+                    e.clone()
+                } else {
+                    Self::Hole(*h2)
+                }
+            }
+            Self::App(f, args) => Self::App(
+                f.clone(),
+                args.iter()
+                    .map(|(k, v)| (k.clone(), v.substitute(h, e)))
+                    .collect(),
+            ),
+        }
+    }
+
+    fn max_hole(&self) -> HoleName {
+        match self {
+            Self::Hole(h) => *h,
+            Self::App(_, args) => {
+                args.values().map(|v| v.max_hole()).max().unwrap_or(0)
+            }
+        }
+    }
+
+    fn fresh(&self) -> impl Iterator<Item = HoleName> {
+        return (self.max_hole() + 1)..;
+    }
+}
+
+impl<F: Function> Step for TopDownStep<F> {
+    type Exp = Sketch<F>;
+
+    fn step(&self, e: &Self::Exp) -> Option<Self::Exp> {
+        match self {
+            Self::Extend(h, f, args) => {
+                if f.arity().len() == args.len()
+                    && e.has_subterm(&Self::Exp::Hole(*h))
+                {
+                    Some(e.substitute(
+                        *h,
+                        &Self::Exp::App(f.clone(), args.clone()),
+                    ))
+                } else {
+                    None
+                }
+            }
+            Self::Seq(s1, s2) => s1.step(e).and_then(|e2| s2.step(&e2)),
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Top-Down Classical-Constructive Synthesis
+//   (Solving the Programming By Navigation Synthesis Problem)
+
+/// The type of inhabitation oracles for use in top-down classical-constructive
+/// synthesis.
+pub trait InhabitationOracle {
+    type F: Function;
+    fn expansions(&self, e: &Sketch<Self::F>) -> Vec<(HoleName, Self::F)>;
+}
+
+/// Top-down classical-constructive synthesis, a solution to the Programming By
+/// Navigation Synthesis Problem.
+struct ClassicalConstructiveSynthesis<O: InhabitationOracle> {
+    oracle: O,
+}
+
+impl<O: InhabitationOracle> StepProvider for ClassicalConstructiveSynthesis<O> {
+    type Step = TopDownStep<O::F>;
+    fn provide(&self, e: &<Self::Step as Step>::Exp) -> Vec<Self::Step> {
+        let mut ret = vec![];
+        for (h, f) in self.oracle.expansions(e) {
+            let holes = e.fresh().map(|h| Sketch::Hole(h));
+            ret.push(TopDownStep::Extend(
+                h,
+                f.clone(),
+                f.arity().into_iter().zip(holes).collect(),
+            ));
+        }
+        ret
+    }
+}
