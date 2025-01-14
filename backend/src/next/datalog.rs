@@ -82,6 +82,7 @@ pub struct Relation(String);
 /// The type of relation kinds; either extrinsic (EDB) or intrinsic (IDB).
 ///
 /// EDBs are defined by data, and IDBs are defined by rules.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RelationKind {
     EDB,
     IDB,
@@ -110,7 +111,11 @@ pub struct Fact {
 }
 
 impl Fact {
-    fn check(&self, lib: &RelationLibrary, dom: &Domain) -> Result<(), Error> {
+    fn infer<'a>(
+        &'a self,
+        lib: &'a RelationLibrary,
+        dom: &'a Domain,
+    ) -> Result<&'a RelationSignature, Error> {
         let sig = lib
             .get(&self.relation)
             .ok_or(format!("unknown relation {:?}", self.relation))?;
@@ -143,7 +148,7 @@ impl Fact {
             }
         }
 
-        Ok(())
+        Ok(sig)
     }
 
     fn is_ground(&self) -> bool {
@@ -191,7 +196,8 @@ impl Predicate {
                         f,
                     ));
                 }
-                f.check(lib, dom)
+                let _ = f.infer(lib, dom)?;
+                Ok(())
             }
             Predicate::PrimEq(v1, v2) => Self::check_equal_types(dom, v1, v2),
             Predicate::PrimLt(v1, v2) => {
@@ -221,7 +227,11 @@ pub struct Rule {
 
 impl Rule {
     fn check(&self, lib: &RelationLibrary, dom: &Domain) -> Result<(), Error> {
-        self.head.check(lib, dom)?;
+        let head_sig = self.head.infer(lib, dom)?;
+
+        if head_sig.kind != RelationKind::IDB {
+            return Err(format!("head of rule {} must be an IDB", self.name));
+        }
 
         if !self.head.is_abstract() {
             return Err(format!("head of rule {} must be abstract", self.name));
@@ -280,13 +290,16 @@ impl Program {
         }
 
         for f in &self.ground_facts {
+            let sig = f.infer(&self.lib, &self.dom)?;
+            if sig.kind != RelationKind::EDB {
+                return Err(format!("ground fact {:?} must be an EDB", f));
+            }
             if !f.is_ground() {
                 return Err(format!(
                     "ground fact {:?} is not actually ground",
                     f
                 ));
             }
-            f.check(&self.lib, &self.dom)?;
         }
 
         Ok(())
@@ -301,9 +314,4 @@ pub trait Engine {
         query_signature: RelationSignature,
         query_rule: Rule,
     ) -> Vec<Vec<Value>>;
-}
-
-/// The interface for specifications encodable as a Datalog program.
-pub trait Encode {
-    fn encode(&self) -> Program;
 }
