@@ -16,14 +16,25 @@ pub trait Step {
     fn step(&self, e: &Self::Exp) -> Option<Self::Exp>;
 }
 
+/// The possible reasons a step provider can fail. Note that this is only
+/// "timeout" because otherwise step providers must always succeed.
+pub enum StepProviderError {
+    Timeout,
+}
+
 /// The type of step providers.
 ///
 /// To be a valid solution to the Programming By Navigation Synthesis Problem,
 /// step providers must satisfy the *validity*, *strong completeness*, and
-/// *strong soundness* conditions.
+/// *strong soundness* conditions. Thus, step providers implicitly rely on a
+/// notion of validity.
 pub trait StepProvider {
     type Step: Step;
-    fn provide(&self, e: &<Self::Step as Step>::Exp) -> Vec<Self::Step>;
+    fn provide(
+        &self,
+        e: &<Self::Step as Step>::Exp,
+        timeout: u128,
+    ) -> Result<Vec<Self::Step>, StepProviderError>;
 }
 
 /// The components of a Programming By Navigation interaction.
