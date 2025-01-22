@@ -6,8 +6,7 @@ use crate::next::top_down::*;
 
 use indexmap::IndexMap;
 use indexmap::IndexSet;
-
-mod parse_toml;
+use serde::{Deserialize, Serialize};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Errors
@@ -20,8 +19,8 @@ impl Error {
         Error(format!("unknown function parameter {:?}", fp))
     }
 
-    fn tn(name: &TypeName) -> Self {
-        Error(format!("unknown type name {:?}", name))
+    fn mn(name: &MetName) -> Self {
+        Error(format!("unknown metadata name {:?}", name))
     }
 
     fn mp(mp: &MetParam) -> Self {
@@ -41,14 +40,15 @@ impl Error {
 // Values
 
 /// The types that values may take on.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ValueType {
     Int,
     Str,
 }
 
 /// The possible values.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum Value {
     Int(i64),
     Str(String),
@@ -66,53 +66,42 @@ impl Value {
 ////////////////////////////////////////////////////////////////////////////////
 // Types
 
-/// The type of type names.
+/// The type of metadata-indexed tuple names.
 ///
 /// Types and atomic propositions are named by this type. Consequently, type
 /// names serve as the keys for type libraries.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypeName(String);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct MetName(String);
 
-/// The type of metadata parameter keys.
+/// The type of metadata-indexed tuple parameter keys.
 ///
 /// Types, type signatures, and atomic proposition formulas contain maps indexed
 /// by metadata parameters. Generally, the values of these maps will be things
 /// that "look like" metadata values or value types.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct MetParam(String);
 
-/// The possible kinds that a type may be.
-///
-/// `Atomic` denotes atomic propositions (supplied by the user) and `Derived`
-/// denotes types returned by functions in the library.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeKind {
-    Atomic,
-    Derived,
-}
-
-/// Signatures for types that define their arity and kind
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeSignature {
+/// Signatures for metadata-indexed tuples that define their arity.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct MetSignature {
     params: IndexMap<MetParam, ValueType>,
-    kind: TypeKind,
 }
 
-/// Libraries of defined types.
-pub type TypeLibrary = IndexMap<TypeName, TypeSignature>;
+/// Libraries of metadata-indexed tuples.
+pub type MetLibrary = IndexMap<MetName, MetSignature>;
 
-/// The type of types.
+/// The type of metadata-indexed tuples.
 ///
-/// Types are a type name with associated metadata arguments.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Type {
-    name: TypeName,
-    args: IndexMap<MetParam, Value>,
+/// This struct is used for atomic propositions and types
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct Met<T> {
+    name: MetName,
+    args: IndexMap<MetParam, T>,
 }
 
-impl Type {
-    fn infer(&self, tlib: &TypeLibrary) -> Result<TypeSignature, Error> {
-        let sig = tlib.get(&self.name).ok_or(Error::tn(&self.name))?;
+impl Met<Value> {
+    fn infer(&self, mlib: &MetLibrary) -> Result<MetSignature, Error> {
+        let sig = mlib.get(&self.name).ok_or(Error::mn(&self.name))?;
 
         if self.args.len() != sig.params.len() {
             return Err(Error::argcount(self.args.len(), sig.params.len()));
@@ -124,7 +113,7 @@ impl Type {
 
             if got_vt != *expected_vt {
                 return Err(Error(format!(
-                    "argument {:?} of type {:?} is type {:?} but expected {:?}",
+                    "argument {:?} of {:?} is type {:?} but expected {:?}",
                     v, self.name, got_vt, expected_vt
                 )));
             }
@@ -145,7 +134,7 @@ pub struct EvaluationContext<'a> {
 /// The type of formula atoms.
 ///
 /// Conceptually, formula atoms "evaluate" to a value in a particular context.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum FormulaAtom {
     Param(FunParam, MetParam),
     Ret(MetParam),
@@ -155,23 +144,23 @@ pub enum FormulaAtom {
 impl FormulaAtom {
     fn infer(
         &self,
-        tlib: &TypeLibrary,
+        mlib: &MetLibrary,
         fs: &FunctionSignature,
     ) -> Result<ValueType, Error> {
         match self {
             FormulaAtom::Param(fp, mp) => {
                 let name = fs.params.get(fp).ok_or(Error::fp(fp))?;
 
-                tlib.get(name)
-                    .ok_or(Error::tn(name))?
+                mlib.get(name)
+                    .ok_or(Error::mn(name))?
                     .params
                     .get(mp)
                     .ok_or(Error::mp(mp))
                     .cloned()
             }
-            FormulaAtom::Ret(mp) => tlib
+            FormulaAtom::Ret(mp) => mlib
                 .get(&fs.ret)
-                .ok_or(Error::tn(&fs.ret))?
+                .ok_or(Error::mn(&fs.ret))?
                 .params
                 .get(mp)
                 .ok_or(Error::mp(mp))
@@ -205,24 +194,13 @@ impl FormulaAtom {
     }
 }
 
-/// The type of atomic proposition formulas.
-///
-/// Atomic proposition formulas are exactly like types, but their arguments are
-/// formula atoms rather than values. Consequently, atomic proposition formulas
-/// can be "evaluated" into types.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AtomicPropositionFormula {
-    name: TypeName,
-    args: IndexMap<MetParam, FormulaAtom>,
-}
-
-impl AtomicPropositionFormula {
+impl Met<FormulaAtom> {
     fn check(
         &self,
-        tlib: &TypeLibrary,
+        mlib: &MetLibrary,
         fs: &FunctionSignature,
     ) -> Result<(), Error> {
-        let sig = tlib.get(&self.name).ok_or(Error::tn(&self.name))?;
+        let sig = mlib.get(&self.name).ok_or(Error::mn(&self.name))?;
 
         if self.args.len() != sig.params.len() {
             return Err(Error::argcount(self.args.len(), sig.params.len()));
@@ -230,7 +208,7 @@ impl AtomicPropositionFormula {
 
         for (mp, fa) in &self.args {
             let expected_vt = sig.params.get(mp).ok_or(Error::mp(mp))?;
-            let got_vt = fa.infer(tlib, fs)?;
+            let got_vt = fa.infer(mlib, fs)?;
 
             if got_vt != *expected_vt {
                 return Err(Error(format!(
@@ -246,12 +224,12 @@ impl AtomicPropositionFormula {
         Ok(())
     }
 
-    fn eval(&self, ctx: &EvaluationContext) -> Result<Type, Error> {
+    fn eval(&self, ctx: &EvaluationContext) -> Result<Met<Value>, Error> {
         let mut args = IndexMap::new();
         for (mp, fa) in &self.args {
             args.insert(mp.clone(), fa.eval(ctx)?);
         }
-        Ok(Type {
+        Ok(Met {
             name: self.name.clone(),
             args,
         })
@@ -267,24 +245,24 @@ impl AtomicPropositionFormula {
 }
 
 /// The type of formulas.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Formula {
     True,
     Eq(FormulaAtom, FormulaAtom),
     Lt(FormulaAtom, FormulaAtom),
-    Ap(AtomicPropositionFormula),
+    AtomicProposition(Met<FormulaAtom>),
     And(Box<Formula>, Box<Formula>),
 }
 
 impl Formula {
     fn check_equal_types(
-        tlib: &TypeLibrary,
+        mlib: &MetLibrary,
         fs: &FunctionSignature,
         fa1: &FormulaAtom,
         fa2: &FormulaAtom,
     ) -> Result<(), Error> {
-        let vt1 = fa1.infer(tlib, fs)?;
-        let vt2 = fa2.infer(tlib, fs)?;
+        let vt1 = fa1.infer(mlib, fs)?;
+        let vt2 = fa2.infer(mlib, fs)?;
         if vt1 != vt2 {
             return Err(Error(format!(
                 "formula atom {:?} has different type ({:?}) than formula atom {:?} ({:?})",
@@ -296,35 +274,35 @@ impl Formula {
 
     fn check(
         &self,
-        tlib: &TypeLibrary,
+        mlib: &MetLibrary,
         fs: &FunctionSignature,
     ) -> Result<(), Error> {
         match self {
             Formula::True => Ok(()),
             Formula::Eq(fa1, fa2) => {
-                Self::check_equal_types(tlib, fs, fa1, fa2)
+                Self::check_equal_types(mlib, fs, fa1, fa2)
             }
             Formula::Lt(fa1, fa2) => {
-                let vt1 = fa1.infer(tlib, fs)?;
+                let vt1 = fa1.infer(mlib, fs)?;
                 if vt1 != ValueType::Int {
                     return Err(Error(format!(
                         "formula atom {:?} has type {:?}, expected Int",
                         fa1, vt1,
                     )));
                 }
-                Self::check_equal_types(tlib, fs, fa1, fa2)
+                Self::check_equal_types(mlib, fs, fa1, fa2)
             }
-            Formula::Ap(ap) => ap.check(tlib, fs),
+            Formula::AtomicProposition(ap) => ap.check(mlib, fs),
             Formula::And(phi1, phi2) => {
-                phi1.check(tlib, fs)?;
-                phi2.check(tlib, fs)
+                phi1.check(mlib, fs)?;
+                phi2.check(mlib, fs)
             }
         }
     }
 
     fn sat(
         &self,
-        props: &Vec<Type>,
+        props: &Vec<Met<Value>>,
         ctx: &EvaluationContext,
     ) -> Result<bool, Error> {
         match self {
@@ -337,9 +315,9 @@ impl Formula {
                     v1, v2,
                 ))),
             },
-            Formula::Ap(ap) => {
-                let t = ap.eval(ctx)?;
-                Ok(props.iter().any(|prop| *prop == t))
+            Formula::AtomicProposition(ap) => {
+                let prop = ap.eval(ctx)?;
+                Ok(props.iter().any(|p| *p == prop))
             }
             Formula::And(phi1, phi2) => {
                 Ok(phi1.sat(props, ctx)? && phi2.sat(props, ctx)?)
@@ -355,7 +333,7 @@ impl Formula {
                 ret.extend(fa2.vals());
                 ret
             }
-            Formula::Ap(ap) => ap.vals(),
+            Formula::AtomicProposition(ap) => ap.vals(),
             Formula::And(phi1, phi2) => {
                 let mut ret = phi1.vals();
                 ret.extend(phi2.vals());
@@ -369,39 +347,27 @@ impl Formula {
 // Function signatures
 
 /// The type of base function names.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct BaseFunction(String);
 
 /// The type of signatures of parameterized functions.
 ///
 /// The condition formula refers to the metadata values on the parameter types
 /// and return type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct FunctionSignature {
-    params: IndexMap<FunParam, TypeName>,
-    ret: TypeName,
+    params: IndexMap<FunParam, MetName>,
+    ret: MetName,
     condition: Formula,
 }
 
 impl FunctionSignature {
-    fn check(&self, tlib: &TypeLibrary) -> Result<(), Error> {
+    fn check(&self, mlib: &MetLibrary) -> Result<(), Error> {
         for type_name in self.params.values() {
-            let sig = tlib.get(type_name).ok_or(Error::tn(type_name))?;
-            if sig.kind != TypeKind::Derived {
-                return Err(Error(format!(
-                    "type {:?} in function signature {:?} must be derived",
-                    type_name, self
-                )));
-            }
+            let _ = mlib.get(type_name).ok_or(Error::mn(type_name))?;
         }
-        let ret_sig = tlib.get(&self.ret).ok_or(Error::tn(&self.ret))?;
-        if ret_sig.kind != TypeKind::Derived {
-            return Err(Error(format!(
-                "return type {:?} in function signature {:?} must be derived",
-                self.ret, self
-            )));
-        }
-        self.condition.check(tlib, self)
+        let _ = mlib.get(&self.ret).ok_or(Error::mn(&self.ret))?;
+        self.condition.check(mlib, self)
     }
 
     fn vals(&self) -> IndexSet<Value> {
@@ -411,6 +377,63 @@ impl FunctionSignature {
 
 /// Libraries of defined parameterized functions.
 pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
+
+////////////////////////////////////////////////////////////////////////////////
+// Composite libraries and programs
+
+/// The libraries necessary for a Honeybee problem.
+#[derive(Deserialize, Serialize)]
+pub struct Library {
+    #[serde(rename = "Prop")]
+    props: MetLibrary,
+    #[serde(rename = "Type")]
+    types: MetLibrary,
+    #[serde(rename = "Function")]
+    functions: FunctionLibrary,
+}
+
+impl Library {
+    fn check(&self) -> Result<(), Error> {
+        let pnames: IndexSet<_> = self.props.keys().cloned().collect();
+        let tnames: IndexSet<_> = self.types.keys().cloned().collect();
+        let ambiguous_names: IndexSet<_> =
+            pnames.intersection(&tnames).collect();
+
+        if !ambiguous_names.is_empty() {
+            return Err(Error(format!(
+                "ambiguous prop/type names: {:?}",
+                ambiguous_names
+            )));
+        }
+
+        for fs in self.functions.values() {
+            fs.check(&self.types)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// The type of Honeybee programs.
+#[derive(Deserialize, Serialize)]
+pub struct Program {
+    #[serde(rename = "Prop")]
+    props: Vec<Met<Value>>,
+    #[serde(rename = "Goal")]
+    goal: Met<Value>,
+}
+
+impl Program {
+    fn check(&self, lib: &Library) -> Result<(), Error> {
+        for p in &self.props {
+            let _ = p.infer(&lib.props)?;
+        }
+
+        let _ = self.goal.infer(&lib.types)?;
+
+        Ok(())
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Parameterized functions and expressions
@@ -467,10 +490,9 @@ impl Exp {
     /// allowable domain defined by the presence of values in the libraries).
     fn infer(
         &self,
-        tlib: &TypeLibrary,
         flib: &FunctionLibrary,
-        props: &Vec<Type>,
-    ) -> Result<Type, Error> {
+        props: &Vec<Met<Value>>,
+    ) -> Result<Met<Value>, Error> {
         match self {
             Sketch::Hole(_) => Err(Error(format!("holes are not well-typed"))),
             Sketch::App(f, args) => {
@@ -482,15 +504,15 @@ impl Exp {
                 for fs in flib.values() {
                     vals.extend(fs.vals());
                 }
-                for t in props {
-                    vals.extend(t.args.values().cloned());
+                for p in props {
+                    vals.extend(p.args.values().cloned());
                 }
                 vals.extend(f.metadata.values().cloned());
 
                 // Recursively infer values and check proper domain
                 let mut ctx_args = IndexMap::new();
                 for (fp, e) in args {
-                    let tau = e.infer(tlib, flib, props)?;
+                    let tau = e.infer(flib, props)?;
                     let metadata = tau.args;
                     for v in metadata.values() {
                         if !vals.contains(v) {
@@ -515,7 +537,7 @@ impl Exp {
                     )));
                 }
 
-                Ok(Type {
+                Ok(Met {
                     name: sig.ret.clone(),
                     args: f.metadata.clone(),
                 })
@@ -534,52 +556,19 @@ impl Exp {
 /// [`Exp::well_typed`] for more information about what it means for an
 /// expression to be well-typed.
 pub struct Problem {
-    tlib: TypeLibrary,
-    flib: FunctionLibrary,
-    props: Vec<Type>,
-    goal: Type,
+    lib: Library,
+    prog: Program,
 }
 
 impl Problem {
-    pub fn new(
-        tlib: TypeLibrary,
-        flib: FunctionLibrary,
-        props: Vec<Type>,
-        goal: Type,
-    ) -> Result<Self, Error> {
-        let ret = Self {
-            tlib,
-            flib,
-            props,
-            goal,
-        };
+    pub fn new(lib: Library, prog: Program) -> Result<Self, Error> {
+        let ret = Self { lib, prog };
         ret.check()?;
         Ok(ret)
     }
 
     fn check(&self) -> Result<(), Error> {
-        for fs in self.flib.values() {
-            fs.check(&self.tlib)?;
-        }
-
-        for t in &self.props {
-            let sig = t.infer(&self.tlib)?;
-            if sig.kind != TypeKind::Atomic {
-                return Err(Error(format!(
-                    "atomic proposition {:?} is not actually atomic",
-                    t
-                )));
-            }
-        }
-
-        let goal_sig = self.goal.infer(&self.tlib)?;
-        if goal_sig.kind != TypeKind::Derived {
-            return Err(Error(format!(
-                "goal type {:?} is not derived",
-                self.goal
-            )));
-        }
-
-        Ok(())
+        self.lib.check()?;
+        self.prog.check(&self.lib)
     }
 }

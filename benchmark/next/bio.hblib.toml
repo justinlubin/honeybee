@@ -6,18 +6,14 @@
 # (input fact ReferenceGenome
 #   (.data Str))
 
-[[Fact]]
-name = "Seq"
-[params]
-sample = "String"
-at = "Int"
-data = "String"
+[Prop.Seq]
+params.sample = "Str"
+params.at = "Int"
+params.data = "Str"
 
 
-[[Fact]]
-name = "ReferenceGenome"
-[params]
-data = "String"
+[Prop.ReferenceGenome]
+params.data = "Str"
 
 # ; Datatypes
 #
@@ -36,37 +32,27 @@ data = "String"
 # (output fact DifferentialGeneExpression
 #   (.sample1 Str) (.sample2 Str) (.at Int))
 
-[[Type]]
-name = "Reference"
-[params]
-data = "String"
+[Type.Reference]
+params.data = "Str"
 
-[[Type]]
-name = "Alignment"
-[params]
-sample = "String"
-at = "Int"
+[Type.Alignment]
+params.sample = "Str"
+params.at = "Int"
 
-[[Type]]
-name = "ReadCounts"
-[params]
-sample = "String"
-at = "Int"
+[Type.ReadCounts]
+params.sample = "Str"
+params.at = "Int"
 
-[[Type]]
-name = "ReadCountMatrix"
-[params]
-sample1 = "String"
-sample2 = "String"
-at = "Int"
-bc = "Int"
+[Type.ReadCountMatrix]
+params.sample1 = "Str"
+params.sample2 = "Str"
+params.at = "Int"
+params.bc = "Int"
 
-[[Type]]
-name = "DifferentialGeneExpression"
-[params]
-sample1 = "String"
-sample2 = "String"
-at = "Int"
+[Type.DifferentialGeneExpression]
+params.sample1 = "Str"
+params.sample2 = "Str"
+params.at = "Int"
 
 # ; Load reference genome
 #
@@ -76,19 +62,17 @@ at = "Int"
 #
 # (computation load_hg38 Reference () ())
 
-[[Function]]
-name = "load_local_reference_genome"
+[Function.load_local_reference_genome]
 params.rg = "ReferenceGenome"
 ret = "Reference"
-predicate = [
+condition = [
     "ret.data == rg.data",
 ]
 
-[[Function]]
-name = "load_hg38"
+[Function.load_hg_38]
 params = []
 ret = "ReferenceGenome"
-predicate = []
+condition = []
 
 # ; Quantifiers
 #
@@ -102,22 +86,20 @@ predicate = []
 #   ((= (.sample ret) (.sample seq))
 #    (= (.at ret) (.at seq))))
 
-[[Function]]
-name = "kallisto"
+[Function.kallisto]
 params.seq = "Seq"
 params.ref = "Reference"
 ret = "ReadCounts"
-predicate = [
+condition = [
     "ret.sample = seq.sample",
     "ret.at = seq.at",
 ]
 
-[[Function]]
-name = "salmon"
+[Function.salmon]
 params.seq = "Seq"
 params.ref = "Reference"
 ret = "ReadCounts"
-predicate = [
+condition = [
     "ret.sample = seq.sample",
     "ret.at = seq.at",
 ]
@@ -134,22 +116,20 @@ predicate = [
 #   ((= (.sample ret) (.sample seq))
 #    (= (.at ret) (.at seq))))
 
-[[Function]]
-name = "bowtie2"
+[Function.bowtie2]
 params.seq = "Seq"
 params.ref = "Reference"
 ret = "Alignment"
-predicate = [
+condition = [
     "ret.sample = seq.sample",
     "ret.at = seq.at",
 ]
 
-[[Function]]
-name = "star"
+[Function.star]
 params.seq = "Seq"
 params.ref = "Reference"
 ret = "Alignment"
-predicate = [
+condition = [
     "ret.sample = seq.sample",
     "ret.at = seq.at",
 ]
@@ -161,11 +141,10 @@ predicate = [
 #   ((= (.sample ret) (.sample a))
 #    (= (.at ret) (.at a))))
 
-[[Function]]
-name = "featureCounts"
+[Function.featureCounts]
 params.a = "Alignment"
 ret = "ReadCounts"
-predicate = [
+condition = [
     "ret.sample = a.sample",
     "ret.at = a.at",
 ]
@@ -180,12 +159,11 @@ predicate = [
 #    (= (.at r1) (.at r2))
 #    (= (.bc ret) 0)))
 
-[[Function]]
-name = "combine_reads"
+[Function.combine_reads]
 params.r1 = "ReadCounts"
 params.r2 = "ReadCounts"
 ret = "ReadCountMatrix"
-predicate = [
+condition = [
     "ret.sample1 = r1.sample",
     "ret.sample2 = r2.sample",
     "ret.at = r1.at",
@@ -203,11 +181,10 @@ predicate = [
 #    (= (.bc rcm) 0)
 #    (= (.bc ret) 1)))
 
-[[Function]]
-name = "combat_seq"
+[Function.combat_seq]
 params.rcm = "ReadCountMatrix"
 ret = "ReadCountMatrix"
-predicate = [
+condition = [
     "ret.sample1 = rcm.sample1",
     "ret.sample2 = rcm.sample2",
     "ret.at = rcm.at",
@@ -223,11 +200,10 @@ predicate = [
 #    (= (.sample2 ret) (.sample2 rcm))
 #    (= (.at ret) (.at rcm))))
 
-[[Function]]
-name = "deseq2"
+[Function.deseq2]
 params.rcm = "ReadCountMatrix"
 ret = "DifferentialGeneExpression"
-predicate = [
+condition = [
     "ret.sample1 = rcm.sample1",
     "ret.sample2 = rcm.sample2",
     "ret.at = rcm.at",
@@ -241,15 +217,14 @@ predicate = [
 # (output fact Enrichment
 #   (.sample Str) (.start Int) (.end Int))
 
-[[Fact]]
-name = "Transfection"
-params.sample = "String"
+[Prop.Transfection]
+params.sample = "Str"
 params.at = "Int"
-params.library = "String"
+params.library = "Str"
 
-[[Type]]
+[Type.Enrichment]
 name = "Enrichment"
-params.sample = "String"
+params.sample = "Str"
 params.start = "Int"
 params.end = "Int"
 
@@ -257,11 +232,10 @@ params.end = "Int"
 #   ((t Transfection))
 #   ((= (.data ret) (.library t))))
 
-[[Function]]
-name = "reference_from_transfection"
+[Function.reference_from_transfection]
 params.t = "Transfection"
 ret = "Reference"
-predicate = [
+condition = [
     "ret.data = t.library",
 ]
 
@@ -283,13 +257,12 @@ predicate = [
 #    (= (.sample ret) (.sample r2))
 #    (< (.at r1) (.at r2))))
 
-[[Function]]
-name = "mageck"
+[Function.mageck]
 params.t = "Transfection"
 params.s1 = "Seq"
 params.s2 = "Seq"
 ret = "Enrichment"
-predicate = [
+condition = [
     "ret.sample = t.sample",
     "ret.start = s1.at",
     "ret.end = s2.at",
@@ -299,12 +272,11 @@ predicate = [
     "s1.at < s2.at",
 ]
 
-[[Function]]
-name = "l2fc"
+[Function.l2fc]
 params.r1 = "ReadCounts"
 params.r2 = "ReadCounts"
 ret = "Enrichment"
-predicate = [
+condition = [
     "ret.start = r1.at",
     "ret.end = r2.at",
     "ret.sample = r1.sample",

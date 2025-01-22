@@ -5,6 +5,7 @@ use honeybee::*;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use toml;
 
 #[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
 enum RunMode {
@@ -145,6 +146,30 @@ fn parse_algotasks(
 
 fn main() {
     env_logger::init();
+
+    let libfile =
+        std::fs::read_to_string("../benchmark/next/bio.hblib.toml").unwrap();
+    let progfile =
+        std::fs::read_to_string("../benchmark/next/prog.hb.toml").unwrap();
+
+    match toml::from_str::<next::core::Library>(&libfile) {
+        Ok(_) => (),
+        Err(e) => {
+            println!("library error: {}", e);
+            return;
+        }
+    }
+
+    match toml::from_str::<next::core::Library>(&progfile) {
+        Ok(_) => (),
+        Err(e) => {
+            println!("program error: {}", e);
+            return;
+        }
+    }
+
+    println!("Done!");
+    return;
 
     let cli = Cli::parse();
 

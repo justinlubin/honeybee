@@ -16,7 +16,7 @@ mod synthesis;
 mod task;
 mod util;
 
-mod next;
+pub mod next;
 
 pub use chumsky::Parser;
 

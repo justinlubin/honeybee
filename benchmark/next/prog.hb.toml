@@ -1,14 +1,14 @@
-[[Fact]]
+[[Prop]]
 name = "ReferenceGenome"
 args.data = "hg38.fasta"
 
-[[Fact]]
+[[Prop]]
 name = "Seq"
 args.sample = "Healthy"
 args.at = 5
 args.data = "healthy.fastq"
 
-[[Fact]]
+[[Prop]]
 name = "Seq"
 args.sample = "TLE"
 args.at = 5

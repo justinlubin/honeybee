@@ -14,6 +14,7 @@ use crate::next::pbn;
 use crate::next::timer::Timer;
 
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Expressions
@@ -25,7 +26,7 @@ pub type HoleName = usize;
 ///
 /// All functions will use keyword-only arguments; these keywords are
 /// represented by values of this type.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct FunParam(String);
 
 /// The type of functions.
