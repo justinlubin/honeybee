@@ -2,11 +2,12 @@
 //!
 //! This module defines the core syntax for Honeybee.
 
-use crate::next::pbn::*;
 use crate::next::top_down::*;
 
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+
+mod parse_toml;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Errors

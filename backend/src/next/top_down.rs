@@ -10,6 +10,11 @@
 //! beyoned the requirement that functions be applied to the correct number of
 //! arguments (with the right keyword arguments).
 
+use crate::next::pbn;
+use crate::next::timer::Timer;
+
+use indexmap::IndexMap;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Expressions
 
@@ -98,7 +103,7 @@ impl<F: Function> Sketch<F> {
     }
 }
 
-impl<F: Function> Step for TopDownStep<F> {
+impl<F: Function> pbn::Step for TopDownStep<F> {
     type Exp = Sketch<F>;
 
     fn step(&self, e: &Self::Exp) -> Option<Self::Exp> {
@@ -128,7 +133,11 @@ impl<F: Function> Step for TopDownStep<F> {
 /// synthesis.
 pub trait InhabitationOracle {
     type F: Function;
-    fn expansions(&self, e: &Sketch<Self::F>) -> Vec<(HoleName, Self::F)>;
+    fn expansions<E>(
+        &self,
+        e: &Sketch<Self::F>,
+        timer: &impl Timer<E>,
+    ) -> Vec<(HoleName, Self::F)>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
@@ -137,11 +146,17 @@ struct ClassicalConstructiveSynthesis<O: InhabitationOracle> {
     oracle: O,
 }
 
-impl<O: InhabitationOracle> StepProvider for ClassicalConstructiveSynthesis<O> {
+impl<O: InhabitationOracle> pbn::StepProvider
+    for ClassicalConstructiveSynthesis<O>
+{
     type Step = TopDownStep<O::F>;
-    fn provide(&self, e: &<Self::Step as Step>::Exp) -> Vec<Self::Step> {
+    fn provide<E>(
+        &self,
+        e: &<Self::Step as pbn::Step>::Exp,
+        timer: &impl Timer<E>,
+    ) -> Result<Vec<Self::Step>, E> {
         let mut ret = vec![];
-        for (h, f) in self.oracle.expansions(e) {
+        for (h, f) in self.oracle.expansions(e, timer) {
             let holes = e.fresh().map(|h| Sketch::Hole(h));
             ret.push(TopDownStep::Extend(
                 h,
@@ -149,6 +164,6 @@ impl<O: InhabitationOracle> StepProvider for ClassicalConstructiveSynthesis<O> {
                 f.arity().into_iter().zip(holes).collect(),
             ));
         }
-        ret
+        Ok(ret)
     }
 }

@@ -3,9 +3,8 @@
 //! This module defines all the necessary high-level components of Programming
 //! By Navigation. In particular, it defines the interface that is necessary for
 //! the Programming By Navigation interaction and guarantees.
-type Error = String;
 
-use indexmap::IndexMap;
+use crate::next::timer::Timer;
 
 /// The type of steps.
 ///
@@ -30,11 +29,11 @@ pub enum StepProviderError {
 /// notion of validity.
 pub trait StepProvider {
     type Step: Step;
-    fn provide(
+    fn provide<E>(
         &self,
         e: &<Self::Step as Step>::Exp,
-        timeout: u128,
-    ) -> Result<Vec<Self::Step>, StepProviderError>;
+        timer: &impl Timer<E>,
+    ) -> Result<Vec<Self::Step>, E>;
 }
 
 /// The components of a Programming By Navigation interaction.
