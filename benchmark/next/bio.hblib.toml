@@ -66,11 +66,11 @@ params.at = "Int"
 params.rg = "ReferenceGenome"
 ret = "Reference"
 condition = [
-    "ret.data == rg.data",
+    "ret.data = rg.data",
 ]
 
 [Function.load_hg_38]
-params = []
+params = {}
 ret = "ReferenceGenome"
 condition = []
 

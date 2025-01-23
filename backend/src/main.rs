@@ -160,7 +160,7 @@ fn main() {
         }
     }
 
-    match toml::from_str::<next::core::Library>(&progfile) {
+    match toml::from_str::<next::core::Program>(&progfile) {
         Ok(_) => (),
         Err(e) => {
             println!("program error: {}", e);

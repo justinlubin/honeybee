@@ -27,7 +27,7 @@ pub type HoleName = usize;
 /// All functions will use keyword-only arguments; these keywords are
 /// represented by values of this type.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct FunParam(String);
+pub struct FunParam(pub String);
 
 /// The type of functions.
 ///
