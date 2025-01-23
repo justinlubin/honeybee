@@ -77,7 +77,7 @@ impl Value {
 ///
 /// For example, `R` would be the relation in the fact `R(1, 2)`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Relation(String);
+pub struct Relation(pub String);
 
 /// The type of relation kinds; either extrinsic (EDB) or intrinsic (IDB).
 ///
@@ -220,9 +220,9 @@ impl Predicate {
 /// right-hand side) of a rule is its antecedent. The body is represented as a
 /// conjunction of predicates.
 pub struct Rule {
-    name: String,
-    head: Fact,
-    body: Vec<Predicate>,
+    pub name: String,
+    pub head: Fact,
+    pub body: Vec<Predicate>,
 }
 
 impl Rule {
@@ -254,10 +254,11 @@ impl Rule {
 /// - A set of rules that define the inhabitance of IDB facts
 /// - A set of ground facts that define the inhabitance of EDB facts
 pub struct Program {
-    lib: RelationLibrary,
-    dom: Domain,
-    rules: Vec<Rule>,
-    ground_facts: Vec<Fact>,
+    pub lib: RelationLibrary,
+    pub dom: Domain,
+    pub rules: Vec<Rule>,
+    pub ground_facts: Vec<Fact>,
+    _private: (),
 }
 
 impl Program {
@@ -273,6 +274,7 @@ impl Program {
             dom,
             rules,
             ground_facts,
+            _private: (),
         };
         ret.check()?;
         Ok(ret)
@@ -308,9 +310,10 @@ impl Program {
 
 /// The interface for Datalog engines.
 pub trait Engine {
+    fn load(&mut self, program: Program);
+
     fn query(
-        &self,
-        program: Program,
+        &mut self,
         query_signature: RelationSignature,
         query_rule: Rule,
     ) -> Vec<Vec<Value>>;
