@@ -1,33 +1,22 @@
 use crate::next::datalog::*;
 
+use chumsky::Parser;
 use egglog::EGraph;
 
-struct Egglog {
-    cache: bool,
-    prog: Option<Program>,
-    egraph: Option<EGraph>,
-}
-
-impl Egglog {
-    pub fn new(cache: bool) -> Self {
-        Self {
-            cache,
-            prog: None,
-            egraph: None,
-        }
-    }
-}
+// Compiler
 
 struct Compiler {
     content: String,
     tentative: String,
+    ruleset: String,
 }
 
 impl Compiler {
-    pub fn new() -> Compiler {
+    pub fn new(ruleset: &str) -> Compiler {
         Compiler {
             content: "".to_owned(),
             tentative: "".to_owned(),
+            ruleset: ruleset.to_owned(),
         }
     }
 
@@ -98,13 +87,56 @@ impl Compiler {
         self.writeln(")");
     }
 
+    fn predicate(&mut self, p: &Predicate) {
+        match p {
+            Predicate::Fact(f) => self.fact(f),
+            Predicate::PrimEq(left, right) => {
+                self.write("(= ");
+                self.value(left);
+                self.write(" ");
+                self.value(right);
+                self.write(")");
+            }
+            Predicate::PrimLt(left, right) => {
+                self.write("(< ");
+                self.value(left);
+                self.write(" ");
+                self.value(right);
+                self.write(")");
+            }
+        }
+    }
+
     fn rule(&mut self, r: &Rule) {
         self.writeln(&format!("; {}", r.name));
-        self.write("(rule (");
-        todo!();
+        self.write("(rule\n  (");
+        for p in &r.body {
+            self.predicate(p);
+            self.tentative(" ");
+        }
+        self.cancel();
+        self.write(")\n  (");
+        self.fact(&r.head);
+        self.writeln(&format!(")\n  :ruleset {})", self.ruleset))
+    }
+
+    fn ruleset(&mut self) {
+        self.writeln(&format!("(ruleset {})", self.ruleset));
+    }
+
+    fn saturate(&mut self) {
+        self.writeln(&format!("(run-schedule (saturate {}))", self.ruleset));
+    }
+
+    fn print(&mut self, rel: &Relation) {
+        self.writeln(&format!("(print-function {} {})", rel.0, 10_000_000));
     }
 
     pub fn program(&mut self, prog: &Program) {
+        self.ruleset();
+
+        self.newln();
+
         self.writeln("(relation &Int (i64))");
         self.writeln("(relation &Str (String))");
 
@@ -141,31 +173,164 @@ impl Compiler {
     }
 }
 
-fn compile(prog: &Program) -> String {
-    let mut comp = Compiler::new();
-    comp.program(prog);
-    comp.get()
+// Parser
+
+mod parse {
+    use crate::next::datalog::*;
+    use chumsky::prelude::*;
+
+    fn value() -> impl Parser<char, Value, Error = Simple<char>> {
+        choice((
+            text::int(10).map(|s: String| Value::Int(s.parse().unwrap())),
+            none_of("\"")
+                .repeated()
+                .collect()
+                .delimited_by(just('"'), just('"'))
+                .map(|s: String| Value::Str(s)),
+        ))
+    }
+
+    fn entry(
+        rel: &Relation,
+    ) -> impl Parser<char, Vec<Value>, Error = Simple<char>> {
+        just(rel.0.clone())
+            .ignored()
+            .then(
+                just(' ')
+                    .repeated()
+                    .at_least(1)
+                    .then(value())
+                    .map(|(_, x)| x)
+                    .repeated(),
+            )
+            .then(just(' ').repeated().ignored())
+            .delimited_by(just('('), just(')'))
+            .map(|((_, vals), _)| vals)
+    }
+
+    pub fn output(
+        rel: &Relation,
+    ) -> impl Parser<char, Vec<Vec<Value>>, Error = Simple<char>> {
+        choice((
+            just('(').padded().then(just(')').padded()).to(vec![]),
+            entry(rel)
+                .padded()
+                .repeated()
+                .delimited_by(just('('), just(')'))
+                .padded(),
+        ))
+    }
 }
 
-impl Engine for Egglog {
-    fn load(&mut self, program: Program) {
-        self.egraph = if self.cache {
-            let egglog_program = compile(&program);
-            let mut egraph = EGraph::default();
-            egraph.parse_and_run_program(&egglog_program);
-            Some(egraph)
-        } else {
-            None
-        };
+// No caching
 
-        self.prog = Some(program);
+#[derive(Default)]
+pub struct NaiveEgglog {
+    egglog_program: Option<String>,
+}
+
+impl Engine for NaiveEgglog {
+    fn load(&mut self, program: Program) {
+        let mut comp = Compiler::new("program");
+        comp.program(&program);
+        self.egglog_program = Some(comp.get());
     }
 
     fn query(
         &mut self,
-        query_signature: RelationSignature,
-        query_rule: Rule,
+        signature: RelationSignature,
+        rule: Rule,
     ) -> Vec<Vec<Value>> {
-        todo!()
+        let egglog_program = match &self.egglog_program {
+            Some(p) => p,
+            None => panic!("must call Engine::load before Engine::query"),
+        };
+
+        let mut comp = Compiler::new("query");
+        comp.ruleset();
+        comp.relation_signature(&rule.head.relation, &signature);
+        comp.rule(&rule);
+        comp.saturate();
+        comp.print(&rule.head.relation);
+        let egglog_query = comp.get();
+
+        let combined_program = format!("{}\n{}", egglog_program, egglog_query);
+
+        let mut egraph = EGraph::default();
+
+        let messages = egraph.parse_and_run_program(&combined_program).unwrap();
+
+        if messages.len() != 1 {
+            panic!(
+                "{}\nhad unexpected messages:\n\n{:?}",
+                combined_program, messages
+            );
+        }
+
+        let message = messages.into_iter().next().unwrap();
+
+        parse::output(&rule.head.relation).parse(message).unwrap()
+    }
+}
+
+// With caching
+
+#[derive(Default)]
+pub struct CachedEgglog {
+    egraph: Option<EGraph>,
+}
+
+impl Engine for CachedEgglog {
+    fn load(&mut self, program: Program) {
+        let mut comp = Compiler::new("program");
+        comp.program(&program);
+        let egglog_program = comp.get();
+
+        let mut egraph = EGraph::default();
+        let messages = egraph.parse_and_run_program(&egglog_program).unwrap();
+
+        if messages.len() != 0 {
+            panic!(
+                "{}\nhad unexpected messages:\n\n{:?}",
+                egglog_program, messages
+            );
+        }
+
+        self.egraph = Some(egraph);
+    }
+
+    fn query(
+        &mut self,
+        signature: RelationSignature,
+        rule: Rule,
+    ) -> Vec<Vec<Value>> {
+        let egraph = match &mut self.egraph {
+            Some(e) => e,
+            None => panic!("must call Engine::load before Engine::query"),
+        };
+
+        let mut comp = Compiler::new("query");
+        comp.ruleset();
+        comp.relation_signature(&rule.head.relation, &signature);
+        comp.rule(&rule);
+        comp.saturate();
+        comp.print(&rule.head.relation);
+        let egglog_query = comp.get();
+
+        // TODO: might not need to push/pop here
+        egraph.push();
+        let messages = egraph.parse_and_run_program(&egglog_query).unwrap();
+        egraph.pop().unwrap();
+
+        if messages.len() != 1 {
+            panic!(
+                "{}\nhad unexpected messages:\n\n{:?}",
+                egglog_query, messages
+            );
+        }
+
+        let message = messages.into_iter().next().unwrap();
+
+        parse::output(&rule.head.relation).parse(message).unwrap()
     }
 }

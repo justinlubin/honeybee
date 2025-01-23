@@ -169,7 +169,6 @@ fn main() {
     }
 
     println!("Done!");
-    return;
 
     let cli = Cli::parse();
 

@@ -314,7 +314,7 @@ pub trait Engine {
 
     fn query(
         &mut self,
-        query_signature: RelationSignature,
-        query_rule: Rule,
+        signature: RelationSignature,
+        rule: Rule,
     ) -> Vec<Vec<Value>>;
 }

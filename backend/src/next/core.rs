@@ -3,8 +3,8 @@
 //! This module defines the core syntax for Honeybee.
 
 use crate::next::top_down::*;
-use chumsky::prelude::*;
 
+use chumsky::prelude::*;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -481,6 +481,7 @@ impl Formula {
 
 impl Parse for Formula {
     fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
+        #[derive(Clone)]
         enum Op {
             Eq,
             Lt,
@@ -489,10 +490,7 @@ impl Parse for Formula {
 
         choice((
             FormulaAtom::parser()
-                .then(
-                    choice((just('=').map(|_| Eq), just('<').map(|_| Lt)))
-                        .padded(),
-                )
+                .then(choice((just('=').to(Eq), just('<').to(Lt))).padded())
                 .then(FormulaAtom::parser())
                 .map(|((left, op), right)| match op {
                     Eq => Self::Eq(left, right),
