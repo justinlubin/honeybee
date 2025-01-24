@@ -227,81 +227,55 @@ mod parse {
     }
 }
 
-// No caching
-
-#[derive(Default)]
-pub struct NaiveEgglog {
-    egglog_program: Option<String>,
+enum State {
+    Uncached { egglog_program: Option<String> },
+    Cached { egraph: Option<EGraph> },
 }
 
-impl Engine for NaiveEgglog {
-    fn load(&mut self, program: Program) {
-        let mut comp = Compiler::new("program");
-        comp.program(&program);
-        self.egglog_program = Some(comp.get());
-    }
+pub struct Egglog {
+    state: State,
+}
 
-    fn query(
-        &mut self,
-        signature: &RelationSignature,
-        rule: &Rule,
-    ) -> Vec<Vec<Value>> {
-        let egglog_program = match &self.egglog_program {
-            Some(p) => p,
-            None => panic!("must call Engine::load before Engine::query"),
-        };
-
-        let mut comp = Compiler::new("query");
-        comp.ruleset();
-        comp.relation_signature(&rule.head.relation, signature);
-        comp.rule(rule);
-        comp.saturate();
-        comp.print(&rule.head.relation);
-        let egglog_query = comp.get();
-
-        let combined_program = format!("{}\n{}", egglog_program, egglog_query);
-
-        let mut egraph = EGraph::default();
-
-        let messages = egraph.parse_and_run_program(&combined_program).unwrap();
-
-        if messages.len() != 1 {
-            panic!(
-                "{}\nhad unexpected messages:\n\n{:?}",
-                combined_program, messages
-            );
+impl Egglog {
+    pub fn new(cache: bool) -> Self {
+        if cache {
+            Self {
+                state: State::Uncached {
+                    egglog_program: None,
+                },
+            }
+        } else {
+            Self {
+                state: State::Cached { egraph: None },
+            }
         }
-
-        let message = messages.into_iter().next().unwrap();
-
-        parse::output(&rule.head.relation).parse(message).unwrap()
     }
 }
 
-// With caching
-
-#[derive(Default)]
-pub struct CachedEgglog {
-    egraph: Option<EGraph>,
-}
-
-impl Engine for CachedEgglog {
+impl Engine for Egglog {
     fn load(&mut self, program: Program) {
         let mut comp = Compiler::new("program");
         comp.program(&program);
         let egglog_program = comp.get();
 
-        let mut egraph = EGraph::default();
-        let messages = egraph.parse_and_run_program(&egglog_program).unwrap();
+        self.state = match self.state {
+            State::Uncached { .. } => State::Uncached {
+                egglog_program: Some(egglog_program),
+            },
+            State::Cached { .. } => {
+                let mut egraph = EGraph::default();
+                let messages =
+                    egraph.parse_and_run_program(&egglog_program).unwrap();
 
-        if messages.len() != 0 {
-            panic!(
-                "{}\nhad unexpected messages:\n\n{:?}",
-                egglog_program, messages
-            );
-        }
+                if messages.len() != 0 {
+                    panic!("expected 0 messages, got:\n\n{:?}", messages);
+                }
 
-        self.egraph = Some(egraph);
+                State::Cached {
+                    egraph: Some(egraph),
+                }
+            }
+        };
     }
 
     fn query(
@@ -309,11 +283,6 @@ impl Engine for CachedEgglog {
         signature: &RelationSignature,
         rule: &Rule,
     ) -> Vec<Vec<Value>> {
-        let egraph = match &mut self.egraph {
-            Some(e) => e,
-            None => panic!("must call Engine::load before Engine::query"),
-        };
-
         let mut comp = Compiler::new("query");
         comp.ruleset();
         comp.relation_signature(&rule.head.relation, signature);
@@ -322,16 +291,26 @@ impl Engine for CachedEgglog {
         comp.print(&rule.head.relation);
         let egglog_query = comp.get();
 
-        // TODO: might not need to push/pop here
-        egraph.push();
-        let messages = egraph.parse_and_run_program(&egglog_query).unwrap();
-        egraph.pop().unwrap();
+        let messages = match &mut self.state {
+            State::Uncached {
+                egglog_program: Some(p),
+            } => {
+                let combined_program = format!("{}\n{}", p, egglog_query);
+                let mut e = EGraph::default();
+                e.parse_and_run_program(&combined_program).unwrap()
+            }
+            State::Cached { egraph: Some(e) } => {
+                // TODO: might not need to push/pop here
+                e.push();
+                let messages = e.parse_and_run_program(&egglog_query).unwrap();
+                e.pop().unwrap();
+                messages
+            }
+            _ => panic!("must call Engine::load before Engine::query"),
+        };
 
         if messages.len() != 1 {
-            panic!(
-                "{}\nhad unexpected messages:\n\n{:?}",
-                egglog_query, messages
-            );
+            panic!("expected 1 message, got:\n\n{:?}", messages);
         }
 
         let message = messages.into_iter().next().unwrap();
