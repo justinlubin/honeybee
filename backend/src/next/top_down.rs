@@ -138,7 +138,7 @@ pub trait InhabitationOracle {
         &mut self,
         e: &Sketch<Self::F>,
         timer: &impl Timer<E>,
-    ) -> Vec<(HoleName, Self::F)>;
+    ) -> Result<Vec<(HoleName, Self::F)>, E>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
@@ -157,7 +157,7 @@ impl<O: InhabitationOracle> pbn::StepProvider
         timer: &impl Timer<E>,
     ) -> Result<Vec<Self::Step>, E> {
         let mut ret = vec![];
-        for (h, f) in self.oracle.expansions(e, timer) {
+        for (h, f) in self.oracle.expansions(e, timer)? {
             let holes = e.fresh().map(|h| Sketch::Hole(h));
             ret.push(TopDownStep::Extend(
                 h,

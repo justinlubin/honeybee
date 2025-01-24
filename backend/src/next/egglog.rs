@@ -238,8 +238,8 @@ impl Engine for NaiveEgglog {
 
     fn query(
         &mut self,
-        signature: RelationSignature,
-        rule: Rule,
+        signature: &RelationSignature,
+        rule: &Rule,
     ) -> Vec<Vec<Value>> {
         let egglog_program = match &self.egglog_program {
             Some(p) => p,
@@ -248,8 +248,8 @@ impl Engine for NaiveEgglog {
 
         let mut comp = Compiler::new("query");
         comp.ruleset();
-        comp.relation_signature(&rule.head.relation, &signature);
-        comp.rule(&rule);
+        comp.relation_signature(&rule.head.relation, signature);
+        comp.rule(rule);
         comp.saturate();
         comp.print(&rule.head.relation);
         let egglog_query = comp.get();
@@ -301,8 +301,8 @@ impl Engine for CachedEgglog {
 
     fn query(
         &mut self,
-        signature: RelationSignature,
-        rule: Rule,
+        signature: &RelationSignature,
+        rule: &Rule,
     ) -> Vec<Vec<Value>> {
         let egraph = match &mut self.egraph {
             Some(e) => e,
@@ -311,8 +311,8 @@ impl Engine for CachedEgglog {
 
         let mut comp = Compiler::new("query");
         comp.ruleset();
-        comp.relation_signature(&rule.head.relation, &signature);
-        comp.rule(&rule);
+        comp.relation_signature(&rule.head.relation, signature);
+        comp.rule(rule);
         comp.saturate();
         comp.print(&rule.head.relation);
         let egglog_query = comp.get();

@@ -164,6 +164,7 @@ impl Fact {
 ///
 /// A predicate is either an abstract fact or a primitive such as built-in
 /// equality.
+#[derive(Debug, Clone)]
 pub enum Predicate {
     Fact(Fact),
     PrimEq(Value, Value),
@@ -219,6 +220,7 @@ impl Predicate {
 /// The head (or left-hand side) of a rule is its consequent. The body (or
 /// right-hand side) of a rule is its antecedent. The body is represented as a
 /// conjunction of predicates.
+#[derive(Debug, Clone)]
 pub struct Rule {
     pub name: String,
     pub head: Fact,
@@ -243,6 +245,10 @@ impl Rule {
 
         Ok(())
     }
+
+    pub fn cut(&self, _other: &Rule, _j: usize) -> Option<Rule> {
+        todo!()
+    }
 }
 
 /// The type of Datalog programs.
@@ -251,8 +257,8 @@ impl Rule {
 /// - A library of relations that define their signatures
 /// - A domain of possible primitive values that variables in the program may
 ///   take on
-/// - A set of rules that define the inhabitance of IDB facts
-/// - A set of ground facts that define the inhabitance of EDB facts
+/// - A set of rules that define the inhabitation of IDB facts
+/// - A set of ground facts that define the inhabitation of EDB facts
 pub struct Program {
     pub lib: RelationLibrary,
     pub dom: Domain,
@@ -314,7 +320,7 @@ pub trait Engine {
 
     fn query(
         &mut self,
-        signature: RelationSignature,
-        rule: Rule,
+        signature: &RelationSignature,
+        rule: &Rule,
     ) -> Vec<Vec<Value>>;
 }

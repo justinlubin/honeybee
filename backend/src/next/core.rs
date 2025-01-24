@@ -72,6 +72,7 @@ fn parse_error(
 // Errors
 
 /// The type of errors used by this module.
+#[derive(Debug)]
 pub struct Error(String);
 
 impl Error {
@@ -303,7 +304,7 @@ impl FormulaAtom {
         }
     }
 
-    fn vals(&self) -> IndexSet<Value> {
+    pub fn vals(&self) -> IndexSet<Value> {
         match self {
             FormulaAtom::Param(_, _) => IndexSet::new(),
             FormulaAtom::Ret(_) => IndexSet::new(),
@@ -353,7 +354,7 @@ impl Met<FormulaAtom> {
         })
     }
 
-    fn vals(&self) -> IndexSet<Value> {
+    pub fn vals(&self) -> IndexSet<Value> {
         let mut ret = IndexSet::new();
         for fa in self.args.values() {
             ret.extend(fa.vals());
@@ -469,7 +470,7 @@ impl Formula {
         }
     }
 
-    fn vals(&self) -> IndexSet<Value> {
+    pub fn vals(&self) -> IndexSet<Value> {
         match self {
             Formula::True => IndexSet::new(),
             Formula::Eq(fa1, fa2) | Formula::Lt(fa1, fa2) => {
@@ -561,7 +562,7 @@ impl FunctionSignature {
         self.condition.check(mlib, self)
     }
 
-    fn vals(&self) -> IndexSet<Value> {
+    pub fn vals(&self) -> IndexSet<Value> {
         self.condition.vals()
     }
 }
