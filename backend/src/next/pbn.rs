@@ -30,7 +30,7 @@ pub enum StepProviderError {
 pub trait StepProvider {
     type Step: Step;
     fn provide<E>(
-        &self,
+        &mut self,
         e: &<Self::Step as Step>::Exp,
         timer: &impl Timer<E>,
     ) -> Result<Vec<Self::Step>, E>;

@@ -135,7 +135,7 @@ impl<F: Function> pbn::Step for TopDownStep<F> {
 pub trait InhabitationOracle {
     type F: Function;
     fn expansions<E>(
-        &self,
+        &mut self,
         e: &Sketch<Self::F>,
         timer: &impl Timer<E>,
     ) -> Vec<(HoleName, Self::F)>;
@@ -152,7 +152,7 @@ impl<O: InhabitationOracle> pbn::StepProvider
 {
     type Step = TopDownStep<O::F>;
     fn provide<E>(
-        &self,
+        &mut self,
         e: &<Self::Step as pbn::Step>::Exp,
         timer: &impl Timer<E>,
     ) -> Result<Vec<Self::Step>, E> {

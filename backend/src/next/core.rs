@@ -144,7 +144,7 @@ impl Parse for Value {
 /// Types and atomic propositions are named by this type. Consequently, type
 /// names serve as the keys for type libraries.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-pub struct MetName(String);
+pub struct MetName(pub String);
 
 /// The type of metadata-indexed tuple parameter keys.
 ///
@@ -157,7 +157,7 @@ pub struct MetParam(String);
 /// Signatures for metadata-indexed tuples that define their arity.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct MetSignature {
-    params: IndexMap<MetParam, ValueType>,
+    pub params: IndexMap<MetParam, ValueType>,
 }
 
 /// Libraries of metadata-indexed tuples.
@@ -168,8 +168,8 @@ pub type MetLibrary = IndexMap<MetName, MetSignature>;
 /// This struct is used for atomic propositions and types
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Met<T> {
-    name: MetName,
-    args: IndexMap<MetParam, T>,
+    pub name: MetName,
+    pub args: IndexMap<MetParam, T>,
 }
 
 impl Met<Value> {
@@ -391,6 +391,14 @@ pub enum Formula {
 }
 
 impl Formula {
+    pub fn conjunct(fs: impl Iterator<Item = Formula>) -> Formula {
+        let mut phi = Self::True;
+        for f in fs {
+            phi = Self::And(Box::new(phi), Box::new(f))
+        }
+        phi
+    }
+
     fn check_equal_types(
         mlib: &MetLibrary,
         fs: &FunctionSignature,
@@ -531,7 +539,7 @@ impl TryFrom<Vec<String>> for Formula {
 
 /// The type of base function names.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-pub struct BaseFunction(String);
+pub struct BaseFunction(pub String);
 
 /// The type of signatures of parameterized functions.
 ///
@@ -539,9 +547,9 @@ pub struct BaseFunction(String);
 /// and return type.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct FunctionSignature {
-    params: IndexMap<FunParam, MetName>,
-    ret: MetName,
-    condition: Formula,
+    pub params: IndexMap<FunParam, MetName>,
+    pub ret: MetName,
+    pub condition: Formula,
 }
 
 impl FunctionSignature {
@@ -568,11 +576,11 @@ pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
 #[derive(Deserialize)]
 pub struct Library {
     #[serde(rename = "Prop")]
-    props: MetLibrary,
+    pub props: MetLibrary,
     #[serde(rename = "Type")]
-    types: MetLibrary,
+    pub types: MetLibrary,
     #[serde(rename = "Function")]
-    functions: FunctionLibrary,
+    pub functions: FunctionLibrary,
 }
 
 impl Library {
@@ -601,9 +609,9 @@ impl Library {
 #[derive(Deserialize)]
 pub struct Program {
     #[serde(rename = "Prop")]
-    props: Vec<Met<Value>>,
+    pub props: Vec<Met<Value>>,
     #[serde(rename = "Goal")]
-    goal: Met<Value>,
+    pub goal: Met<Value>,
 }
 
 impl Program {
@@ -635,23 +643,28 @@ pub struct ParameterizedFunction {
 }
 
 impl ParameterizedFunction {
+    pub fn from_sig(
+        sig: &FunctionSignature,
+        name: BaseFunction,
+        metadata: IndexMap<MetParam, Value>,
+    ) -> Self {
+        ParameterizedFunction {
+            name,
+            metadata,
+            arity: sig.params.keys().cloned().collect(),
+        }
+    }
+
     pub fn new(
         flib: &FunctionLibrary,
         name: BaseFunction,
         metadata: IndexMap<MetParam, Value>,
     ) -> Result<Self, Error> {
-        let arity = flib
-            .get(&name)
-            .ok_or(Error::bf(&name))?
-            .params
-            .keys()
-            .cloned()
-            .collect();
-        Ok(ParameterizedFunction {
+        Ok(Self::from_sig(
+            flib.get(&name).ok_or(Error::bf(&name))?,
             name,
             metadata,
-            arity,
-        })
+        ))
     }
 }
 
@@ -739,19 +752,24 @@ impl Exp {
 /// [`Exp::well_typed`] for more information about what it means for an
 /// expression to be well-typed.
 pub struct Problem {
-    lib: Library,
-    prog: Program,
+    pub library: Library,
+    pub program: Program,
+    _private: (),
 }
 
 impl Problem {
-    pub fn new(lib: Library, prog: Program) -> Result<Self, Error> {
-        let ret = Self { lib, prog };
+    pub fn new(library: Library, program: Program) -> Result<Self, Error> {
+        let ret = Self {
+            library,
+            program,
+            _private: (),
+        };
         ret.check()?;
         Ok(ret)
     }
 
     fn check(&self) -> Result<(), Error> {
-        self.lib.check()?;
-        self.prog.check(&self.lib)
+        self.library.check()?;
+        self.program.check(&self.library)
     }
 }
