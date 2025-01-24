@@ -14,6 +14,7 @@ pub type Error = String;
 /// The types that primitive values may take on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValueType {
+    Bool,
     Int,
     Str,
 }
@@ -23,6 +24,7 @@ pub enum ValueType {
 /// A value is considered *abstract* if it is a variable and *ground* otherwise.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Value {
+    Bool(bool),
     Int(i64),
     Str(String),
     Var { name: String, typ: ValueType },
@@ -44,6 +46,7 @@ impl Value {
 
     fn infer(&self, dom: &Domain) -> Result<ValueType, Error> {
         match self {
+            Value::Bool(_) => Ok(ValueType::Bool),
             Value::Int(_) => {
                 self.check_domain(dom)?;
                 Ok(ValueType::Int)
@@ -58,6 +61,7 @@ impl Value {
 
     fn is_ground(&self) -> bool {
         match self {
+            Value::Bool(_) => true,
             Value::Int(_) => true,
             Value::Str(_) => true,
             Value::Var { .. } => false,
@@ -66,6 +70,7 @@ impl Value {
 
     fn is_abstract(&self) -> bool {
         match self {
+            Value::Bool(_) => false,
             Value::Int(_) => false,
             Value::Str(_) => false,
             Value::Var { .. } => true,

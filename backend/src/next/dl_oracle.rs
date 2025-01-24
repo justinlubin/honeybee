@@ -17,6 +17,7 @@ mod compile {
 
     pub fn value_type(vt: &core::ValueType) -> datalog::ValueType {
         match vt {
+            core::ValueType::Bool => datalog::ValueType::Bool,
             core::ValueType::Int => datalog::ValueType::Int,
             core::ValueType::Str => datalog::ValueType::Str,
         }
@@ -24,6 +25,7 @@ mod compile {
 
     pub fn value(v: &core::Value) -> datalog::Value {
         match v {
+            core::Value::Bool(b) => datalog::Value::Bool(b.clone()),
             core::Value::Int(x) => datalog::Value::Int(x.clone()),
             core::Value::Str(s) => datalog::Value::Str(s.clone()),
         }
@@ -96,6 +98,7 @@ mod decompile {
 
     pub fn value(v: &datalog::Value) -> core::Value {
         match v {
+            datalog::Value::Bool(b) => core::Value::Bool(b.clone()),
             datalog::Value::Int(x) => core::Value::Int(x.clone()),
             datalog::Value::Str(s) => core::Value::Str(s.clone()),
             datalog::Value::Var { .. } => panic!(),
@@ -227,6 +230,7 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
                     let f_sig = self.problem.library.functions.get(f).unwrap();
                     let f_ret_sig =
                         self.problem.library.types.get(&f_sig.ret).unwrap();
+
                     ret.extend(
                         self.engine
                             .query(&query_sig, &cut_rule)

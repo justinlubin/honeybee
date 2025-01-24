@@ -103,6 +103,7 @@ impl Error {
 /// The types that values may take on.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum ValueType {
+    Bool,
     Int,
     Str,
 }
@@ -111,6 +112,7 @@ pub enum ValueType {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[serde(untagged)]
 pub enum Value {
+    Bool(bool),
     Int(i64),
     Str(String),
 }
@@ -118,6 +120,7 @@ pub enum Value {
 impl Value {
     fn infer(&self) -> ValueType {
         match self {
+            Value::Bool(_) => ValueType::Bool,
             Value::Int(_) => ValueType::Int,
             Value::Str(_) => ValueType::Str,
         }
@@ -127,6 +130,8 @@ impl Value {
 impl Parse for Value {
     fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
         choice((
+            just("true").to(Self::Bool(true)),
+            just("false").to(Self::Bool(false)),
             text::int(10).map(|s: String| Self::Int(s.parse().unwrap())),
             none_of("\"")
                 .repeated()

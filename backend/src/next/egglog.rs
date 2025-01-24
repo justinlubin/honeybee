@@ -56,8 +56,9 @@ impl Compiler {
 
     fn value_type(&mut self, vt: &ValueType) {
         match vt {
+            ValueType::Bool => self.write("bool"),
             ValueType::Int => self.write("i64"),
-            ValueType::Str => self.write("i64"),
+            ValueType::Str => self.write("String"),
         }
     }
 
@@ -72,6 +73,7 @@ impl Compiler {
 
     fn value(&mut self, v: &Value) {
         match v {
+            Value::Bool(b) => self.write(&b.to_string()),
             Value::Int(x) => self.write(&x.to_string()),
             Value::Str(s) => self.write(&format!("\"{}\"", s)),
             Value::Var { name, typ: _ } => self.write(&name),
@@ -144,6 +146,7 @@ impl Compiler {
 
         for v in &prog.dom {
             match v {
+                Value::Bool(_) => (),
                 Value::Int(x) => self.writeln(&format!("(&Int {})", x)),
                 Value::Str(s) => self.writeln(&format!("(&Str {})", s)),
                 Value::Var { .. } => panic!(),
@@ -181,6 +184,8 @@ mod parse {
 
     fn value() -> impl Parser<char, Value, Error = Simple<char>> {
         choice((
+            just("true").to(Value::Bool(true)),
+            just("false").to(Value::Bool(false)),
             text::int(10).map(|s: String| Value::Int(s.parse().unwrap())),
             none_of("\"")
                 .repeated()
