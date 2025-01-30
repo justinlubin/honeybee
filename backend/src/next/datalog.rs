@@ -76,6 +76,16 @@ impl Value {
             Value::Var { .. } => true,
         }
     }
+
+    fn prefix_vars(&self, prefix: &str) -> Self {
+        match self {
+            Value::Bool(_) | Value::Int(_) | Value::Str(_) => self.clone(),
+            Value::Var { name, typ } => Self::Var {
+                name: format!("{}{}", prefix, name),
+                typ: typ.clone(),
+            },
+        }
+    }
 }
 
 /// The type of relation "names".
@@ -163,6 +173,13 @@ impl Fact {
     fn is_abstract(&self) -> bool {
         self.args.iter().all(|v| v.is_abstract())
     }
+
+    fn prefix_vars(&self, prefix: &str) -> Self {
+        Self {
+            relation: self.relation.clone(),
+            args: self.args.iter().map(|v| v.prefix_vars(prefix)).collect(),
+        }
+    }
 }
 
 /// The possible predicates for the right-hand side (antecedent) of a rule.
@@ -218,6 +235,20 @@ impl Predicate {
             }
         }
     }
+
+    fn prefix_vars(&self, prefix: &str) -> Self {
+        match self {
+            Predicate::Fact(f) => Predicate::Fact(f.prefix_vars(prefix)),
+            Predicate::PrimEq(left, right) => Predicate::PrimEq(
+                left.prefix_vars(prefix),
+                right.prefix_vars(prefix),
+            ),
+            Predicate::PrimLt(left, right) => Predicate::PrimLt(
+                left.prefix_vars(prefix),
+                right.prefix_vars(prefix),
+            ),
+        }
+    }
 }
 
 /// The type of rules.
@@ -251,8 +282,41 @@ impl Rule {
         Ok(())
     }
 
-    pub fn cut(&self, _other: &Rule, _j: usize) -> Option<Rule> {
-        todo!()
+    const X_PREFIX: &'static str = "&x_";
+    const Y_PREFIX: &'static str = "&y_";
+
+    pub fn cut(&self, other: &Rule, j: usize) -> Option<Rule> {
+        let mut self_body_without_cut_fact = self.body.clone();
+        let self_cut_fact = match self_body_without_cut_fact.remove(j) {
+            Predicate::Fact(f) => f,
+            Predicate::PrimEq(_, _) => return None,
+            Predicate::PrimLt(_, _) => return None,
+        };
+        if self_cut_fact.relation != other.head.relation {
+            return None;
+        }
+
+        let link = self_cut_fact
+            .args
+            .into_iter()
+            .zip(other.head.args.iter())
+            .map(|(y, x)| {
+                Predicate::PrimEq(
+                    y.prefix_vars(Self::Y_PREFIX),
+                    x.prefix_vars(Self::X_PREFIX),
+                )
+            });
+
+        Some(Rule {
+            name: format!("&cut_{}/{}", other.name, self.name),
+            head: self.head.prefix_vars(Self::Y_PREFIX),
+            body: self_body_without_cut_fact
+                .iter()
+                .map(|p| p.prefix_vars(Self::Y_PREFIX))
+                .chain(other.body.iter().map(|p| p.prefix_vars(Self::X_PREFIX)))
+                .chain(link)
+                .collect(),
+        })
     }
 }
 

@@ -118,7 +118,7 @@ pub enum Value {
 }
 
 impl Value {
-    fn infer(&self) -> ValueType {
+    pub fn infer(&self) -> ValueType {
         match self {
             Value::Bool(_) => ValueType::Bool,
             Value::Int(_) => ValueType::Int,
@@ -158,7 +158,7 @@ pub struct MetName(pub String);
 /// by metadata parameters. Generally, the values of these maps will be things
 /// that "look like" metadata values or value types.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
-pub struct MetParam(String);
+pub struct MetParam(pub String);
 
 /// Signatures for metadata-indexed tuples that define their arity.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -266,7 +266,7 @@ pub enum FormulaAtom {
 }
 
 impl FormulaAtom {
-    fn infer(
+    pub fn infer(
         &self,
         mlib: &MetLibrary,
         fs: &FunctionSignature,
@@ -641,8 +641,8 @@ impl Program {
 /// that correspond to the metadata values for its return type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParameterizedFunction {
-    name: BaseFunction,
-    metadata: IndexMap<MetParam, Value>,
+    pub name: BaseFunction,
+    pub metadata: IndexMap<MetParam, Value>,
     // A copy of the function's arity is stored along with the function so that
     // the impl Function block below can work without reference to a library.
     arity: Vec<FunParam>,
