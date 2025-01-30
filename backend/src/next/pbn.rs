@@ -15,12 +15,6 @@ pub trait Step {
     fn step(&self, e: &Self::Exp) -> Option<Self::Exp>;
 }
 
-/// The possible reasons a step provider can fail. Note that this is only
-/// "timeout" because otherwise step providers must always succeed.
-pub enum StepProviderError {
-    Timeout,
-}
-
 /// The type of step providers.
 ///
 /// To be a valid solution to the Programming By Navigation Synthesis Problem,

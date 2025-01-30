@@ -5,8 +5,7 @@
 use crate::next::top_down::*;
 
 use chumsky::prelude::*;
-use indexmap::IndexMap;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use serde::Deserialize;
 
 ////////////////////////////////////////////////////////////////////////////////
