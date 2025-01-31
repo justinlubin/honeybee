@@ -4,30 +4,63 @@
 //! By Navigation. In particular, it defines the interface that is necessary for
 //! the Programming By Navigation interaction and guarantees.
 
-use crate::next::timer::Timer;
+use crate::next::util::Timer;
 
 /// The type of steps.
 ///
 /// Steps transform one expression into another and must satisfy the
 /// *navigation relation* properties.
 pub trait Step {
-    type Exp;
-    fn step(&self, e: &Self::Exp) -> Option<Self::Exp>;
+    type Exp: Clone;
+    fn apply(&self, e: &Self::Exp) -> Option<Self::Exp>;
 }
 
 /// The type of step providers.
 ///
 /// To be a valid solution to the Programming By Navigation Synthesis Problem,
 /// step providers must satisfy the *validity*, *strong completeness*, and
-/// *strong soundness* conditions. Thus, step providers implicitly rely on a
-/// notion of validity.
+/// *strong soundness* conditions.
 pub trait StepProvider {
     type Step: Step;
-    fn provide<E>(
+    fn provide<T: Timer>(
         &mut self,
         e: &<Self::Step as Step>::Exp,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<Self::Step>, E>;
+        timer: &T,
+    ) -> Result<Vec<Self::Step>, T::Expired>;
+
+    fn valid(&mut self, e: &<Self::Step as Step>::Exp) -> bool;
+}
+
+pub struct Controller<T: Timer, SP: StepProvider> {
+    timer: T,
+    provider: SP,
+    state: <SP::Step as Step>::Exp,
+}
+
+impl<T: Timer, S: Step, SP: StepProvider<Step = S>> Controller<T, SP> {
+    pub fn new(timer: T, provider: SP, start: S::Exp) -> Self {
+        Self {
+            timer,
+            provider,
+            state: start,
+        }
+    }
+
+    pub fn provide(&mut self) -> Result<Vec<S>, T::Expired> {
+        self.provider.provide(&self.state, &self.timer)
+    }
+
+    pub fn decide(&mut self, step: S) {
+        self.state = step.apply(&self.state).unwrap();
+    }
+
+    pub fn working_expression(&self) -> S::Exp {
+        self.state
+    }
+
+    pub fn valid(&self) -> bool {
+        self.provider.valid(&self.state)
+    }
 }
 
 /// The components of a Programming By Navigation interaction.

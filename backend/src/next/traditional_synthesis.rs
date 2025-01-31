@@ -1,6 +1,6 @@
 use crate::next::pbn::*;
-use crate::next::timer::*;
 use crate::next::top_down::*;
+use crate::next::util::Timer;
 
 use indexmap::IndexMap;
 
@@ -9,33 +9,33 @@ pub type HoleFilling<F> = IndexMap<HoleName, Sketch<F>>;
 /// The type of synthesizers solving the traditional Any task (for sketches).
 pub trait AnySynthesizer {
     type F: Function;
-    fn provide_any<E>(
+    fn provide_any<T: Timer>(
         &self,
         start: &Sketch<Self::F>,
-        timer: &impl Timer<E>,
-    ) -> Result<Option<HoleFilling<Self::F>>, E>;
+        timer: &T,
+    ) -> Result<Option<HoleFilling<Self::F>>, T::Expired>;
 }
 
 /// The type of synthesizers solving the traditional All task (for sketches).
 pub trait AllSynthesizer {
     type F: Function;
-    fn provide_all<E>(
+    fn provide_all<T: Timer>(
         &self,
         start: &Sketch<Self::F>,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<HoleFilling<Self::F>>, E>;
+        timer: &T,
+    ) -> Result<Vec<HoleFilling<Self::F>>, T::Expired>;
 }
 
 struct NaiveStepProvider<T: AllSynthesizer>(T);
 
-impl<T: AllSynthesizer> StepProvider for NaiveStepProvider<T> {
-    type Step = TopDownStep<T::F>;
+impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
+    type Step = TopDownStep<Synth::F>;
 
-    fn provide<E>(
+    fn provide<T: Timer>(
         &mut self,
-        e: &Sketch<T::F>,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<Self::Step>, E> {
+        e: &Sketch<Synth::F>,
+        timer: &T,
+    ) -> Result<Vec<Self::Step>, T::Expired> {
         let mut steps = vec![];
         for solution in self.0.provide_all(e, timer)? {
             for (h, binding) in solution {
@@ -55,14 +55,14 @@ impl<T: AllSynthesizer> StepProvider for NaiveStepProvider<T> {
     }
 }
 
-impl<F: Function, T: Interaction<Step = TopDownStep<F>>> AnySynthesizer for T {
+impl<F: Function, I: Interaction<Step = TopDownStep<F>>> AnySynthesizer for I {
     type F = F;
 
-    fn provide_any<E>(
+    fn provide_any<T: Timer>(
         &self,
         start: &Sketch<Self::F>,
-        timer: &impl Timer<E>,
-    ) -> Result<Option<HoleFilling<Self::F>>, E> {
+        timer: &T,
+    ) -> Result<Option<HoleFilling<Self::F>>, T::Expired> {
         todo!()
     }
 }

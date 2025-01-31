@@ -1,8 +1,7 @@
 use crate::next::core::*;
-use crate::next::timer::*;
 use crate::next::top_down::*;
 use crate::next::traditional_synthesis::*;
-use crate::next::util;
+use crate::next::util::{self, Timer};
 
 use indexmap::{IndexMap, IndexSet};
 use std::collections::VecDeque;
@@ -36,11 +35,11 @@ impl Support {
         }
     }
 
-    fn met_signature<E>(
+    fn met_signature<T: Timer>(
         &self,
-        timer: &impl Timer<E>,
+        timer: &T,
         sig: &MetSignature,
-    ) -> Result<Vec<IndexMap<MetParam, Value>>, E> {
+    ) -> Result<Vec<IndexMap<MetParam, Value>>, T::Expired> {
         let choices = sig
             .params
             .iter()
@@ -51,25 +50,25 @@ impl Support {
 }
 
 trait Prune {
-    fn possible<E>(
+    fn possible<T: Timer>(
         &self,
-        timer: &impl Timer<E>,
+        timer: &T,
         problem: &Problem,
         support: &Support,
         e: &Exp,
-    ) -> Result<bool, E>;
+    ) -> Result<bool, T::Expired>;
 }
 
 struct NaivePruner {}
 
 impl Prune for NaivePruner {
-    fn possible<E>(
+    fn possible<T: Timer>(
         &self,
-        _: &impl Timer<E>,
+        _: &T,
         _: &Problem,
         _: &Support,
         _: &Exp,
-    ) -> Result<bool, E> {
+    ) -> Result<bool, T::Expired> {
         Ok(true)
     }
 }
@@ -77,13 +76,13 @@ impl Prune for NaivePruner {
 struct ExhaustivePruner {}
 
 impl Prune for ExhaustivePruner {
-    fn possible<E>(
+    fn possible<T: Timer>(
         &self,
-        timer: &impl Timer<E>,
+        timer: &T,
         problem: &Problem,
         support: &Support,
         e: &Exp,
-    ) -> Result<bool, E> {
+    ) -> Result<bool, T::Expired> {
         match e {
             Sketch::Hole(_) => Ok(true),
             Sketch::App(f, args) => {
@@ -163,12 +162,12 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         funcs
     }
 
-    fn support_fun<E>(
+    fn support_fun<T: Timer>(
         &self,
-        timer: &impl Timer<E>,
+        timer: &T,
         f: &ParameterizedFunction,
         args: &IndexMap<FunParam, Exp>,
-    ) -> Result<Vec<(HoleName, ParameterizedFunction, Exp)>, E> {
+    ) -> Result<Vec<(HoleName, ParameterizedFunction, Exp)>, T::Expired> {
         let mut expansions = vec![];
         let fs = self.problem.library.functions.get(&f.name).unwrap();
         for (fp, mn) in &fs.params {
@@ -208,12 +207,12 @@ impl<P: Prune> EnumerativeSynthesis<P> {
     }
 
     // TODO: add memoization? (seen list)
-    fn enumerate_worklist<E>(
+    fn enumerate_worklist<T: Timer>(
         &self,
-        timer: &impl Timer<E>,
+        timer: &T,
         mut worklist: VecDeque<Exp>,
         max_solutions: usize,
-    ) -> Result<Vec<Exp>, E> {
+    ) -> Result<Vec<Exp>, T::Expired> {
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
             let sup = match &e {
@@ -244,12 +243,12 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         Ok(solutions)
     }
 
-    fn enumerate<E>(
+    fn enumerate<T: Timer>(
         &self,
-        timer: &impl Timer<E>,
+        timer: &T,
         start: &Exp,
         max_solutions: usize,
-    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, E> {
+    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, T::Expired> {
         let (f, args) = self.wrap(start);
         let worklist = VecDeque::from([Sketch::App(f, args)]);
         Ok(self
@@ -263,11 +262,11 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 
-    fn provide_any<E>(
+    fn provide_any<T: Timer>(
         &self,
         start: &Exp,
-        timer: &impl Timer<E>,
-    ) -> Result<Option<HoleFilling<ParameterizedFunction>>, E> {
+        timer: &T,
+    ) -> Result<Option<HoleFilling<ParameterizedFunction>>, T::Expired> {
         Ok(self.enumerate(timer, start, 1)?.into_iter().next())
     }
 }
@@ -275,11 +274,11 @@ impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
 impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 
-    fn provide_all<E>(
+    fn provide_all<T: Timer>(
         &self,
         start: &Exp,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, E> {
+        timer: &T,
+    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, T::Expired> {
         self.enumerate(timer, start, usize::MAX)
     }
 }
@@ -288,11 +287,11 @@ impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
 impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 
-    fn expansions<E>(
+    fn expansions<T: Timer>(
         &mut self,
         e: &Sketch<Self::F>,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<(HoleName, Self::F)>, E> {
+        timer: &T,
+    ) -> Result<Vec<(HoleName, Self::F)>, T::Expired> {
         let (top_f, top_args) = self.wrap(e);
         let mut expansions = vec![];
         for (h, f, parent) in self.support_fun(timer, &top_f, &top_args)? {

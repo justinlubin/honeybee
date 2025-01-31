@@ -11,7 +11,7 @@
 //! arguments (with the right keyword arguments).
 
 use crate::next::pbn;
-use crate::next::timer::Timer;
+use crate::next::util::Timer;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -137,7 +137,7 @@ impl<F: Function> Sketch<F> {
 impl<F: Function> pbn::Step for TopDownStep<F> {
     type Exp = Sketch<F>;
 
-    fn step(&self, e: &Self::Exp) -> Option<Self::Exp> {
+    fn apply(&self, e: &Self::Exp) -> Option<Self::Exp> {
         match self {
             Self::Extend(h, f, args) => {
                 if f.arity().len() == args.len()
@@ -151,7 +151,7 @@ impl<F: Function> pbn::Step for TopDownStep<F> {
                     None
                 }
             }
-            Self::Seq(s1, s2) => s1.step(e).and_then(|e2| s2.step(&e2)),
+            Self::Seq(s1, s2) => s1.apply(e).and_then(|e2| s2.apply(&e2)),
         }
     }
 }
@@ -166,11 +166,11 @@ pub type Expansion<F> = (HoleName, F);
 /// synthesis.
 pub trait InhabitationOracle {
     type F: Function;
-    fn expansions<E>(
+    fn expansions<T: Timer>(
         &mut self,
         e: &Sketch<Self::F>,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<Expansion<Self::F>>, E>;
+        timer: &T,
+    ) -> Result<Vec<Expansion<Self::F>>, T::Expired>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
@@ -183,11 +183,11 @@ impl<O: InhabitationOracle> pbn::StepProvider
     for ClassicalConstructiveSynthesis<O>
 {
     type Step = TopDownStep<O::F>;
-    fn provide<E>(
+    fn provide<T: Timer>(
         &mut self,
         e: &<Self::Step as pbn::Step>::Exp,
-        timer: &impl Timer<E>,
-    ) -> Result<Vec<Self::Step>, E> {
+        timer: &T,
+    ) -> Result<Vec<Self::Step>, T::Expired> {
         let mut ret = vec![];
         for (h, f) in self.oracle.expansions(e, timer)? {
             let holes = e.fresh().map(|h| Sketch::Hole(h));
