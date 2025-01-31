@@ -56,12 +56,18 @@ pub enum Sketch<F: Function> {
 ///
 /// Top-down steps can either extend a hole with a new function application, or
 /// they can be a sequence of other top-down steps.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TopDownStep<F: Function> {
     Extend(HoleName, F, IndexMap<FunParam, Sketch<F>>),
     Seq(Box<Self>, Box<Self>),
 }
 
 impl<F: Function> Sketch<F> {
+    pub fn free(context: &Sketch<F>, f: &F) -> Sketch<F> {
+        let holes = context.fresh().map(|h| Sketch::Hole(h));
+        Sketch::App(f.clone(), f.arity().into_iter().zip(holes).collect())
+    }
+
     fn has_subterm(&self, e: &Self) -> bool {
         if self == e {
             return true;
@@ -72,7 +78,7 @@ impl<F: Function> Sketch<F> {
         }
     }
 
-    fn substitute(&self, h: HoleName, e: &Self) -> Self {
+    pub fn substitute(&self, h: HoleName, e: &Self) -> Self {
         match self {
             Self::Hole(h2) => {
                 if *h2 == h {
@@ -99,8 +105,32 @@ impl<F: Function> Sketch<F> {
         }
     }
 
-    fn fresh(&self) -> impl Iterator<Item = HoleName> {
+    pub fn fresh(&self) -> impl Iterator<Item = HoleName> {
         return (self.max_hole() + 1)..;
+    }
+
+    pub fn pattern_match(
+        &self,
+        ground: &Self,
+    ) -> Option<IndexMap<HoleName, Self>> {
+        match self {
+            Sketch::Hole(h) => Some(IndexMap::from([(*h, ground.clone())])),
+            Sketch::App(f, fargs) => match ground {
+                Sketch::Hole(_) => None,
+                Sketch::App(g, gargs) => {
+                    if f == g {
+                        let mut ret = IndexMap::new();
+                        for (fp, farg) in fargs {
+                            let garg = gargs.get(fp)?;
+                            ret.extend(farg.pattern_match(garg)?);
+                        }
+                        Some(ret)
+                    } else {
+                        None
+                    }
+                }
+            },
+        }
     }
 }
 
@@ -130,6 +160,8 @@ impl<F: Function> pbn::Step for TopDownStep<F> {
 // Top-Down Classical-Constructive Synthesis
 //   (Solving the Programming By Navigation Synthesis Problem)
 
+pub type Expansion<F> = (HoleName, F);
+
 /// The type of inhabitation oracles for use in top-down classical-constructive
 /// synthesis.
 pub trait InhabitationOracle {
@@ -138,7 +170,7 @@ pub trait InhabitationOracle {
         &mut self,
         e: &Sketch<Self::F>,
         timer: &impl Timer<E>,
-    ) -> Result<Vec<(HoleName, Self::F)>, E>;
+    ) -> Result<Vec<Expansion<Self::F>>, E>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By

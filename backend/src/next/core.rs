@@ -250,8 +250,8 @@ impl<T: Parse> Parse for Met<T> {
 // Formulas
 
 pub struct EvaluationContext<'a> {
-    args: &'a IndexMap<FunParam, IndexMap<MetParam, Value>>,
-    ret: &'a IndexMap<MetParam, Value>,
+    pub args: &'a IndexMap<FunParam, IndexMap<MetParam, Value>>,
+    pub ret: &'a IndexMap<MetParam, Value>,
 }
 
 /// The type of formula atoms.
@@ -449,7 +449,7 @@ impl Formula {
         }
     }
 
-    fn sat(
+    pub fn sat(
         &self,
         props: &Vec<Met<Value>>,
         ctx: &EvaluationContext,
@@ -654,7 +654,7 @@ impl ParameterizedFunction {
         metadata: IndexMap<MetParam, Value>,
     ) -> Self {
         ParameterizedFunction {
-            name,
+            name: name.clone(),
             metadata,
             arity: sig.params.keys().cloned().collect(),
         }
@@ -776,5 +776,71 @@ impl Problem {
     fn check(&self) -> Result<(), Error> {
         self.library.check()?;
         self.program.check(&self.library)
+    }
+
+    pub fn vals(&self) -> IndexSet<Value> {
+        let mut dom = IndexSet::new();
+        for fs in self.library.functions.values() {
+            dom.extend(fs.vals());
+        }
+        for p in &self.program.props {
+            dom.extend(p.args.values().cloned());
+        }
+        dom.extend(self.program.goal.args.values().cloned());
+        dom
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Goal convenience wrapper
+
+pub struct Goal {
+    function: BaseFunction,
+    param: FunParam,
+    ret: MetName,
+    signature: FunctionSignature,
+}
+
+impl Goal {
+    pub fn new(goal: &Met<Value>) -> Self {
+        let function = BaseFunction("&goal".to_owned());
+        let param = FunParam("&goalparam".to_owned());
+        let ret = MetName("&Goal".to_owned());
+
+        let signature = FunctionSignature {
+            condition: Formula::conjunct(goal.args.iter().map(|(mp, v)| {
+                Formula::Eq(
+                    FormulaAtom::Param(param.clone(), mp.clone()),
+                    FormulaAtom::Lit(v.clone()),
+                )
+            })),
+            ret: ret.clone(),
+            params: IndexMap::from([(param.clone(), goal.name.clone())]),
+        };
+
+        Self {
+            function,
+            param,
+            ret,
+            signature,
+        }
+    }
+
+    pub fn add_to_library(&self, functions: &mut FunctionLibrary) {
+        functions.insert(self.function.clone(), self.signature.clone());
+    }
+
+    pub fn app(
+        &self,
+        e: &Exp,
+    ) -> (ParameterizedFunction, IndexMap<FunParam, Exp>) {
+        (
+            ParameterizedFunction::from_sig(
+                &self.signature,
+                self.function.clone(),
+                IndexMap::new(),
+            ),
+            IndexMap::from([(self.param.clone(), e.clone())]),
+        )
     }
 }

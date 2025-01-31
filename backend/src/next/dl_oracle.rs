@@ -1,9 +1,7 @@
-use crate::next::core::{self, *};
+use crate::next::core::*;
 use crate::next::datalog::{self, *};
 use crate::next::timer::*;
 use crate::next::top_down::*;
-
-use indexmap::{IndexMap, IndexSet};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Compilation to datalog
@@ -264,60 +262,6 @@ mod decompile {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Goal convenience wrapper
-
-struct Goal {
-    function: BaseFunction,
-    param: FunParam,
-    ret: MetName,
-    signature: FunctionSignature,
-}
-
-impl Goal {
-    pub fn new(goal: &Met<core::Value>) -> Self {
-        let function = BaseFunction("&goal".to_owned());
-        let param = FunParam("&goalparam".to_owned());
-        let ret = MetName("&Goal".to_owned());
-
-        let signature = FunctionSignature {
-            condition: Formula::conjunct(goal.args.iter().map(|(mp, v)| {
-                Formula::Eq(
-                    FormulaAtom::Param(param.clone(), mp.clone()),
-                    FormulaAtom::Lit(v.clone()),
-                )
-            })),
-            ret: ret.clone(),
-            params: IndexMap::from([(param.clone(), goal.name.clone())]),
-        };
-
-        Self {
-            function,
-            param,
-            ret,
-            signature,
-        }
-    }
-
-    pub fn add_to_library(&self, functions: &mut FunctionLibrary) {
-        functions.insert(self.function.clone(), self.signature.clone());
-    }
-
-    pub fn app(
-        &self,
-        e: &Exp,
-    ) -> (ParameterizedFunction, IndexMap<FunParam, Exp>) {
-        (
-            ParameterizedFunction::from_sig(
-                &self.signature,
-                self.function.clone(),
-                IndexMap::new(),
-            ),
-            IndexMap::from([(self.param.clone(), e.clone())]),
-        )
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Oracle
 
 pub struct Oracle<Eng: Engine> {
@@ -334,28 +278,12 @@ impl<Eng: Engine> Oracle<Eng> {
     ) -> Result<Self, datalog::Error> {
         let header = compile::header(&problem.library);
 
-        let datalog_program = {
-            let lib = compile::signatures(
-                &problem.library.props,
-                &problem.library.types,
-            );
-
-            let mut dom = IndexSet::new();
-            for fs in problem.library.functions.values() {
-                dom.extend(fs.vals().iter().map(compile::value));
-            }
-            for p in &problem.program.props {
-                dom.extend(p.args.values().map(compile::value));
-            }
-            dom.extend(problem.program.goal.args.values().map(compile::value));
-
-            let rules = header.clone();
-
-            let ground_facts =
-                problem.program.props.iter().map(compile::fact).collect();
-
-            datalog::Program::new(lib, dom, rules, ground_facts)?
-        };
+        let datalog_program = datalog::Program::new(
+            compile::signatures(&problem.library.props, &problem.library.types),
+            problem.vals().iter().map(compile::value).collect(),
+            header.clone(),
+            problem.program.props.iter().map(compile::fact).collect(),
+        )?;
 
         engine.load(datalog_program);
 
@@ -378,7 +306,7 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
         &mut self,
         e: &Sketch<Self::F>,
         timer: &impl Timer<E>,
-    ) -> Result<Vec<(HoleName, Self::F)>, E> {
+    ) -> Result<Vec<Expansion<Self::F>>, E> {
         let mut ret = vec![];
 
         let (goal_pf, goal_args) = self.goal.app(e);
