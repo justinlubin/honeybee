@@ -26,7 +26,9 @@ pub trait AllSynthesizer {
     ) -> Result<Vec<HoleFilling<Self::F>>, E>;
 }
 
-impl<T: AllSynthesizer> StepProvider for T {
+struct NaiveStepProvider<T: AllSynthesizer>(T);
+
+impl<T: AllSynthesizer> StepProvider for NaiveStepProvider<T> {
     type Step = TopDownStep<T::F>;
 
     fn provide<E>(
@@ -35,7 +37,7 @@ impl<T: AllSynthesizer> StepProvider for T {
         timer: &impl Timer<E>,
     ) -> Result<Vec<Self::Step>, E> {
         let mut steps = vec![];
-        for solution in self.provide_all(e, timer)? {
+        for solution in self.0.provide_all(e, timer)? {
             for (h, binding) in solution {
                 match binding {
                     Sketch::Hole(_) => panic!(),
@@ -50,5 +52,17 @@ impl<T: AllSynthesizer> StepProvider for T {
             }
         }
         Ok(steps)
+    }
+}
+
+impl<F: Function, T: Interaction<Step = TopDownStep<F>>> AnySynthesizer for T {
+    type F = F;
+
+    fn provide_any<E>(
+        &self,
+        start: &Sketch<Self::F>,
+        timer: &impl Timer<E>,
+    ) -> Result<Option<HoleFilling<Self::F>>, E> {
+        todo!()
     }
 }

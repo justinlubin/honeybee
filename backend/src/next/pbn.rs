@@ -35,17 +35,19 @@ pub trait StepProvider {
 /// To provide this interface, an interaction implementation will likely need
 /// to keep track of the "state" of an interaction in the form of the working
 /// expression.
-pub trait Interact<Spec, S: Step> {
+pub trait Interaction {
+    type Step: Step;
+
     /// Called at the start of an interaction.
-    fn init(&self, spec: Spec) -> bool;
+    fn init(&self, start: &<Self::Step as Step>::Exp) -> bool;
     /// Called to get the set of possible next steps.
-    fn provide(&self) -> Vec<S>;
+    fn provide(&self) -> Vec<<Self::Step as Step>::Exp>;
     /// Called to choose among the above provided steps.
     ///
     /// Panics if provided a step that is not returned by a call to [`provide`].
-    fn decide(&self, step: S);
+    fn decide(&self, step: &Self::Step);
     /// Return the working expression (e.g. for visualization).
-    fn working_expression(&self) -> S::Exp;
+    fn working_expression(&self) -> <Self::Step as Step>::Exp;
     /// Returns whether or not the current working expression is valid.
     fn valid(&self) -> bool;
 }
