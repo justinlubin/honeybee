@@ -1,15 +1,15 @@
-use crate::next::core::*;
-use crate::next::datalog::{self, *};
-use crate::next::top_down::*;
-use crate::next::util::Timer;
+use crate::core::*;
+use crate::datalog::{self, *};
+use crate::top_down::*;
+use crate::util::Timer;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Compilation to datalog
 
 mod compile {
-    use crate::next::core::{self, *};
-    use crate::next::datalog::{self, *};
-    use crate::next::top_down::*;
+    use crate::core::{self, *};
+    use crate::datalog::{self, *};
+    use crate::top_down::*;
 
     use indexmap::IndexMap;
 
@@ -248,8 +248,8 @@ mod compile {
 // Decompilation from datalog
 
 mod decompile {
-    use crate::next::core;
-    use crate::next::datalog;
+    use crate::core;
+    use crate::datalog;
 
     pub fn value(v: &datalog::Value) -> core::Value {
         match v {

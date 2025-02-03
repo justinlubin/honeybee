@@ -4,7 +4,7 @@
 //! By Navigation. In particular, it defines the interface that is necessary for
 //! the Programming By Navigation interaction and guarantees.
 
-use crate::next::util::Timer;
+use crate::util::Timer;
 
 /// The type of steps.
 ///
@@ -28,7 +28,7 @@ pub trait StepProvider {
         timer: &T,
     ) -> Result<Vec<Self::Step>, T::Expired>;
 
-    fn valid(&mut self, e: &<Self::Step as Step>::Exp) -> bool;
+    // fn valid(&mut self, e: &<Self::Step as Step>::Exp) -> bool;
 }
 
 pub struct Controller<T: Timer, SP: StepProvider> {
@@ -55,11 +55,12 @@ impl<T: Timer, S: Step, SP: StepProvider<Step = S>> Controller<T, SP> {
     }
 
     pub fn working_expression(&self) -> S::Exp {
-        self.state
+        self.state.clone()
     }
 
     pub fn valid(&self) -> bool {
-        self.provider.valid(&self.state)
+        // self.provider.valid(&self.state)
+        todo!()
     }
 }
 

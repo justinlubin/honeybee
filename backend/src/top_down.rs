@@ -10,8 +10,8 @@
 //! beyoned the requirement that functions be applied to the correct number of
 //! arguments (with the right keyword arguments).
 
-use crate::next::pbn;
-use crate::next::util::Timer;
+use crate::pbn;
+use crate::util::Timer;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};

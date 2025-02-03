@@ -1,7 +1,7 @@
-use crate::next::core::*;
-use crate::next::top_down::*;
-use crate::next::traditional_synthesis::*;
-use crate::next::util::{self, Timer};
+use crate::core::*;
+use crate::top_down::*;
+use crate::traditional_synthesis::*;
+use crate::util::{self, Timer};
 
 use indexmap::{IndexMap, IndexSet};
 use std::collections::VecDeque;

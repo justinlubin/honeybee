@@ -2,7 +2,7 @@
 //!
 //! This module defines the core syntax for Honeybee.
 
-use crate::next::top_down::*;
+use crate::top_down::*;
 
 use chumsky::prelude::*;
 use indexmap::{IndexMap, IndexSet};
@@ -93,6 +93,12 @@ impl Error {
 
     fn argcount(got: usize, expected: usize) -> Self {
         Error(format!("got {} args, expected {}", got, expected))
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -267,21 +273,22 @@ pub enum FormulaAtom {
 impl FormulaAtom {
     pub fn infer(
         &self,
-        mlib: &MetLibrary,
+        types: &MetLibrary,
         fs: &FunctionSignature,
     ) -> Result<ValueType, Error> {
         match self {
             FormulaAtom::Param(fp, mp) => {
                 let name = fs.params.get(fp).ok_or(Error::fp(fp))?;
 
-                mlib.get(name)
+                types
+                    .get(name)
                     .ok_or(Error::mn(name))?
                     .params
                     .get(mp)
                     .ok_or(Error::mp(mp))
                     .cloned()
             }
-            FormulaAtom::Ret(mp) => mlib
+            FormulaAtom::Ret(mp) => types
                 .get(&fs.ret)
                 .ok_or(Error::mn(&fs.ret))?
                 .params
@@ -320,10 +327,11 @@ impl FormulaAtom {
 impl Met<FormulaAtom> {
     fn check(
         &self,
-        mlib: &MetLibrary,
+        props: &MetLibrary,
+        types: &MetLibrary,
         fs: &FunctionSignature,
     ) -> Result<(), Error> {
-        let sig = mlib.get(&self.name).ok_or(Error::mn(&self.name))?;
+        let sig = props.get(&self.name).ok_or(Error::mn(&self.name))?;
 
         if self.args.len() != sig.params.len() {
             return Err(Error::argcount(self.args.len(), sig.params.len()));
@@ -331,7 +339,7 @@ impl Met<FormulaAtom> {
 
         for (mp, fa) in &self.args {
             let expected_vt = sig.params.get(mp).ok_or(Error::mp(mp))?;
-            let got_vt = fa.infer(mlib, fs)?;
+            let got_vt = fa.infer(types, fs)?;
 
             if got_vt != *expected_vt {
                 return Err(Error(format!(
@@ -405,13 +413,13 @@ impl Formula {
     }
 
     fn check_equal_types(
-        mlib: &MetLibrary,
+        types: &MetLibrary,
         fs: &FunctionSignature,
         fa1: &FormulaAtom,
         fa2: &FormulaAtom,
     ) -> Result<(), Error> {
-        let vt1 = fa1.infer(mlib, fs)?;
-        let vt2 = fa2.infer(mlib, fs)?;
+        let vt1 = fa1.infer(types, fs)?;
+        let vt2 = fa2.infer(types, fs)?;
         if vt1 != vt2 {
             return Err(Error(format!(
                 "formula atom {:?} has different type ({:?}) than formula atom {:?} ({:?})",
@@ -423,28 +431,29 @@ impl Formula {
 
     fn check(
         &self,
-        mlib: &MetLibrary,
+        props: &MetLibrary,
+        types: &MetLibrary,
         fs: &FunctionSignature,
     ) -> Result<(), Error> {
         match self {
             Formula::True => Ok(()),
             Formula::Eq(fa1, fa2) => {
-                Self::check_equal_types(mlib, fs, fa1, fa2)
+                Self::check_equal_types(types, fs, fa1, fa2)
             }
             Formula::Lt(fa1, fa2) => {
-                let vt1 = fa1.infer(mlib, fs)?;
+                let vt1 = fa1.infer(types, fs)?;
                 if vt1 != ValueType::Int {
                     return Err(Error(format!(
                         "formula atom {:?} has type {:?}, expected Int",
                         fa1, vt1,
                     )));
                 }
-                Self::check_equal_types(mlib, fs, fa1, fa2)
+                Self::check_equal_types(types, fs, fa1, fa2)
             }
-            Formula::AtomicProposition(ap) => ap.check(mlib, fs),
+            Formula::AtomicProposition(ap) => ap.check(props, types, fs),
             Formula::And(phi1, phi2) => {
-                phi1.check(mlib, fs)?;
-                phi2.check(mlib, fs)
+                phi1.check(props, types, fs)?;
+                phi2.check(props, types, fs)
             }
         }
     }
@@ -558,12 +567,16 @@ pub struct FunctionSignature {
 }
 
 impl FunctionSignature {
-    fn check(&self, mlib: &MetLibrary) -> Result<(), Error> {
+    fn check(
+        &self,
+        props: &MetLibrary,
+        types: &MetLibrary,
+    ) -> Result<(), Error> {
         for type_name in self.params.values() {
-            let _ = mlib.get(type_name).ok_or(Error::mn(type_name))?;
+            let _ = types.get(type_name).ok_or(Error::mn(type_name))?;
         }
-        let _ = mlib.get(&self.ret).ok_or(Error::mn(&self.ret))?;
-        self.condition.check(mlib, self)
+        let _ = types.get(&self.ret).ok_or(Error::mn(&self.ret))?;
+        self.condition.check(props, types, self)
     }
 
     pub fn vals(&self) -> IndexSet<Value> {
@@ -603,7 +616,7 @@ impl Library {
         }
 
         for fs in self.functions.values() {
-            fs.check(&self.types)?;
+            fs.check(&self.props, &self.types)?;
         }
 
         Ok(())
@@ -774,8 +787,12 @@ impl Problem {
     }
 
     fn check(&self) -> Result<(), Error> {
-        self.library.check()?;
-        self.program.check(&self.library)
+        self.library
+            .check()
+            .map_err(|e| Error(format!("in library: {}", e.0)))?;
+        self.program
+            .check(&self.library)
+            .map_err(|e| Error(format!("in program: {}", e.0)))
     }
 
     pub fn vals(&self) -> IndexSet<Value> {

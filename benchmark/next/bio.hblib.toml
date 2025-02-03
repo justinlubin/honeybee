@@ -9,7 +9,8 @@
 [Prop.Seq]
 params.sample = "Str"
 params.at = "Int"
-params.data = "Str"
+# TODO need to be able to add this
+# params.data = "Str"
 
 
 [Prop.ReferenceGenome]
@@ -63,15 +64,15 @@ params.at = "Int"
 # (computation load_hg38 Reference () ())
 
 [Function.load_local_reference_genome]
-params.rg = "ReferenceGenome"
+params = {}
 ret = "Reference"
 condition = [
-    "ret.data = rg.data",
+    "ReferenceGenome { data = ret.data }",
 ]
 
 [Function.load_hg_38]
 params = {}
-ret = "ReferenceGenome"
+ret = "Reference"
 condition = []
 
 # ; Quantifiers
@@ -87,12 +88,10 @@ condition = []
 #    (= (.at ret) (.at seq))))
 
 [Function.kallisto]
-params.seq = "Seq"
 params.ref = "Reference"
 ret = "ReadCounts"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "Seq { sample = ret.sample, at = ret.at }"
 ]
 
 [Function.salmon]
@@ -100,8 +99,7 @@ params.seq = "Seq"
 params.ref = "Reference"
 ret = "ReadCounts"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "Seq { sample = ret.sample, at = ret.at }"
 ]
 
 # ; Aligners
@@ -121,17 +119,16 @@ params.seq = "Seq"
 params.ref = "Reference"
 ret = "Alignment"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "Seq { sample = ret.sample, at = ret.at }"
 ]
+
 
 [Function.star]
 params.seq = "Seq"
 params.ref = "Reference"
 ret = "Alignment"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "Seq { sample = ret.sample, at = ret.at }"
 ]
 
 # ; Read summarization

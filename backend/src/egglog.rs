@@ -1,4 +1,4 @@
-use crate::next::datalog::*;
+use crate::datalog::*;
 
 use chumsky::Parser;
 use egglog::EGraph;
@@ -179,7 +179,7 @@ impl Compiler {
 // Parser
 
 mod parse {
-    use crate::next::datalog::*;
+    use crate::datalog::*;
     use chumsky::prelude::*;
 
     fn value() -> impl Parser<char, Value, Error = Simple<char>> {
