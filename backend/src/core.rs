@@ -70,37 +70,54 @@ fn parse_error(
 ////////////////////////////////////////////////////////////////////////////////
 // Errors
 
-/// The type of errors used by this module.
+/// The type of type errors used by this module.
 #[derive(Debug)]
-pub struct Error(String);
+pub struct LangError {
+    pub context: Vec<String>,
+    pub message: String,
+    _private: (),
+}
 
-impl Error {
+impl LangError {
+    fn with_context(mut self, ctx: String) -> Self {
+        self.context.push(ctx);
+        self
+    }
+
+    fn new(message: String) -> Self {
+        Self {
+            context: vec![],
+            message,
+            _private: (),
+        }
+    }
+
     fn fp(fp: &FunParam) -> Self {
-        Error(format!("unknown function parameter {:?}", fp))
+        Self::new(format!("unknown function parameter '{}'", fp.0))
     }
 
     fn mn(name: &MetName) -> Self {
-        Error(format!("unknown metadata name {:?}", name))
+        Self::new(format!("unknown metadata name '{}'", name.0))
     }
 
     fn mp(mp: &MetParam) -> Self {
-        Error(format!("unknown metadata parameter {:?}", mp))
+        Self::new(format!("unknown metadata parameter '{}'", mp.0))
     }
 
     fn bf(bf: &BaseFunction) -> Self {
-        Error(format!("unknown base function {:?}", bf))
+        Self::new(format!("unknown base function '{}'", bf.0))
     }
 
     fn argcount(got: usize, expected: usize) -> Self {
-        Error(format!("got {} args, expected {}", got, expected))
+        Self::new(format!("got {} args, expected {}", got, expected))
     }
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+// impl std::fmt::Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", self.0)
+//     }
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Values
@@ -183,23 +200,35 @@ pub struct Met<T> {
     pub args: IndexMap<MetParam, T>,
 }
 
+impl<T> Met<T> {
+    fn context(&self) -> String {
+        format!("metadata tuple '{}'", self.name.0).to_owned()
+    }
+}
+
 impl Met<Value> {
-    fn infer(&self, mlib: &MetLibrary) -> Result<MetSignature, Error> {
-        let sig = mlib.get(&self.name).ok_or(Error::mn(&self.name))?;
+    fn infer(&self, mlib: &MetLibrary) -> Result<MetSignature, LangError> {
+        let sig = mlib
+            .get(&self.name)
+            .ok_or_else(|| LangError::mn(&self.name))?;
 
         if self.args.len() != sig.params.len() {
-            return Err(Error::argcount(self.args.len(), sig.params.len()));
+            return Err(LangError::argcount(self.args.len(), sig.params.len())
+                .with_context(self.context()));
         }
 
         for (mp, v) in &self.args {
-            let expected_vt = sig.params.get(mp).ok_or(Error::mp(mp))?;
+            let expected_vt = sig.params.get(mp).ok_or_else(|| {
+                LangError::mp(mp).with_context(self.context())
+            })?;
             let got_vt = v.infer();
 
             if got_vt != *expected_vt {
-                return Err(Error(format!(
+                return Err(LangError::new(format!(
                     "argument {:?} of {:?} is type {:?} but expected {:?}",
                     v, self.name, got_vt, expected_vt
-                )));
+                ))
+                .with_context(self.context()));
             }
         }
 
@@ -275,41 +304,42 @@ impl FormulaAtom {
         &self,
         types: &MetLibrary,
         fs: &FunctionSignature,
-    ) -> Result<ValueType, Error> {
+    ) -> Result<ValueType, LangError> {
         match self {
             FormulaAtom::Param(fp, mp) => {
-                let name = fs.params.get(fp).ok_or(Error::fp(fp))?;
+                let name =
+                    fs.params.get(fp).ok_or_else(|| LangError::fp(fp))?;
 
                 types
                     .get(name)
-                    .ok_or(Error::mn(name))?
+                    .ok_or_else(|| LangError::mn(name))?
                     .params
                     .get(mp)
-                    .ok_or(Error::mp(mp))
+                    .ok_or_else(|| LangError::mp(mp))
                     .cloned()
             }
             FormulaAtom::Ret(mp) => types
                 .get(&fs.ret)
-                .ok_or(Error::mn(&fs.ret))?
+                .ok_or_else(|| LangError::mn(&fs.ret))?
                 .params
                 .get(mp)
-                .ok_or(Error::mp(mp))
+                .ok_or_else(|| LangError::mp(mp))
                 .cloned(),
             FormulaAtom::Lit(v) => Ok(v.infer()),
         }
     }
 
-    fn eval(&self, ctx: &EvaluationContext) -> Result<Value, Error> {
+    fn eval(&self, ctx: &EvaluationContext) -> Result<Value, LangError> {
         match self {
             FormulaAtom::Param(fp, mp) => ctx
                 .args
                 .get(fp)
-                .ok_or(Error::fp(fp))?
+                .ok_or_else(|| LangError::fp(fp))?
                 .get(mp)
-                .ok_or(Error::mp(mp))
+                .ok_or_else(|| LangError::mp(mp))
                 .cloned(),
             FormulaAtom::Ret(mp) => {
-                ctx.ret.get(mp).ok_or(Error::mp(mp)).cloned()
+                ctx.ret.get(mp).ok_or_else(|| LangError::mp(mp)).cloned()
             }
             FormulaAtom::Lit(v) => Ok(v.clone()),
         }
@@ -330,35 +360,43 @@ impl Met<FormulaAtom> {
         props: &MetLibrary,
         types: &MetLibrary,
         fs: &FunctionSignature,
-    ) -> Result<(), Error> {
-        let sig = props.get(&self.name).ok_or(Error::mn(&self.name))?;
+    ) -> Result<(), LangError> {
+        let sig = props
+            .get(&self.name)
+            .ok_or_else(|| LangError::mn(&self.name))?;
 
         if self.args.len() != sig.params.len() {
-            return Err(Error::argcount(self.args.len(), sig.params.len()));
+            return Err(LangError::argcount(self.args.len(), sig.params.len())
+                .with_context(self.context()));
         }
 
         for (mp, fa) in &self.args {
-            let expected_vt = sig.params.get(mp).ok_or(Error::mp(mp))?;
+            let expected_vt = sig.params.get(mp).ok_or_else(|| {
+                LangError::mp(mp).with_context(self.context())
+            })?;
             let got_vt = fa.infer(types, fs)?;
 
             if got_vt != *expected_vt {
-                return Err(Error(format!(
+                return Err(LangError::new(format!(
                     "argument {:?} of atomic proposition {:?} is type {:?} but expected {:?}",
                     fa,
                     self.name,
                     got_vt,
                     expected_vt
-                )));
+                )).with_context(self.context()));
             }
         }
 
         Ok(())
     }
 
-    fn eval(&self, ctx: &EvaluationContext) -> Result<Met<Value>, Error> {
+    fn eval(&self, ctx: &EvaluationContext) -> Result<Met<Value>, LangError> {
         let mut args = IndexMap::new();
         for (mp, fa) in &self.args {
-            args.insert(mp.clone(), fa.eval(ctx)?);
+            args.insert(
+                mp.clone(),
+                fa.eval(ctx).map_err(|e| e.with_context(self.context()))?,
+            );
         }
         Ok(Met {
             name: self.name.clone(),
@@ -417,11 +455,11 @@ impl Formula {
         fs: &FunctionSignature,
         fa1: &FormulaAtom,
         fa2: &FormulaAtom,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LangError> {
         let vt1 = fa1.infer(types, fs)?;
         let vt2 = fa2.infer(types, fs)?;
         if vt1 != vt2 {
-            return Err(Error(format!(
+            return Err(LangError::new(format!(
                 "formula atom {:?} has different type ({:?}) than formula atom {:?} ({:?})",
                 fa1, vt1, fa2, vt2
             )));
@@ -434,7 +472,7 @@ impl Formula {
         props: &MetLibrary,
         types: &MetLibrary,
         fs: &FunctionSignature,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LangError> {
         match self {
             Formula::True => Ok(()),
             Formula::Eq(fa1, fa2) => {
@@ -443,7 +481,7 @@ impl Formula {
             Formula::Lt(fa1, fa2) => {
                 let vt1 = fa1.infer(types, fs)?;
                 if vt1 != ValueType::Int {
-                    return Err(Error(format!(
+                    return Err(LangError::new(format!(
                         "formula atom {:?} has type {:?}, expected Int",
                         fa1, vt1,
                     )));
@@ -462,13 +500,13 @@ impl Formula {
         &self,
         props: &Vec<Met<Value>>,
         ctx: &EvaluationContext,
-    ) -> Result<bool, Error> {
+    ) -> Result<bool, LangError> {
         match self {
             Formula::True => Ok(true),
             Formula::Eq(fa1, fa2) => Ok(fa1.eval(ctx)? == fa2.eval(ctx)?),
             Formula::Lt(fa1, fa2) => match (fa1.eval(ctx)?, fa2.eval(ctx)?) {
                 (Value::Int(x1), Value::Int(x2)) => Ok(x1 < x2),
-                (v1, v2) => Err(Error(format!(
+                (v1, v2) => Err(LangError::new(format!(
                     "Lt only supported for ints, got {:?} and {:?}",
                     v1, v2,
                 ))),
@@ -571,11 +609,15 @@ impl FunctionSignature {
         &self,
         props: &MetLibrary,
         types: &MetLibrary,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LangError> {
         for type_name in self.params.values() {
-            let _ = types.get(type_name).ok_or(Error::mn(type_name))?;
+            let _ = types
+                .get(type_name)
+                .ok_or_else(|| LangError::mn(type_name))?;
         }
-        let _ = types.get(&self.ret).ok_or(Error::mn(&self.ret))?;
+        let _ = types
+            .get(&self.ret)
+            .ok_or_else(|| LangError::mn(&self.ret))?;
         self.condition.check(props, types, self)
     }
 
@@ -602,21 +644,23 @@ pub struct Library {
 }
 
 impl Library {
-    fn check(&self) -> Result<(), Error> {
+    fn check(&self) -> Result<(), LangError> {
         let pnames: IndexSet<_> = self.props.keys().cloned().collect();
         let tnames: IndexSet<_> = self.types.keys().cloned().collect();
         let ambiguous_names: IndexSet<_> =
             pnames.intersection(&tnames).collect();
 
         if !ambiguous_names.is_empty() {
-            return Err(Error(format!(
+            return Err(LangError::new(format!(
                 "ambiguous prop/type names: {:?}",
                 ambiguous_names
             )));
         }
 
-        for fs in self.functions.values() {
-            fs.check(&self.props, &self.types)?;
+        for (f, fs) in self.functions.iter() {
+            fs.check(&self.props, &self.types).map_err(|e| {
+                e.with_context(format!("function signature '{}'", f.0))
+            })?;
         }
 
         Ok(())
@@ -633,12 +677,17 @@ pub struct Program {
 }
 
 impl Program {
-    fn check(&self, lib: &Library) -> Result<(), Error> {
+    fn check(&self, lib: &Library) -> Result<(), LangError> {
         for p in &self.props {
-            let _ = p.infer(&lib.props)?;
+            let _ = p
+                .infer(&lib.props)
+                .map_err(|e| e.with_context("propositions".to_owned()))?;
         }
 
-        let _ = self.goal.infer(&lib.types)?;
+        let _ = self
+            .goal
+            .infer(&lib.types)
+            .map_err(|e| e.with_context("goal".to_owned()))?;
 
         Ok(())
     }
@@ -677,9 +726,9 @@ impl ParameterizedFunction {
         flib: &FunctionLibrary,
         name: BaseFunction,
         metadata: IndexMap<MetParam, Value>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, LangError> {
         Ok(Self::from_sig(
-            flib.get(&name).ok_or(Error::bf(&name))?,
+            flib.get(&name).ok_or_else(|| LangError::bf(&name))?,
             name,
             metadata,
         ))
@@ -706,12 +755,15 @@ impl Exp {
         &self,
         flib: &FunctionLibrary,
         props: &Vec<Met<Value>>,
-    ) -> Result<Met<Value>, Error> {
+    ) -> Result<Met<Value>, LangError> {
         match self {
-            Sketch::Hole(_) => Err(Error(format!("holes are not well-typed"))),
+            Sketch::Hole(_) => {
+                Err(LangError::new(format!("holes are not well-typed")))
+            }
             Sketch::App(f, args) => {
                 // Get signature
-                let sig = flib.get(&f.name).ok_or(Error::bf(&f.name))?;
+                let sig =
+                    flib.get(&f.name).ok_or_else(|| LangError::bf(&f.name))?;
 
                 // Compute domain
                 let mut vals = IndexSet::new();
@@ -730,7 +782,7 @@ impl Exp {
                     let metadata = tau.args;
                     for v in metadata.values() {
                         if !vals.contains(v) {
-                            return Err(Error(format!(
+                            return Err(LangError::new(format!(
                                 "value {:?} not in domain",
                                 v
                             )));
@@ -745,7 +797,7 @@ impl Exp {
                     ret: &f.metadata,
                 };
                 if !sig.condition.sat(props, &ctx)? {
-                    return Err(Error(format!(
+                    return Err(LangError::new(format!(
                         "condition {:?} not satisfied for {:?}",
                         sig.condition, self
                     )));
@@ -776,7 +828,7 @@ pub struct Problem {
 }
 
 impl Problem {
-    pub fn new(library: Library, program: Program) -> Result<Self, Error> {
+    pub fn new(library: Library, program: Program) -> Result<Self, LangError> {
         let ret = Self {
             library,
             program,
@@ -786,13 +838,13 @@ impl Problem {
         Ok(ret)
     }
 
-    fn check(&self) -> Result<(), Error> {
+    fn check(&self) -> Result<(), LangError> {
         self.library
             .check()
-            .map_err(|e| Error(format!("in library: {}", e.0)))?;
+            .map_err(|e| e.with_context("library".to_owned()))?;
         self.program
             .check(&self.library)
-            .map_err(|e| Error(format!("in program: {}", e.0)))
+            .map_err(|e| e.with_context("library".to_owned()))
     }
 
     pub fn vals(&self) -> IndexSet<Value> {

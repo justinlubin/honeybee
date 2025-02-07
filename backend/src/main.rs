@@ -2,6 +2,7 @@
 
 use honeybee::*;
 
+use ansi_term::Color::*;
 use clap::{builder::styling::*, Parser, Subcommand};
 use std::path::PathBuf;
 use toml;
@@ -21,8 +22,8 @@ fn styles() -> Styles {
 #[command(
     version,
     about = format!("{} with {}",
-        ansi_term::Color::Purple.bold().paint("Programming by Navigation"),
-        ansi_term::Color::Yellow.bold().paint("🐝 Honeybee"),
+        Purple.bold().paint("Programming by Navigation"),
+        Yellow.bold().paint("🐝 Honeybee"),
     ),
     long_about = None,
     styles = styles(),
@@ -59,14 +60,28 @@ impl Command {
         let lib_string = std::fs::read_to_string(library).unwrap();
         let prog_string = std::fs::read_to_string(program).unwrap();
 
-        let lib = toml::from_str::<core::Library>(&lib_string)
-            .map_err(|e| format!("library error: {}", e))?;
+        let lib =
+            toml::from_str::<core::Library>(&lib_string).map_err(|e| {
+                format!("{} {}", Red.bold().paint("parse error (library):"), e)
+            })?;
 
-        let prog = toml::from_str::<core::Program>(&prog_string)
-            .map_err(|e| format!("program error: {}", e))?;
+        let prog =
+            toml::from_str::<core::Program>(&prog_string).map_err(|e| {
+                format!("{} {}", Red.bold().paint("parse error (program):"), e)
+            })?;
 
-        let problem = core::Problem::new(lib, prog)
-            .map_err(|e| format!("type error: {}", e))?;
+        let problem = core::Problem::new(lib, prog).map_err(|e| {
+            format!(
+                "{} {}\n  occurred:{}",
+                Red.bold().paint("type error:"),
+                ansi_term::Style::new().bold().paint(e.message),
+                e.context
+                    .into_iter()
+                    .map(|ctx| format!("\n    - in {}", ctx))
+                    .collect::<Vec<_>>()
+                    .join("")
+            )
+        })?;
 
         Ok(())
     }
@@ -80,7 +95,7 @@ fn main() {
     match cli.command.handle() {
         Ok(()) => (),
         Err(e) => {
-            println!("{} {}", ansi_term::Color::Red.bold().paint("error:"), e);
+            eprintln!("{}", e);
             std::process::exit(1)
         }
     }
