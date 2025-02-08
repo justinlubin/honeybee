@@ -31,17 +31,35 @@ pub trait StepProvider {
     // fn valid(&mut self, e: &<Self::Step as Step>::Exp) -> bool;
 }
 
-pub struct Controller<T: Timer, SP: StepProvider> {
-    timer: T,
-    provider: SP,
-    state: <SP::Step as Step>::Exp,
+pub trait ValidityChecker {
+    type Exp;
+    fn check(&self, e: &Self::Exp) -> bool;
 }
 
-impl<T: Timer, S: Step, SP: StepProvider<Step = S>> Controller<T, SP> {
-    pub fn new(timer: T, provider: SP, start: S::Exp) -> Self {
+pub struct Controller<
+    T: Timer,
+    S: Step,
+    SP: StepProvider<Step = S>,
+    V: ValidityChecker<Exp = S::Exp>,
+> {
+    timer: T,
+    provider: SP,
+    checker: V,
+    state: S::Exp,
+}
+
+impl<
+        T: Timer,
+        S: Step,
+        SP: StepProvider<Step = S>,
+        V: ValidityChecker<Exp = S::Exp>,
+    > Controller<T, S, SP, V>
+{
+    pub fn new(timer: T, provider: SP, checker: V, start: S::Exp) -> Self {
         Self {
             timer,
             provider,
+            checker,
             state: start,
         }
     }
@@ -59,8 +77,7 @@ impl<T: Timer, S: Step, SP: StepProvider<Step = S>> Controller<T, SP> {
     }
 
     pub fn valid(&self) -> bool {
-        // self.provider.valid(&self.state)
-        todo!()
+        self.checker.check(&self.state)
     }
 }
 

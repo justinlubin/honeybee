@@ -6,13 +6,13 @@ args.data = "hg38.fasta"
 name = "Seq"
 args.sample = "Healthy"
 args.at = 5
-args.data = "healthy.fastq"
+# args.data = "healthy.fastq"
 
 [[Prop]]
 name = "Seq"
 args.sample = "TLE"
 args.at = 5
-args.data = "tle.fastq"
+# args.data = "tle.fastq"
 
 [Goal]
 name = "DifferentialGeneExpression"

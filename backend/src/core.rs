@@ -844,7 +844,7 @@ impl Problem {
             .map_err(|e| e.with_context("library".to_owned()))?;
         self.program
             .check(&self.library)
-            .map_err(|e| e.with_context("library".to_owned()))
+            .map_err(|e| e.with_context("program".to_owned()))
     }
 
     pub fn vals(&self) -> IndexSet<Value> {

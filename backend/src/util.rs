@@ -7,6 +7,13 @@ use instant::Instant;
 
 pub enum Void {}
 
+pub fn ok<T>(r: Result<T, Void>) -> T {
+    match r {
+        Ok(x) => x,
+        Err(v) => match v {},
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Timer
 

@@ -95,7 +95,6 @@ condition = [
 ]
 
 [Function.salmon]
-params.seq = "Seq"
 params.ref = "Reference"
 ret = "ReadCounts"
 condition = [
@@ -115,7 +114,6 @@ condition = [
 #    (= (.at ret) (.at seq))))
 
 [Function.bowtie2]
-params.seq = "Seq"
 params.ref = "Reference"
 ret = "Alignment"
 condition = [
@@ -124,7 +122,6 @@ condition = [
 
 
 [Function.star]
-params.seq = "Seq"
 params.ref = "Reference"
 ret = "Alignment"
 condition = [
@@ -214,69 +211,69 @@ condition = [
 # (output fact Enrichment
 #   (.sample Str) (.start Int) (.end Int))
 
-[Prop.Transfection]
-params.sample = "Str"
-params.at = "Int"
-params.library = "Str"
-
-[Type.Enrichment]
-name = "Enrichment"
-params.sample = "Str"
-params.start = "Int"
-params.end = "Int"
-
-# (computation reference_from_transfection Reference
-#   ((t Transfection))
-#   ((= (.data ret) (.library t))))
-
-[Function.reference_from_transfection]
-params.t = "Transfection"
-ret = "Reference"
-condition = [
-    "ret.data = t.library",
-]
-
-# (computation mageck Enrichment
-#   ((t Transfection) (s1 Seq) (s2 Seq))
-#   ((= (.sample ret) (.sample t))
-#    (= (.start ret) (.at s1))
-#    (= (.end ret) (.at s2))
-#    (= (.sample t) (.sample s1))
-#    (= (.sample t) (.sample s2))
-#    (< (.at t) (.at s1))
-#    (< (.at s1) (.at s2))))
-#
-# (computation l2fc Enrichment
-#   ((r1 ReadCounts) (r2 ReadCounts))
-#   ((= (.start ret) (.at r1))
-#    (= (.end ret) (.at r2))
-#    (= (.sample ret) (.sample r1))
-#    (= (.sample ret) (.sample r2))
-#    (< (.at r1) (.at r2))))
-
-[Function.mageck]
-params.t = "Transfection"
-params.s1 = "Seq"
-params.s2 = "Seq"
-ret = "Enrichment"
-condition = [
-    "ret.sample = t.sample",
-    "ret.start = s1.at",
-    "ret.end = s2.at",
-    "t.sample = s1.sample",
-    "t.sample = s2.sample",
-    "t.at < s1.at",
-    "s1.at < s2.at",
-]
-
-[Function.l2fc]
-params.r1 = "ReadCounts"
-params.r2 = "ReadCounts"
-ret = "Enrichment"
-condition = [
-    "ret.start = r1.at",
-    "ret.end = r2.at",
-    "ret.sample = r1.sample",
-    "ret.sample = r2.sample",
-    "r1.at < r2.at",
-]
+### [Prop.Transfection]
+### # TODO need to be able to add these
+### # params.sample = "Str"
+### # params.at = "Int"
+### params.library = "Str"
+### 
+### [Type.Enrichment]
+### name = "Enrichment"
+### params.sample = "Str"
+### params.start = "Int"
+### params.end = "Int"
+### 
+### # (computation reference_from_transfection Reference
+### #   ((t Transfection))
+### #   ((= (.data ret) (.library t))))
+### 
+### [Function.reference_from_transfection]
+### params = {}
+### ret = "Reference"
+### condition = [
+###     "Transfection { library = ret.data }",
+### ]
+### 
+### # (computation mageck Enrichment
+### #   ((t Transfection) (s1 Seq) (s2 Seq))
+### #   ((= (.sample ret) (.sample t))
+### #    (= (.start ret) (.at s1))
+### #    (= (.end ret) (.at s2))
+### #    (= (.sample t) (.sample s1))
+### #    (= (.sample t) (.sample s2))
+### #    (< (.at t) (.at s1))
+### #    (< (.at s1) (.at s2))))
+### #
+### # (computation l2fc Enrichment
+### #   ((r1 ReadCounts) (r2 ReadCounts))
+### #   ((= (.start ret) (.at r1))
+### #    (= (.end ret) (.at r2))
+### #    (= (.sample ret) (.sample r1))
+### #    (= (.sample ret) (.sample r2))
+### #    (< (.at r1) (.at r2))))
+### 
+### [Function.mageck]
+### params.s1 = "Seq"
+### params.s2 = "Seq"
+### ret = "Enrichment"
+### condition = [
+###     "ret.sample = t.sample",
+###     "ret.start = s1.at",
+###     "ret.end = s2.at",
+###     "t.sample = s1.sample",
+###     "t.sample = s2.sample",
+###     "t.at < s1.at",
+###     "s1.at < s2.at",
+### ]
+### 
+### [Function.l2fc]
+### params.r1 = "ReadCounts"
+### params.r2 = "ReadCounts"
+### ret = "Enrichment"
+### condition = [
+###     "ret.start = r1.at",
+###     "ret.end = r2.at",
+###     "ret.sample = r1.sample",
+###     "ret.sample = r2.sample",
+###     "r1.at < r2.at",
+### ]

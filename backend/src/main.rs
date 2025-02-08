@@ -62,12 +62,12 @@ impl Command {
 
         let lib =
             toml::from_str::<core::Library>(&lib_string).map_err(|e| {
-                format!("{} {}", Red.bold().paint("parse error (library):"), e)
+                format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
             })?;
 
         let prog =
             toml::from_str::<core::Program>(&prog_string).map_err(|e| {
-                format!("{} {}", Red.bold().paint("parse error (program):"), e)
+                format!("{}\n{}", Red.bold().paint("parse error (program):"), e)
             })?;
 
         let problem = core::Problem::new(lib, prog).map_err(|e| {
@@ -82,6 +82,23 @@ impl Command {
                     .join("")
             )
         })?;
+
+        let engine = egglog::Egglog::new(true);
+        let oracle = dl_oracle::Oracle::new(engine, problem).unwrap();
+        let ccs = top_down::ClassicalConstructiveSynthesis { oracle };
+        let start = top_down::Sketch::blank();
+        let checker = top_down::GroundChecker::new();
+        let mut controller = pbn::Controller::new(
+            util::InfiniteTimer::new(),
+            ccs,
+            checker,
+            start,
+        );
+        while !controller.valid() {
+            let options = util::ok(controller.provide());
+            println!("{:?}", options);
+            break;
+        }
 
         Ok(())
     }

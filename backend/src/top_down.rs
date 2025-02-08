@@ -49,6 +49,40 @@ pub enum Sketch<F: Function> {
     App(F, IndexMap<FunParam, Self>),
 }
 
+use std::marker::PhantomData;
+impl<F: Function> Sketch<F> {
+    pub fn blank() -> Self {
+        Self::Hole(0)
+    }
+
+    pub fn ground(&self) -> bool {
+        match self {
+            Sketch::Hole(_) => false,
+            Sketch::App(_, args) => args.values().all(|s| s.ground()),
+        }
+    }
+}
+
+pub struct GroundChecker<F: Function> {
+    function_type: PhantomData<F>,
+}
+
+impl<F: Function> GroundChecker<F> {
+    pub fn new() -> Self {
+        Self {
+            function_type: PhantomData,
+        }
+    }
+}
+
+impl<F: Function> pbn::ValidityChecker for GroundChecker<F> {
+    type Exp = Sketch<F>;
+
+    fn check(&self, e: &Self::Exp) -> bool {
+        e.ground()
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Steps
 
@@ -175,8 +209,8 @@ pub trait InhabitationOracle {
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
 /// Navigation Synthesis Problem.
-struct ClassicalConstructiveSynthesis<O: InhabitationOracle> {
-    oracle: O,
+pub struct ClassicalConstructiveSynthesis<O: InhabitationOracle> {
+    pub oracle: O,
 }
 
 impl<O: InhabitationOracle> pbn::StepProvider

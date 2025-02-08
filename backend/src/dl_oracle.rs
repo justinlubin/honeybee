@@ -133,8 +133,7 @@ mod compile {
                         .collect(),
                     kind: RelationKind::EDB,
                 },
-            )
-            .unwrap();
+            );
         }
 
         for (name, sig) in types {
@@ -148,8 +147,7 @@ mod compile {
                         .collect(),
                     kind: RelationKind::IDB,
                 },
-            )
-            .unwrap();
+            );
         }
 
         lib

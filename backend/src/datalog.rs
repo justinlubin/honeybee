@@ -154,13 +154,6 @@ impl Fact {
                     expected_vt
                 ));
             }
-
-            if !dom.contains(got_v) {
-                return Err(format!(
-                    "argument {:?} of relation {:?} not in domain",
-                    got_v, self.relation,
-                ));
-            }
         }
 
         Ok(sig)

@@ -69,6 +69,7 @@ impl Compiler {
             self.tentative(" ");
         }
         self.cancel();
+        self.write("))");
     }
 
     fn value(&mut self, v: &Value) {
@@ -86,7 +87,7 @@ impl Compiler {
             self.write(" ");
             self.value(v);
         }
-        self.writeln(")");
+        self.write(")");
     }
 
     fn predicate(&mut self, p: &Predicate) {
@@ -148,7 +149,7 @@ impl Compiler {
             match v {
                 Value::Bool(_) => (),
                 Value::Int(x) => self.writeln(&format!("(&Int {})", x)),
-                Value::Str(s) => self.writeln(&format!("(&Str {})", s)),
+                Value::Str(s) => self.writeln(&format!("(&Str \"{}\")", s)),
                 Value::Var { .. } => panic!(),
             };
         }
@@ -297,7 +298,12 @@ impl Engine for Egglog {
             } => {
                 let combined_program = format!("{}\n{}", p, egglog_query);
                 let mut e = EGraph::default();
-                e.parse_and_run_program(&combined_program).unwrap()
+                e.parse_and_run_program(&combined_program)
+                    .map_err(|e| {
+                        println!("{}", combined_program);
+                        panic!("{}", e)
+                    })
+                    .unwrap()
             }
             State::Cached { egraph: Some(e) } => {
                 // TODO: might not need to push/pop here
