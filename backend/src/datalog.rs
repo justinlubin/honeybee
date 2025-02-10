@@ -38,25 +38,28 @@ pub type Domain = IndexSet<Value>;
 
 impl Value {
     fn check_domain(&self, dom: &Domain) -> Result<(), Error> {
+        match self {
+            Value::Bool(_) | Value::Var { .. } => return Ok(()),
+            Value::Int(_) | Value::Str(_) => (),
+        }
         if !dom.contains(self) {
             return Err(format!("value {:?} not in provided domain", self));
         }
         Ok(())
     }
 
-    fn infer(&self, dom: &Domain) -> Result<ValueType, Error> {
+    pub fn unsafe_infer(&self) -> ValueType {
         match self {
-            Value::Bool(_) => Ok(ValueType::Bool),
-            Value::Int(_) => {
-                self.check_domain(dom)?;
-                Ok(ValueType::Int)
-            }
-            Value::Str(_) => {
-                self.check_domain(dom)?;
-                Ok(ValueType::Str)
-            }
-            Value::Var { typ, .. } => Ok(typ.clone()),
+            Value::Bool(_) => ValueType::Bool,
+            Value::Int(_) => ValueType::Int,
+            Value::Str(_) => ValueType::Str,
+            Value::Var { typ, .. } => typ.clone(),
         }
+    }
+
+    pub fn infer(&self, dom: &Domain) -> Result<ValueType, Error> {
+        self.check_domain(dom)?;
+        Ok(self.unsafe_infer())
     }
 
     fn is_ground(&self) -> bool {
@@ -173,6 +176,10 @@ impl Fact {
             args: self.args.iter().map(|v| v.prefix_vars(prefix)).collect(),
         }
     }
+
+    fn vals(&self) -> IndexSet<Value> {
+        self.args.iter().cloned().collect()
+    }
 }
 
 /// The possible predicates for the right-hand side (antecedent) of a rule.
@@ -240,6 +247,18 @@ impl Predicate {
                 left.prefix_vars(prefix),
                 right.prefix_vars(prefix),
             ),
+        }
+    }
+
+    fn vals(&self) -> IndexSet<Value> {
+        match self {
+            Predicate::Fact(f) => f.vals(),
+            Predicate::PrimEq(left, right) => {
+                IndexSet::from([left.clone(), right.clone()])
+            }
+            Predicate::PrimLt(left, right) => {
+                IndexSet::from([left.clone(), right.clone()])
+            }
         }
     }
 }
@@ -310,6 +329,14 @@ impl Rule {
                 .chain(link)
                 .collect(),
         })
+    }
+
+    pub fn vals(&self) -> IndexSet<Value> {
+        let mut ret = self.head.vals();
+        for f in &self.body {
+            ret.extend(f.vals())
+        }
+        ret
     }
 }
 

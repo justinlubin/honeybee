@@ -81,6 +81,16 @@ impl Compiler {
         }
     }
 
+    fn constrain(&mut self, v: &Value) {
+        match v.unsafe_infer() {
+            ValueType::Bool => return,
+            ValueType::Int => self.write("(&Int "),
+            ValueType::Str => self.write("(&Str "),
+        };
+        self.value(v);
+        self.write(")");
+    }
+
     fn fact(&mut self, f: &Fact) {
         self.write(&format!("({}", f.relation.0));
         for v in &f.args {
@@ -117,10 +127,17 @@ impl Compiler {
             self.predicate(p);
             self.tentative("\n   ");
         }
+        for v in r.vals() {
+            self.constrain(&v);
+            self.tentative("\n   ");
+        }
         self.cancel();
         self.write(")\n  ; Consequent\n  (");
         self.fact(&r.head);
-        self.writeln(&format!(")\n  :ruleset {})", self.ruleset))
+        self.writeln(&format!(
+            ")\n  :name \"{}\"\n  :ruleset {})",
+            r.name, self.ruleset
+        ))
     }
 
     fn ruleset(&mut self) {
@@ -146,12 +163,8 @@ impl Compiler {
         self.newln();
 
         for v in &prog.dom {
-            match v {
-                Value::Bool(_) => (),
-                Value::Int(x) => self.writeln(&format!("(&Int {})", x)),
-                Value::Str(s) => self.writeln(&format!("(&Str \"{}\")", s)),
-                Value::Var { .. } => panic!(),
-            };
+            self.constrain(v);
+            self.newln();
         }
 
         self.newln();
@@ -257,14 +270,17 @@ impl Engine for Egglog {
         comp.program(&program);
         let egglog_program = comp.get();
 
+        log::debug!("Egglog program constructed\n{}", egglog_program);
+
         self.state = match self.state {
             State::Uncached { .. } => State::Uncached {
                 egglog_program: Some(egglog_program),
             },
             State::Cached { .. } => {
                 let mut egraph = EGraph::default();
-                let messages =
-                    egraph.parse_and_run_program(&egglog_program).unwrap();
+                let messages = egraph
+                    .parse_and_run_program(None, &egglog_program)
+                    .unwrap();
 
                 if messages.len() != 0 {
                     panic!("expected 0 messages, got:\n\n{:?}", messages);
@@ -295,13 +311,15 @@ impl Engine for Egglog {
         comp.print(&rule.head.relation);
         let egglog_query = comp.get();
 
+        log::debug!("Egglog query constructed\n{}", egglog_query);
+
         let messages = match &mut self.state {
             State::Uncached {
                 egglog_program: Some(p),
             } => {
                 let combined_program = format!("{}\n{}", p, egglog_query);
                 let mut e = EGraph::default();
-                e.parse_and_run_program(&combined_program)
+                e.parse_and_run_program(None, &combined_program)
                     .map_err(|e| {
                         eprintln!("{}", combined_program);
                         panic!("{}", e)
@@ -311,7 +329,8 @@ impl Engine for Egglog {
             State::Cached { egraph: Some(e) } => {
                 // TODO: might not need to push/pop here
                 e.push();
-                let messages = e.parse_and_run_program(&egglog_query).unwrap();
+                let messages =
+                    e.parse_and_run_program(None, &egglog_query).unwrap();
                 e.pop().unwrap();
                 messages
             }

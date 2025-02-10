@@ -15,7 +15,11 @@ args.at = 5
 # args.data = "tle.fastq"
 
 [Goal]
-name = "DifferentialGeneExpression"
-args.sample1 = "Healthy"
-args.sample2 = "TLE"
-args.at = 5
+name = "Reference"
+args.data = "hg38.fasta"
+
+# [Goal]
+# name = "DifferentialGeneExpression"
+# args.sample1 = "Healthy"
+# args.sample2 = "TLE"
+# args.at = 5

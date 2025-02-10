@@ -63,6 +63,15 @@ impl<F: Function> Sketch<F> {
     }
 }
 
+// impl<F: Function + Display> std::fmt::Display for Sketch<F> {
+//     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Sketch::Hole(h) => write!(fmt, "?{}", h),
+//             Sketch::App(f, args) => write!(fmt, "{}[]"),
+//         }
+//     }
+// }
+
 pub struct GroundChecker<F: Function> {
     function_type: PhantomData<F>,
 }

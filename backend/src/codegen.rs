@@ -1,6 +1,6 @@
 use crate::core::*;
 
-fn python_value(v: &Value) -> String {
+pub fn python_value(v: &Value) -> String {
     match v {
         Value::Bool(true) => "True".to_owned(),
         Value::Bool(false) => "False".to_owned(),
@@ -11,7 +11,7 @@ fn python_value(v: &Value) -> String {
 
 pub fn python(e: &Exp) -> String {
     match e {
-        crate::top_down::Sketch::Hole(_) => panic!(),
+        crate::top_down::Sketch::Hole(h) => format!("?{}", h),
         crate::top_down::Sketch::App(f, args) => {
             format!(
                 "{}({}, _metadata={{{}}})",

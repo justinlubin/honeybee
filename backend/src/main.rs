@@ -94,9 +94,39 @@ impl Command {
             checker,
             start,
         );
+
         while !controller.valid() {
             let options = util::ok(controller.provide());
-            println!("{:?}", options);
+            println!(
+                "{}\n\n  {}\n\n{}\n",
+                Green.bold().paint("Working expression:"),
+                codegen::python(&controller.working_expression()),
+                Blue.bold().paint("Possible next steps:"),
+            );
+            for (i, option) in options.iter().enumerate() {
+                print!("  {}) ", i + 1);
+                match option {
+                    top_down::TopDownStep::Extend(h, f, _) => {
+                        println!(
+                            "?{} ↦ {}[{}]",
+                            h,
+                            f.name.0,
+                            f.metadata
+                                .iter()
+                                .map(|(mp, v)| format!(
+                                    "{} = {}",
+                                    mp.0,
+                                    codegen::python_value(v)
+                                ))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                    top_down::TopDownStep::Seq(_, _) => {
+                        println!("<unexpected>")
+                    }
+                }
+            }
             break;
         }
 
@@ -105,7 +135,7 @@ impl Command {
 }
 
 fn main() {
-    println!("Done!");
+    env_logger::init();
 
     let cli = Cli::parse();
 
