@@ -4,6 +4,7 @@ use honeybee::*;
 
 use ansi_term::Color::*;
 use clap::{builder::styling::*, Parser, Subcommand};
+use std::io::Write;
 use std::path::PathBuf;
 use toml;
 
@@ -95,14 +96,20 @@ impl Command {
             start,
         );
 
+        let mut round = 0;
         while !controller.valid() {
-            let options = util::ok(controller.provide());
+            round += 1;
+
+            let mut options = util::ok(controller.provide());
+
             println!(
-                "{}\n\n  {}\n\n{}\n",
-                Green.bold().paint("Working expression:"),
+                "{}\n\n{}\n\n  {}\n\n{}\n",
+                Fixed(8).paint(format!("===== ROUND {} =====", round)),
+                ansi_term::Style::new().bold().paint("Working expression:"),
                 codegen::python(&controller.working_expression()),
-                Blue.bold().paint("Possible next steps:"),
+                ansi_term::Style::new().bold().paint("Possible next steps:"),
             );
+
             for (i, option) in options.iter().enumerate() {
                 print!("  {}) ", i + 1);
                 match option {
@@ -127,8 +134,32 @@ impl Command {
                     }
                 }
             }
-            break;
+
+            let idx = loop {
+                print!(
+                    "\n{}\n\n> ",
+                    Purple.bold().paint("Which step would you like to take?"),
+                );
+
+                std::io::stdout().flush().unwrap();
+
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+
+                match input.trim().parse::<usize>() {
+                    Ok(choice) => break choice - 1,
+                    Err(_) => continue,
+                };
+            };
+
+            controller.decide(options.swap_remove(idx))
         }
+
+        println!(
+            "\n{}\n\n  {}",
+            Green.bold().paint("Final expression:"),
+            codegen::python(&controller.working_expression())
+        );
 
         Ok(())
     }

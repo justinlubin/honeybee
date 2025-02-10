@@ -14,8 +14,9 @@ pub fn python(e: &Exp) -> String {
         crate::top_down::Sketch::Hole(h) => format!("?{}", h),
         crate::top_down::Sketch::App(f, args) => {
             format!(
-                "{}({}, _metadata={{{}}})",
+                "{}({}{}_metadata={{{}}})",
                 f.name.0,
+                if args.is_empty() { "" } else { ", " },
                 args.iter()
                     .map(|(fp, arg)| format!("{}={}", fp.0, python(arg)))
                     .collect::<Vec<_>>()
