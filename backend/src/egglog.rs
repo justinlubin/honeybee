@@ -26,28 +26,28 @@ impl Compiler {
 
     // Fundamental
 
-    fn write(&mut self, s: &str) {
+    pub fn write(&mut self, s: &str) {
         self.content += &self.tentative;
         self.cancel();
 
         self.content += s;
     }
 
-    fn tentative(&mut self, t: &str) {
+    pub fn tentative(&mut self, t: &str) {
         self.tentative += t;
     }
 
-    fn cancel(&mut self) {
+    pub fn cancel(&mut self) {
         self.tentative = "".to_owned();
     }
 
     // Helpers
 
-    fn newln(&mut self) {
+    pub fn newln(&mut self) {
         self.write("\n");
     }
 
-    fn writeln(&mut self, s: &str) {
+    pub fn writeln(&mut self, s: &str) {
         self.write(s);
         self.newln();
     }
@@ -112,13 +112,13 @@ impl Compiler {
 
     fn rule(&mut self, r: &Rule) {
         self.writeln(&format!("; {}", r.name));
-        self.write("(rule\n  (");
+        self.write("(rule\n  ; Antecedent\n  (");
         for p in &r.body {
             self.predicate(p);
-            self.tentative(" ");
+            self.tentative("\n   ");
         }
         self.cancel();
-        self.write(")\n  (");
+        self.write(")\n  ; Consequent\n  (");
         self.fact(&r.head);
         self.writeln(&format!(")\n  :ruleset {})", self.ruleset))
     }
@@ -167,8 +167,6 @@ impl Compiler {
             self.rule(r);
             self.newln();
         }
-
-        self.newln();
 
         for f in &prog.ground_facts {
             self.fact(f);
@@ -285,9 +283,14 @@ impl Engine for Egglog {
         rule: &Rule,
     ) -> Vec<Vec<Value>> {
         let mut comp = Compiler::new("query");
+        comp.writeln(";;; Query ;;;\n");
         comp.ruleset();
+        comp.newln();
         comp.relation_signature(&rule.head.relation, signature);
+        comp.newln();
+        comp.newln();
         comp.rule(rule);
+        comp.newln();
         comp.saturate();
         comp.print(&rule.head.relation);
         let egglog_query = comp.get();
@@ -300,7 +303,7 @@ impl Engine for Egglog {
                 let mut e = EGraph::default();
                 e.parse_and_run_program(&combined_program)
                     .map_err(|e| {
-                        println!("{}", combined_program);
+                        eprintln!("{}", combined_program);
                         panic!("{}", e)
                     })
                     .unwrap()
