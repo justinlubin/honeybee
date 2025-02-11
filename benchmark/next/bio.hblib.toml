@@ -1,25 +1,94 @@
-# Props
+# Sequencing
 
-[Prop.Seq]
+[Prop.SeqFile]
+params.sample = "Str"
+params.at = "Int"
+params.filename = "Str"
+
+[Type.LoadedSeqFile]
+params.sample = "Str"
+params.at = "Int"
+params.filename = "Str"
+
+[Type.Seq]
 params.sample = "Str"
 params.at = "Int"
 
-[Prop.ReferenceGenomeFile]
+[Function.load_seq_file]
 params = {}
+ret = "LoadedSeqFile"
+condition = [
+    "SeqFile { sample = ret.sample, at = ret.at, filename = ret.filename }",
+]
 
-# Types
+# TODO Candidate for inheritance? Mark as "identity" somehow?
+[Function.seq_of_seq_file]
+params.file = "LoadedSeqFile"
+ret = "Seq"
+condition = [
+    "ret.sample = file.sample",
+    "ret.at = file.at",
+]
+
+# Reference genome
+
+[Prop.ReferenceGenomeFile]
+params.filename = "Str"
+
+[Type.LoadedReferenceGenomeFile]
+params.filename = "Str"
 
 [Type.ReferenceGenome]
 params = {}
-# params.data = "Str"
 
-# [Type.Alignment]
-# params.sample = "Str"
-# params.at = "Int"
+[Function.load_reference_genome_file]
+params = {}
+ret = "LoadedReferenceGenomeFile"
+condition = [
+    "ReferenceGenomeFile { filename = ret.filename }",
+]
+
+[Function.rg_of_rg_file]
+params.file = "LoadedReferenceGenomeFile"
+ret = "ReferenceGenome"
+condition = []
+
+[Function.hg38]
+params = {}
+ret = "ReferenceGenome"
+condition = []
+
+# Alignment
+
+[Type.Alignment]
+params.sample = "Str"
+params.at = "Int"
+
+# Read counts
 
 [Type.ReadCounts]
 params.sample = "Str"
 params.at = "Int"
+
+[Function.kallisto]
+params.ref = "ReferenceGenome"
+params.seq = "Seq"
+ret = "ReadCounts"
+condition = [
+    "ret.sample = seq.sample",
+    "ret.at = seq.at",
+]
+
+[Function.salmon]
+params.ref = "ReferenceGenome"
+params.seq = "Seq"
+ret = "ReadCounts"
+condition = [
+    "ret.sample = seq.sample",
+    "ret.at = seq.at",
+]
+
+# Read count matrix
 
 [Type.ReadCountMatrix]
 params.sample1 = "Str"
@@ -27,38 +96,14 @@ params.sample2 = "Str"
 params.at = "Int"
 params.bc = "Int"
 
+# Differential gene expression
+
 [Type.DifferentialGeneExpression]
 params.sample1 = "Str"
 params.sample2 = "Str"
 params.at = "Int"
 
 # Functions
-
-[Function.load_local_reference_genome]
-params = {}
-ret = "ReferenceGenome"
-condition = [
-    "ReferenceGenomeFile {}",
-]
-
-[Function.load_hg38]
-params = {}
-ret = "ReferenceGenome"
-condition = []
-
-[Function.kallisto]
-params.ref = "ReferenceGenome"
-ret = "ReadCounts"
-condition = [
-    "Seq { sample = ret.sample, at = ret.at }"
-]
-
-[Function.salmon]
-params.ref = "ReferenceGenome"
-ret = "ReadCounts"
-condition = [
-    "Seq { sample = ret.sample, at = ret.at }"
-]
 
 # [Function.bowtie2]
 # params.ref = "Reference"

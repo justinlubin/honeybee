@@ -9,6 +9,7 @@ struct Compiler {
     content: String,
     tentative: String,
     ruleset: String,
+    fresh_counter: u16,
 }
 
 impl Compiler {
@@ -17,6 +18,7 @@ impl Compiler {
             content: "".to_owned(),
             tentative: "".to_owned(),
             ruleset: ruleset.to_owned(),
+            fresh_counter: 0,
         }
     }
 
@@ -93,9 +95,15 @@ impl Compiler {
 
     fn fact(&mut self, f: &Fact) {
         self.write(&format!("({}", f.relation.0));
-        for v in &f.args {
+        for ov in &f.args {
             self.write(" ");
-            self.value(v);
+            match ov {
+                Some(v) => self.value(v),
+                None => {
+                    self.write(&format!("_{}", self.fresh_counter));
+                    self.fresh_counter += 1;
+                }
+            }
         }
         self.write(")");
     }

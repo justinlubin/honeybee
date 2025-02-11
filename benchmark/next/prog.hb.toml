@@ -1,18 +1,18 @@
 [[Prop]]
 name = "ReferenceGenomeFile"
-args = {}
+args.filename = "hg38.fasta"
 
 [[Prop]]
-name = "Seq"
+name = "SeqFile"
 args.sample = "Healthy"
 args.at = 5
-# args.data = "healthy.fastq"
+args.filename = "healthy.fastq"
 
 [[Prop]]
-name = "Seq"
+name = "SeqFile"
 args.sample = "TLE"
 args.at = 5
-# args.data = "tle.fastq"
+args.filename = "tle.fastq"
 
 [Goal]
 name = "ReadCounts"

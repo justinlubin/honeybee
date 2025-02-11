@@ -125,7 +125,7 @@ pub type RelationLibrary = IndexMap<Relation, RelationSignature>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Fact {
     pub relation: Relation,
-    pub args: Vec<Value>,
+    pub args: Vec<Option<Value>>,
 }
 
 impl Fact {
@@ -146,7 +146,11 @@ impl Fact {
             ));
         }
 
-        for (got_v, expected_vt) in self.args.iter().zip(sig.params.iter()) {
+        for (ogot_v, expected_vt) in self.args.iter().zip(sig.params.iter()) {
+            let got_v = match ogot_v {
+                Some(got_v) => got_v,
+                None => continue,
+            };
             let got_vt = got_v.infer(dom)?;
             if got_vt != *expected_vt {
                 return Err(format!(
@@ -163,22 +167,32 @@ impl Fact {
     }
 
     fn is_ground(&self) -> bool {
-        self.args.iter().all(|v| v.is_ground())
+        self.args.iter().all(|ov| match ov {
+            Some(v) => v.is_ground(),
+            None => false,
+        })
     }
 
     fn is_abstract(&self) -> bool {
-        self.args.iter().all(|v| v.is_abstract())
+        self.args.iter().all(|ov| match ov {
+            Some(v) => v.is_abstract(),
+            None => false,
+        })
     }
 
     fn prefix_vars(&self, prefix: &str) -> Self {
         Self {
             relation: self.relation.clone(),
-            args: self.args.iter().map(|v| v.prefix_vars(prefix)).collect(),
+            args: self
+                .args
+                .iter()
+                .map(|ov| ov.as_ref().map(|v| v.prefix_vars(prefix)))
+                .collect(),
         }
     }
 
     fn vals(&self) -> IndexSet<Value> {
-        self.args.iter().cloned().collect()
+        self.args.iter().filter_map(|ov| ov.clone()).collect()
     }
 }
 
@@ -213,12 +227,6 @@ impl Predicate {
     fn check(&self, lib: &RelationLibrary, dom: &Domain) -> Result<(), Error> {
         match self {
             Predicate::Fact(f) => {
-                if !f.is_abstract() {
-                    return Err(format!(
-                        "antecedent fact {:?} is not abstract",
-                        f,
-                    ));
-                }
                 let _ = f.infer(lib, dom)?;
                 Ok(())
             }
@@ -312,11 +320,19 @@ impl Rule {
             .args
             .into_iter()
             .zip(other.head.args.iter())
-            .map(|(y, x)| {
-                Predicate::PrimEq(
+            .filter_map(|(oy, ox)| {
+                let y = match oy {
+                    Some(y) => y,
+                    None => return None,
+                };
+
+                // Heads must be abstract
+                let x = ox.as_ref().unwrap();
+
+                Some(Predicate::PrimEq(
                     y.prefix_vars(Self::Y_PREFIX),
                     x.prefix_vars(Self::X_PREFIX),
-                )
+                ))
             });
 
         Some(Rule {

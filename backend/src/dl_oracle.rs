@@ -36,21 +36,21 @@ mod compile {
     pub fn fact(m: &Met<core::Value>) -> Fact {
         Fact {
             relation: Relation(m.name.0.clone()),
-            args: m.args.values().map(|v| value(v)).collect(),
+            args: m.args.values().map(|v| Some(value(v))).collect(),
         }
     }
 
     fn atomic_proposition(
         lib: &MetLibrary,
         fs: &FunctionSignature,
-        ap: &Met<core::FormulaAtom>,
+        ap: &AtomicProposition,
     ) -> Predicate {
         Predicate::Fact(Fact {
             relation: Relation(ap.name.0.clone()),
             args: ap
                 .args
                 .values()
-                .map(|fa| formula_atom(lib, fs, fa))
+                .map(|ofa| ofa.as_ref().map(|fa| formula_atom(lib, fs, fa)))
                 .collect(),
         })
     }
@@ -70,7 +70,11 @@ mod compile {
         let sig = lib.get(mn).unwrap();
         Fact {
             relation: Relation(mn.0.clone()),
-            args: sig.params.iter().map(|(mp, vt)| var(fp, mp, vt)).collect(),
+            args: sig
+                .params
+                .iter()
+                .map(|(mp, vt)| Some(var(fp, mp, vt)))
+                .collect(),
         }
     }
 
@@ -106,7 +110,7 @@ mod compile {
                     formula_atom(lib, fs, right),
                 )]
             }
-            Formula::AtomicProposition(ap) => {
+            Formula::Ap(ap) => {
                 vec![atomic_proposition(lib, fs, ap)]
             }
             Formula::And(f1, f2) => formula(lib, fs, f1)

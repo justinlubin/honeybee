@@ -281,6 +281,30 @@ impl<T: Parse> Parse for Met<T> {
     }
 }
 
+impl<T: Parse> Parse for Met<Option<T>> {
+    fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
+        upper_ident()
+            .then(
+                (lower_ident()
+                    .then(just('=').padded())
+                    .then(choice((
+                        just('_').map(|_| None),
+                        T::parser().map(|x| Some(x)),
+                    )))
+                    .padded()
+                    .map(|((lhs, _), rhs)| (MetParam(lhs), rhs)))
+                .separated_by(just(','))
+                .delimited_by(just('{'), just('}'))
+                .padded(),
+            )
+            .padded()
+            .map(|(name, args)| Met {
+                name: MetName(name),
+                args: args.into_iter().collect(),
+            })
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Formulas
 
@@ -354,7 +378,9 @@ impl FormulaAtom {
     }
 }
 
-impl Met<FormulaAtom> {
+pub type AtomicProposition = Met<Option<FormulaAtom>>;
+
+impl AtomicProposition {
     fn check(
         &self,
         props: &MetLibrary,
@@ -370,10 +396,16 @@ impl Met<FormulaAtom> {
                 .with_context(self.context()));
         }
 
-        for (mp, fa) in &self.args {
+        for (mp, ofa) in &self.args {
             let expected_vt = sig.params.get(mp).ok_or_else(|| {
                 LangError::mp(mp).with_context(self.context())
             })?;
+
+            let fa = match ofa {
+                Some(fa) => fa,
+                None => continue,
+            };
+
             let got_vt = fa.infer(types, fs)?;
 
             if got_vt != *expected_vt {
@@ -390,23 +422,40 @@ impl Met<FormulaAtom> {
         Ok(())
     }
 
-    fn eval(&self, ctx: &EvaluationContext) -> Result<Met<Value>, LangError> {
-        let mut args = IndexMap::new();
-        for (mp, fa) in &self.args {
-            args.insert(
-                mp.clone(),
-                fa.eval(ctx).map_err(|e| e.with_context(self.context()))?,
-            );
+    fn matches(
+        &self,
+        p: &Met<Value>,
+        ctx: &EvaluationContext,
+    ) -> Result<bool, LangError> {
+        if self.name != p.name {
+            return Ok(false);
         }
-        Ok(Met {
-            name: self.name.clone(),
-            args,
-        })
+        if self.args.len() != p.args.len() {
+            return Ok(false);
+        }
+        for (mp, ofa) in &self.args {
+            let v = match p.args.get(mp) {
+                Some(v) => v,
+                None => return Ok(false),
+            };
+            let fa = match ofa {
+                Some(fa) => fa,
+                None => continue,
+            };
+            if fa.eval(ctx)? != *v {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
 
     pub fn vals(&self) -> IndexSet<Value> {
         let mut ret = IndexSet::new();
-        for fa in self.args.values() {
+        for ofa in self.args.values() {
+            let fa = match ofa {
+                Some(fa) => fa,
+                None => continue,
+            };
             ret.extend(fa.vals());
         }
         ret
@@ -437,7 +486,7 @@ pub enum Formula {
     True,
     Eq(FormulaAtom, FormulaAtom),
     Lt(FormulaAtom, FormulaAtom),
-    AtomicProposition(Met<FormulaAtom>),
+    Ap(AtomicProposition),
     And(Box<Formula>, Box<Formula>),
 }
 
@@ -488,7 +537,7 @@ impl Formula {
                 }
                 Self::check_equal_types(types, fs, fa1, fa2)
             }
-            Formula::AtomicProposition(ap) => ap.check(props, types, fs),
+            Formula::Ap(ap) => ap.check(props, types, fs),
             Formula::And(phi1, phi2) => {
                 phi1.check(props, types, fs)?;
                 phi2.check(props, types, fs)
@@ -511,9 +560,13 @@ impl Formula {
                     v1, v2,
                 ))),
             },
-            Formula::AtomicProposition(ap) => {
-                let prop = ap.eval(ctx)?;
-                Ok(props.iter().any(|p| *p == prop))
+            Formula::Ap(ap) => {
+                for p in props {
+                    if ap.matches(p, ctx)? {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
             }
             Formula::And(phi1, phi2) => {
                 Ok(phi1.sat(props, ctx)? && phi2.sat(props, ctx)?)
@@ -529,7 +582,7 @@ impl Formula {
                 ret.extend(fa2.vals());
                 ret
             }
-            Formula::AtomicProposition(ap) => ap.vals(),
+            Formula::Ap(ap) => ap.vals(),
             Formula::And(phi1, phi2) => {
                 let mut ret = phi1.vals();
                 ret.extend(phi2.vals());
@@ -556,7 +609,7 @@ impl Parse for Formula {
                     Eq => Self::Eq(left, right),
                     Lt => Self::Lt(left, right),
                 }),
-            Met::<FormulaAtom>::parser().map(|ap| Self::AtomicProposition(ap)),
+            AtomicProposition::parser().map(|ap| Self::Ap(ap)),
         ))
     }
 }
