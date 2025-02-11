@@ -158,7 +158,13 @@ impl Command {
                 }
 
                 match input.parse::<usize>() {
-                    Ok(choice) => break choice - 1,
+                    Ok(choice) => {
+                        if 1 <= choice && choice <= options.len() {
+                            break choice - 1;
+                        } else {
+                            continue;
+                        }
+                    }
                     Err(_) => continue,
                 };
             };

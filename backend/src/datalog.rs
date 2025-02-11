@@ -309,8 +309,17 @@ impl Rule {
         let mut self_body_without_cut_fact = self.body.clone();
         let self_cut_fact = match self_body_without_cut_fact.remove(j) {
             Predicate::Fact(f) => f,
-            Predicate::PrimEq(_, _) => return None,
-            Predicate::PrimLt(_, _) => return None,
+            Predicate::PrimEq(_, _) | Predicate::PrimLt(_, _) => {
+                log::debug!(
+                    "Can't cut {}/{}/{} because predicate {} of {} is a primitive",
+                    other.name,
+                    j,
+                    self.name,
+                    j,
+                    self.name,
+                );
+                return None;
+            }
         };
         if self_cut_fact.relation != other.head.relation {
             return None;

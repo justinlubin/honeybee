@@ -181,39 +181,37 @@ mod compile {
         f: &ParameterizedFunction,
         args: &IndexMap<FunParam, Exp>,
     ) -> Vec<(Rule, RelationSignature, usize, HoleName)> {
-        let mut body = vec![];
+        let mut facts = vec![];
+        let mut prims = vec![];
         let mut heads = vec![];
         let mut rec_calls = vec![];
 
         let fs = lib.functions.get(&f.name).unwrap();
 
-        let mut idx = 0;
-        for (fp, e) in args {
+        for (j, (fp, e)) in args.iter().enumerate() {
             let mn = fs.params.get(fp).unwrap();
+            facts.push(free_fact(&lib.types, fp, mn));
             match e {
                 Sketch::App(g, g_args) => {
                     for (mp, v) in &g.metadata {
-                        body.push(Predicate::PrimEq(
+                        prims.push(Predicate::PrimEq(
                             var(fp, mp, &v.infer()),
                             value(v),
                         ));
                     }
                     rec_calls.extend(queries(lib, g, g_args));
-                    idx += 1;
                 }
                 Sketch::Hole(h) => {
-                    body.push(Predicate::Fact(free_fact(&lib.types, fp, mn)));
-                    heads.push((fp.clone(), mn.clone(), idx, *h));
-                    idx += 1;
+                    heads.push((fp.clone(), mn.clone(), j, *h));
                 }
             }
         }
 
-        body.extend(f.metadata.iter().map(|(mp, v)| {
+        prims.extend(f.metadata.iter().map(|(mp, v)| {
             Predicate::PrimEq(var(&ret(), mp, &v.infer()), value(v))
         }));
 
-        body.extend(formula(&lib.types, &fs, &fs.condition));
+        prims.extend(formula(&lib.types, &fs, &fs.condition));
 
         heads
             .into_iter()
@@ -224,7 +222,12 @@ mod compile {
                     Rule {
                         name: format!("&query_{}_{}", j, h),
                         head,
-                        body: body.clone(),
+                        body: facts
+                            .clone()
+                            .into_iter()
+                            .map(|f| Predicate::Fact(f))
+                            .chain(prims.clone())
+                            .collect(),
                     },
                     RelationSignature {
                         params: lib
@@ -327,10 +330,12 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
         );
 
         for (query, query_sig, j, h) in queries {
+            log::debug!("Trying query with (j={j:}, h={h:}):\n{query:#?}");
             for rule in &self.header {
                 log::debug!("Trying header rule '{}'", rule.name);
                 timer.tick()?;
                 if let Some(cut_rule) = query.cut(rule, j) {
+                    log::debug!("Header rule '{}' matches", rule.name);
                     let f = BaseFunction(rule.name.clone());
                     let f_sig = self.problem.library.functions.get(&f).unwrap();
                     let f_ret_sig =
