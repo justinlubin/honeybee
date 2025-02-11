@@ -185,6 +185,9 @@ impl Compiler {
             self.fact(f);
             self.newln();
         }
+
+        self.newln();
+        self.saturate();
     }
 }
 

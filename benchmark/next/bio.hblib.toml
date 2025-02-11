@@ -1,44 +1,21 @@
-# ; Raw inputs
-#
-# (input fact Seq
-#   (.sample Str) (.at Int) (.data Str))
-#
-# (input fact ReferenceGenome
-#   (.data Str))
+# Props
 
 [Prop.Seq]
 params.sample = "Str"
 params.at = "Int"
-# TODO need to be able to add this
+
+[Prop.ReferenceGenomeFile]
+params = {}
+
+# Types
+
+[Type.ReferenceGenome]
+params = {}
 # params.data = "Str"
 
-
-[Prop.ReferenceGenome]
-params.data = "Str"
-
-# ; Datatypes
-#
-# (output fact Reference
-#   (.data Str))
-#
-# (output fact Alignment
-#   (.sample Str) (.at Int))
-#
-# (output fact ReadCounts
-#   (.sample Str) (.at Int))
-#
-# (output fact ReadCountMatrix
-#   (.sample1 Str) (.sample2 Str) (.at Int) (.bc Int))
-#
-# (output fact DifferentialGeneExpression
-#   (.sample1 Str) (.sample2 Str) (.at Int))
-
-[Type.Reference]
-params.data = "Str"
-
-[Type.Alignment]
-params.sample = "Str"
-params.at = "Int"
+# [Type.Alignment]
+# params.sample = "Str"
+# params.at = "Int"
 
 [Type.ReadCounts]
 params.sample = "Str"
@@ -55,153 +32,98 @@ params.sample1 = "Str"
 params.sample2 = "Str"
 params.at = "Int"
 
-# ; Load reference genome
-#
-# (computation load_local_reference_genome Reference
-#   ((rg ReferenceGenome))
-#   ((= (.data ret) (.data rg))))
-#
-# (computation load_hg38 Reference () ())
+# Functions
 
 [Function.load_local_reference_genome]
 params = {}
-ret = "Reference"
+ret = "ReferenceGenome"
 condition = [
-    "ReferenceGenome { data = ret.data }",
+    "ReferenceGenomeFile {}",
 ]
 
-[Function.load_hg_38]
+[Function.load_hg38]
 params = {}
-ret = "Reference"
+ret = "ReferenceGenome"
 condition = []
 
-# ; Quantifiers
-#
-# (computation kallisto ReadCounts
-#   ((seq Seq) (ref Reference))
-#   ((= (.sample ret) (.sample seq))
-#    (= (.at ret) (.at seq))))
-#
-# (computation salmon ReadCounts
-#   ((seq Seq) (ref Reference))
-#   ((= (.sample ret) (.sample seq))
-#    (= (.at ret) (.at seq))))
-
 [Function.kallisto]
-params.ref = "Reference"
+params.ref = "ReferenceGenome"
 ret = "ReadCounts"
 condition = [
     "Seq { sample = ret.sample, at = ret.at }"
 ]
 
 [Function.salmon]
-params.ref = "Reference"
+params.ref = "ReferenceGenome"
 ret = "ReadCounts"
 condition = [
     "Seq { sample = ret.sample, at = ret.at }"
 ]
 
-# ; Aligners
-#
-# (computation bowtie2 Alignment
-#   ((seq Seq) (ref Reference))
-#   ((= (.sample ret) (.sample seq))
-#    (= (.at ret) (.at seq))))
-#
-# (computation star Alignment
-#   ((seq Seq) (ref Reference))
-#   ((= (.sample ret) (.sample seq))
-#    (= (.at ret) (.at seq))))
+# [Function.bowtie2]
+# params.ref = "Reference"
+# ret = "Alignment"
+# condition = [
+#     "Seq { sample = ret.sample, at = ret.at }"
+# ]
+# 
+# 
+# [Function.star]
+# params.ref = "Reference"
+# ret = "Alignment"
+# condition = [
+#     "Seq { sample = ret.sample, at = ret.at }"
+# ]
+# 
+# [Function.featureCounts]
+# params.a = "Alignment"
+# ret = "ReadCounts"
+# condition = [
+#     "ret.sample = a.sample",
+#     "ret.at = a.at",
+# ]
+# 
+# [Function.combine_reads]
+# params.r1 = "ReadCounts"
+# params.r2 = "ReadCounts"
+# ret = "ReadCountMatrix"
+# condition = [
+#     "ret.sample1 = r1.sample",
+#     "ret.sample2 = r2.sample",
+#     "ret.at = r1.at",
+#     "ret.at = r2.at",
+#     "ret.bc = 0"
+# ]
+# 
+# [Function.combat_seq]
+# params.rcm = "ReadCountMatrix"
+# ret = "ReadCountMatrix"
+# condition = [
+#     "ret.sample1 = rcm.sample1",
+#     "ret.sample2 = rcm.sample2",
+#     "ret.at = rcm.at",
+#     "rcm.bc = 0",
+#     "ret.bc = 1",
+# ]
+# 
+# [Function.deseq2]
+# params.rcm = "ReadCountMatrix"
+# ret = "DifferentialGeneExpression"
+# condition = [
+#     "ret.sample1 = rcm.sample1",
+#     "ret.sample2 = rcm.sample2",
+#     "ret.at = rcm.at",
+# ]
 
-[Function.bowtie2]
-params.ref = "Reference"
-ret = "Alignment"
-condition = [
-    "Seq { sample = ret.sample, at = ret.at }"
-]
 
 
-[Function.star]
-params.ref = "Reference"
-ret = "Alignment"
-condition = [
-    "Seq { sample = ret.sample, at = ret.at }"
-]
 
-# ; Read summarization
-#
-# (computation featureCounts ReadCounts
-#   ((a Alignment))
-#   ((= (.sample ret) (.sample a))
-#    (= (.at ret) (.at a))))
 
-[Function.featureCounts]
-params.a = "Alignment"
-ret = "ReadCounts"
-condition = [
-    "ret.sample = a.sample",
-    "ret.at = a.at",
-]
 
-# ; Combine reads
-#
-# (computation combine_reads ReadCountMatrix
-#   ((r1 ReadCounts) (r2 ReadCounts))
-#   ((= (.sample1 ret) (.sample r1))
-#    (= (.sample2 ret) (.sample r2))
-#    (= (.at ret) (.at r1))
-#    (= (.at r1) (.at r2))
-#    (= (.bc ret) 0)))
 
-[Function.combine_reads]
-params.r1 = "ReadCounts"
-params.r2 = "ReadCounts"
-ret = "ReadCountMatrix"
-condition = [
-    "ret.sample1 = r1.sample",
-    "ret.sample2 = r2.sample",
-    "ret.at = r1.at",
-    "ret.at = r2.at",
-    "ret.bc = 0"
-]
 
-# ; Batch correction
-#
-# (computation combat_seq ReadCountMatrix
-#   ((rcm ReadCountMatrix))
-#   ((= (.sample1 ret) (.sample1 rcm))
-#    (= (.sample2 ret) (.sample2 rcm))
-#    (= (.at ret) (.at rcm))
-#    (= (.bc rcm) 0)
-#    (= (.bc ret) 1)))
 
-[Function.combat_seq]
-params.rcm = "ReadCountMatrix"
-ret = "ReadCountMatrix"
-condition = [
-    "ret.sample1 = rcm.sample1",
-    "ret.sample2 = rcm.sample2",
-    "ret.at = rcm.at",
-    "rcm.bc = 0",
-    "ret.bc = 1",
-]
 
-# ; Differential gene expression
-#
-# (computation deseq2 DifferentialGeneExpression
-#   ((rcm ReadCountMatrix))
-#   ((= (.sample1 ret) (.sample1 rcm))
-#    (= (.sample2 ret) (.sample2 rcm))
-#    (= (.at ret) (.at rcm))))
-
-[Function.deseq2]
-params.rcm = "ReadCountMatrix"
-ret = "DifferentialGeneExpression"
-condition = [
-    "ret.sample1 = rcm.sample1",
-    "ret.sample2 = rcm.sample2",
-    "ret.at = rcm.at",
-]
 
 # ; Pooled CRISPR screen
 #

@@ -102,31 +102,36 @@ impl Command {
 
             let mut options = util::ok(controller.provide());
 
+            if options.is_empty() {
+                println!("{}", Red.bold().paint("Not possible!"));
+                return Ok(());
+            }
+
             println!(
                 "{}\n\n{}\n\n  {}\n\n{}\n",
-                Fixed(8).paint(format!("===== ROUND {} =====", round)),
-                ansi_term::Style::new().bold().paint("Working expression:"),
+                Fixed(8).paint(format!(
+                    "══ Round {} {}",
+                    round,
+                    "═".repeat(40)
+                )),
+                Cyan.bold().paint("Working expression:"),
                 codegen::python(&controller.working_expression()),
-                ansi_term::Style::new().bold().paint("Possible next steps:"),
+                Cyan.bold().paint("Possible next steps:"),
             );
 
-            for (i, option) in options.iter().enumerate() {
+            for (i, option) in options.iter().cloned().enumerate() {
                 print!("  {}) ", i + 1);
                 match option {
-                    top_down::TopDownStep::Extend(h, f, _) => {
+                    top_down::TopDownStep::Extend(h, f, args) => {
                         println!(
-                            "?{} ↦ {}[{}]",
-                            h,
-                            f.name.0,
-                            f.metadata
-                                .iter()
-                                .map(|(mp, v)| format!(
-                                    "{} = {}",
-                                    mp.0,
-                                    codegen::python_value(v)
-                                ))
-                                .collect::<Vec<_>>()
-                                .join(", ")
+                            "{}",
+                            Green.paint(format!(
+                                "{} ↦ {}",
+                                top_down::pretty_hole_string(h),
+                                codegen::python(&top_down::Sketch::App(
+                                    f, args
+                                )),
+                            ))
                         )
                     }
                     top_down::TopDownStep::Seq(_, _) => {
@@ -137,16 +142,22 @@ impl Command {
 
             let idx = loop {
                 print!(
-                    "\n{}\n\n> ",
+                    "\n{} {}\n\n> ",
                     Purple.bold().paint("Which step would you like to take?"),
+                    Fixed(8).paint("('q' to quit)"),
                 );
 
                 std::io::stdout().flush().unwrap();
 
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input).unwrap();
+                let input = input.trim();
 
-                match input.trim().parse::<usize>() {
+                if input == "q" {
+                    return Ok(());
+                }
+
+                match input.parse::<usize>() {
                     Ok(choice) => break choice - 1,
                     Err(_) => continue,
                 };

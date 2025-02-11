@@ -11,7 +11,7 @@
 //! arguments (with the right keyword arguments).
 
 use crate::pbn;
-use crate::util::Timer;
+use crate::util::{self, Timer};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -61,6 +61,10 @@ impl<F: Function> Sketch<F> {
             Sketch::App(_, args) => args.values().all(|s| s.ground()),
         }
     }
+}
+
+pub fn pretty_hole_string(h: HoleName) -> String {
+    format!("?{}", util::subscript_numbers(&h.to_string()))
 }
 
 // impl<F: Function + Display> std::fmt::Display for Sketch<F> {

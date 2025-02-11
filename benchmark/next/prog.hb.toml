@@ -1,6 +1,6 @@
 [[Prop]]
-name = "ReferenceGenome"
-args.data = "hg38.fasta"
+name = "ReferenceGenomeFile"
+args = {}
 
 [[Prop]]
 name = "Seq"
@@ -15,8 +15,9 @@ args.at = 5
 # args.data = "tle.fastq"
 
 [Goal]
-name = "Reference"
-args.data = "hg38.fasta"
+name = "ReadCounts"
+args.sample = "TLE"
+args.at = 5
 
 # [Goal]
 # name = "DifferentialGeneExpression"

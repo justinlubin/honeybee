@@ -177,10 +177,10 @@ mod compile {
         f: &ParameterizedFunction,
         args: &IndexMap<FunParam, Exp>,
     ) -> Vec<(Rule, RelationSignature, usize, HoleName)> {
-        let mut body: Vec<Predicate> = vec![];
-        let mut heads: Vec<(FunParam, MetName, usize, HoleName)> = vec![];
-        let mut rec_calls: Vec<(Rule, RelationSignature, usize, HoleName)> =
-            vec![];
+        let mut body = vec![];
+        let mut heads = vec![];
+        let mut rec_calls = vec![];
+
         let fs = lib.functions.get(&f.name).unwrap();
 
         let mut idx = 0;
@@ -193,9 +193,9 @@ mod compile {
                             var(fp, mp, &v.infer()),
                             value(v),
                         ));
-                        rec_calls.extend(queries(lib, g, g_args));
-                        idx += 1;
                     }
+                    rec_calls.extend(queries(lib, g, g_args));
+                    idx += 1;
                 }
                 Sketch::Hole(h) => {
                     body.push(Predicate::Fact(free_fact(&lib.types, fp, mn)));
@@ -308,10 +308,23 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
         let mut ret = vec![];
 
         let (goal_pf, goal_args) = self.goal.app(e);
-        for (query, query_sig, j, h) in
-            compile::queries(&self.problem.library, &goal_pf, &goal_args)
-        {
+
+        let queries =
+            compile::queries(&self.problem.library, &goal_pf, &goal_args);
+
+        log::debug!(
+            "Found {} queries: {}",
+            queries.len(),
+            queries
+                .iter()
+                .map(|(_, _, j, h)| format!("(j={}, h={})", j, h))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+
+        for (query, query_sig, j, h) in queries {
             for rule in &self.header {
+                log::debug!("Trying header rule '{}'", rule.name);
                 timer.tick()?;
                 if let Some(cut_rule) = query.cut(rule, j) {
                     let f = BaseFunction(rule.name.clone());
