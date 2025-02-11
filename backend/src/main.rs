@@ -115,7 +115,7 @@ impl Command {
                     "═".repeat(40)
                 )),
                 Cyan.bold().paint("Working expression:"),
-                codegen::python(&controller.working_expression()),
+                codegen::python_multi(&controller.working_expression(), 1),
                 Cyan.bold().paint("Possible next steps:"),
             );
 
@@ -128,9 +128,9 @@ impl Command {
                             Green.paint(format!(
                                 "{} ↦ {}",
                                 top_down::pretty_hole_string(h),
-                                codegen::python(&top_down::Sketch::App(
+                                codegen::python_single(&top_down::Sketch::App(
                                     f, args
-                                )),
+                                ),),
                             ))
                         )
                     }
@@ -175,7 +175,7 @@ impl Command {
         println!(
             "\n{}\n\n  {}",
             Green.bold().paint("Final expression:"),
-            codegen::python(&controller.working_expression())
+            codegen::python_multi(&controller.working_expression(), 1)
         );
 
         Ok(())
