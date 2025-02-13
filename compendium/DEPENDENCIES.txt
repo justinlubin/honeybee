@@ -1,6 +1,0 @@
-- sratools (https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit)
-- Entrez direct (https://www.ncbi.nlm.nih.gov/books/NBK179288/)
-- cutadapt (https://cutadapt.readthedocs.io/en/stable/installation.html)
-- FastQC (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-- STAR (https://github.com/alexdobin/STAR)
-- kallisto (https://github.com/pachterlab/kallisto)
