@@ -42,6 +42,10 @@ enum Command {
         /// The Honeybee program to use (.hb.toml)
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
+
+        /// Whether or not to use "quiet" mode
+        #[arg(short, long, action)]
+        quiet: bool,
     },
 }
 
@@ -53,9 +57,11 @@ fn main() {
     let cli = Cli::parse();
 
     let result = match cli.command {
-        Interact { library, program } => {
-            main_handler::interact(library, program)
-        }
+        Interact {
+            library,
+            program,
+            quiet,
+        } => main_handler::interact(library, program, quiet),
     };
 
     match result {

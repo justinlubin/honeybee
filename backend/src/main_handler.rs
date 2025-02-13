@@ -4,7 +4,11 @@ use ansi_term::Color::*;
 use std::io::Write;
 use std::path::PathBuf;
 
-pub fn interact(library: PathBuf, program: PathBuf) -> Result<(), String> {
+pub fn interact(
+    library: PathBuf,
+    program: PathBuf,
+    quiet: bool,
+) -> Result<(), String> {
     let lib_string = std::fs::read_to_string(library).unwrap();
     let prog_string = std::fs::read_to_string(program).unwrap();
 
@@ -39,47 +43,60 @@ pub fn interact(library: PathBuf, program: PathBuf) -> Result<(), String> {
         let mut options = controller.provide().unwrap();
 
         if options.is_empty() {
-            println!("{}", Red.bold().paint("Not possible!"));
+            if !quiet {
+                println!("{}", Red.bold().paint("Not possible!"));
+            }
             return Ok(());
         }
 
-        println!(
-            "{}\n\n{}\n\n  {}\n\n{}\n",
-            Fixed(8).paint(format!("══ Round {} {}", round, "═".repeat(40))),
-            Cyan.bold().paint("Working expression:"),
-            codegen::python_multi(&controller.working_expression(), 1),
-            Cyan.bold().paint("Possible next steps:"),
-        );
+        if !quiet {
+            println!(
+                "{}\n\n{}\n\n  {}\n\n{}\n",
+                Fixed(8).paint(format!(
+                    "══ Round {} {}",
+                    round,
+                    "═".repeat(40)
+                )),
+                Cyan.bold().paint("Working expression:"),
+                codegen::python_multi(&controller.working_expression(), 1),
+                Cyan.bold().paint("Possible next steps:"),
+            );
+        }
 
-        for (i, option) in options.iter().cloned().enumerate() {
-            print!("  {}) ", i + 1);
-            match option {
-                top_down::TopDownStep::Extend(h, f, args) => {
-                    println!(
-                        "{}",
-                        Green.paint(format!(
-                            "{} ↦ {}",
-                            top_down::pretty_hole_string(h),
-                            codegen::python_single(&top_down::Sketch::App(
-                                f, args
-                            ),),
-                        ))
-                    )
-                }
-                top_down::TopDownStep::Seq(_, _) => {
-                    println!("<unexpected>")
+        if quiet {
+            println!("option count: {}", options.len())
+        } else {
+            for (i, option) in options.iter().cloned().enumerate() {
+                print!("  {}) ", i + 1);
+                match option {
+                    top_down::TopDownStep::Extend(h, f, args) => {
+                        println!(
+                            "{}",
+                            Green.paint(format!(
+                                "{} ↦ {}",
+                                top_down::pretty_hole_string(h),
+                                codegen::python_single(&top_down::Sketch::App(
+                                    f, args
+                                ),),
+                            ))
+                        )
+                    }
+                    top_down::TopDownStep::Seq(_, _) => {
+                        println!("<unexpected>")
+                    }
                 }
             }
         }
 
         let idx = loop {
-            print!(
-                "\n{} {}\n\n> ",
-                Purple.bold().paint("Which step would you like to take?"),
-                Fixed(8).paint("('q' to quit)"),
-            );
-
-            std::io::stdout().flush().unwrap();
+            if !quiet {
+                print!(
+                    "\n{} {}\n\n> ",
+                    Purple.bold().paint("Which step would you like to take?"),
+                    Fixed(8).paint("('q' to quit)"),
+                );
+                std::io::stdout().flush().unwrap();
+            }
 
             let mut input = String::new();
             std::io::stdin().read_line(&mut input).unwrap();
@@ -104,11 +121,18 @@ pub fn interact(library: PathBuf, program: PathBuf) -> Result<(), String> {
         controller.decide(options.swap_remove(idx))
     }
 
-    println!(
-        "\n{}\n\n  {}",
-        Green.bold().paint("Final expression:"),
-        codegen::python_multi(&controller.working_expression(), 1)
-    );
+    if quiet {
+        println!(
+            "output: {}",
+            codegen::python_multi(&controller.working_expression(), 1)
+        );
+    } else {
+        println!(
+            "\n{}\n\n  {}",
+            Green.bold().paint("Final expression:"),
+            codegen::python_multi(&controller.working_expression(), 1)
+        );
+    }
 
     Ok(())
 }
