@@ -1,9 +1,11 @@
 pub mod codegen;
+pub mod controller_menu;
 pub mod core;
 pub mod datalog;
 pub mod dl_oracle;
 pub mod egglog;
 pub mod enumerate;
+pub mod main_handler;
 pub mod pbn;
 pub mod top_down;
 pub mod traditional_synthesis;
