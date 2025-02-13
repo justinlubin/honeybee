@@ -1,14 +1,43 @@
-(facts
-  (In (.x 1))
-  (In (.x 2))
-  (In (.x 3))
-  (In (.x 4))
-  (In (.x 5))
-  (In (.x 6))
-  (In (.x 7))
-  (In (.x 8))
-  (In (.x 9))
-  (In (.x 10)))
+[[Prop]]
+name = "In"
+args.x = 1
 
-(goal
-  (BreadthSorted))
+[[Prop]]
+name = "In"
+args.x = 2
+
+[[Prop]]
+name = "In"
+args.x = 3
+
+[[Prop]]
+name = "In"
+args.x = 4
+
+[[Prop]]
+name = "In"
+args.x = 5
+
+[[Prop]]
+name = "In"
+args.x = 6
+
+[[Prop]]
+name = "In"
+args.x = 7
+
+[[Prop]]
+name = "In"
+args.x = 8
+
+[[Prop]]
+name = "In"
+args.x = 9
+
+[[Prop]]
+name = "In"
+args.x = 10
+
+[Goal]
+name = "BreadthSorted"
+args = {}

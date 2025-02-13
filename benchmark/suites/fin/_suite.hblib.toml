@@ -366,48 +366,77 @@ params.in = "LimitedCycle"
 ret = "LimitedCycleAnswer"
 condition = []
 
-# ;;; branches
-#
-# (output fact BranchTop)
-# (output fact BranchMid)
-#
-# (computation btop BranchTop
-#   ((b1 BranchMid) (b2 BranchMid) (b3 BranchMid) (b4 BranchMid))
-#   ())
-#
-# (computation bmid1 BranchMid
-#   ((in1 In) (in2 In))
-#   ())
-#
-# (computation bmid2 BranchMid
-#   ((in1 In) (in2 In))
-#   ())
-#
-# (computation bmid3 BranchMid
-#   ((in1 In) (in2 In))
-#   ())
-#
-# (computation bmid_impossible1 BranchMid
-#   ((in1 In) (in2 In))
-#   ((= (.x in1) (.x in2))
-#    (< (.x in1) (.x in2))))
-#
-# (computation bmid_impossible2 BranchMid
-#   ((in1 In) (in2 In))
-#   ((< (.x in2) (.x in1))
-#    (< (.x in1) (.x in2))))
-#
-# ;;; breadth_sorted
-#
-# (output fact BreadthSorted)
-#
-# (computation breadth_sorted BreadthSorted
-#   ((in1 In) (in2 In) (in3 In) (in4 In) (in5 In))
-#   ((< (.x in1) (.x in2))
-#    (< (.x in2) (.x in3))
-#    (< (.x in3) (.x in4))
-#    (< (.x in4) (.x in5))))
-#
+### branches
+
+[Type.BranchTop]
+params = {}
+
+[Type.BranchMid]
+params = {}
+
+[Function.btop]
+params.b1 = "BranchMid"
+params.b2 = "BranchMid"
+params.b3 = "BranchMid"
+params.b4 = "BranchMid"
+ret = "BranchTop"
+condition = []
+
+[Function.bmid1]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = []
+
+[Function.bmid2]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = []
+
+[Function.bmid3]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = []
+
+[Function.bmid_impossible1]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = [
+    "in1.x = in2.x",
+    "in1.x < in2.x",
+]
+
+[Function.bmid_impossible2]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = [
+    "in2.x < in1.x",
+    "in1.x < in2.x",
+]
+
+### breadth_sorted
+
+[Type.BreadthSorted]
+params = {}
+
+[Function.breadth_sorted]
+params.in1 = "Choice"
+params.in2 = "Choice"
+params.in3 = "Choice"
+params.in4 = "Choice"
+params.in5 = "Choice"
+ret = "BreadthSorted"
+condition = [
+    "in1.x < in2.x",
+    "in2.x < in3.x",
+    "in3.x < in4.x",
+    "in4.x < in5.x",
+]
+
 # ;;; depth_sorted
 #
 # (output fact DepthSorted)

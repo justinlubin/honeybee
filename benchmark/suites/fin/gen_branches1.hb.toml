@@ -1,6 +1,11 @@
-(facts
-  (In (.x 1))
-  (In (.x 2)))
+[[Prop]]
+name = "In"
+args.x = 1
 
-(goal
-  (BranchTop))
+[[Prop]]
+name = "In"
+args.x = 2
+
+[Goal]
+name = "BranchTop"
+args = {}
