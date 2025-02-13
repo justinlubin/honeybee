@@ -1,0 +1,720 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "mosaic",
+            "antecedents": [
+              [
+                "r1",
+                {
+                  "Step": {
+                    "label": "warp",
+                    "antecedents": [
+                      [
+                        "raster",
+                        {
+                          "Step": {
+                            "label": "rename",
+                            "antecedents": [
+                              [
+                                "raster",
+                                {
+                                  "Step": {
+                                    "label": "loadRaster",
+                                    "antecedents": [
+                                      [
+                                        "raster",
+                                        {
+                                          "Axiom": {
+                                            "name": "InputRaster",
+                                            "args": [
+                                              [
+                                                "resolution",
+                                                {
+                                                  "Int": 30
+                                                }
+                                              ],
+                                              [
+                                                "bands",
+                                                {
+                                                  "Int": 1
+                                                }
+                                              ],
+                                              [
+                                                "data",
+                                                {
+                                                  "Str": "hillshade-1.tif"
+                                                }
+                                              ],
+                                              [
+                                                "name",
+                                                {
+                                                  "Str": "Hillshade 1"
+                                                }
+                                              ],
+                                              [
+                                                "crs",
+                                                {
+                                                  "Str": "EPSG:32610"
+                                                }
+                                              ],
+                                              [
+                                                "sensor",
+                                                {
+                                                  "Str": "unknown"
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Raster",
+                                      "args": [
+                                        [
+                                          "name",
+                                          {
+                                            "Str": "Hillshade 1"
+                                          }
+                                        ],
+                                        [
+                                          "bands",
+                                          {
+                                            "Int": 1
+                                          }
+                                        ],
+                                        [
+                                          "resolution",
+                                          {
+                                            "Int": 30
+                                          }
+                                        ],
+                                        [
+                                          "crs",
+                                          {
+                                            "Str": "EPSG:32610"
+                                          }
+                                        ]
+                                      ]
+                                    },
+                                    "side_condition": [
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "name",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Str": "Hillshade 1"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "resolution",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Int": 30
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "crs",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Str": "EPSG:32610"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "BinOp": [
+                                          "Eq",
+                                          {
+                                            "Select": {
+                                              "selector": "bands",
+                                              "arg": "ret"
+                                            }
+                                          },
+                                          {
+                                            "Const": {
+                                              "Int": 1
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Raster",
+                              "args": [
+                                [
+                                  "bands",
+                                  {
+                                    "Int": 1
+                                  }
+                                ],
+                                [
+                                  "resolution",
+                                  {
+                                    "Int": 30
+                                  }
+                                ],
+                                [
+                                  "name",
+                                  {
+                                    "Str": "Mosaiced Hillshade"
+                                  }
+                                ],
+                                [
+                                  "crs",
+                                  {
+                                    "Str": "EPSG:32610"
+                                  }
+                                ]
+                              ]
+                            },
+                            "side_condition": [
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "crs",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Str": "EPSG:32610"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "resolution",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 30
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "BinOp": [
+                                  "Eq",
+                                  {
+                                    "Select": {
+                                      "selector": "bands",
+                                      "arg": "ret"
+                                    }
+                                  },
+                                  {
+                                    "Const": {
+                                      "Int": 1
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ],
+                      [
+                        "c",
+                        {
+                          "Axiom": {
+                            "name": "CRS",
+                            "args": [
+                              [
+                                "val",
+                                {
+                                  "Str": "EPSG:32610"
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Raster",
+                      "args": [
+                        [
+                          "crs",
+                          {
+                            "Str": "EPSG:32610"
+                          }
+                        ],
+                        [
+                          "name",
+                          {
+                            "Str": "Mosaiced Hillshade"
+                          }
+                        ],
+                        [
+                          "bands",
+                          {
+                            "Int": 1
+                          }
+                        ],
+                        [
+                          "resolution",
+                          {
+                            "Int": 30
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "bands",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 1
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "crs",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Str": "EPSG:32610"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "name",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Str": "Mosaiced Hillshade"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "resolution",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 30
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "r2",
+                {
+                  "Step": {
+                    "label": "loadRaster",
+                    "antecedents": [
+                      [
+                        "raster",
+                        {
+                          "Axiom": {
+                            "name": "InputRaster",
+                            "args": [
+                              [
+                                "name",
+                                {
+                                  "Str": "Hillshade 1"
+                                }
+                              ],
+                              [
+                                "data",
+                                {
+                                  "Str": "hillshade-1.tif"
+                                }
+                              ],
+                              [
+                                "resolution",
+                                {
+                                  "Int": 30
+                                }
+                              ],
+                              [
+                                "bands",
+                                {
+                                  "Int": 1
+                                }
+                              ],
+                              [
+                                "crs",
+                                {
+                                  "Str": "EPSG:32610"
+                                }
+                              ],
+                              [
+                                "sensor",
+                                {
+                                  "Str": "unknown"
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Raster",
+                      "args": [
+                        [
+                          "bands",
+                          {
+                            "Int": 1
+                          }
+                        ],
+                        [
+                          "name",
+                          {
+                            "Str": "Hillshade 1"
+                          }
+                        ],
+                        [
+                          "crs",
+                          {
+                            "Str": "EPSG:32610"
+                          }
+                        ],
+                        [
+                          "resolution",
+                          {
+                            "Int": 30
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "name",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Str": "Hillshade 1"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "resolution",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 30
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "crs",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Str": "EPSG:32610"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "bands",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 1
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Raster",
+              "args": [
+                [
+                  "name",
+                  {
+                    "Str": "Mosaiced Hillshade"
+                  }
+                ],
+                [
+                  "resolution",
+                  {
+                    "Int": 30
+                  }
+                ],
+                [
+                  "bands",
+                  {
+                    "Int": 1
+                  }
+                ],
+                [
+                  "crs",
+                  {
+                    "Str": "EPSG:32610"
+                  }
+                ]
+              ]
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 1
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "bands",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Str": "EPSG:32610"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "EPSG:32610"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "crs",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "EPSG:32610"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "name",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Str": "Mosaiced Hillshade"
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Select": {
+                      "selector": "resolution",
+                      "arg": "ret"
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 30
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": [
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Str": "Mosaiced Hillshade"
+            }
+          },
+          {
+            "Const": {
+              "Str": "Mosaiced Hillshade"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Str": "EPSG:32610"
+            }
+          },
+          {
+            "Const": {
+              "Str": "EPSG:32610"
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Int": 30
+            }
+          },
+          {
+            "Const": {
+              "Int": 30
+            }
+          }
+        ]
+      },
+      {
+        "BinOp": [
+          "Eq",
+          {
+            "Const": {
+              "Int": 1
+            }
+          },
+          {
+            "Const": {
+              "Int": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

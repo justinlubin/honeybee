@@ -1,0 +1,58 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "bt2_start",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Step": {
+                    "label": "bt2_end",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 0
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "BigThree2",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "BigThree",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

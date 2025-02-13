@@ -1,0 +1,713 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "same",
+            "antecedents": [
+              [
+                "s1",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s2",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s3",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s4",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s5",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s6",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s7",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s8",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s9",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              [
+                "s10",
+                {
+                  "Step": {
+                    "label": "same_option",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 8
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SameOption",
+                      "args": [
+                        [
+                          "x",
+                          {
+                            "Int": 8
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "x",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 8
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Same",
+              "args": []
+            },
+            "side_condition": [
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              },
+              {
+                "BinOp": [
+                  "Eq",
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  },
+                  {
+                    "Const": {
+                      "Int": 8
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

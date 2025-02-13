@@ -1,0 +1,88 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "bt2_start",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Step": {
+                    "label": "bt12",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Step": {
+                            "label": "bt31",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Step": {
+                                    "label": "bt3_end",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Axiom": {
+                                            "name": "In",
+                                            "args": [
+                                              [
+                                                "x",
+                                                {
+                                                  "Int": 0
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "BigThree3",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "BigThree1",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "BigThree2",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "BigThree",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

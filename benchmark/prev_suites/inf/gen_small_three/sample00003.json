@@ -1,0 +1,58 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "st1",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Step": {
+                    "label": "st_end",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 0
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "SmallThree",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "SmallThree",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

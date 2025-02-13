@@ -1,0 +1,103 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "a5",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Step": {
+                    "label": "a4",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Step": {
+                            "label": "d3",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Step": {
+                                    "label": "b2",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Step": {
+                                            "label": "e1",
+                                            "antecedents": [
+                                              [
+                                                "in",
+                                                {
+                                                  "Axiom": {
+                                                    "name": "In",
+                                                    "args": [
+                                                      [
+                                                        "x",
+                                                        {
+                                                          "Int": 0
+                                                        }
+                                                      ]
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Step1",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Step2",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Step3",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Step4",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Step5",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

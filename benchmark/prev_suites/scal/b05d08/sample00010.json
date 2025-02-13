@@ -1,0 +1,260 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "f08",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Axiom": {
+                    "name": "In",
+                    "args": [
+                      [
+                        "x",
+                        {
+                          "Int": 4
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ],
+              [
+                "s",
+                {
+                  "Step": {
+                    "label": "f07",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 3
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ],
+                      [
+                        "s",
+                        {
+                          "Step": {
+                            "label": "f06",
+                            "antecedents": [
+                              [
+                                "in",
+                                {
+                                  "Axiom": {
+                                    "name": "In",
+                                    "args": [
+                                      [
+                                        "x",
+                                        {
+                                          "Int": 3
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                }
+                              ],
+                              [
+                                "s",
+                                {
+                                  "Step": {
+                                    "label": "f05",
+                                    "antecedents": [
+                                      [
+                                        "in",
+                                        {
+                                          "Axiom": {
+                                            "name": "In",
+                                            "args": [
+                                              [
+                                                "x",
+                                                {
+                                                  "Int": 4
+                                                }
+                                              ]
+                                            ]
+                                          }
+                                        }
+                                      ],
+                                      [
+                                        "s",
+                                        {
+                                          "Step": {
+                                            "label": "f04",
+                                            "antecedents": [
+                                              [
+                                                "in",
+                                                {
+                                                  "Axiom": {
+                                                    "name": "In",
+                                                    "args": [
+                                                      [
+                                                        "x",
+                                                        {
+                                                          "Int": 4
+                                                        }
+                                                      ]
+                                                    ]
+                                                  }
+                                                }
+                                              ],
+                                              [
+                                                "s",
+                                                {
+                                                  "Step": {
+                                                    "label": "f03",
+                                                    "antecedents": [
+                                                      [
+                                                        "in",
+                                                        {
+                                                          "Axiom": {
+                                                            "name": "In",
+                                                            "args": [
+                                                              [
+                                                                "x",
+                                                                {
+                                                                  "Int": 2
+                                                                }
+                                                              ]
+                                                            ]
+                                                          }
+                                                        }
+                                                      ],
+                                                      [
+                                                        "s",
+                                                        {
+                                                          "Step": {
+                                                            "label": "f02",
+                                                            "antecedents": [
+                                                              [
+                                                                "in",
+                                                                {
+                                                                  "Axiom": {
+                                                                    "name": "In",
+                                                                    "args": [
+                                                                      [
+                                                                        "x",
+                                                                        {
+                                                                          "Int": 3
+                                                                        }
+                                                                      ]
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              ],
+                                                              [
+                                                                "s",
+                                                                {
+                                                                  "Step": {
+                                                                    "label": "f01",
+                                                                    "antecedents": [
+                                                                      [
+                                                                        "in",
+                                                                        {
+                                                                          "Axiom": {
+                                                                            "name": "In",
+                                                                            "args": [
+                                                                              [
+                                                                                "x",
+                                                                                {
+                                                                                  "Int": 4
+                                                                                }
+                                                                              ]
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    ],
+                                                                    "consequent": {
+                                                                      "name": "Step01",
+                                                                      "args": []
+                                                                    },
+                                                                    "side_condition": []
+                                                                  }
+                                                                }
+                                                              ]
+                                                            ],
+                                                            "consequent": {
+                                                              "name": "Step02",
+                                                              "args": []
+                                                            },
+                                                            "side_condition": []
+                                                          }
+                                                        }
+                                                      ]
+                                                    ],
+                                                    "consequent": {
+                                                      "name": "Step03",
+                                                      "args": []
+                                                    },
+                                                    "side_condition": []
+                                                  }
+                                                }
+                                              ]
+                                            ],
+                                            "consequent": {
+                                              "name": "Step04",
+                                              "args": []
+                                            },
+                                            "side_condition": []
+                                          }
+                                        }
+                                      ]
+                                    ],
+                                    "consequent": {
+                                      "name": "Step05",
+                                      "args": []
+                                    },
+                                    "side_condition": []
+                                  }
+                                }
+                              ]
+                            ],
+                            "consequent": {
+                              "name": "Step06",
+                              "args": []
+                            },
+                            "side_condition": []
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "Step07",
+                      "args": []
+                    },
+                    "side_condition": []
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "Step08",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}

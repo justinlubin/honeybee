@@ -1,0 +1,82 @@
+{
+  "Step": {
+    "label": "&goal",
+    "antecedents": [
+      [
+        "output",
+        {
+          "Step": {
+            "label": "end_lc",
+            "antecedents": [
+              [
+                "in",
+                {
+                  "Step": {
+                    "label": "start_lc",
+                    "antecedents": [
+                      [
+                        "in",
+                        {
+                          "Axiom": {
+                            "name": "In",
+                            "args": [
+                              [
+                                "x",
+                                {
+                                  "Int": 3
+                                }
+                              ]
+                            ]
+                          }
+                        }
+                      ]
+                    ],
+                    "consequent": {
+                      "name": "LimitedCycle",
+                      "args": [
+                        [
+                          "count",
+                          {
+                            "Int": 3
+                          }
+                        ]
+                      ]
+                    },
+                    "side_condition": [
+                      {
+                        "BinOp": [
+                          "Eq",
+                          {
+                            "Select": {
+                              "selector": "count",
+                              "arg": "ret"
+                            }
+                          },
+                          {
+                            "Const": {
+                              "Int": 3
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            ],
+            "consequent": {
+              "name": "LimitedCycleAnswer",
+              "args": []
+            },
+            "side_condition": []
+          }
+        }
+      ]
+    ],
+    "consequent": {
+      "name": "&GOAL",
+      "args": []
+    },
+    "side_condition": []
+  }
+}
