@@ -6,6 +6,7 @@ pub mod dl_oracle;
 pub mod egglog;
 pub mod enumerate;
 pub mod main_handler;
+pub mod parse;
 pub mod pbn;
 pub mod top_down;
 pub mod traditional_synthesis;

@@ -1,4 +1,4 @@
-use crate::{codegen, controller_menu, core, top_down, util};
+use crate::{codegen, controller_menu, core, parse, top_down, util};
 
 use ansi_term::Color::*;
 use std::io::Write;
@@ -12,11 +12,11 @@ pub fn interact(
     let lib_string = std::fs::read_to_string(library).unwrap();
     let prog_string = std::fs::read_to_string(program).unwrap();
 
-    let lib = toml::from_str::<core::Library>(&lib_string).map_err(|e| {
+    let lib = parse::library(&lib_string).map_err(|e| {
         format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
     })?;
 
-    let prog = toml::from_str::<core::Program>(&prog_string).map_err(|e| {
+    let prog = parse::program(&prog_string).map_err(|e| {
         format!("{}\n{}", Red.bold().paint("parse error (program):"), e)
     })?;
 
@@ -133,6 +133,11 @@ pub fn interact(
             codegen::python_multi(&controller.working_expression(), 1)
         );
     }
+
+    println!(
+        "{}",
+        serde_json::to_string(&controller.working_expression()).unwrap()
+    );
 
     Ok(())
 }

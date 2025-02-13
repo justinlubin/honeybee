@@ -14,7 +14,7 @@ use crate::pbn;
 use crate::util::{self, Timer, TimerExpired};
 
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::marker::PhantomData;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -44,7 +44,7 @@ pub trait Function: Clone + Eq {
 /// sketches. To be valid, the arguments to function applications must match
 /// the function's arity; downstream applications are likely to put additional
 /// constraints on what a sketch must be in order to be valid.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Sketch<F: Function> {
     Hole(HoleName),
     App(F, IndexMap<FunParam, Self>),

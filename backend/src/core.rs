@@ -4,71 +4,8 @@
 
 use crate::top_down::*;
 
-use chumsky::prelude::*;
 use indexmap::{IndexMap, IndexSet};
-use serde::Deserialize;
-
-////////////////////////////////////////////////////////////////////////////////
-// Parsing
-
-trait Parse: Sized {
-    fn parser() -> impl Parser<char, Self, Error = Simple<char>>;
-}
-
-fn parse_error(
-    title: &str,
-    code: i32,
-    src: &str,
-    err: &Simple<char>,
-) -> String {
-    use ariadne::*;
-
-    let err_span = err.span();
-    let err_expected = err
-        .expected()
-        .filter_map(|mtok| mtok.map(|tok| format!("`{}`", tok)))
-        .collect::<Vec<_>>();
-
-    let error_color = Color::Red;
-
-    let mut report =
-        Report::build(ReportKind::Error, "expression", err_span.start)
-            .with_code(code)
-            .with_message(title)
-            .with_label(
-                Label::new(("expression", err_span))
-                    .with_message(format!(
-                        "{}",
-                        "Unexpected token".fg(error_color),
-                    ))
-                    .with_color(error_color),
-            );
-
-    if !err_expected.is_empty() {
-        report = report.with_note(format!(
-            "{}{}",
-            if err_expected.len() == 1 {
-                format!("Expected {}", err_expected[0])
-            } else {
-                format!("Expected one of {}", err_expected.join(", "))
-            },
-            match err.found() {
-                Some(tok) => format!(", but found `{}`", tok),
-                None => "".to_owned(),
-            }
-        ));
-    }
-
-    let mut buf: Vec<u8> = vec![];
-    report
-        .finish()
-        .write(sources(vec![("expression", src)]), &mut buf)
-        .unwrap();
-    String::from_utf8(buf).unwrap()
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Errors
+use serde::{Deserialize, Serialize};
 
 /// The type of type errors used by this module.
 #[derive(Debug)]
@@ -113,12 +50,6 @@ impl LangError {
     }
 }
 
-// impl std::fmt::Display for Error {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{}", self.0)
-//     }
-// }
-
 ////////////////////////////////////////////////////////////////////////////////
 // Values
 
@@ -131,7 +62,7 @@ pub enum ValueType {
 }
 
 /// The possible values.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Value {
     Bool(bool),
@@ -146,21 +77,6 @@ impl Value {
             Value::Int(_) => ValueType::Int,
             Value::Str(_) => ValueType::Str,
         }
-    }
-}
-
-impl Parse for Value {
-    fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
-        choice((
-            just("true").to(Self::Bool(true)),
-            just("false").to(Self::Bool(false)),
-            text::int(10).map(|s: String| Self::Int(s.parse().unwrap())),
-            none_of("\"")
-                .repeated()
-                .collect()
-                .delimited_by(just('"'), just('"'))
-                .map(|s: String| Self::Str(s)),
-        ))
     }
 }
 
@@ -179,7 +95,7 @@ pub struct MetName(pub String);
 /// Types, type signatures, and atomic proposition formulas contain maps indexed
 /// by metadata parameters. Generally, the values of these maps will be things
 /// that "look like" metadata values or value types.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct MetParam(pub String);
 
 /// Signatures for metadata-indexed tuples that define their arity.
@@ -233,75 +149,6 @@ impl Met<Value> {
         }
 
         Ok(sig.clone())
-    }
-}
-
-fn ident_rest() -> impl Parser<char, String, Error = Simple<char>> {
-    filter(|c| {
-        char::is_ascii_lowercase(c)
-            || char::is_ascii_uppercase(c)
-            || char::is_ascii_digit(c)
-            || *c == '-'
-            || *c == '_'
-    })
-    .repeated()
-    .collect()
-}
-
-fn lower_ident() -> impl Parser<char, String, Error = Simple<char>> {
-    filter(char::is_ascii_lowercase)
-        .then(ident_rest())
-        .map(|(first, rest)| format!("{}{}", first, rest))
-}
-
-fn upper_ident() -> impl Parser<char, String, Error = Simple<char>> {
-    filter(char::is_ascii_uppercase)
-        .then(ident_rest())
-        .map(|(first, rest)| format!("{}{}", first, rest))
-}
-
-impl<T: Parse> Parse for Met<T> {
-    fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
-        upper_ident()
-            .then(
-                (lower_ident()
-                    .then(just("=").padded())
-                    .then(T::parser())
-                    .padded()
-                    .map(|((lhs, _), rhs)| (MetParam(lhs), rhs)))
-                .separated_by(just(','))
-                .delimited_by(just('{'), just('}'))
-                .padded(),
-            )
-            .padded()
-            .map(|(name, args)| Met {
-                name: MetName(name),
-                args: args.into_iter().collect(),
-            })
-    }
-}
-
-impl<T: Parse> Parse for Met<Option<T>> {
-    fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
-        upper_ident()
-            .then(
-                (lower_ident()
-                    .then(just('=').padded())
-                    .then(choice((
-                        just('_').map(|_| None),
-                        T::parser().map(|x| Some(x)),
-                    )))
-                    .padded()
-                    .map(|((lhs, _), rhs)| (MetParam(lhs), rhs)))
-                .separated_by(just(','))
-                .delimited_by(just('{'), just('}'))
-                .padded(),
-            )
-            .padded()
-            .map(|(name, args)| Met {
-                name: MetName(name),
-                args: args.into_iter().collect(),
-            })
     }
 }
 
@@ -462,23 +309,6 @@ impl AtomicProposition {
     }
 }
 
-impl Parse for FormulaAtom {
-    fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
-        choice((
-            Value::parser().map(|v| Self::Lit(v)),
-            just("ret.")
-                .then(lower_ident())
-                .padded()
-                .map(|(_, mp)| Self::Ret(MetParam(mp))),
-            lower_ident()
-                .then(just('.'))
-                .then(lower_ident())
-                .padded()
-                .map(|((fp, _), mp)| Self::Param(FunParam(fp), MetParam(mp))),
-        ))
-    }
-}
-
 /// The type of formulas.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "Vec<String>")]
@@ -592,58 +422,11 @@ impl Formula {
     }
 }
 
-impl Parse for Formula {
-    fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
-        #[derive(Clone)]
-        enum Op {
-            Eq,
-            Lt,
-        }
-        use Op::*;
-
-        choice((
-            FormulaAtom::parser()
-                .then(choice((just('=').to(Eq), just('<').to(Lt))).padded())
-                .then(FormulaAtom::parser())
-                .map(|((left, op), right)| match op {
-                    Eq => Self::Eq(left, right),
-                    Lt => Self::Lt(left, right),
-                }),
-            AtomicProposition::parser().map(|ap| Self::Ap(ap)),
-        ))
-    }
-}
-
-impl TryFrom<Vec<String>> for Formula {
-    type Error = String;
-
-    fn try_from(strings: Vec<String>) -> Result<Self, Self::Error> {
-        let mut overall_phi = Self::True;
-        for s in strings {
-            match Self::parser().parse(s.clone()) {
-                Ok(phi) => {
-                    overall_phi =
-                        Self::And(Box::new(overall_phi), Box::new(phi))
-                }
-                Err(errs) => {
-                    return Err(parse_error(
-                        "Formula parse error",
-                        0,
-                        &s,
-                        &errs[0],
-                    ))
-                }
-            }
-        }
-        Ok(overall_phi)
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Function signatures
 
 /// The type of base function names.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct BaseFunction(pub String);
 
 /// The type of signatures of parameterized functions.
@@ -753,7 +536,7 @@ impl Program {
 ///
 /// Parameterized functions consist of a base name as well as metadata arguments
 /// that correspond to the metadata values for its return type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ParameterizedFunction {
     pub name: BaseFunction,
     pub metadata: IndexMap<MetParam, Value>,

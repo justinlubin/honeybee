@@ -6,6 +6,18 @@ use ansi_term::Color::*;
 use clap::{builder::styling::*, Parser, Subcommand};
 use std::path::PathBuf;
 
+mod custom_parse {
+    use std::path::PathBuf;
+
+    pub fn nullable_path(s: &str) -> Option<PathBuf> {
+        if s.is_empty() {
+            None
+        } else {
+            Some(PathBuf::from(s))
+        }
+    }
+}
+
 fn styles() -> Styles {
     Styles::styled()
         .header(AnsiColor::Green.on_default().bold())
@@ -46,6 +58,10 @@ enum Command {
         /// Whether or not to use "quiet" mode
         #[arg(short, long, action)]
         quiet: bool,
+
+        /// Path to output JSON of synthesized expression (blank for no output)
+        #[arg(short, long, value_name = "FILE", default_value = "")]
+        json: String,
     },
 }
 
@@ -61,7 +77,13 @@ fn main() {
             library,
             program,
             quiet,
-        } => main_handler::interact(library, program, quiet),
+            json,
+        } => main_handler::interact(
+            library,
+            program,
+            quiet,
+            custom_parse::nullable_path(&json),
+        ),
     };
 
     match result {
