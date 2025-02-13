@@ -14,7 +14,7 @@ use crate::pbn;
 use crate::util::{self, Timer, TimerExpired};
 
 use indexmap::IndexMap;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
 ////////////////////////////////////////////////////////////////////////////////

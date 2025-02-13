@@ -1,16 +1,27 @@
-use crate::{codegen, controller_menu, core, parse, top_down, util};
+use crate::{codegen, controller_menu, core, parse, top_down, unparse, util};
 
 use ansi_term::Color::*;
+use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+
+fn write(path: PathBuf, s: &str) -> Result<(), String> {
+    match File::create(path) {
+        Ok(mut file) => write!(file, "{}", s).map_err(|e| e.to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
 
 pub fn interact(
     library: PathBuf,
     program: PathBuf,
     quiet: bool,
+    json: Option<PathBuf>,
 ) -> Result<(), String> {
-    let lib_string = std::fs::read_to_string(library).unwrap();
-    let prog_string = std::fs::read_to_string(program).unwrap();
+    let lib_string =
+        std::fs::read_to_string(library).map_err(|e| e.to_string())?;
+    let prog_string =
+        std::fs::read_to_string(program).map_err(|e| e.to_string())?;
 
     let lib = parse::library(&lib_string).map_err(|e| {
         format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
@@ -134,10 +145,21 @@ pub fn interact(
         );
     }
 
-    println!(
-        "{}",
-        serde_json::to_string(&controller.working_expression()).unwrap()
-    );
+    if let Some(json) = json {
+        let contents = unparse::exp(&controller.working_expression())?;
+        match write(json, &contents) {
+            Ok(()) => (),
+            Err(e) => eprintln!("file write error: {}\njson:\n{}", e, contents),
+        };
+    }
 
+    Ok(())
+}
+
+pub fn translate(path: PathBuf) -> Result<(), String> {
+    let exp_string =
+        std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let exp = parse::exp(&exp_string)?;
+    println!("{}", codegen::python_multi(&exp, 0));
     Ok(())
 }

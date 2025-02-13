@@ -63,6 +63,13 @@ enum Command {
         #[arg(short, long, value_name = "FILE", default_value = "")]
         json: String,
     },
+
+    /// Translate serialized JSON to Python expression
+    Translate {
+        /// Path to serialized JSON
+        #[arg(short, long, value_name = "FILE")]
+        path: PathBuf,
+    },
 }
 
 use Command::*;
@@ -84,6 +91,7 @@ fn main() {
             quiet,
             custom_parse::nullable_path(&json),
         ),
+        Translate { path } => main_handler::translate(path),
     };
 
     match result {

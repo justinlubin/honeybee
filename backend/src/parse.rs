@@ -185,3 +185,7 @@ pub fn library(lib: &str) -> Result<Library, String> {
 pub fn program(prog: &str) -> Result<Program, String> {
     toml::from_str(prog).map_err(|e| e.to_string())
 }
+
+pub fn exp(exp: &str) -> Result<Exp, String> {
+    serde_json::from_str(exp).map_err(|e| e.to_string())
+}
