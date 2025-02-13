@@ -1,5 +1,7 @@
-(facts
-  (In (.x 0)))
+[[Prop]]
+name = "In"
+args.x = 0
 
-(goal
-  (RHGoal))
+[Goal]
+name = "RHGoal"
+args = {}

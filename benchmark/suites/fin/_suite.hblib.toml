@@ -317,33 +317,55 @@ params.in = "Step9"
 ret = "Step10"
 condition = []
 
-# ;;; rabbit_hole
-#
-# (output fact RabbitHole)
-# (output fact RHGoal)
-#
-# (computation rh_continue RabbitHole ((in RabbitHole)) ())
-# (computation rh RHGoal ((in RabbitHole)) ())
-# (computation non_rh RHGoal ((in In)) ())
-#
-# ;;; limited_cycle
-#
-# (output fact LimitedCycle (.count Int))
-# (output fact LimitedCycleAnswer)
-#
-# (computation start_lc LimitedCycle
-#   ((in In))
-#   ((= (.count ret) (.x in))))
-#
-# (computation continue_lc LimitedCycle
-#   ((in LimitedCycle))
-#   ((< (.count ret) (.count in))
-#    (< 0 (.count ret))))
-#
-# (computation end_lc LimitedCycleAnswer
-#   ((in LimitedCycle))
-#   ())
-#
+### rabbit_hole
+
+[Type.RabbitHole]
+params = {}
+
+[Type.RHGoal]
+params = {}
+
+[Function.rh_continue]
+params.in = "RabbitHole"
+ret = "RabbitHole"
+condition = []
+
+[Function.rh]
+params.in = "RabbitHole"
+ret = "RHGoal"
+condition = []
+
+[Function.non_rh]
+params.in = "Choice"
+ret = "RHGoal"
+condition = []
+
+###  limited_cycle
+
+[Type.LimitedCycle]
+params.count = "Int"
+
+[Type.LimitedCycleAnswer]
+params = {}
+
+[Function.start_lc]
+params.in = "Choice"
+ret = "LimitedCycle"
+condition = ["ret.count = in.x"]
+
+[Function.continue_lc]
+params.in = "LimitedCycle"
+ret = "LimitedCycle"
+condition = [
+    "ret.count < in.count",
+    "0 < ret.count",
+]
+
+[Function.end_lc]
+params.in = "LimitedCycle"
+ret = "LimitedCycleAnswer"
+condition = []
+
 # ;;; branches
 #
 # (output fact BranchTop)

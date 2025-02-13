@@ -1,24 +1,83 @@
-(facts
-  (In (.x 1))
-  (In (.x 2))
-  (In (.x 3))
-  (In (.x 4))
-  (In (.x 5))
-  (In (.x 6))
-  (In (.x 7))
-  (In (.x 8))
-  (In (.x 9))
-  (In (.x 10))
-  (In (.x 11))
-  (In (.x 12))
-  (In (.x 13))
-  (In (.x 14))
-  (In (.x 15))
-  (In (.x 16))
-  (In (.x 17))
-  (In (.x 18))
-  (In (.x 19))
-  (In (.x 20)))
+[[Prop]]
+name = "In"
+args.x = 1
 
-(goal
-  (LimitedCycleAnswer))
+[[Prop]]
+name = "In"
+args.x = 2
+
+[[Prop]]
+name = "In"
+args.x = 3
+
+[[Prop]]
+name = "In"
+args.x = 4
+
+[[Prop]]
+name = "In"
+args.x = 5
+
+[[Prop]]
+name = "In"
+args.x = 6
+
+[[Prop]]
+name = "In"
+args.x = 7
+
+[[Prop]]
+name = "In"
+args.x = 8
+
+[[Prop]]
+name = "In"
+args.x = 9
+
+[[Prop]]
+name = "In"
+args.x = 10
+
+[[Prop]]
+name = "In"
+args.x = 11
+
+[[Prop]]
+name = "In"
+args.x = 12
+
+[[Prop]]
+name = "In"
+args.x = 13
+
+[[Prop]]
+name = "In"
+args.x = 14
+
+[[Prop]]
+name = "In"
+args.x = 15
+
+[[Prop]]
+name = "In"
+args.x = 16
+
+[[Prop]]
+name = "In"
+args.x = 17
+
+[[Prop]]
+name = "In"
+args.x = 18
+
+[[Prop]]
+name = "In"
+args.x = 19
+
+[[Prop]]
+name = "In"
+args.x = 20
+
+[Goal]
+name = "LimitedCycleAnswer"
+args = {}
