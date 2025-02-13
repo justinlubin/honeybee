@@ -1,4 +1,4 @@
-use crate::{codegen, controller_menu, core, parse, top_down, unparse, util};
+use crate::{codegen, core, menu, parse, top_down, unparse, util};
 
 use ansi_term::Color::*;
 use std::fs::File;
@@ -44,10 +44,9 @@ pub fn interact(
         )
     })?;
 
-    let mut controller =
-        controller_menu::honeybee(problem, util::Timer::infinite());
-    // controller_menu::constructive_oracle(problem, util::Timer::infinite());
-    // controller_menu::ep(problem, util::Timer::infinite());
+    let algorithm = menu::Algorithm::PBNHoneybee;
+    let timer = util::Timer::infinite();
+    let mut controller = algorithm.controller(timer, problem);
 
     let mut round = 0;
     while !controller.valid() {

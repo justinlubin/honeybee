@@ -11,7 +11,7 @@ enum TimerInner {
     Infinite,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimerExpired;
 
 #[derive(Debug)]

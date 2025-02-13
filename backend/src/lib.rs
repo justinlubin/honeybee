@@ -1,11 +1,12 @@
+pub mod benchmark;
 pub mod codegen;
-pub mod controller_menu;
 pub mod core;
 pub mod datalog;
 pub mod dl_oracle;
 pub mod egglog;
 pub mod enumerate;
 pub mod main_handler;
+pub mod menu;
 pub mod parse;
 pub mod pbn;
 pub mod top_down;

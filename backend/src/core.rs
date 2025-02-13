@@ -469,7 +469,7 @@ pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
 // Composite libraries and programs
 
 /// The libraries necessary for a Honeybee problem.
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Library {
     #[serde(rename = "Prop")]
     pub props: MetLibrary,
@@ -504,7 +504,7 @@ impl Library {
 }
 
 /// The type of Honeybee programs.
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Program {
     #[serde(rename = "Prop")]
     pub props: Vec<Met<Value>>,
@@ -660,6 +660,7 @@ impl Exp {
 /// assuming the provided libraries and atomic propositions. See
 /// [`Exp::infer`] for more information about what it means for an
 /// expression to be well-typed.
+#[derive(Clone)]
 pub struct Problem {
     pub library: Library,
     pub program: Program,
@@ -705,7 +706,6 @@ impl Problem {
 pub struct Goal {
     pub function: BaseFunction,
     pub param: FunParam,
-    ret: MetName,
     signature: FunctionSignature,
 }
 
@@ -729,7 +729,6 @@ impl Goal {
         Self {
             function,
             param,
-            ret,
             signature,
         }
     }

@@ -6,7 +6,7 @@ use crate::util::{self, Timer, TimerExpired};
 use indexmap::{IndexMap, IndexSet};
 use std::collections::VecDeque;
 
-struct Support {
+pub struct Support {
     ints: Vec<Value>,
     strings: Vec<Value>,
 }
@@ -49,7 +49,7 @@ impl Support {
     }
 }
 
-trait Prune {
+pub trait Prune {
     fn possible(
         &self,
         timer: &Timer,
