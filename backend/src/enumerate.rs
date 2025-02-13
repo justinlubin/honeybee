@@ -59,7 +59,7 @@ trait Prune {
     ) -> Result<bool, TimerExpired>;
 }
 
-struct NaivePruner {}
+pub struct NaivePruner;
 
 impl Prune for NaivePruner {
     fn possible(
@@ -283,7 +283,7 @@ impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 
     fn provide_any(
-        &self,
+        &mut self,
         timer: &Timer,
         start: &Exp,
     ) -> Result<Option<HoleFilling<ParameterizedFunction>>, TimerExpired> {
@@ -295,7 +295,7 @@ impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 
     fn provide_all(
-        &self,
+        &mut self,
         timer: &Timer,
         start: &Exp,
     ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, TimerExpired> {

@@ -10,7 +10,7 @@ pub type HoleFilling<F> = IndexMap<HoleName, Sketch<F>>;
 pub trait AnySynthesizer {
     type F: Function;
     fn provide_any(
-        &self,
+        &mut self,
         timer: &Timer,
         start: &Sketch<Self::F>,
     ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired>;
@@ -20,15 +20,15 @@ pub trait AnySynthesizer {
 pub trait AllSynthesizer {
     type F: Function;
     fn provide_all(
-        &self,
+        &mut self,
         timer: &Timer,
         start: &Sketch<Self::F>,
     ) -> Result<Vec<HoleFilling<Self::F>>, TimerExpired>;
 }
 
-pub struct NaiveStepProvider<T: AllSynthesizer>(pub T);
+pub struct AllBasedStepProvider<Synth: AllSynthesizer>(pub Synth);
 
-impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
+impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
     type Step = TopDownStep<Synth::F>;
 
     fn provide(
@@ -55,14 +55,50 @@ impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
     }
 }
 
-// impl<F: Function, I: Interaction<Step = TopDownStep<F>>> AnySynthesizer for I {
-//     type F = F;
-//
-//     fn provide_any(
-//         &self,
-//         start: &Sketch<Self::F>,
-//         timer: &T,
-//     ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired> {
-//         todo!()
-//     }
-// }
+pub struct StepProviderBasedAnySynthesizer<
+    F: Function,
+    SP: StepProvider<Step = TopDownStep<F>>,
+    V: ValidityChecker<Exp = Sketch<F>>,
+> {
+    provider: SP,
+    checker: V,
+}
+
+impl<
+        F: Function,
+        SP: StepProvider<Step = TopDownStep<F>>,
+        V: ValidityChecker<Exp = Sketch<F>>,
+    > StepProviderBasedAnySynthesizer<F, SP, V>
+{
+    pub fn new(provider: SP, checker: V) -> Self {
+        Self { provider, checker }
+    }
+}
+
+impl<
+        F: Function,
+        SP: StepProvider<Step = TopDownStep<F>>,
+        V: ValidityChecker<Exp = Sketch<F>>,
+    > AnySynthesizer for StepProviderBasedAnySynthesizer<F, SP, V>
+{
+    type F = F;
+
+    fn provide_any(
+        &mut self,
+        timer: &Timer,
+        start: &Sketch<Self::F>,
+    ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired> {
+        let mut ret = start.clone();
+        loop {
+            let options = self.provider.provide(timer, &ret)?;
+            let step = match options.into_iter().next() {
+                Some(step) => step,
+                None => return Ok(None),
+            };
+            ret = step.apply(&ret).unwrap();
+            if self.checker.check(&ret) {
+                return Ok(start.pattern_match(&ret));
+            }
+        }
+    }
+}
