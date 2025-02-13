@@ -11,8 +11,8 @@ pub trait AnySynthesizer {
     type F: Function;
     fn provide_any<T: Timer>(
         &self,
-        start: &Sketch<Self::F>,
         timer: &T,
+        start: &Sketch<Self::F>,
     ) -> Result<Option<HoleFilling<Self::F>>, T::Expired>;
 }
 
@@ -21,23 +21,25 @@ pub trait AllSynthesizer {
     type F: Function;
     fn provide_all<T: Timer>(
         &self,
-        start: &Sketch<Self::F>,
         timer: &T,
+        start: &Sketch<Self::F>,
     ) -> Result<Vec<HoleFilling<Self::F>>, T::Expired>;
 }
 
 struct NaiveStepProvider<T: AllSynthesizer>(T);
 
-impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
+impl<T: Timer, Synth: AllSynthesizer> StepProvider<T>
+    for NaiveStepProvider<Synth>
+{
     type Step = TopDownStep<Synth::F>;
 
-    fn provide<T: Timer>(
+    fn provide(
         &mut self,
-        e: &Sketch<Synth::F>,
         timer: &T,
+        e: &Sketch<Synth::F>,
     ) -> Result<Vec<Self::Step>, T::Expired> {
         let mut steps = vec![];
-        for solution in self.0.provide_all(e, timer)? {
+        for solution in self.0.provide_all(timer, e)? {
             for (h, binding) in solution {
                 match binding {
                     Sketch::Hole(_) => panic!(),
@@ -55,14 +57,14 @@ impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
     }
 }
 
-impl<F: Function, I: Interaction<Step = TopDownStep<F>>> AnySynthesizer for I {
-    type F = F;
-
-    fn provide_any<T: Timer>(
-        &self,
-        start: &Sketch<Self::F>,
-        timer: &T,
-    ) -> Result<Option<HoleFilling<Self::F>>, T::Expired> {
-        todo!()
-    }
-}
+// impl<F: Function, I: Interaction<Step = TopDownStep<F>>> AnySynthesizer for I {
+//     type F = F;
+//
+//     fn provide_any<T: Timer>(
+//         &self,
+//         start: &Sketch<Self::F>,
+//         timer: &T,
+//     ) -> Result<Option<HoleFilling<Self::F>>, T::Expired> {
+//         todo!()
+//     }
+// }

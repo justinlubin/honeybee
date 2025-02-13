@@ -15,6 +15,7 @@ use crate::util::{self, Timer};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Expressions
@@ -49,7 +50,6 @@ pub enum Sketch<F: Function> {
     App(F, IndexMap<FunParam, Self>),
 }
 
-use std::marker::PhantomData;
 impl<F: Function> Sketch<F> {
     pub fn blank() -> Self {
         Self::Hole(0)
@@ -211,32 +211,42 @@ pub type Expansion<F> = (HoleName, F);
 
 /// The type of inhabitation oracles for use in top-down classical-constructive
 /// synthesis.
-pub trait InhabitationOracle {
+pub trait InhabitationOracle<T: Timer> {
     type F: Function;
-    fn expansions<T: Timer>(
+    fn expansions(
         &mut self,
-        e: &Sketch<Self::F>,
         timer: &T,
+        e: &Sketch<Self::F>,
     ) -> Result<Vec<Expansion<Self::F>>, T::Expired>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
 /// Navigation Synthesis Problem.
-pub struct ClassicalConstructiveSynthesis<O: InhabitationOracle> {
+pub struct ClassicalConstructiveSynthesis<T: Timer, O: InhabitationOracle<T>> {
     pub oracle: O,
+    timer_type: PhantomData<T>,
 }
 
-impl<O: InhabitationOracle> pbn::StepProvider
-    for ClassicalConstructiveSynthesis<O>
+impl<T: Timer, O: InhabitationOracle<T>> ClassicalConstructiveSynthesis<T, O> {
+    pub fn new(oracle: O) -> Self {
+        Self {
+            oracle,
+            timer_type: PhantomData,
+        }
+    }
+}
+
+impl<T: Timer, O: InhabitationOracle<T>> pbn::StepProvider<T>
+    for ClassicalConstructiveSynthesis<T, O>
 {
     type Step = TopDownStep<O::F>;
-    fn provide<T: Timer>(
+    fn provide(
         &mut self,
-        e: &<Self::Step as pbn::Step>::Exp,
         timer: &T,
+        e: &<Self::Step as pbn::Step>::Exp,
     ) -> Result<Vec<Self::Step>, T::Expired> {
         let mut ret = vec![];
-        for (h, f) in self.oracle.expansions(e, timer)? {
+        for (h, f) in self.oracle.expansions(timer, e)? {
             let holes = e.fresh().map(|h| Sketch::Hole(h));
             ret.push(TopDownStep::Extend(
                 h,

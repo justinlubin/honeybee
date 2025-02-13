@@ -20,12 +20,12 @@ pub trait Step {
 /// To be a valid solution to the Programming By Navigation Synthesis Problem,
 /// step providers must satisfy the *validity*, *strong completeness*, and
 /// *strong soundness* conditions.
-pub trait StepProvider {
+pub trait StepProvider<T: Timer> {
     type Step: Step;
-    fn provide<T: Timer>(
+    fn provide(
         &mut self,
-        e: &<Self::Step as Step>::Exp,
         timer: &T,
+        e: &<Self::Step as Step>::Exp,
     ) -> Result<Vec<Self::Step>, T::Expired>;
 
     // fn valid(&mut self, e: &<Self::Step as Step>::Exp) -> bool;
@@ -36,36 +36,30 @@ pub trait ValidityChecker {
     fn check(&self, e: &Self::Exp) -> bool;
 }
 
-pub struct Controller<
-    T: Timer,
-    S: Step,
-    SP: StepProvider<Step = S>,
-    V: ValidityChecker<Exp = S::Exp>,
-> {
+pub struct Controller<T: Timer, S: Step> {
     timer: T,
-    provider: SP,
-    checker: V,
+    provider: Box<dyn StepProvider<T, Step = S> + 'static>,
+    checker: Box<dyn ValidityChecker<Exp = S::Exp> + 'static>,
     state: S::Exp,
 }
 
-impl<
-        T: Timer,
-        S: Step,
-        SP: StepProvider<Step = S>,
-        V: ValidityChecker<Exp = S::Exp>,
-    > Controller<T, S, SP, V>
-{
-    pub fn new(timer: T, provider: SP, checker: V, start: S::Exp) -> Self {
+impl<T: Timer, S: Step> Controller<T, S> {
+    pub fn new(
+        timer: T,
+        provider: impl StepProvider<T, Step = S> + 'static,
+        checker: impl ValidityChecker<Exp = S::Exp> + 'static,
+        start: S::Exp,
+    ) -> Self {
         Self {
             timer,
-            provider,
-            checker,
+            provider: Box::new(provider),
+            checker: Box::new(checker),
             state: start,
         }
     }
 
     pub fn provide(&mut self) -> Result<Vec<S>, T::Expired> {
-        self.provider.provide(&self.state, &self.timer)
+        self.provider.provide(&self.timer, &self.state)
     }
 
     pub fn decide(&mut self, step: S) {
@@ -79,26 +73,4 @@ impl<
     pub fn valid(&self) -> bool {
         self.checker.check(&self.state)
     }
-}
-
-/// The components of a Programming By Navigation interaction.
-///
-/// To provide this interface, an interaction implementation will likely need
-/// to keep track of the "state" of an interaction in the form of the working
-/// expression.
-pub trait Interaction {
-    type Step: Step;
-
-    /// Called at the start of an interaction.
-    fn init(&self, start: &<Self::Step as Step>::Exp) -> bool;
-    /// Called to get the set of possible next steps.
-    fn provide(&self) -> Vec<<Self::Step as Step>::Exp>;
-    /// Called to choose among the above provided steps.
-    ///
-    /// Panics if provided a step that is not returned by a call to [`provide`].
-    fn decide(&self, step: &Self::Step);
-    /// Return the working expression (e.g. for visualization).
-    fn working_expression(&self) -> <Self::Step as Step>::Exp;
-    /// Returns whether or not the current working expression is valid.
-    fn valid(&self) -> bool;
 }

@@ -264,8 +264,8 @@ impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
 
     fn provide_any<T: Timer>(
         &self,
-        start: &Exp,
         timer: &T,
+        start: &Exp,
     ) -> Result<Option<HoleFilling<ParameterizedFunction>>, T::Expired> {
         Ok(self.enumerate(timer, start, 1)?.into_iter().next())
     }
@@ -276,21 +276,21 @@ impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
 
     fn provide_all<T: Timer>(
         &self,
-        start: &Exp,
         timer: &T,
+        start: &Exp,
     ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, T::Expired> {
         self.enumerate(timer, start, usize::MAX)
     }
 }
 
 // Constructive oracle
-impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
+impl<T: Timer, P: Prune> InhabitationOracle<T> for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 
-    fn expansions<T: Timer>(
+    fn expansions(
         &mut self,
-        e: &Sketch<Self::F>,
         timer: &T,
+        e: &Sketch<Self::F>,
     ) -> Result<Vec<(HoleName, Self::F)>, T::Expired> {
         let (top_f, top_args) = self.wrap(e);
         let mut expansions = vec![];
@@ -305,7 +305,7 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
             )? {
                 continue;
             }
-            match self.provide_any(&new_e, timer)? {
+            match self.provide_any(timer, &new_e)? {
                 Some(_) => expansions.push((h, f)),
                 None => (),
             }

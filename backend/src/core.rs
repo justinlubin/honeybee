@@ -797,6 +797,9 @@ impl Function for ParameterizedFunction {
 /// The type of expressions used for core Honeybee.
 pub type Exp = Sketch<ParameterizedFunction>;
 
+/// The type of steps used for core Honeybee.
+pub type Step = TopDownStep<ParameterizedFunction>;
+
 impl Exp {
     /// The typing relation for Honeybee core syntax.
     ///

@@ -48,6 +48,18 @@ enum Command {
     },
 }
 
+fn honeybee_controller<T: util::Timer + 'static>(
+    problem: core::Problem,
+    timer: T,
+) -> pbn::Controller<T, core::Step> {
+    let engine = egglog::Egglog::new(true);
+    let oracle = dl_oracle::Oracle::new(engine, problem).unwrap();
+    let ccs = top_down::ClassicalConstructiveSynthesis::new(oracle);
+    let start = top_down::Sketch::blank();
+    let checker = top_down::GroundChecker::new();
+    pbn::Controller::new(timer, ccs, checker, start)
+}
+
 impl Command {
     pub fn handle(self) -> Result<(), String> {
         match self {
@@ -84,17 +96,8 @@ impl Command {
             )
         })?;
 
-        let engine = egglog::Egglog::new(true);
-        let oracle = dl_oracle::Oracle::new(engine, problem).unwrap();
-        let ccs = top_down::ClassicalConstructiveSynthesis { oracle };
-        let start = top_down::Sketch::blank();
-        let checker = top_down::GroundChecker::new();
-        let mut controller = pbn::Controller::new(
-            util::InfiniteTimer::new(),
-            ccs,
-            checker,
-            start,
-        );
+        let mut controller =
+            honeybee_controller(problem, util::InfiniteTimer::new());
 
         let mut round = 0;
         while !controller.valid() {

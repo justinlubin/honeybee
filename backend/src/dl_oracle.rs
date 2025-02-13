@@ -304,13 +304,13 @@ impl<Eng: Engine> Oracle<Eng> {
     }
 }
 
-impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
+impl<T: Timer, Eng: Engine> InhabitationOracle<T> for Oracle<Eng> {
     type F = ParameterizedFunction;
 
-    fn expansions<T: Timer>(
+    fn expansions(
         &mut self,
-        e: &Sketch<Self::F>,
         timer: &T,
+        e: &Sketch<Self::F>,
     ) -> Result<Vec<Expansion<Self::F>>, T::Expired> {
         let mut ret = vec![];
 
