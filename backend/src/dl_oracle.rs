@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::datalog::{self, *};
 use crate::top_down::*;
-use crate::util::Timer;
+use crate::util::{Timer, TimerExpired};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Compilation to datalog
@@ -304,14 +304,14 @@ impl<Eng: Engine> Oracle<Eng> {
     }
 }
 
-impl<T: Timer, Eng: Engine> InhabitationOracle<T> for Oracle<Eng> {
+impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
     type F = ParameterizedFunction;
 
     fn expansions(
         &mut self,
-        timer: &T,
+        timer: &Timer,
         e: &Sketch<Self::F>,
-    ) -> Result<Vec<Expansion<Self::F>>, T::Expired> {
+    ) -> Result<Vec<Expansion<Self::F>>, TimerExpired> {
         let mut ret = vec![];
 
         let (goal_pf, goal_args) = self.goal.app(e);

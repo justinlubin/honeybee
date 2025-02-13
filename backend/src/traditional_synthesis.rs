@@ -1,6 +1,6 @@
 use crate::pbn::*;
 use crate::top_down::*;
-use crate::util::Timer;
+use crate::util::{Timer, TimerExpired};
 
 use indexmap::IndexMap;
 
@@ -9,35 +9,33 @@ pub type HoleFilling<F> = IndexMap<HoleName, Sketch<F>>;
 /// The type of synthesizers solving the traditional Any task (for sketches).
 pub trait AnySynthesizer {
     type F: Function;
-    fn provide_any<T: Timer>(
+    fn provide_any(
         &self,
-        timer: &T,
+        timer: &Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Option<HoleFilling<Self::F>>, T::Expired>;
+    ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired>;
 }
 
 /// The type of synthesizers solving the traditional All task (for sketches).
 pub trait AllSynthesizer {
     type F: Function;
-    fn provide_all<T: Timer>(
+    fn provide_all(
         &self,
-        timer: &T,
+        timer: &Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Vec<HoleFilling<Self::F>>, T::Expired>;
+    ) -> Result<Vec<HoleFilling<Self::F>>, TimerExpired>;
 }
 
 struct NaiveStepProvider<T: AllSynthesizer>(T);
 
-impl<T: Timer, Synth: AllSynthesizer> StepProvider<T>
-    for NaiveStepProvider<Synth>
-{
+impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
     type Step = TopDownStep<Synth::F>;
 
     fn provide(
         &mut self,
-        timer: &T,
+        timer: &Timer,
         e: &Sketch<Synth::F>,
-    ) -> Result<Vec<Self::Step>, T::Expired> {
+    ) -> Result<Vec<Self::Step>, TimerExpired> {
         let mut steps = vec![];
         for solution in self.0.provide_all(timer, e)? {
             for (h, binding) in solution {
@@ -60,11 +58,11 @@ impl<T: Timer, Synth: AllSynthesizer> StepProvider<T>
 // impl<F: Function, I: Interaction<Step = TopDownStep<F>>> AnySynthesizer for I {
 //     type F = F;
 //
-//     fn provide_any<T: Timer>(
+//     fn provide_any(
 //         &self,
 //         start: &Sketch<Self::F>,
 //         timer: &T,
-//     ) -> Result<Option<HoleFilling<Self::F>>, T::Expired> {
+//     ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired> {
 //         todo!()
 //     }
 // }

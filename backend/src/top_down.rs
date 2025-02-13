@@ -11,7 +11,7 @@
 //! arguments (with the right keyword arguments).
 
 use crate::pbn;
-use crate::util::{self, Timer};
+use crate::util::{self, Timer, TimerExpired};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -211,40 +211,36 @@ pub type Expansion<F> = (HoleName, F);
 
 /// The type of inhabitation oracles for use in top-down classical-constructive
 /// synthesis.
-pub trait InhabitationOracle<T: Timer> {
+pub trait InhabitationOracle {
     type F: Function;
     fn expansions(
         &mut self,
-        timer: &T,
+        timer: &Timer,
         e: &Sketch<Self::F>,
-    ) -> Result<Vec<Expansion<Self::F>>, T::Expired>;
+    ) -> Result<Vec<Expansion<Self::F>>, TimerExpired>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
 /// Navigation Synthesis Problem.
-pub struct ClassicalConstructiveSynthesis<T: Timer, O: InhabitationOracle<T>> {
+pub struct ClassicalConstructiveSynthesis<O: InhabitationOracle> {
     pub oracle: O,
-    timer_type: PhantomData<T>,
 }
 
-impl<T: Timer, O: InhabitationOracle<T>> ClassicalConstructiveSynthesis<T, O> {
+impl<O: InhabitationOracle> ClassicalConstructiveSynthesis<O> {
     pub fn new(oracle: O) -> Self {
-        Self {
-            oracle,
-            timer_type: PhantomData,
-        }
+        Self { oracle }
     }
 }
 
-impl<T: Timer, O: InhabitationOracle<T>> pbn::StepProvider<T>
-    for ClassicalConstructiveSynthesis<T, O>
+impl<O: InhabitationOracle> pbn::StepProvider
+    for ClassicalConstructiveSynthesis<O>
 {
     type Step = TopDownStep<O::F>;
     fn provide(
         &mut self,
-        timer: &T,
+        timer: &Timer,
         e: &<Self::Step as pbn::Step>::Exp,
-    ) -> Result<Vec<Self::Step>, T::Expired> {
+    ) -> Result<Vec<Self::Step>, TimerExpired> {
         let mut ret = vec![];
         for (h, f) in self.oracle.expansions(timer, e)? {
             let holes = e.fresh().map(|h| Sketch::Hole(h));

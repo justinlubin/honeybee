@@ -48,10 +48,10 @@ enum Command {
     },
 }
 
-fn honeybee_controller<T: util::Timer + 'static>(
+fn honeybee_controller(
     problem: core::Problem,
-    timer: T,
-) -> pbn::Controller<T, core::Step> {
+    timer: util::Timer,
+) -> pbn::Controller<core::Step> {
     let engine = egglog::Egglog::new(true);
     let oracle = dl_oracle::Oracle::new(engine, problem).unwrap();
     let ccs = top_down::ClassicalConstructiveSynthesis::new(oracle);
@@ -97,13 +97,13 @@ impl Command {
         })?;
 
         let mut controller =
-            honeybee_controller(problem, util::InfiniteTimer::new());
+            honeybee_controller(problem, util::Timer::infinite());
 
         let mut round = 0;
         while !controller.valid() {
             round += 1;
 
-            let mut options = util::ok(controller.provide());
+            let mut options = controller.provide().unwrap();
 
             if options.is_empty() {
                 println!("{}", Red.bold().paint("Not possible!"));

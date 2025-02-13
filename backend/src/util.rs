@@ -3,75 +3,52 @@ use instant::Duration;
 use instant::Instant;
 
 ////////////////////////////////////////////////////////////////////////////////
-// Void
-
-pub enum Void {}
-
-pub fn ok<T>(r: Result<T, Void>) -> T {
-    match r {
-        Ok(x) => x,
-        Err(v) => match v {},
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Timer
 
-pub trait Timer {
-    type Expired;
-    fn tick(&self) -> Result<(), Self::Expired>;
+#[derive(Debug)]
+enum TimerInner {
+    Finite { end: Instant },
+    Infinite,
 }
 
-pub struct FiniteTimer<E> {
-    end: Instant,
-    error: E,
-}
+#[derive(Debug)]
+pub struct TimerExpired;
 
-impl<E: Clone> FiniteTimer<E> {
-    pub fn new(duration: Duration, error: E) -> Self {
-        FiniteTimer {
+#[derive(Debug)]
+pub struct Timer(TimerInner);
+
+impl Timer {
+    pub fn finite(duration: Duration) -> Self {
+        Timer(TimerInner::Finite {
             end: Instant::now() + duration,
-            error,
+        })
+    }
+
+    pub fn infinite() -> Self {
+        Timer(TimerInner::Infinite)
+    }
+
+    pub fn tick(&self) -> Result<(), TimerExpired> {
+        match self.0 {
+            TimerInner::Finite { end } => {
+                if Instant::now() > end {
+                    Err(TimerExpired)
+                } else {
+                    Ok(())
+                }
+            }
+            TimerInner::Infinite => Ok(()),
         }
-    }
-}
-
-impl<E: Clone> Timer for FiniteTimer<E> {
-    type Expired = E;
-    fn tick(&self) -> Result<(), E> {
-        if Instant::now() > self.end {
-            return Err(self.error.clone());
-        }
-        return Ok(());
-    }
-}
-
-pub struct InfiniteTimer {}
-
-impl InfiniteTimer {
-    pub fn new() -> Self {
-        InfiniteTimer {}
-    }
-}
-
-impl Timer for InfiniteTimer {
-    type Expired = Void;
-    fn tick(&self) -> Result<(), Void> {
-        Ok(())
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Utilities
 
-pub fn cartesian_product<
-    T: Timer,
-    K: Clone + Eq + std::hash::Hash,
-    V: Clone,
->(
-    timer: &T,
+pub fn cartesian_product<K: Clone + Eq + std::hash::Hash, V: Clone>(
+    timer: &Timer,
     choices: IndexMap<K, Vec<V>>,
-) -> Result<Vec<IndexMap<K, V>>, T::Expired> {
+) -> Result<Vec<IndexMap<K, V>>, TimerExpired> {
     let mut results = vec![IndexMap::new()];
     for (k, vs) in choices.iter() {
         let mut new_results = vec![];

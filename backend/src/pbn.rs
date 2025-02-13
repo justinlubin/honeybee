@@ -4,7 +4,7 @@
 //! By Navigation. In particular, it defines the interface that is necessary for
 //! the Programming By Navigation interaction and guarantees.
 
-use crate::util::Timer;
+use crate::util::{Timer, TimerExpired};
 
 /// The type of steps.
 ///
@@ -15,38 +15,36 @@ pub trait Step {
     fn apply(&self, e: &Self::Exp) -> Option<Self::Exp>;
 }
 
-/// The type of step providers.
-///
-/// To be a valid solution to the Programming By Navigation Synthesis Problem,
-/// step providers must satisfy the *validity*, *strong completeness*, and
-/// *strong soundness* conditions.
-pub trait StepProvider<T: Timer> {
-    type Step: Step;
-    fn provide(
-        &mut self,
-        timer: &T,
-        e: &<Self::Step as Step>::Exp,
-    ) -> Result<Vec<Self::Step>, T::Expired>;
-
-    // fn valid(&mut self, e: &<Self::Step as Step>::Exp) -> bool;
-}
-
 pub trait ValidityChecker {
     type Exp;
     fn check(&self, e: &Self::Exp) -> bool;
 }
 
-pub struct Controller<T: Timer, S: Step> {
-    timer: T,
-    provider: Box<dyn StepProvider<T, Step = S> + 'static>,
+/// The type of step providers.
+///
+/// To be a valid solution to the Programming By Navigation Synthesis Problem,
+/// step providers must satisfy the *validity*, *strong completeness*, and
+/// *strong soundness* conditions.
+pub trait StepProvider {
+    type Step: Step;
+    fn provide(
+        &mut self,
+        timer: &Timer,
+        e: &<Self::Step as Step>::Exp,
+    ) -> Result<Vec<Self::Step>, TimerExpired>;
+}
+
+pub struct Controller<S: Step> {
+    timer: Timer,
+    provider: Box<dyn StepProvider<Step = S> + 'static>,
     checker: Box<dyn ValidityChecker<Exp = S::Exp> + 'static>,
     state: S::Exp,
 }
 
-impl<T: Timer, S: Step> Controller<T, S> {
+impl<S: Step> Controller<S> {
     pub fn new(
-        timer: T,
-        provider: impl StepProvider<T, Step = S> + 'static,
+        timer: Timer,
+        provider: impl StepProvider<Step = S> + 'static,
         checker: impl ValidityChecker<Exp = S::Exp> + 'static,
         start: S::Exp,
     ) -> Self {
@@ -58,7 +56,7 @@ impl<T: Timer, S: Step> Controller<T, S> {
         }
     }
 
-    pub fn provide(&mut self) -> Result<Vec<S>, T::Expired> {
+    pub fn provide(&mut self) -> Result<Vec<S>, TimerExpired> {
         self.provider.provide(&self.timer, &self.state)
     }
 
