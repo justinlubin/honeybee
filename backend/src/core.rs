@@ -590,7 +590,7 @@ impl Exp {
     /// arguments are well-typed and have metadata satisfying the validity
     /// condition of the function (and the metadata is contained within the
     /// allowable domain defined by the presence of values in the libraries).
-    fn infer(
+    pub fn infer(
         &self,
         flib: &FunctionLibrary,
         props: &Vec<Met<Value>>,
@@ -658,7 +658,7 @@ impl Exp {
 ///
 /// The problem requires the synthesis of an expression at the goal type
 /// assuming the provided libraries and atomic propositions. See
-/// [`Exp::well_typed`] for more information about what it means for an
+/// [`Exp::infer`] for more information about what it means for an
 /// expression to be well-typed.
 pub struct Problem {
     pub library: Library,
@@ -703,8 +703,8 @@ impl Problem {
 // Goal convenience wrapper
 
 pub struct Goal {
-    function: BaseFunction,
-    param: FunParam,
+    pub function: BaseFunction,
+    pub param: FunParam,
     ret: MetName,
     signature: FunctionSignature,
 }

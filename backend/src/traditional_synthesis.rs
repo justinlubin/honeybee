@@ -26,7 +26,7 @@ pub trait AllSynthesizer {
     ) -> Result<Vec<HoleFilling<Self::F>>, TimerExpired>;
 }
 
-struct NaiveStepProvider<T: AllSynthesizer>(T);
+pub struct NaiveStepProvider<T: AllSynthesizer>(pub T);
 
 impl<Synth: AllSynthesizer> StepProvider for NaiveStepProvider<Synth> {
     type Step = TopDownStep<Synth::F>;

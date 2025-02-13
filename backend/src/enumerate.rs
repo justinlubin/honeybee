@@ -73,7 +73,7 @@ impl Prune for NaivePruner {
     }
 }
 
-struct ExhaustivePruner {}
+pub struct ExhaustivePruner;
 
 impl Prune for ExhaustivePruner {
     fn possible(
@@ -127,7 +127,7 @@ impl Prune for ExhaustivePruner {
     }
 }
 
-struct EnumerativeSynthesis<P: Prune> {
+pub struct EnumerativeSynthesis<P: Prune> {
     problem: Problem,
     goal: Goal,
     pruner: P,
@@ -206,6 +206,19 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         }
     }
 
+    fn unwrap(&self, e: Exp) -> Exp {
+        match e {
+            Sketch::Hole(_) => panic!(),
+            Sketch::App(f, mut args) => {
+                if f.name == self.goal.function {
+                    args.swap_remove(&self.goal.param).unwrap()
+                } else {
+                    Sketch::App(f, args)
+                }
+            }
+        }
+    }
+
     // TODO: add memoization? (seen list)
     fn enumerate_worklist(
         &self,
@@ -220,7 +233,14 @@ impl<P: Prune> EnumerativeSynthesis<P> {
                 Sketch::App(f, args) => self.support_fun(timer, f, args)?,
             };
             if sup.is_empty() {
-                solutions.push(e);
+                if e.infer(
+                    &self.problem.library.functions,
+                    &self.problem.program.props,
+                )
+                .is_ok()
+                {
+                    solutions.push(e);
+                }
                 if solutions.len() >= max_solutions {
                     break;
                 }
@@ -253,8 +273,8 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         let worklist = VecDeque::from([Sketch::App(f, args)]);
         Ok(self
             .enumerate_worklist(timer, worklist, max_solutions)?
-            .iter()
-            .map(|e| start.pattern_match(e).unwrap())
+            .into_iter()
+            .map(|e| start.pattern_match(&self.unwrap(e)).unwrap())
             .collect())
     }
 }
