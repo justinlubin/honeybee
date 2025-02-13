@@ -27,6 +27,18 @@ pub fn honeybee_ablation(
     pbn::Controller::new(timer, provider, checker, start)
 }
 
+pub fn constructive_oracle(
+    problem: core::Problem,
+    timer: util::Timer,
+) -> pbn::Controller<core::Step> {
+    let pruner = enumerate::ExhaustivePruner;
+    let oracle = enumerate::EnumerativeSynthesis::new(problem, pruner);
+    let provider = top_down::ClassicalConstructiveSynthesis::new(oracle);
+    let start = top_down::Sketch::blank();
+    let checker = top_down::GroundChecker::new();
+    pbn::Controller::new(timer, provider, checker, start)
+}
+
 pub fn pruned_enumerate(
     problem: core::Problem,
     timer: util::Timer,

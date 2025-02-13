@@ -46,6 +46,7 @@ pub fn interact(
 
     let mut controller =
         controller_menu::honeybee(problem, util::Timer::infinite());
+    // controller_menu::constructive_oracle(problem, util::Timer::infinite());
     // controller_menu::ep(problem, util::Timer::infinite());
 
     let mut round = 0;
