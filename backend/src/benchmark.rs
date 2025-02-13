@@ -12,7 +12,7 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-struct Config {
+pub struct Config {
     pub replicates: usize,
     pub timeout: Duration,
     pub parallel: bool,
@@ -20,7 +20,7 @@ struct Config {
     pub algorithms: Vec<menu::Algorithm>,
 }
 
-struct Runner {
+pub struct Runner {
     config: Config,
     wtr: Arc<Mutex<csv::Writer<Box<dyn io::Write + Send + 'static>>>>,
 }
@@ -99,7 +99,7 @@ impl Runner {
 
                 let problem = core::Problem::new(lib.clone(), prog).unwrap();
 
-                let mut solutions = vec![("".to_owned(), None)];
+                let mut solutions = vec![("<ANY>".to_owned(), None)];
 
                 for solution_path in
                     glob::glob(prog_path_noext.join("*.json").to_str().unwrap())

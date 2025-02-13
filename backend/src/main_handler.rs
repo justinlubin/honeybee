@@ -1,11 +1,12 @@
-use crate::{codegen, core, menu, parse, top_down, unparse, util};
+use crate::{benchmark, codegen, core, menu, parse, top_down, unparse, util};
 
 use ansi_term::Color::*;
+use instant::Duration;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-fn write(path: PathBuf, s: &str) -> Result<(), String> {
+fn write_file(path: PathBuf, s: &str) -> Result<(), String> {
     match File::create(path) {
         Ok(mut file) => write!(file, "{}", s).map_err(|e| e.to_string()),
         Err(e) => Err(e.to_string()),
@@ -18,6 +19,20 @@ pub fn interact(
     quiet: bool,
     json: Option<PathBuf>,
 ) -> Result<(), String> {
+    if let Some(path) = &json {
+        let ok = match path.parent() {
+            Some(parent) => parent.exists(),
+            None => false,
+        };
+        if !ok {
+            return Err(format!(
+                "{} invalid json path '{}'",
+                Red.bold().paint("error:"),
+                path.to_str().unwrap()
+            ));
+        }
+    }
+
     let lib_string =
         std::fs::read_to_string(library).map_err(|e| e.to_string())?;
     let prog_string =
@@ -148,7 +163,7 @@ pub fn interact(
 
     if let Some(json) = json {
         let contents = unparse::exp(&controller.working_expression())?;
-        match write(json, &contents) {
+        match write_file(json, &contents) {
             Ok(()) => (),
             Err(e) => eprintln!("file write error: {}\njson:\n{}", e, contents),
         };
@@ -162,5 +177,25 @@ pub fn translate(path: PathBuf) -> Result<(), String> {
         std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let exp = parse::exp(&exp_string)?;
     println!("{}", codegen::python_multi(&exp, 0));
+    Ok(())
+}
+
+pub fn benchmark(
+    suite_paths: Vec<PathBuf>,
+    algorithms: Vec<menu::Algorithm>,
+    replicates: usize,
+    timeout_millis: u64,
+    entry_filter: String,
+    parallel: bool,
+) -> Result<(), String> {
+    let config = benchmark::Config {
+        replicates,
+        timeout: Duration::from_millis(timeout_millis),
+        entry_filter,
+        parallel,
+        algorithms,
+    };
+    let runner = benchmark::Runner::new(config, std::io::stdout());
+    runner.suites(&suite_paths);
     Ok(())
 }

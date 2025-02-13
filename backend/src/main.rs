@@ -7,13 +7,38 @@ use clap::{builder::styling::*, Parser, Subcommand};
 use std::path::PathBuf;
 
 mod custom_parse {
+    use honeybee::menu;
     use std::path::PathBuf;
 
-    pub fn nullable_path(s: &str) -> Option<PathBuf> {
+    pub fn at_most_one_path(s: &str) -> Option<PathBuf> {
         if s.is_empty() {
             None
         } else {
             Some(PathBuf::from(s))
+        }
+    }
+
+    pub fn one_or_more_paths(
+        s: &str,
+        option: &str,
+    ) -> Result<Vec<PathBuf>, String> {
+        if s.is_empty() {
+            Err(format!("{} must be nonempty", option))
+        } else {
+            Ok(s.split(",").map(|x| PathBuf::from(x)).collect())
+        }
+    }
+
+    pub fn one_or_more_algs(
+        s: &str,
+        option: &str,
+    ) -> Result<Vec<menu::Algorithm>, String> {
+        if s.is_empty() {
+            Err(format!("{} must be nonempty", option))
+        } else {
+            Ok(s.split(",")
+                .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
+                .collect())
         }
     }
 }
@@ -64,6 +89,37 @@ enum Command {
         json: String,
     },
 
+    Benchmark {
+        /// The benchmark suite directories to use (comma-separated list)
+        #[arg(short, long, value_name = "DIRS")]
+        suite: String,
+
+        /// Algorithms to use (comma-separated list)
+        #[arg(short, long, value_name = "DIRS")]
+        algorithms: String,
+
+        /// The number of times to run each benchmark entry
+        #[arg(short, long, value_name = "N", default_value_t = 1)]
+        replicates: usize,
+
+        /// The (soft) time cutoff to use for synthesis (in milliseconds)
+        #[arg(
+            short,
+            long,
+            value_name = "MILLISECONDS",
+            default_value_t = 2000
+        )]
+        timeout: u64,
+
+        /// Filter to benchmark entries that contain this substring
+        #[arg(short, long, value_name = "SUBSTRING", default_value = "")]
+        filter: String,
+
+        /// Use a quick (parallel) approximation - not for publication use
+        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
+        quick: bool,
+    },
+
     /// Translate serialized JSON to Python expression
     Translate {
         /// Path to serialized JSON
@@ -72,27 +128,46 @@ enum Command {
     },
 }
 
-use Command::*;
+impl Command {
+    pub fn handle(self) -> Result<(), String> {
+        match self {
+            Self::Interact {
+                library,
+                program,
+                quiet,
+                json,
+            } => main_handler::interact(
+                library,
+                program,
+                quiet,
+                custom_parse::at_most_one_path(&json),
+            ),
+            Self::Benchmark {
+                suite,
+                algorithms,
+                replicates,
+                timeout,
+                filter,
+                quick,
+            } => main_handler::benchmark(
+                custom_parse::one_or_more_paths(&suite, "--suite")?,
+                custom_parse::one_or_more_algs(&algorithms, "--algorithms")?,
+                replicates,
+                timeout,
+                filter,
+                quick,
+            ),
+            Self::Translate { path } => main_handler::translate(path),
+        }
+    }
+}
 
 fn main() {
     env_logger::init();
 
     let cli = Cli::parse();
 
-    let result = match cli.command {
-        Interact {
-            library,
-            program,
-            quiet,
-            json,
-        } => main_handler::interact(
-            library,
-            program,
-            quiet,
-            custom_parse::nullable_path(&json),
-        ),
-        Translate { path } => main_handler::translate(path),
-    };
+    let result = cli.command.handle();
 
     match result {
         Ok(()) => (),

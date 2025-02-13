@@ -3,15 +3,15 @@ use crate::{
     util,
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Algorithm {
     PBNHoneybee,
     PBNHoneybeeNoMemo,
     PBNConstructiveOracle,
-    NaiveEnumation,
-    PrunedEnumation,
+    NaiveEnumeration,
+    PrunedEnumeration,
 }
 
 impl Algorithm {
@@ -49,7 +49,7 @@ impl Algorithm {
                 let checker = top_down::GroundChecker::new();
                 pbn::Controller::new(timer, provider, checker, start)
             }
-            Algorithm::NaiveEnumation => {
+            Algorithm::NaiveEnumeration => {
                 let pruner = enumerate::NaivePruner;
                 let all_synth =
                     enumerate::EnumerativeSynthesis::new(problem, pruner);
@@ -59,7 +59,7 @@ impl Algorithm {
                 let checker = top_down::GroundChecker::new();
                 pbn::Controller::new(timer, provider, checker, start)
             }
-            Algorithm::PrunedEnumation => {
+            Algorithm::PrunedEnumeration => {
                 let pruner = enumerate::ExhaustivePruner;
                 let all_synth =
                     enumerate::EnumerativeSynthesis::new(problem, pruner);
@@ -118,13 +118,13 @@ impl Algorithm {
                     );
                 Box::new(synth)
             }
-            Algorithm::NaiveEnumation => {
+            Algorithm::NaiveEnumeration => {
                 let pruner = enumerate::NaivePruner;
                 let synth =
                     enumerate::EnumerativeSynthesis::new(problem, pruner);
                 Box::new(synth)
             }
-            Algorithm::PrunedEnumation => {
+            Algorithm::PrunedEnumeration => {
                 let pruner = enumerate::ExhaustivePruner;
                 let synth =
                     enumerate::EnumerativeSynthesis::new(problem, pruner);
