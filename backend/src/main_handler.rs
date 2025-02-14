@@ -99,7 +99,7 @@ pub fn interact(
                     top_down::TopDownStep::Extend(h, f, args) => {
                         println!(
                             "{}",
-                            Green.paint(format!(
+                            Yellow.paint(format!(
                                 "{} ↦ {}",
                                 top_down::pretty_hole_string(h),
                                 codegen::python_single(&top_down::Sketch::App(

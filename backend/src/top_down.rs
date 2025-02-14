@@ -64,7 +64,9 @@ impl<F: Function> Sketch<F> {
 }
 
 pub fn pretty_hole_string(h: HoleName) -> String {
-    format!("?{}", util::subscript_numbers(&h.to_string()))
+    ansi_term::Color::Yellow
+        .paint(&format!("?{}", util::subscript_numbers(&h.to_string())))
+        .to_string()
 }
 
 // impl<F: Function + Display> std::fmt::Display for Sketch<F> {
