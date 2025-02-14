@@ -1,23 +1,34 @@
-(facts
-  (Resolution (.val 10))
-  (CRS (.val "EPSG:26943"))
-  (CRS (.val "EPSG:4326"))
+[[Prop]]
+name = "ResolutionChoice"
+args.val = 10
 
-  (InputRaster
-    (.name "NED 10m DEM")
-    (.data "ned10.tif")
-    (.resolution 10)
-    (.crs "EPSG:32610")
-    (.bands 1)
-    (.sensor "unknown"))
-  (InputVector
-    (.name "Conterminous United States (CONUS)")
-    (.data "conus.geojson")
-    (.crs "EPSG:4326")))
 
-(goal
-  (Raster
-    (.name "Clipped DEM")
-    (.resolution 10)
-    (.crs "EPSG:26943")
-    (.bands 1)))
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:26943"
+
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:4326"
+
+[[Prop]]
+name = "InputRaster"
+args.name = "NED 10m DEM"
+args.data = "ned10.tif"
+args.resolution = 10
+args.crs = "EPSG:32610"
+args.bands = 1
+args.sensor = "unknown"
+
+[[Prop]]
+name = "InputVector"
+args.name = "Conterminous United States (CONUS)"
+args.data = "conus.geojson"
+args.crs = "EPSG:4326"
+
+[Goal]
+name = "Raster"
+args.name = "Clipped DEM"
+args.resolution = 10
+args.crs = "EPSG:26943"
+args.bands = 1

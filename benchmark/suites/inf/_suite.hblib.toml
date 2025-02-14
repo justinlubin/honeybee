@@ -155,126 +155,224 @@ condition = []
 ### GEOSPATIAL ANALYSES ###
 ################################################################################
 
-# ; Raster
-# 
-# (input fact Resolution (.val Int))
-# (input fact CRS (.val Str))
-# 
-# (input fact InputRaster
-#   (.name Str)
-#   (.data Str)
-#   (.resolution Int)
-#   (.crs Str)
-#   (.bands Int)
-#   (.sensor Str))
-# 
-# (output fact Raster
-#   (.name Str)
-#   (.resolution Int)
-#   (.crs Str)
-#   (.bands Int))
-# 
-# (computation loadRaster Raster
-#   ((raster InputRaster))
-#   ((= (.name ret) (.name raster))
-#    (= (.resolution ret) (.resolution raster))
-#    (= (.crs ret) (.crs raster))
-#    (= (.bands ret) (.bands raster))))
-# 
-# ; Resampling
-# 
-# (input fact ResamplingMethod
-#   (.val Str))
-# 
-# (computation resample Raster
-#   ((raster Raster) (method ResamplingMethod) (res Resolution))
-#   ((< (.resolution raster) (.resolution ret))
-#    (< 0 (.resolution ret))
-#    (= (.crs ret) (.crs raster))
-#    (= (.bands ret) (.bands raster))
-#    (= (.name ret) (.name raster))
-#    (= (.resolution ret) (.val res))))
-# 
-# ; Warp
-# 
-# (computation warp Raster
-#   ((raster Raster) (c CRS))
-#   ((= (.bands ret) (.bands raster))
-#    (= (.crs ret) (.val c))
-#    (= (.name ret) (.name raster))
-#    (= (.resolution ret) (.resolution raster))))
-# 
-# ; Mosaic
-# 
-# (computation mosaic Raster
-#   ((r1 Raster) (r2 Raster))
-#   ((= (.bands r1) (.bands r2))
-#    (= (.bands ret) (.bands r1))
-#    (= (.crs r1) (.crs r2))
-#    (= (.crs ret) (.crs r1))
-#    (= (.name ret) (.name r1))
-#    (= (.resolution ret) (.resolution r1))))
-# 
-# ; Band Extration
-# 
-# (computation extractBand Raster
-#   ((raster Raster))
-#   ((= (.bands ret) 1)
-#    (= (.resolution ret) (.resolution raster))
-#    (= (.name ret) (.name raster))
-#    (= (.crs ret) (.crs raster))))
-# 
-# ; Remote Sensing
-# 
-# (computation ndvi Raster
-#   ((raster Raster))
-#   ((< 1 (.bands raster))
-#    (= (.bands ret) 1)
-#    (= (.resolution ret) (.resolution raster))
-#    (= (.name ret) (.name raster))
-#    (= (.crs ret) (.crs raster))))
-# 
-# (computation ndwi Raster
-#   ((raster Raster))
-#   ((< 1 (.bands raster))
-#    (= (.bands ret) 1)
-#    (= (.resolution ret) (.resolution raster))
-#    (= (.name ret) (.name raster))
-#    (= (.crs ret) (.crs raster))))
-# 
-# ; Vector
-# 
-# (input fact InputVector
-#   (.name Str) (.data Str) (.crs Str))
-# 
-# (output fact Vector
-#   (.name Str) (.crs Str))
-# 
-# (computation loadVector Vector
-#   ((vector InputVector))
-#   ((= (.name ret) (.name vector))
-#    (= (.crs ret) (.crs vector))))
-# 
-# ; Reproject
-# 
-# (computation reproject Vector
-#   ((vector Vector))
-#   ())
-# 
-# ; Clip
-# 
-# (computation clipRaster Raster
-#   ((raster Raster) (mask Vector))
-#   ((= (.crs raster) (.crs mask))
-#    (= (.crs ret) (.crs raster))
-#    (= (.name ret) (.name raster))
-#    (= (.resolution ret) (.resolution raster))
-#    (= (.bands ret) (.bands raster))))
-# 
-# ; Rename
-# 
-# (computation rename Raster
-#   ((raster Raster))
-#   ((= (.crs ret) (.crs raster))
-#    (= (.resolution ret) (.resolution raster))
-#    (= (.bands ret) (.bands raster))))
+# Raster
+
+[Prop.ResolutionChoice]
+params.val = "Int"
+
+[Type.Resolution]
+params.val = "Int"
+
+[Function.choose_resolution]
+params = {}
+ret = "Resolution"
+condition = ["ResolutionChoice { val = ret.val }"]
+
+[Prop.CRSChoice]
+params.val = "Str"
+
+[Type.CRS]
+params.val = "Str"
+
+[Function.choose_crs]
+params = {}
+ret = "CRS"
+condition = ["CRSChoice { val = ret.val }"]
+
+[Prop.InputRaster]
+params.name = "Str"
+params.data = "Str"
+params.resolution = "Int"
+params.crs = "Str"
+params.bands = "Int"
+params.sensor = "Str"
+
+[Type.LoadedInputRaster]
+params.name = "Str"
+params.data = "Str"
+params.resolution = "Int"
+params.crs = "Str"
+params.bands = "Int"
+params.sensor = "Str"
+
+[Type.Raster]
+params.name = "Str"
+params.resolution = "Int"
+params.crs = "Str"
+params.bands = "Int"
+
+[Function.load_input_raster]
+params = {}
+ret = "LoadedInputRaster"
+condition = ["""InputRaster {
+    name = ret.name,
+    data = ret.data,
+    resolution = ret.resolution,
+    crs = ret.crs,
+    bands = ret.bands,
+    sensor = ret.sensor
+}"""]
+
+[Function.load_raster]
+params.raster = "LoadedInputRaster"
+ret = "Raster"
+condition = [
+    "ret.name = raster.name",
+    "ret.resolution = raster.resolution",
+    "ret.crs = raster.crs",
+    "ret.bands = raster.bands",
+]
+
+# Resampling
+
+[Prop.ResamplingMethodChoice]
+params.val = "Str"
+
+[Type.ResamplingMethod]
+params.val = "Str"
+
+[Function.choose_resampling_method]
+params = {}
+ret = "ResamplingMethod"
+condition = ["ResamplingMethodChoice { val = ret.val }"]
+
+[Function.resample]
+params.raster = "Raster"
+params.method = "ResamplingMethod"
+params.res = "Resolution"
+ret = "Raster"
+condition = [
+    "raster.resolution < ret.resolution",
+    "0 < ret.resolution",
+    "ret.crs = raster.crs",
+    "ret.bands = raster.bands",
+    "ret.name = raster.name",
+    "ret.resolution = res.val",
+]
+
+# Warp
+
+[Function.warp]
+params.raster = "Raster"
+params.c = "CRS"
+ret = "Raster"
+condition = [
+    "ret.bands = raster.bands",
+    "ret.crs = c.val",
+    "ret.name = raster.name",
+    "ret.resolution = raster.resolution",
+]
+
+# Mosaic
+
+[Function.mosaic]
+params.r1 = "Raster"
+params.r2 = "Raster"
+ret = "Raster"
+condition = [
+    "r1.bands = r2.bands",
+    "ret.bands = r1.bands",
+    "r1.crs = r2.crs",
+    "ret.crs = r1.crs",
+    "ret.name = r1.name",
+    "ret.resolution = r1.resolution",
+]
+
+# Band extration
+
+[Function.extract_band]
+params.raster = "Raster"
+ret = "Raster"
+condition = [
+    "ret.bands = 1",
+    "ret.resolution = raster.resolution",
+    "ret.name = raster.name",
+    "ret.crs = raster.crs",
+]
+
+# Remote Sensing
+
+[Function.ndvi]
+params.raster = "Raster"
+ret = "Raster"
+condition = [
+    "1 < raster.bands",
+    "ret.bands = 1",
+    "ret.resolution = raster.resolution",
+    "ret.name = raster.name",
+    "ret.crs = raster.crs",
+]
+
+[Function.ndwi]
+params.raster = "Raster"
+ret = "Raster"
+condition = [
+    "1 < raster.bands",
+    "ret.bands = 1",
+    "ret.resolution = raster.resolution",
+    "ret.name = raster.name",
+    "ret.crs = raster.crs",
+]
+
+# Vector
+
+[Prop.InputVector]
+params.name = "Str"
+params.data = "Str"
+params.crs = "Str"
+
+[Type.LoadedInputVector]
+params.name = "Str"
+params.data = "Str"
+params.crs = "Str"
+
+[Type.Vector]
+params.name = "Str"
+params.crs = "Str"
+
+[Function.load_input_vector]
+params = {}
+ret = "LoadedInputVector"
+condition = [
+    "InputVector { name = ret.name, data = ret.data, crs = ret.crs }"
+]
+
+[Function.load_vector]
+params.vector = "LoadedInputVector"
+ret = "Vector"
+condition = [
+    "ret.name = vector.name",
+    "ret.crs = vector.crs",
+]
+
+# Reproject
+
+[Function.reproject]
+params.vector = "Vector"
+ret = "Vector"
+condition = []
+
+# Clip
+
+[Function.clip_raster]
+params.raster = "Raster"
+params.mask = "Vector"
+ret = "Raster"
+condition = [
+    "raster.crs = mask.crs",
+    "ret.crs = raster.crs",
+    "ret.name = raster.name",
+    "ret.resolution = raster.resolution",
+    "ret.bands = raster.bands",
+]
+
+# Rename
+
+[Function.rename]
+params.raster = "Raster"
+ret = "Raster"
+condition = [
+    "ret.crs = raster.crs",
+    "ret.resolution = raster.resolution",
+    "ret.bands = raster.bands",
+]

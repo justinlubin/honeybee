@@ -1,21 +1,35 @@
-(facts
-  (Resolution (.val 30))
-  (Resolution (.val 90))
-  (CRS (.val "EPSG:32610"))
-  (CRS (.val "EPSG:26943"))
-  (ResamplingMethod (.val "bilinear"))
+[[Prop]]
+name = "ResolutionChoice"
+args.val = 30
 
-  (InputRaster
-    (.name "Landsat Scene")
-    (.data "LC09_L1TP_044034_20240508_20240508_02_T1.tif")
-    (.resolution 30)
-    (.crs "EPSG:32610")
-    (.bands 11)
-    (.sensor "landsat-9")))
+[[Prop]]
+name = "ResolutionChoice"
+args.val = 90
 
-(goal
-  (Raster
-    (.name "Landsat NDVI")
-    (.resolution 90)
-    (.crs "EPSG:26943")
-    (.bands 1)))
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:32610"
+
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:26943"
+
+[[Prop]]
+name = "ResamplingMethodChoice"
+args.val = "bilinear"
+
+[[Prop]]
+name = "InputRaster"
+args.name = "Landsat Scene"
+args.data = "LC09_L1TP_044034_20240508_20240508_02_T1.tif"
+args.resolution = 30
+args.crs = "EPSG:32610"
+args.bands = 11
+args.sensor = "landsat-9"
+
+[Goal]
+name = "Raster"
+args.name = "Landsat NDVI"
+args.resolution = 90
+args.crs = "EPSG:26943"
+args.bands = 1
