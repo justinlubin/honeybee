@@ -1,0 +1,280 @@
+################################################################################
+### GENERIC FUNCTIONS ###
+################################################################################
+
+[Prop.In]
+params.x = "Int"
+
+[Type.Choice]
+params.x = "Int"
+
+[Function.choose]
+params = {}
+ret = "Choice"
+condition = ["In { x = ret.x }"]
+
+### small_three
+
+[Type.SmallThree]
+params = {}
+
+[Function.st1]
+params.in = "SmallThree"
+ret = "SmallThree"
+condition = []
+
+[Function.st2]
+params.in = "SmallThree"
+ret = "SmallThree"
+condition = []
+
+[Function.st3]
+params.in = "SmallThree"
+ret = "SmallThree"
+condition = []
+
+[Function.st_end]
+params.in = "Choice"
+ret = "SmallThree"
+condition = []
+
+### big_three
+
+[Type.BigThree]
+params = {}
+
+[Type.BigThree1]
+params = {}
+
+[Type.BigThree2]
+params = {}
+
+[Type.BigThree3]
+params = {}
+
+[Function.bt1_start]
+params.in = "BigThree1"
+ret = "BigThree"
+condition = []
+
+[Function.bt2_start]
+params.in = "BigThree2"
+ret = "BigThree"
+condition = []
+
+[Function.bt12]
+params.in = "BigThree1"
+ret = "BigThree2"
+condition = []
+
+[Function.bt23]
+params.in = "BigThree2"
+ret = "BigThree3"
+condition = []
+
+[Function.bt31]
+params.in = "BigThree3"
+ret = "BigThree1"
+condition = []
+
+[Function.bt2_end]
+params.in = "Choice"
+ret = "BigThree2"
+condition = []
+
+[Function.bt3_end]
+params.in = "Choice"
+ret = "BigThree3"
+condition = []
+
+### infinite_bin
+
+[Type.Bin]
+params = {}
+
+[Function.branch]
+params.left = "Bin"
+params.right = "Bin"
+ret = "Bin"
+condition = []
+
+[Function.leaf]
+params.in = "Choice"
+ret = "Bin"
+condition = []
+
+### eventually_stabilize
+
+[Type.ES]
+params.count = "Int"
+
+[Function.es_lt]
+params.in = "ES"
+ret = "ES"
+condition = ["ret.count < in.count"]
+
+[Function.es_eq]
+params.in = "ES"
+ret = "ES"
+condition = ["ret.count = in.count"]
+
+[Function.es_end]
+params.in = "Choice"
+ret = "ES"
+condition = ["ret.count = in.x"]
+
+### staged_cycles
+
+[Type.Cycle1]
+params = {}
+
+[Type.Cycle2]
+params = {}
+
+[Function.c10]
+params.in = "Choice"
+ret = "Cycle1"
+condition = []
+
+[Function.c1]
+params.in = "Cycle1"
+ret = "Cycle1"
+condition = []
+
+[Function.c12]
+params.in = "Cycle1"
+ret = "Cycle2"
+condition = []
+
+[Function.c2]
+params.in = "Cycle2"
+ret = "Cycle2"
+condition = []
+
+################################################################################
+### GEOSPATIAL ANALYSES ###
+################################################################################
+
+# ; Raster
+# 
+# (input fact Resolution (.val Int))
+# (input fact CRS (.val Str))
+# 
+# (input fact InputRaster
+#   (.name Str)
+#   (.data Str)
+#   (.resolution Int)
+#   (.crs Str)
+#   (.bands Int)
+#   (.sensor Str))
+# 
+# (output fact Raster
+#   (.name Str)
+#   (.resolution Int)
+#   (.crs Str)
+#   (.bands Int))
+# 
+# (computation loadRaster Raster
+#   ((raster InputRaster))
+#   ((= (.name ret) (.name raster))
+#    (= (.resolution ret) (.resolution raster))
+#    (= (.crs ret) (.crs raster))
+#    (= (.bands ret) (.bands raster))))
+# 
+# ; Resampling
+# 
+# (input fact ResamplingMethod
+#   (.val Str))
+# 
+# (computation resample Raster
+#   ((raster Raster) (method ResamplingMethod) (res Resolution))
+#   ((< (.resolution raster) (.resolution ret))
+#    (< 0 (.resolution ret))
+#    (= (.crs ret) (.crs raster))
+#    (= (.bands ret) (.bands raster))
+#    (= (.name ret) (.name raster))
+#    (= (.resolution ret) (.val res))))
+# 
+# ; Warp
+# 
+# (computation warp Raster
+#   ((raster Raster) (c CRS))
+#   ((= (.bands ret) (.bands raster))
+#    (= (.crs ret) (.val c))
+#    (= (.name ret) (.name raster))
+#    (= (.resolution ret) (.resolution raster))))
+# 
+# ; Mosaic
+# 
+# (computation mosaic Raster
+#   ((r1 Raster) (r2 Raster))
+#   ((= (.bands r1) (.bands r2))
+#    (= (.bands ret) (.bands r1))
+#    (= (.crs r1) (.crs r2))
+#    (= (.crs ret) (.crs r1))
+#    (= (.name ret) (.name r1))
+#    (= (.resolution ret) (.resolution r1))))
+# 
+# ; Band Extration
+# 
+# (computation extractBand Raster
+#   ((raster Raster))
+#   ((= (.bands ret) 1)
+#    (= (.resolution ret) (.resolution raster))
+#    (= (.name ret) (.name raster))
+#    (= (.crs ret) (.crs raster))))
+# 
+# ; Remote Sensing
+# 
+# (computation ndvi Raster
+#   ((raster Raster))
+#   ((< 1 (.bands raster))
+#    (= (.bands ret) 1)
+#    (= (.resolution ret) (.resolution raster))
+#    (= (.name ret) (.name raster))
+#    (= (.crs ret) (.crs raster))))
+# 
+# (computation ndwi Raster
+#   ((raster Raster))
+#   ((< 1 (.bands raster))
+#    (= (.bands ret) 1)
+#    (= (.resolution ret) (.resolution raster))
+#    (= (.name ret) (.name raster))
+#    (= (.crs ret) (.crs raster))))
+# 
+# ; Vector
+# 
+# (input fact InputVector
+#   (.name Str) (.data Str) (.crs Str))
+# 
+# (output fact Vector
+#   (.name Str) (.crs Str))
+# 
+# (computation loadVector Vector
+#   ((vector InputVector))
+#   ((= (.name ret) (.name vector))
+#    (= (.crs ret) (.crs vector))))
+# 
+# ; Reproject
+# 
+# (computation reproject Vector
+#   ((vector Vector))
+#   ())
+# 
+# ; Clip
+# 
+# (computation clipRaster Raster
+#   ((raster Raster) (mask Vector))
+#   ((= (.crs raster) (.crs mask))
+#    (= (.crs ret) (.crs raster))
+#    (= (.name ret) (.name raster))
+#    (= (.resolution ret) (.resolution raster))
+#    (= (.bands ret) (.bands raster))))
+# 
+# ; Rename
+# 
+# (computation rename Raster
+#   ((raster Raster))
+#   ((= (.crs ret) (.crs raster))
+#    (= (.resolution ret) (.resolution raster))
+#    (= (.bands ret) (.bands raster))))

@@ -65,7 +65,7 @@ impl<F: Function> Sketch<F> {
 
 pub fn pretty_hole_string(h: HoleName) -> String {
     ansi_term::Color::Yellow
-        .paint(&format!("?{}", util::subscript_numbers(&h.to_string())))
+        .paint(format!("?{}", util::subscript_numbers(&h.to_string())))
         .to_string()
 }
 
