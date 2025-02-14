@@ -1,7 +1,23 @@
-(facts
-  (Transfection (.sample "A") (.at 1) (.library "library.csv"))
-  (Seq (.sample "A") (.at 2) (.data "initial.fastq"))
-  (Seq (.sample "A") (.at 3) (.data "final.fastq")))
+[[Prop]]
+name = "TransfectionFile"
+args.sample = "A"
+args.at = 1
+args.library = "library.csv"
 
-(goal
-  (Enrichment (.sample "A") (.start 2) (.end 3)))
+[[Prop]]
+name = "SeqFile"
+args.sample = "A"
+args.at = 2
+args.data = "initial.fastq"
+
+[[Prop]]
+name = "SeqFile"
+args.sample = "A"
+args.at = 3
+args.data = "final.fastq"
+
+[Goal]
+name = "Enrichment"
+args.sample = "A"
+args.start = 2
+args.end = 3

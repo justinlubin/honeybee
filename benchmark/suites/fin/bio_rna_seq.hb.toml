@@ -1,8 +1,21 @@
-(facts
-  (ReferenceGenome (.data "hg38.fasta"))
-  (Seq (.sample "Healthy") (.at 5) (.data "healthy.fastq"))
-  (Seq (.sample "TLE") (.at 5) (.data "tle.fastq")))
+[[Prop]]
+name = "ReferenceGenomeFile"
+args.data = "hg38.fasta"
 
-(goal
-  (DifferentialGeneExpression
-    (.sample1 "Healthy") (.sample2 "TLE") (.at 5)))
+[[Prop]]
+name = "SeqFile"
+args.sample = "Healthy"
+args.at = 5
+args.data = "healthy.fastq"
+
+[[Prop]]
+name = "SeqFile"
+args.sample = "TLE"
+args.at = 5
+args.data = "tle.fastq"
+
+[Goal]
+name = "DifferentialGeneExpression"
+args.sample1 = "Healthy"
+args.sample2 = "TLE"
+args.at = 5
