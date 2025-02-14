@@ -81,7 +81,8 @@ impl Runner {
                     .unwrap()
                     .filter_map(Result::ok)
             {
-                let prog_path_noext = prog_path.with_extension("");
+                let prog_path_noext =
+                    prog_path.with_extension("").with_extension("");
 
                 let entry_name = prog_path_noext
                     .file_name()
