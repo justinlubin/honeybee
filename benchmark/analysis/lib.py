@@ -255,3 +255,95 @@ def completion(vals, *, best, order, colors, figsize, xlabel):
 
     fig.tight_layout()
     return fig, ax
+
+
+def speedup(
+    df,
+    *,
+    left_value_feature,
+    left_color_feature,
+    left_name,
+    left_short_name,
+    right_value_feature,
+    right_color_feature,
+    right_name,
+    right_short_name,
+):
+    better_left = df.filter(
+        pl.col(left_value_feature) < pl.col(right_value_feature)
+    )
+
+    better_right = df.filter(
+        pl.col(right_value_feature) < pl.col(left_value_feature)
+    )
+
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+
+    ax.scatter(
+        better_left[right_value_feature],
+        better_left[left_value_feature],
+        c=better_left[left_color_feature],
+        zorder=2,
+    )
+
+    ax.scatter(
+        better_right[right_value_feature],
+        better_right[left_value_feature],
+        c=better_right[right_color_feature],
+        zorder=2,
+    )
+
+    max_duration = (
+        int(
+            max(
+                df[left_value_feature].max(),
+                df[right_value_feature].max(),
+            )
+        )
+        + 1
+    )
+
+    ax.set_xlim([0, max_duration])
+    ax.set_ylim([0, max_duration])
+
+    ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
+
+    ax.set_xlabel(
+        r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
+    )
+    ax.set_ylabel(
+        r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
+    )
+
+    padding = 0.05
+
+    ax.text(
+        padding,
+        1 - padding,
+        r"$\bf{"
+        + right_short_name
+        + r"}$"
+        + f" better ({len(better_right)}/{len(df)})",
+        ha="left",
+        va="top",
+        transform=ax.transAxes,
+    )
+
+    ax.text(
+        1 - padding,
+        padding,
+        r"$\bf{"
+        + left_short_name
+        + r"}$"
+        + f" better ({len(better_left)}/{len(df)})",
+        ha="right",
+        va="bottom",
+        transform=ax.transAxes,
+    )
+
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_aspect("equal", adjustable="box")
+
+    fig.tight_layout()
+
+    return fig, ax

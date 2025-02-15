@@ -127,70 +127,37 @@ for (suite,), df in (
 
 # Speedup plots
 
-particulars_m = particulars.join(
+df = particulars.join(
     algorithm_metadata,
-    on=["algorithm"],
     how="left",
+    on="algorithm",
     validate="m:1",
 )
 
-df = particulars_m.filter(pl.col("algorithm") == "PBNHoneybee").join(
-    particulars_m.filter(pl.col("algorithm") == "PrunedEnumeration"),
+df = df.filter(
+    (pl.col("algorithm") == "PBNHoneybee") & (pl.col("completed"))
+).join(
+    df.filter(
+        (pl.col("algorithm") == "PrunedEnumeration") & (pl.col("completed"))
+    ),
     how="inner",
     on=["suite_name", "entry_name"],
     validate="1:1",
 )
 
-fig, ax = lib.speedup(df, left_value_feature="duration", left_value_name)
-
-# %%
-
-# fig, ax = lib.speedup(
-
-
-approach1 = "Ablation"
-approach2 = "Full"
-total = len(df)
-better1 = len(df.filter(pl.col("duration") < pl.col("duration2")))
-better2 = len(df.filter(pl.col("duration2") < pl.col("duration")))
-fig, ax = plt.subplots(1, 1, figsize=(4, 4))
-ax.scatter(
-    df["duration"],
-    df["duration2"],
-    zorder=2,
-    c=ALGORITHM_COLORS[2],
-    # edgecolor="black",
-    # linewidth=0.5,
-)
-max_duration = int(max(df["duration"].max(), df["duration2"].max())) + 1
-ax.set_xlim([0, max_duration])
-ax.set_ylim([0, max_duration])
-ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
-ax.set_xlabel(r"$\bf{" + approach1 + "}$" + "\nTime taken (s)")
-ax.set_ylabel(r"$\bf{" + approach2 + "}$" + "\nTime taken (s)")
-padding = 0.05
-ax.text(
-    padding,
-    1 - padding,
-    r"$\bf{" + approach1 + "}$" + f" better ({better1}/{total})",
-    ha="left",
-    va="top",
-    transform=ax.transAxes,
-)
-ax.text(
-    1 - padding,
-    padding,
-    r"$\bf{" + approach2 + "}$" + f" better ({better2}/{total})",
-    ha="right",
-    va="bottom",
-    transform=ax.transAxes,
+fig, ax = lib.speedup(
+    df,
+    left_value_feature="duration",
+    left_color_feature="algorithm_color",
+    left_name="Honeybee (Full)",
+    left_short_name="Full",
+    right_value_feature="duration_right",
+    right_color_feature="algorithm_color_right",
+    right_name="Honeybee (Ablation)",
+    right_short_name="Ablation",
 )
 
-ax.spines[["top", "right"]].set_visible(False)
-ax.set_aspect("equal", adjustable="box")
-fig.tight_layout()
-
-fig.save(f"{OUTPUT_DIR}/overall-speedup/{task}-{alg1}-{alg2}.pdf")
+fig.save(f"{OUTPUT_DIR}/speedup.pdf")
 
 # %% Plot scalability
 
