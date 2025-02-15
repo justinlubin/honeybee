@@ -92,7 +92,7 @@ enum Command {
         suite: String,
 
         /// Algorithms to use (comma-separated list, blank for all)
-        #[arg(short, long, value_name = "ALGORITHMS")]
+        #[arg(short, long, value_name = "ALGORITHMS", default_value = "")]
         algorithms: String,
 
         /// The number of times to run each benchmark entry
