@@ -15,6 +15,16 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::PBNHoneybee,
+            Self::PBNHoneybeeNoMemo,
+            Self::PBNConstructiveOracle,
+            Self::NaiveEnumeration,
+            Self::PrunedEnumeration,
+        ]
+    }
+
     pub fn controller(
         &self,
         timer: util::Timer,

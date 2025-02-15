@@ -29,16 +29,13 @@ mod custom_parse {
         }
     }
 
-    pub fn one_or_more_algs(
-        s: &str,
-        option: &str,
-    ) -> Result<Vec<menu::Algorithm>, String> {
+    pub fn algs(s: &str) -> Vec<menu::Algorithm> {
         if s.is_empty() {
-            Err(format!("{} must be nonempty", option))
+            menu::Algorithm::all()
         } else {
-            Ok(s.split(",")
+            s.split(",")
                 .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
-                .collect())
+                .collect()
         }
     }
 }
@@ -94,8 +91,8 @@ enum Command {
         #[arg(short, long, value_name = "DIRS")]
         suite: String,
 
-        /// Algorithms to use (comma-separated list)
-        #[arg(short, long, value_name = "DIRS")]
+        /// Algorithms to use (comma-separated list, blank for all)
+        #[arg(short, long, value_name = "ALGORITHMS")]
         algorithms: String,
 
         /// The number of times to run each benchmark entry
@@ -151,7 +148,7 @@ impl Command {
                 quick,
             } => main_handler::benchmark(
                 custom_parse::one_or_more_paths(&suite, "--suite")?,
-                custom_parse::one_or_more_algs(&algorithms, "--algorithms")?,
+                custom_parse::algs(&algorithms),
                 replicates,
                 timeout,
                 filter,
