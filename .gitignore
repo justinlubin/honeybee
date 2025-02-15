@@ -7,3 +7,4 @@ benchmark/analysis/output
 .venv
 node_modules
 gh-pages
+__pycache__

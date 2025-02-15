@@ -1,0 +1,1 @@
+{"App":[{"name":"f02","metadata":{},"arity":["s","choice"]},{"s":{"App":[{"name":"f01","metadata":{},"arity":["choice"]},{"choice":{"App":[{"name":"choose","metadata":{"x":3},"arity":[]},{}]}}]},"choice":{"App":[{"name":"choose","metadata":{"x":4},"arity":[]},{}]}}]}
