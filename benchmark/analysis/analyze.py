@@ -67,11 +67,14 @@ particulars = (
 # Collect anys
 anys = data.filter(pl.col("solution_name") == ANY_TASK)
 
-# Collect completed tasks
-completed = particulars.filter(pl.col("completed")).drop("completed")
+# Collect overall completion information (particular)
+particular_overall_completion = particulars.group_by(SUITES).agg(
+    overall_completed=pl.col("completed").sum(),
+    total=pl.col("completed").len(),
+)
 
-# Collect overall completion information
-overall_completion = anys.group_by(SUITES).agg(
+# Collect overall completion information (any)
+any_overall_completion = anys.group_by(SUITES).agg(
     overall_completed=pl.col("completed").sum(),
     total=pl.col("completed").len(),
 )
@@ -91,11 +94,12 @@ scal = (
 
 importlib.reload(lib)
 
-# Main summary plots
+### Summary plots
 
-for (suite,), df in (
-    completed.join(
-        overall_completion,
+particular_summary = (
+    particulars.filter(pl.col("completed"))
+    .join(
+        particular_overall_completion,
         how="left",
         on=["suite_name", "algorithm"],
         validate="m:1",
@@ -106,26 +110,126 @@ for (suite,), df in (
         on="algorithm",
         validate="m:1",
     )
-    .group_by("suite_name")
-):
-    fig, ax = lib.distributions(
-        df,
-        group_feature="algorithm",
-        filter_feature="algorithm_main",
-        sort_feature="algorithm_order",
-        name_feature="algorithm_name",
-        value_feature="duration",
-        color_feature="algorithm_color",
-        count_feature="overall_completed",
-        total_feature="total",
-        bins=np.arange(0, 10.1, 1),
-        xlabel="Time taken (s)",
-        flip=True,
+)
+
+any_summary = (
+    anys.filter(pl.col("completed"))
+    .join(
+        any_overall_completion,
+        how="left",
+        on=["suite_name", "algorithm"],
+        validate="m:1",
     )
+    .join(
+        algorithm_metadata,
+        how="left",
+        on="algorithm",
+        validate="m:1",
+    )
+)
 
-    fig.save(f"{OUTPUT_DIR}/{suite}.pdf")
+# Fin
 
-# Speedup plots
+fig, ax = lib.distributions(
+    particular_summary.filter(
+        (pl.col("suite_name") == "fin") & pl.col("algorithm_main"),
+    ),
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    count_feature="overall_completed",
+    total_feature="total",
+    bins=np.arange(0, 10.1, 1),
+    xlabel="Time taken (s)",
+    flip=True,
+)
+
+fig.save(f"{OUTPUT_DIR}/fin.pdf")
+
+# Inf
+
+fig, ax = lib.distributions(
+    particular_summary.filter(
+        (pl.col("suite_name") == "inf")
+        & (pl.col("algorithm") == "PBNHoneybee"),
+    ),
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    count_feature="overall_completed",
+    total_feature="total",
+    bins=np.arange(0, 10.1, 1),
+    xlabel="Time taken (s)",
+    flip=True,
+)
+
+fig.save(f"{OUTPUT_DIR}/inf.pdf")
+
+# Any
+
+fig, ax = lib.distributions(
+    any_summary.filter(
+        (pl.col("suite_name").is_in(["fin", "inf"])) & pl.col("algorithm_main"),
+    ),
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    count_feature="overall_completed",
+    total_feature="total",
+    bins=np.arange(0, 10.1, 1),
+    xlabel="Time taken (s)",
+    flip=True,
+)
+
+fig.save(f"{OUTPUT_DIR}/any.pdf")
+
+# Naive oracle, Fin
+
+fig, ax = lib.distributions(
+    particular_summary.filter(
+        (pl.col("suite_name") == "fin") & (pl.col("algorithm") == "TODO"),
+    ),
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    count_feature="overall_completed",
+    total_feature="total",
+    bins=np.arange(0, 10.1, 1),
+    xlabel="Time taken (s)",
+    flip=True,
+)
+
+fig.save(f"{OUTPUT_DIR}/naive-fin.pdf")
+
+# Naive oracle, Inf
+
+fig, ax = lib.distributions(
+    particular_summary.filter(
+        (pl.col("suite_name") == "inf") & (pl.col("algorithm") == "TODO"),
+    ),
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    count_feature="overall_completed",
+    total_feature="total",
+    bins=np.arange(0, 10.1, 1),
+    xlabel="Time taken (s)",
+    flip=True,
+)
+
+fig.save(f"{OUTPUT_DIR}/naive-inf.pdf")
+
+### Speedup plot
 
 df = particulars.join(
     algorithm_metadata,
@@ -159,7 +263,7 @@ fig, ax = lib.speedup(
 
 fig.save(f"{OUTPUT_DIR}/speedup.pdf")
 
-# %% Plot scalability
+### Scalability
 
 fig, ax = plt.subplots(
     1,

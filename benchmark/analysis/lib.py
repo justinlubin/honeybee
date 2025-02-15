@@ -29,7 +29,6 @@ def distributions(
     *,
     group_feature,
     sort_feature,
-    filter_feature,
     name_feature,
     value_feature,
     color_feature,
@@ -45,9 +44,7 @@ def distributions(
         assert len(xticklabels) == len(bins)
 
     groups = list(
-        df.filter(pl.col(filter_feature))
-        .sort(sort_feature)
-        .group_by(group_feature, maintain_order=True)
+        df.sort(sort_feature).group_by(group_feature, maintain_order=True)
     )
 
     if flip:
