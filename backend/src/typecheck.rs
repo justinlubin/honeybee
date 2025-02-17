@@ -1,13 +1,55 @@
 use crate::core::*;
 use crate::eval;
-use crate::top_down::Sketch;
+use crate::top_down::{FunParam, Sketch};
 
 use indexmap::{IndexMap, IndexSet};
 
 pub struct Context<'a>(pub &'a Problem);
 
-type Check = Result<(), LangError>;
-type Infer<T> = Result<T, LangError>;
+#[derive(Debug)]
+pub struct Error {
+    pub context: Vec<String>,
+    pub message: String,
+    _private: (),
+}
+
+impl Error {
+    pub fn with_context(mut self, ctx: String) -> Self {
+        self.context.push(ctx);
+        self
+    }
+
+    pub fn new(message: String) -> Self {
+        Self {
+            context: vec![],
+            message,
+            _private: (),
+        }
+    }
+
+    pub fn fp(fp: &FunParam) -> Self {
+        Self::new(format!("unknown function parameter '{}'", fp.0))
+    }
+
+    pub fn mn(name: &MetName) -> Self {
+        Self::new(format!("unknown metadata name '{}'", name.0))
+    }
+
+    pub fn mp(mp: &MetParam) -> Self {
+        Self::new(format!("unknown metadata parameter '{}'", mp.0))
+    }
+
+    pub fn bf(bf: &BaseFunction) -> Self {
+        Self::new(format!("unknown base function '{}'", bf.0))
+    }
+
+    pub fn argcount(got: usize, expected: usize) -> Self {
+        Self::new(format!("got {} args, expected {}", got, expected))
+    }
+}
+
+type Check = Result<(), Error>;
+type Infer<T> = Result<T, Error>;
 
 pub fn problem(problem: &Problem) -> Check {
     let context = Context(problem);
@@ -31,7 +73,7 @@ impl Context<'_> {
             pnames.intersection(&tnames).collect();
 
         if !ambiguous_names.is_empty() {
-            return Err(LangError::new(format!(
+            return Err(Error::new(format!(
                 "ambiguous prop/type names: {:?}",
                 ambiguous_names
             )));
@@ -67,14 +109,14 @@ impl Context<'_> {
                 .library
                 .types
                 .get(type_name)
-                .ok_or_else(|| LangError::mn(type_name))?;
+                .ok_or_else(|| Error::mn(type_name))?;
         }
         let _ = self
             .0
             .library
             .types
             .get(&fs.ret)
-            .ok_or_else(|| LangError::mn(&fs.ret))?;
+            .ok_or_else(|| Error::mn(&fs.ret))?;
         self.check_formula(fs, &fs.condition)
     }
 
@@ -87,7 +129,7 @@ impl Context<'_> {
             Formula::Lt(fa1, fa2) => {
                 let vt1 = self.infer_formula_atom(fs, fa1)?;
                 if vt1 != ValueType::Int {
-                    return Err(LangError::new(format!(
+                    return Err(Error::new(format!(
                         "formula atom {:?} has type {:?}, expected Int",
                         fa1, vt1,
                     )));
@@ -107,11 +149,11 @@ impl Context<'_> {
         fs: &FunctionSignature,
         fa1: &FormulaAtom,
         fa2: &FormulaAtom,
-    ) -> Result<(), LangError> {
+    ) -> Result<(), Error> {
         let vt1 = self.infer_formula_atom(fs, fa1)?;
         let vt2 = self.infer_formula_atom(fs, fa2)?;
         if vt1 != vt2 {
-            return Err(LangError::new(format!(
+            return Err(Error::new(format!(
                 "formula atom {:?} has different type ({:?}) than formula atom {:?} ({:?})",
                 fa1, vt1, fa2, vt2
             )));
@@ -129,10 +171,10 @@ impl Context<'_> {
             .library
             .props
             .get(&ap.name)
-            .ok_or_else(|| LangError::mn(&ap.name))?;
+            .ok_or_else(|| Error::mn(&ap.name))?;
 
         if ap.args.len() != sig.params.len() {
-            return Err(LangError::argcount(ap.args.len(), sig.params.len())
+            return Err(Error::argcount(ap.args.len(), sig.params.len())
                 .with_context(ap.context()));
         }
 
@@ -140,7 +182,7 @@ impl Context<'_> {
             let expected_vt = sig
                 .params
                 .get(mp)
-                .ok_or_else(|| LangError::mp(mp).with_context(ap.context()))?;
+                .ok_or_else(|| Error::mp(mp).with_context(ap.context()))?;
 
             let fa = match ofa {
                 Some(fa) => fa,
@@ -150,7 +192,7 @@ impl Context<'_> {
             let got_vt = self.infer_formula_atom(fs, fa)?;
 
             if got_vt != *expected_vt {
-                return Err(LangError::new(format!(
+                return Err(Error::new(format!(
                     "argument {:?} of atomic proposition {:?} is type {:?} but expected {:?}",
                     fa,
                     ap.name,
@@ -170,17 +212,16 @@ impl Context<'_> {
     ) -> Infer<ValueType> {
         match fa {
             FormulaAtom::Param(fp, mp) => {
-                let name =
-                    fs.params.get(fp).ok_or_else(|| LangError::fp(fp))?;
+                let name = fs.params.get(fp).ok_or_else(|| Error::fp(fp))?;
 
                 self.0
                     .library
                     .types
                     .get(name)
-                    .ok_or_else(|| LangError::mn(name))?
+                    .ok_or_else(|| Error::mn(name))?
                     .params
                     .get(mp)
-                    .ok_or_else(|| LangError::mp(mp))
+                    .ok_or_else(|| Error::mp(mp))
                     .cloned()
             }
             FormulaAtom::Ret(mp) => self
@@ -188,10 +229,10 @@ impl Context<'_> {
                 .library
                 .types
                 .get(&fs.ret)
-                .ok_or_else(|| LangError::mn(&fs.ret))?
+                .ok_or_else(|| Error::mn(&fs.ret))?
                 .params
                 .get(mp)
-                .ok_or_else(|| LangError::mp(mp))
+                .ok_or_else(|| Error::mp(mp))
                 .cloned(),
             FormulaAtom::Lit(v) => Ok(self.infer_value(v)),
         }
@@ -202,12 +243,10 @@ impl Context<'_> {
         mlib: &MetLibrary,
         met: &Met<Value>,
     ) -> Infer<MetSignature> {
-        let sig = mlib
-            .get(&met.name)
-            .ok_or_else(|| LangError::mn(&met.name))?;
+        let sig = mlib.get(&met.name).ok_or_else(|| Error::mn(&met.name))?;
 
         if met.args.len() != sig.params.len() {
-            return Err(LangError::argcount(met.args.len(), sig.params.len())
+            return Err(Error::argcount(met.args.len(), sig.params.len())
                 .with_context(met.context()));
         }
 
@@ -215,11 +254,11 @@ impl Context<'_> {
             let expected_vt = sig
                 .params
                 .get(mp)
-                .ok_or_else(|| LangError::mp(mp).with_context(met.context()))?;
+                .ok_or_else(|| Error::mp(mp).with_context(met.context()))?;
             let got_vt = self.infer_value(v);
 
             if got_vt != *expected_vt {
-                return Err(LangError::new(format!(
+                return Err(Error::new(format!(
                     "argument {:?} of {:?} is type {:?} but expected {:?}",
                     v, met.name, got_vt, expected_vt
                 ))
@@ -255,7 +294,7 @@ impl Context<'_> {
     pub fn infer_exp(&self, e: &Exp) -> Infer<Met<Value>> {
         match e {
             Sketch::Hole(_) => {
-                Err(LangError::new("holes are not well-typed".to_string()))
+                Err(Error::new("holes are not well-typed".to_string()))
             }
             Sketch::App(f, args) => {
                 // Get signature
@@ -264,7 +303,7 @@ impl Context<'_> {
                     .library
                     .functions
                     .get(&f.name)
-                    .ok_or_else(|| LangError::bf(&f.name))?;
+                    .ok_or_else(|| Error::bf(&f.name))?;
 
                 // Compute domain
                 let mut vals = IndexSet::new();
@@ -283,7 +322,7 @@ impl Context<'_> {
                     let metadata = tau.args;
                     for v in metadata.values() {
                         if !vals.contains(v) {
-                            return Err(LangError::new(format!(
+                            return Err(Error::new(format!(
                                 "value {:?} not in domain",
                                 v
                             )));
@@ -299,7 +338,7 @@ impl Context<'_> {
                     ret: &f.metadata,
                 };
                 if !ctx.sat(&sig.condition) {
-                    return Err(LangError::new(format!(
+                    return Err(Error::new(format!(
                         "condition {:?} not satisfied for {:?}",
                         sig.condition, e
                     )));

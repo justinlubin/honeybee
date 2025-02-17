@@ -7,49 +7,6 @@ use crate::top_down::*;
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 
-/// The type of type errors used by this module.
-#[derive(Debug)]
-pub struct LangError {
-    pub context: Vec<String>,
-    pub message: String,
-    _private: (),
-}
-
-impl LangError {
-    pub fn with_context(mut self, ctx: String) -> Self {
-        self.context.push(ctx);
-        self
-    }
-
-    pub fn new(message: String) -> Self {
-        Self {
-            context: vec![],
-            message,
-            _private: (),
-        }
-    }
-
-    pub fn fp(fp: &FunParam) -> Self {
-        Self::new(format!("unknown function parameter '{}'", fp.0))
-    }
-
-    pub fn mn(name: &MetName) -> Self {
-        Self::new(format!("unknown metadata name '{}'", name.0))
-    }
-
-    pub fn mp(mp: &MetParam) -> Self {
-        Self::new(format!("unknown metadata parameter '{}'", mp.0))
-    }
-
-    pub fn bf(bf: &BaseFunction) -> Self {
-        Self::new(format!("unknown base function '{}'", bf.0))
-    }
-
-    pub fn argcount(got: usize, expected: usize) -> Self {
-        Self::new(format!("got {} args, expected {}", got, expected))
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Values
 
