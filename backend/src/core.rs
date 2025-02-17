@@ -9,42 +9,43 @@ use serde::{Deserialize, Serialize};
 
 /// The type of type errors used by this module.
 #[derive(Debug)]
-#[non_exhaustive]
 pub struct LangError {
     pub context: Vec<String>,
     pub message: String,
+    _private: (),
 }
 
 impl LangError {
-    fn with_context(mut self, ctx: String) -> Self {
+    pub fn with_context(mut self, ctx: String) -> Self {
         self.context.push(ctx);
         self
     }
 
-    fn new(message: String) -> Self {
+    pub fn new(message: String) -> Self {
         Self {
             context: vec![],
             message,
+            _private: (),
         }
     }
 
-    fn fp(fp: &FunParam) -> Self {
+    pub fn fp(fp: &FunParam) -> Self {
         Self::new(format!("unknown function parameter '{}'", fp.0))
     }
 
-    fn mn(name: &MetName) -> Self {
+    pub fn mn(name: &MetName) -> Self {
         Self::new(format!("unknown metadata name '{}'", name.0))
     }
 
-    fn mp(mp: &MetParam) -> Self {
+    pub fn mp(mp: &MetParam) -> Self {
         Self::new(format!("unknown metadata parameter '{}'", mp.0))
     }
 
-    fn bf(bf: &BaseFunction) -> Self {
+    pub fn bf(bf: &BaseFunction) -> Self {
         Self::new(format!("unknown base function '{}'", bf.0))
     }
 
-    fn argcount(got: usize, expected: usize) -> Self {
+    pub fn argcount(got: usize, expected: usize) -> Self {
         Self::new(format!("got {} args, expected {}", got, expected))
     }
 }
@@ -67,16 +68,6 @@ pub enum Value {
     Bool(bool),
     Int(i64),
     Str(String),
-}
-
-impl Value {
-    pub fn infer(&self) -> ValueType {
-        match self {
-            Value::Bool(_) => ValueType::Bool,
-            Value::Int(_) => ValueType::Int,
-            Value::Str(_) => ValueType::Str,
-        }
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,38 +107,8 @@ pub struct Met<T> {
 }
 
 impl<T> Met<T> {
-    fn context(&self) -> String {
+    pub fn context(&self) -> String {
         format!("metadata tuple '{}'", self.name.0).to_owned()
-    }
-}
-
-impl Met<Value> {
-    fn infer(&self, mlib: &MetLibrary) -> Result<MetSignature, LangError> {
-        let sig = mlib
-            .get(&self.name)
-            .ok_or_else(|| LangError::mn(&self.name))?;
-
-        if self.args.len() != sig.params.len() {
-            return Err(LangError::argcount(self.args.len(), sig.params.len())
-                .with_context(self.context()));
-        }
-
-        for (mp, v) in &self.args {
-            let expected_vt = sig.params.get(mp).ok_or_else(|| {
-                LangError::mp(mp).with_context(self.context())
-            })?;
-            let got_vt = v.infer();
-
-            if got_vt != *expected_vt {
-                return Err(LangError::new(format!(
-                    "argument {:?} of {:?} is type {:?} but expected {:?}",
-                    v, self.name, got_vt, expected_vt
-                ))
-                .with_context(self.context()));
-            }
-        }
-
-        Ok(sig.clone())
     }
 }
 
@@ -170,35 +131,6 @@ pub enum FormulaAtom {
 }
 
 impl FormulaAtom {
-    pub fn infer(
-        &self,
-        types: &MetLibrary,
-        fs: &FunctionSignature,
-    ) -> Result<ValueType, LangError> {
-        match self {
-            FormulaAtom::Param(fp, mp) => {
-                let name =
-                    fs.params.get(fp).ok_or_else(|| LangError::fp(fp))?;
-
-                types
-                    .get(name)
-                    .ok_or_else(|| LangError::mn(name))?
-                    .params
-                    .get(mp)
-                    .ok_or_else(|| LangError::mp(mp))
-                    .cloned()
-            }
-            FormulaAtom::Ret(mp) => types
-                .get(&fs.ret)
-                .ok_or_else(|| LangError::mn(&fs.ret))?
-                .params
-                .get(mp)
-                .ok_or_else(|| LangError::mp(mp))
-                .cloned(),
-            FormulaAtom::Lit(v) => Ok(v.infer()),
-        }
-    }
-
     fn eval(&self, ctx: &EvaluationContext) -> Result<Value, LangError> {
         match self {
             FormulaAtom::Param(fp, mp) => ctx
@@ -227,47 +159,6 @@ impl FormulaAtom {
 pub type AtomicProposition = Met<Option<FormulaAtom>>;
 
 impl AtomicProposition {
-    fn check(
-        &self,
-        props: &MetLibrary,
-        types: &MetLibrary,
-        fs: &FunctionSignature,
-    ) -> Result<(), LangError> {
-        let sig = props
-            .get(&self.name)
-            .ok_or_else(|| LangError::mn(&self.name))?;
-
-        if self.args.len() != sig.params.len() {
-            return Err(LangError::argcount(self.args.len(), sig.params.len())
-                .with_context(self.context()));
-        }
-
-        for (mp, ofa) in &self.args {
-            let expected_vt = sig.params.get(mp).ok_or_else(|| {
-                LangError::mp(mp).with_context(self.context())
-            })?;
-
-            let fa = match ofa {
-                Some(fa) => fa,
-                None => continue,
-            };
-
-            let got_vt = fa.infer(types, fs)?;
-
-            if got_vt != *expected_vt {
-                return Err(LangError::new(format!(
-                    "argument {:?} of atomic proposition {:?} is type {:?} but expected {:?}",
-                    fa,
-                    self.name,
-                    got_vt,
-                    expected_vt
-                )).with_context(self.context()));
-            }
-        }
-
-        Ok(())
-    }
-
     fn matches(
         &self,
         p: &Met<Value>,
@@ -326,52 +217,6 @@ impl Formula {
             phi = Self::And(Box::new(phi), Box::new(f))
         }
         phi
-    }
-
-    fn check_equal_types(
-        types: &MetLibrary,
-        fs: &FunctionSignature,
-        fa1: &FormulaAtom,
-        fa2: &FormulaAtom,
-    ) -> Result<(), LangError> {
-        let vt1 = fa1.infer(types, fs)?;
-        let vt2 = fa2.infer(types, fs)?;
-        if vt1 != vt2 {
-            return Err(LangError::new(format!(
-                "formula atom {:?} has different type ({:?}) than formula atom {:?} ({:?})",
-                fa1, vt1, fa2, vt2
-            )));
-        }
-        Ok(())
-    }
-
-    fn check(
-        &self,
-        props: &MetLibrary,
-        types: &MetLibrary,
-        fs: &FunctionSignature,
-    ) -> Result<(), LangError> {
-        match self {
-            Formula::True => Ok(()),
-            Formula::Eq(fa1, fa2) => {
-                Self::check_equal_types(types, fs, fa1, fa2)
-            }
-            Formula::Lt(fa1, fa2) => {
-                let vt1 = fa1.infer(types, fs)?;
-                if vt1 != ValueType::Int {
-                    return Err(LangError::new(format!(
-                        "formula atom {:?} has type {:?}, expected Int",
-                        fa1, vt1,
-                    )));
-                }
-                Self::check_equal_types(types, fs, fa1, fa2)
-            }
-            Formula::Ap(ap) => ap.check(props, types, fs),
-            Formula::And(phi1, phi2) => {
-                phi1.check(props, types, fs)?;
-                phi2.check(props, types, fs)
-            }
-        }
     }
 
     pub fn sat(
@@ -440,22 +285,6 @@ pub struct FunctionSignature {
 }
 
 impl FunctionSignature {
-    fn check(
-        &self,
-        props: &MetLibrary,
-        types: &MetLibrary,
-    ) -> Result<(), LangError> {
-        for type_name in self.params.values() {
-            let _ = types
-                .get(type_name)
-                .ok_or_else(|| LangError::mn(type_name))?;
-        }
-        let _ = types
-            .get(&self.ret)
-            .ok_or_else(|| LangError::mn(&self.ret))?;
-        self.condition.check(props, types, self)
-    }
-
     pub fn vals(&self) -> IndexSet<Value> {
         self.condition.vals()
     }
@@ -478,30 +307,6 @@ pub struct Library {
     pub functions: FunctionLibrary,
 }
 
-impl Library {
-    fn check(&self) -> Result<(), LangError> {
-        let pnames: IndexSet<_> = self.props.keys().cloned().collect();
-        let tnames: IndexSet<_> = self.types.keys().cloned().collect();
-        let ambiguous_names: IndexSet<_> =
-            pnames.intersection(&tnames).collect();
-
-        if !ambiguous_names.is_empty() {
-            return Err(LangError::new(format!(
-                "ambiguous prop/type names: {:?}",
-                ambiguous_names
-            )));
-        }
-
-        for (f, fs) in self.functions.iter() {
-            fs.check(&self.props, &self.types).map_err(|e| {
-                e.with_context(format!("function signature '{}'", f.0))
-            })?;
-        }
-
-        Ok(())
-    }
-}
-
 /// The type of Honeybee programs.
 #[derive(Clone, Deserialize)]
 pub struct Program {
@@ -509,23 +314,6 @@ pub struct Program {
     pub props: Vec<Met<Value>>,
     #[serde(rename = "Goal")]
     pub goal: Met<Value>,
-}
-
-impl Program {
-    fn check(&self, lib: &Library) -> Result<(), LangError> {
-        for p in &self.props {
-            let _ = p
-                .infer(&lib.props)
-                .map_err(|e| e.with_context("propositions".to_owned()))?;
-        }
-
-        let _ = self
-            .goal
-            .infer(&lib.types)
-            .map_err(|e| e.with_context("goal".to_owned()))?;
-
-        Ok(())
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -660,28 +448,12 @@ impl Exp {
 /// [`Exp::infer`] for more information about what it means for an
 /// expression to be well-typed.
 #[derive(Clone)]
-#[non_exhaustive]
 pub struct Problem {
     pub library: Library,
     pub program: Program,
 }
 
 impl Problem {
-    pub fn new(library: Library, program: Program) -> Result<Self, LangError> {
-        let ret = Self { library, program };
-        ret.check()?;
-        Ok(ret)
-    }
-
-    fn check(&self) -> Result<(), LangError> {
-        self.library
-            .check()
-            .map_err(|e| e.with_context("library".to_owned()))?;
-        self.program
-            .check(&self.library)
-            .map_err(|e| e.with_context("program".to_owned()))
-    }
-
     pub fn vals(&self) -> IndexSet<Value> {
         let mut dom = IndexSet::new();
         for fs in self.library.functions.values() {

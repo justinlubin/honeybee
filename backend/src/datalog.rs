@@ -373,12 +373,12 @@ impl Rule {
 ///   take on
 /// - A set of rules that define the inhabitation of IDB facts
 /// - A set of ground facts that define the inhabitation of EDB facts
-#[non_exhaustive]
 pub struct Program {
     pub lib: RelationLibrary,
     pub dom: Domain,
     pub rules: Vec<Rule>,
     pub ground_facts: Vec<Fact>,
+    _private: (),
 }
 
 impl Program {
@@ -394,6 +394,7 @@ impl Program {
             dom,
             rules,
             ground_facts,
+            _private: (),
         };
         ret.check()?;
         Ok(ret)

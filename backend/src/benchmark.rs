@@ -3,7 +3,7 @@
 
 use crate::pbn::Step;
 use crate::util::{Timer, TimerExpired};
-use crate::{core, menu, parse, top_down};
+use crate::{core, menu, parse, top_down, typecheck};
 
 use instant::{Duration, Instant};
 use rayon::prelude::*;
@@ -74,7 +74,7 @@ impl Runner {
 
             let lib_path = suite_path.join("_suite.hblib.toml");
             let lib_string = std::fs::read_to_string(lib_path).unwrap();
-            let lib = parse::library(&lib_string).unwrap();
+            let library = parse::library(&lib_string).unwrap();
 
             for prog_path in
                 glob::glob(suite_path.join("*.hb.toml").to_str().unwrap())
@@ -96,9 +96,14 @@ impl Runner {
                 }
 
                 let prog_string = std::fs::read_to_string(prog_path).unwrap();
-                let prog = parse::program(&prog_string).unwrap();
+                let program = parse::program(&prog_string).unwrap();
 
-                let problem = core::Problem::new(lib.clone(), prog).unwrap();
+                let problem = core::Problem {
+                    library: library.clone(),
+                    program,
+                };
+
+                typecheck::problem(&problem).unwrap();
 
                 let mut solutions = vec![("<ANY>".to_owned(), None)];
 

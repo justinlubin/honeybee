@@ -1,4 +1,4 @@
-use crate::{benchmark, codegen, core, menu, parse, top_down, unparse, util};
+use crate::*;
 
 use ansi_term::Color::*;
 use instant::Duration;
@@ -38,15 +38,17 @@ pub fn interact(
     let prog_string =
         std::fs::read_to_string(program).map_err(|e| e.to_string())?;
 
-    let lib = parse::library(&lib_string).map_err(|e| {
+    let library = parse::library(&lib_string).map_err(|e| {
         format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
     })?;
 
-    let prog = parse::program(&prog_string).map_err(|e| {
+    let program = parse::program(&prog_string).map_err(|e| {
         format!("{}\n{}", Red.bold().paint("parse error (program):"), e)
     })?;
 
-    let problem = core::Problem::new(lib, prog).map_err(|e| {
+    let problem = core::Problem { library, program };
+
+    typecheck::problem(&problem).map_err(|e| {
         format!(
             "{} {}\n  occurred:{}",
             Red.bold().paint("type error:"),

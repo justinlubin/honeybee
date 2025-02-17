@@ -11,5 +11,6 @@ pub mod parse;
 pub mod pbn;
 pub mod top_down;
 pub mod traditional_synthesis;
+pub mod typecheck;
 pub mod unparse;
 pub mod util;
