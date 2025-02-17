@@ -1,0 +1,1 @@
+{"App":[{"name":"d5","metadata":{},"arity":["in"]},{"in":{"App":[{"name":"d4","metadata":{},"arity":["in"]},{"in":{"App":[{"name":"b3","metadata":{},"arity":["in"]},{"in":{"App":[{"name":"b2","metadata":{},"arity":["in"]},{"in":{"App":[{"name":"d1","metadata":{},"arity":["in"]},{"in":{"App":[{"name":"choose","metadata":{"x":0},"arity":[]},{}]}}]}}]}}]}}]}}]}
