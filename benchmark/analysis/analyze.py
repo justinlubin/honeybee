@@ -17,6 +17,10 @@ OUTPUT_DIR = "output"
 # Whether or not to perform validity checks of benchmark csv
 CHECK = True
 
+# The maximum breadth/depth for scalability analysis
+MAX_DEPTH = 10
+MAX_BREADTH = 10
+
 # The breadth/depth that was held constant for scalability analysis
 CONST_DEPTH = 5
 CONST_BREADTH = 5
@@ -90,7 +94,7 @@ scal = (
 )
 
 ################################################################################
-# %% Plot data
+# % % Plot data
 
 importlib.reload(lib)
 
@@ -128,103 +132,70 @@ any_summary = (
     )
 )
 
+
+def summary_plot(df):
+    return lib.distributions(
+        df,
+        group_feature="algorithm",
+        sort_feature="algorithm_order",
+        name_feature="algorithm_name",
+        value_feature="duration",
+        color_feature="algorithm_color",
+        count_feature="overall_completed",
+        total_feature="total",
+        bins=np.arange(0, 10.1, 1),
+        xlabel="Time taken (s)",
+        flip=True,
+    )
+
+
 # Fin
 
-fig, ax = lib.distributions(
+fig, ax = summary_plot(
     particular_summary.filter(
         (pl.col("suite_name") == "fin") & pl.col("algorithm_main"),
-    ),
-    group_feature="algorithm",
-    sort_feature="algorithm_order",
-    name_feature="algorithm_name",
-    value_feature="duration",
-    color_feature="algorithm_color",
-    count_feature="overall_completed",
-    total_feature="total",
-    bins=np.arange(0, 10.1, 1),
-    xlabel="Time taken (s)",
-    flip=True,
+    )
 )
 
 fig.save(f"{OUTPUT_DIR}/fin.pdf")
 
 # Inf
 
-fig, ax = lib.distributions(
+fig, ax = summary_plot(
     particular_summary.filter(
         (pl.col("suite_name") == "inf")
         & (pl.col("algorithm") == "PBNHoneybee"),
-    ),
-    group_feature="algorithm",
-    sort_feature="algorithm_order",
-    name_feature="algorithm_name",
-    value_feature="duration",
-    color_feature="algorithm_color",
-    count_feature="overall_completed",
-    total_feature="total",
-    bins=np.arange(0, 10.1, 1),
-    xlabel="Time taken (s)",
-    flip=True,
+    )
 )
 
 fig.save(f"{OUTPUT_DIR}/inf.pdf")
 
 # Any
 
-fig, ax = lib.distributions(
+fig, ax = summary_plot(
     any_summary.filter(
         (pl.col("suite_name").is_in(["fin", "inf"])) & pl.col("algorithm_main"),
     ),
-    group_feature="algorithm",
-    sort_feature="algorithm_order",
-    name_feature="algorithm_name",
-    value_feature="duration",
-    color_feature="algorithm_color",
-    count_feature="overall_completed",
-    total_feature="total",
-    bins=np.arange(0, 10.1, 1),
-    xlabel="Time taken (s)",
-    flip=True,
 )
 
 fig.save(f"{OUTPUT_DIR}/any.pdf")
 
 # Naive oracle, Fin
 
-fig, ax = lib.distributions(
+fig, ax = summary_plot(
     particular_summary.filter(
         (pl.col("suite_name") == "fin") & (pl.col("algorithm") == "TODO"),
     ),
-    group_feature="algorithm",
-    sort_feature="algorithm_order",
-    name_feature="algorithm_name",
-    value_feature="duration",
-    color_feature="algorithm_color",
-    count_feature="overall_completed",
-    total_feature="total",
-    bins=np.arange(0, 10.1, 1),
-    xlabel="Time taken (s)",
-    flip=True,
 )
 
 fig.save(f"{OUTPUT_DIR}/naive-fin.pdf")
 
 # Naive oracle, Inf
 
-fig, ax = lib.distributions(
+fig, ax = summary_plot(
     particular_summary.filter(
         (pl.col("suite_name") == "inf") & (pl.col("algorithm") == "TODO"),
     ),
-    group_feature="algorithm",
-    sort_feature="algorithm_order",
-    name_feature="algorithm_name",
-    value_feature="duration",
-    color_feature="algorithm_color",
-    count_feature="overall_completed",
-    total_feature="total",
-    bins=np.arange(0, 10.1, 1),
-    xlabel="Time taken (s)",
-    flip=True,
 )
 
 fig.save(f"{OUTPUT_DIR}/naive-inf.pdf")
@@ -265,61 +236,22 @@ fig.save(f"{OUTPUT_DIR}/speedup.pdf")
 
 ### Scalability
 
-fig, ax = plt.subplots(
-    1,
-    2,
-    figsize=(8, 4),
-    sharey=True,
+fig, ax = lib.scalability(
+    scal.filter(pl.col("completed")).join(
+        algorithm_metadata, how="left", on="algorithm", validate="m:1"
+    ),
+    max_breadth=MAX_BREADTH,
+    max_depth=MAX_DEPTH,
+    const_breadth=CONST_BREADTH,
+    const_depth=CONST_DEPTH,
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    marker_feature="algorithm_marker",
+    depth_feature="depth",
+    breadth_feature="breadth",
 )
 
-for i, (feature, other, const) in enumerate(
-    [
-        ("depth", "breadth", CONST_BREADTH),
-        ("breadth", "depth", CONST_DEPTH),
-    ]
-):
-    df = scal.filter(
-        (pl.col(other) == const)
-        & pl.col("completed")
-        & pl.col("algorithm").is_in(ALGORITHMS)
-    ).sort(by=feature)
-
-    groups = sorted(
-        df.group_by("algorithm", "task"),
-        key=lambda x: ALGOTASKS.index(x[0][0] + ":" + x[0][1]),
-    )
-
-    markers = ["s", "^", "o"]
-    for j, ((a, t), g) in enumerate(groups):
-        ati = ALGOTASKS.index(a + ":" + t)
-        ax[i].plot(
-            g[feature],
-            g["duration"],
-            c=ALGORITHM_COLORS[ati],
-            marker=markers[j],
-            label=APPROACH[ati] if i == 0 else None,
-        )
-
-    ax[i].spines[["top", "right"]].set_visible(False)
-    ax[i].set_aspect("equal", adjustable="box")
-    featureUpper = feature[0].upper() + feature[1:]
-    otherUpper = other[0].upper() + other[1:]
-    ax[i].set_xlabel(
-        r"$\bf{"
-        + featureUpper
-        + r"}$ $\bf{of}$ $\bf{search}$ $\bf{space}$"
-        + f"\n(for {other} = {const})",
-    )
-    ax[i].set_ylabel(
-        "Time taken (s)",
-        fontweight="bold",
-    )
-    ax[i].set_xlim([0, 10.5])
-    ax[i].set_ylim([0, 10.5])
-    ax[i].set_xticks(np.arange(0, 10.1, 1))
-    ax[i].set_yticks(np.arange(0, 10.1, 1))
-    ax[i].yaxis.set_tick_params(labelleft=True)
-
-fig.legend(ncol=3, loc="upper center", bbox_to_anchor=(0.5, 0))
-fig.tight_layout()
-fig.save(f"{OUTPUT_DIR}/scalability/scalability.pdf", bbox_inches="tight")
+fig.save(f"{OUTPUT_DIR}/scalability.pdf", bbox_inches="tight")

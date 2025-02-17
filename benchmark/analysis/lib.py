@@ -44,7 +44,10 @@ def distributions(
         assert len(xticklabels) == len(bins)
 
     groups = list(
-        df.sort(sort_feature).group_by(group_feature, maintain_order=True)
+        df.sort(sort_feature).group_by(
+            group_feature,
+            maintain_order=True,
+        )
     )
 
     if flip:
@@ -341,6 +344,129 @@ def speedup(
     ax.spines[["top", "right"]].set_visible(False)
     ax.set_aspect("equal", adjustable="box")
 
+    fig.tight_layout()
+
+    return fig, ax
+
+
+# Broken axis from:
+#   https://matplotlib.org/stable/gallery/subplots_axes_and_figures/broken_axis.html
+
+
+def scalability(
+    scal,
+    *,
+    max_breadth,
+    max_depth,
+    const_breadth,
+    const_depth,
+    group_feature,
+    sort_feature,
+    name_feature,
+    value_feature,
+    color_feature,
+    marker_feature,
+    depth_feature,
+    breadth_feature,
+):
+    fig, ax = plt.subplots(
+        2,
+        2,
+        figsize=(8, 5),
+        sharex="col",
+        sharey="row",
+    )
+
+    for i, (metric_feature, const_metric_feature, const, x_max) in enumerate(
+        [
+            (depth_feature, breadth_feature, const_breadth, max_depth),
+            (breadth_feature, depth_feature, const_depth, max_breadth),
+        ]
+    ):
+        df = scal.filter(pl.col(const_metric_feature) == const).sort(
+            by=metric_feature,
+            maintain_order=True,
+        )
+
+        groups = list(
+            df.sort(sort_feature).group_by(
+                group_feature,
+                maintain_order=True,
+            )
+        )
+
+        for j, (_, group) in enumerate(groups):
+            name = group[name_feature][0]
+            color = group[color_feature][0]
+            marker = group[marker_feature][0]
+
+            for row in range(0, 2):
+                ax[row, i].plot(
+                    group[metric_feature],
+                    group[value_feature],
+                    c=color,
+                    marker=marker,
+                    label=name if i == 0 and row == 0 else None,
+                )
+
+        ax[1, i].spines[["top", "right"]].set_visible(False)
+        # ax[i].set_aspect("equal", adjustable="box")
+
+        ax[1, i].set_xlabel(
+            r"$\bf{"
+            + metric_feature[0].upper()
+            + metric_feature[1:]
+            + r"}$ $\bf{of}$ $\bf{search}$ $\bf{space}$"
+            + f"\n(for {const_metric_feature} = {const})",
+        )
+
+        ax[1, i].set_ylabel(
+            "Time taken (s)",
+            fontweight="bold",
+        )
+
+        y_max = 12
+        step = 2
+
+        ax[1, i].set_xlim([0, x_max + 0.5])
+        ax[1, i].set_ylim([0, y_max + step - 1])
+        ax[1, i].set_xticks(np.arange(0, x_max + 0.1, 1))
+        ax[1, i].set_yticks(np.arange(0, y_max + 0.1, step))
+        ax[1, i].yaxis.set_tick_params(labelleft=True)
+
+        outliers_min = 65
+        outliers_max = outliers_min + y_max
+
+        assert (
+            df[value_feature].is_between(0, y_max + step - 1)
+            | df[value_feature].is_between(
+                outliers_min - (step - 1), outliers_max
+            )
+        ).all()
+
+        ax[0, i].set_ylim([outliers_min - (step - 1), outliers_max])
+        ax[0, i].set_yticks(np.arange(outliers_min, outliers_max + 0.1, step))
+        ax[0, i].spines[["top", "right", "bottom"]].set_visible(False)
+        ax[0, i].xaxis.set_tick_params(bottom=False)
+        ax[0, i].yaxis.set_tick_params(labelleft=True)
+
+        # proportion of vertical to horizontal extent of the slanted line
+        d = 0.5
+
+        kwargs = dict(
+            marker=[(-1, -d), (1, d)],
+            markersize=12,
+            linestyle="none",
+            color="k",
+            mec="k",
+            mew=1,
+            clip_on=False,
+        )
+
+        ax[0, i].plot([0], [0], transform=ax[0, i].transAxes, **kwargs)
+        ax[1, i].plot([0], [1], transform=ax[1, i].transAxes, **kwargs)
+
+    fig.legend(ncol=len(groups), loc="upper center", bbox_to_anchor=(0.5, 0))
     fig.tight_layout()
 
     return fig, ax
