@@ -66,7 +66,7 @@ impl<'a> CompileContext<'a> {
     }
 
     fn free_fact(&self, fp: &FunParam, mn: &MetName) -> Fact {
-        let sig = self.0.library.types.get(mn).unwrap();
+        let sig = self.0 .0.library.types.get(mn).unwrap();
         Fact {
             relation: Relation(mn.0.clone()),
             args: sig
@@ -119,7 +119,7 @@ impl<'a> CompileContext<'a> {
     pub fn signatures(&self) -> RelationLibrary {
         let mut lib = IndexMap::new();
 
-        for (name, sig) in &self.0.library.props {
+        for (name, sig) in &self.0 .0.library.props {
             lib.insert(
                 Relation(name.0.clone()),
                 RelationSignature {
@@ -133,7 +133,7 @@ impl<'a> CompileContext<'a> {
             );
         }
 
-        for (name, sig) in &self.0.library.types {
+        for (name, sig) in &self.0 .0.library.types {
             lib.insert(
                 Relation(name.0.clone()),
                 RelationSignature {
@@ -152,6 +152,7 @@ impl<'a> CompileContext<'a> {
 
     pub fn header(&self) -> Vec<Rule> {
         self.0
+             .0
             .library
             .functions
             .iter()
@@ -178,7 +179,7 @@ impl<'a> CompileContext<'a> {
         let mut heads = vec![];
         let mut rec_calls = vec![];
 
-        let fs = self.0.library.functions.get(&f.name).unwrap();
+        let fs = self.0 .0.library.functions.get(&f.name).unwrap();
 
         for (j, (fp, e)) in args.iter().enumerate() {
             let mn = fs.params.get(fp).unwrap();
@@ -227,6 +228,7 @@ impl<'a> CompileContext<'a> {
                     RelationSignature {
                         params: self
                             .0
+                             .0
                             .library
                             .types
                             .get(&mn)
@@ -278,9 +280,7 @@ impl<Eng: Engine> Oracle<Eng> {
         mut engine: Eng,
         mut problem: Problem,
     ) -> Result<Self, datalog::Error> {
-        let compile = CompileContext(typecheck::Context {
-            library: &problem.library,
-        });
+        let compile = CompileContext(typecheck::Context(&problem));
 
         let header = compile.header();
 
@@ -318,9 +318,7 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
         timer: &Timer,
         e: &Sketch<Self::F>,
     ) -> Result<Vec<Expansion<Self::F>>, TimerExpired> {
-        let compile = CompileContext(typecheck::Context {
-            library: &self.problem.library,
-        });
+        let compile = CompileContext(typecheck::Context(&self.problem));
 
         let mut ret = vec![];
 

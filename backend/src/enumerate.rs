@@ -2,6 +2,7 @@ use crate::core::*;
 use crate::top_down::*;
 use crate::traditional_synthesis::*;
 use crate::util::{self, Timer, TimerExpired};
+use crate::{eval, typecheck};
 
 use indexmap::{IndexMap, IndexSet};
 use std::collections::VecDeque;
@@ -107,17 +108,13 @@ impl Prune for ExhaustivePruner {
                     };
                 }
                 for arg_choice in util::cartesian_product(timer, choices)? {
-                    if sig
-                        .condition
-                        .sat(
-                            &problem.program.props,
-                            &EvaluationContext {
-                                args: &arg_choice,
-                                ret: &f.metadata,
-                            },
-                        )
-                        .unwrap()
-                    {
+                    let ctx = eval::Context {
+                        props: &problem.program.props,
+                        args: &arg_choice,
+                        ret: &f.metadata,
+                    };
+
+                    if ctx.sat(&sig.condition) {
                         return Ok(true);
                     }
                 }
@@ -226,6 +223,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         mut worklist: VecDeque<Exp>,
         max_solutions: usize,
     ) -> Result<Vec<Exp>, TimerExpired> {
+        let type_context = typecheck::Context(&self.problem);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
             let sup = match &e {
@@ -233,12 +231,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
                 Sketch::App(f, args) => self.support_fun(timer, f, args)?,
             };
             if sup.is_empty() {
-                if e.infer(
-                    &self.problem.library.functions,
-                    &self.problem.program.props,
-                )
-                .is_ok()
-                {
+                if type_context.infer_exp(&e).is_ok() {
                     solutions.push(e);
                 }
                 if solutions.len() >= max_solutions {

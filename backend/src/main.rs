@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use honeybee::*;
+use honeybee::main_handler;
 
 use ansi_term::Color::*;
 use clap::{builder::styling::*, Parser, Subcommand};

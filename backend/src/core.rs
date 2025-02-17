@@ -115,11 +115,6 @@ impl<T> Met<T> {
 ////////////////////////////////////////////////////////////////////////////////
 // Formulas
 
-pub struct EvaluationContext<'a> {
-    pub args: &'a IndexMap<FunParam, IndexMap<MetParam, Value>>,
-    pub ret: &'a IndexMap<MetParam, Value>,
-}
-
 /// The type of formula atoms.
 ///
 /// Conceptually, formula atoms "evaluate" to a value in a particular context.
@@ -131,22 +126,6 @@ pub enum FormulaAtom {
 }
 
 impl FormulaAtom {
-    fn eval(&self, ctx: &EvaluationContext) -> Result<Value, LangError> {
-        match self {
-            FormulaAtom::Param(fp, mp) => ctx
-                .args
-                .get(fp)
-                .ok_or_else(|| LangError::fp(fp))?
-                .get(mp)
-                .ok_or_else(|| LangError::mp(mp))
-                .cloned(),
-            FormulaAtom::Ret(mp) => {
-                ctx.ret.get(mp).ok_or_else(|| LangError::mp(mp)).cloned()
-            }
-            FormulaAtom::Lit(v) => Ok(v.clone()),
-        }
-    }
-
     pub fn vals(&self) -> IndexSet<Value> {
         match self {
             FormulaAtom::Param(_, _) => IndexSet::new(),
@@ -159,33 +138,6 @@ impl FormulaAtom {
 pub type AtomicProposition = Met<Option<FormulaAtom>>;
 
 impl AtomicProposition {
-    fn matches(
-        &self,
-        p: &Met<Value>,
-        ctx: &EvaluationContext,
-    ) -> Result<bool, LangError> {
-        if self.name != p.name {
-            return Ok(false);
-        }
-        if self.args.len() != p.args.len() {
-            return Ok(false);
-        }
-        for (mp, ofa) in &self.args {
-            let v = match p.args.get(mp) {
-                Some(v) => v,
-                None => return Ok(false),
-            };
-            let fa = match ofa {
-                Some(fa) => fa,
-                None => continue,
-            };
-            if fa.eval(ctx)? != *v {
-                return Ok(false);
-            }
-        }
-        Ok(true)
-    }
-
     pub fn vals(&self) -> IndexSet<Value> {
         let mut ret = IndexSet::new();
         for ofa in self.args.values() {
@@ -217,35 +169,6 @@ impl Formula {
             phi = Self::And(Box::new(phi), Box::new(f))
         }
         phi
-    }
-
-    pub fn sat(
-        &self,
-        props: &Vec<Met<Value>>,
-        ctx: &EvaluationContext,
-    ) -> Result<bool, LangError> {
-        match self {
-            Formula::True => Ok(true),
-            Formula::Eq(fa1, fa2) => Ok(fa1.eval(ctx)? == fa2.eval(ctx)?),
-            Formula::Lt(fa1, fa2) => match (fa1.eval(ctx)?, fa2.eval(ctx)?) {
-                (Value::Int(x1), Value::Int(x2)) => Ok(x1 < x2),
-                (v1, v2) => Err(LangError::new(format!(
-                    "Lt only supported for ints, got {:?} and {:?}",
-                    v1, v2,
-                ))),
-            },
-            Formula::Ap(ap) => {
-                for p in props {
-                    if ap.matches(p, ctx)? {
-                        return Ok(true);
-                    }
-                }
-                Ok(false)
-            }
-            Formula::And(phi1, phi2) => {
-                Ok(phi1.sat(props, ctx)? && phi2.sat(props, ctx)?)
-            }
-        }
     }
 
     pub fn vals(&self) -> IndexSet<Value> {
@@ -344,18 +267,6 @@ impl ParameterizedFunction {
             arity: sig.params.keys().cloned().collect(),
         }
     }
-
-    pub fn new(
-        flib: &FunctionLibrary,
-        name: BaseFunction,
-        metadata: IndexMap<MetParam, Value>,
-    ) -> Result<Self, LangError> {
-        Ok(Self::from_sig(
-            flib.get(&name).ok_or_else(|| LangError::bf(&name))?,
-            name,
-            metadata,
-        ))
-    }
 }
 
 impl Function for ParameterizedFunction {
@@ -369,74 +280,6 @@ pub type Exp = Sketch<ParameterizedFunction>;
 
 /// The type of steps used for core Honeybee.
 pub type Step = TopDownStep<ParameterizedFunction>;
-
-impl Exp {
-    /// The typing relation for Honeybee core syntax.
-    ///
-    /// Holes are not well-typed. Function applications are well-typed if their
-    /// arguments are well-typed and have metadata satisfying the validity
-    /// condition of the function (and the metadata is contained within the
-    /// allowable domain defined by the presence of values in the libraries).
-    pub fn infer(
-        &self,
-        flib: &FunctionLibrary,
-        props: &Vec<Met<Value>>,
-    ) -> Result<Met<Value>, LangError> {
-        match self {
-            Sketch::Hole(_) => {
-                Err(LangError::new("holes are not well-typed".to_string()))
-            }
-            Sketch::App(f, args) => {
-                // Get signature
-                let sig =
-                    flib.get(&f.name).ok_or_else(|| LangError::bf(&f.name))?;
-
-                // Compute domain
-                let mut vals = IndexSet::new();
-                for fs in flib.values() {
-                    vals.extend(fs.vals());
-                }
-                for p in props {
-                    vals.extend(p.args.values().cloned());
-                }
-                vals.extend(f.metadata.values().cloned());
-
-                // Recursively infer values and check proper domain
-                let mut ctx_args = IndexMap::new();
-                for (fp, e) in args {
-                    let tau = e.infer(flib, props)?;
-                    let metadata = tau.args;
-                    for v in metadata.values() {
-                        if !vals.contains(v) {
-                            return Err(LangError::new(format!(
-                                "value {:?} not in domain",
-                                v
-                            )));
-                        }
-                    }
-                    ctx_args.insert(fp.clone(), metadata);
-                }
-
-                // Check condition
-                let ctx = EvaluationContext {
-                    args: &ctx_args,
-                    ret: &f.metadata,
-                };
-                if !sig.condition.sat(props, &ctx)? {
-                    return Err(LangError::new(format!(
-                        "condition {:?} not satisfied for {:?}",
-                        sig.condition, self
-                    )));
-                }
-
-                Ok(Met {
-                    name: sig.ret.clone(),
-                    args: f.metadata.clone(),
-                })
-            }
-        }
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Synthesis problem
