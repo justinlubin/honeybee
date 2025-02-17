@@ -21,7 +21,7 @@ pub fn problem(problem: &Problem) -> Check {
         .map_err(|e| e.with_context("program".to_owned()))
 }
 
-impl<'a> Context<'a> {
+impl Context<'_> {
     fn check(&self) -> Check {
         let pnames: IndexSet<_> =
             self.0.library.props.keys().cloned().collect();

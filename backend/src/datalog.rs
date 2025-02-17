@@ -101,6 +101,7 @@ pub struct Relation(pub String);
 ///
 /// EDBs are defined by data, and IDBs are defined by rules.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum RelationKind {
     EDB,
     IDB,

@@ -9,7 +9,7 @@ pub struct Context<'a> {
     pub ret: &'a IndexMap<MetParam, Value>,
 }
 
-impl<'a> Context<'a> {
+impl Context<'_> {
     fn formula_atom(&self, fa: &FormulaAtom) -> Value {
         match fa {
             FormulaAtom::Param(fp, mp) => {

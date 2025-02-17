@@ -10,7 +10,7 @@ use indexmap::IndexMap;
 
 struct CompileContext<'a>(typecheck::Context<'a>);
 
-impl<'a> CompileContext<'a> {
+impl CompileContext<'_> {
     fn ret() -> FunParam {
         FunParam("&ret".to_owned())
     }
@@ -188,7 +188,7 @@ impl<'a> CompileContext<'a> {
                 Sketch::App(g, g_args) => {
                     for (mp, v) in &g.metadata {
                         prims.push(Predicate::PrimEq(
-                            self.var(fp, mp, &self.0.infer_value(&v)),
+                            self.var(fp, mp, &self.0.infer_value(v)),
                             self.value(v),
                         ));
                     }
