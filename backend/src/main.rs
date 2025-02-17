@@ -25,7 +25,7 @@ mod custom_parse {
         if s.is_empty() {
             Err(format!("{} must be nonempty", option))
         } else {
-            Ok(s.split(",").map(|x| PathBuf::from(x)).collect())
+            Ok(s.split(",").map(PathBuf::from).collect())
         }
     }
 

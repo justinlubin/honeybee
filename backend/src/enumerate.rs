@@ -317,6 +317,7 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
         for (h, f, parent) in self.support_fun(timer, &top_f, &top_args)? {
             let app = Sketch::free(&parent, &f);
             let new_e = e.substitute(h, &app);
+
             if !self.pruner.possible(
                 timer,
                 &self.problem,
@@ -325,9 +326,9 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
             )? {
                 continue;
             }
-            match self.provide_any(timer, &new_e)? {
-                Some(_) => expansions.push((h, f)),
-                None => (),
+
+            if self.provide_any(timer, &new_e)?.is_some() {
+                expansions.push((h, f))
             }
         }
         Ok(expansions)

@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 
 /// The type of type errors used by this module.
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct LangError {
     pub context: Vec<String>,
     pub message: String,
-    _private: (),
 }
 
 impl LangError {
@@ -25,7 +25,6 @@ impl LangError {
         Self {
             context: vec![],
             message,
-            _private: (),
         }
     }
 
@@ -573,7 +572,7 @@ impl ParameterizedFunction {
 
 impl Function for ParameterizedFunction {
     fn arity(&self) -> Vec<FunParam> {
-        return self.arity.clone();
+        self.arity.clone()
     }
 }
 
@@ -597,7 +596,7 @@ impl Exp {
     ) -> Result<Met<Value>, LangError> {
         match self {
             Sketch::Hole(_) => {
-                Err(LangError::new(format!("holes are not well-typed")))
+                Err(LangError::new("holes are not well-typed".to_string()))
             }
             Sketch::App(f, args) => {
                 // Get signature
@@ -661,19 +660,15 @@ impl Exp {
 /// [`Exp::infer`] for more information about what it means for an
 /// expression to be well-typed.
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct Problem {
     pub library: Library,
     pub program: Program,
-    _private: (),
 }
 
 impl Problem {
     pub fn new(library: Library, program: Program) -> Result<Self, LangError> {
-        let ret = Self {
-            library,
-            program,
-            _private: (),
-        };
+        let ret = Self { library, program };
         ret.check()?;
         Ok(ret)
     }

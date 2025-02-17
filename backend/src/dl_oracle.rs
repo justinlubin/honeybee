@@ -27,8 +27,8 @@ mod compile {
 
     pub fn value(v: &core::Value) -> datalog::Value {
         match v {
-            core::Value::Bool(b) => datalog::Value::Bool(b.clone()),
-            core::Value::Int(x) => datalog::Value::Int(x.clone()),
+            core::Value::Bool(b) => datalog::Value::Bool(*b),
+            core::Value::Int(x) => datalog::Value::Int(*x),
             core::Value::Str(s) => datalog::Value::Str(s.clone()),
         }
     }
@@ -130,11 +130,7 @@ mod compile {
             lib.insert(
                 Relation(name.0.clone()),
                 RelationSignature {
-                    params: sig
-                        .params
-                        .values()
-                        .map(|vt| value_type(vt))
-                        .collect(),
+                    params: sig.params.values().map(value_type).collect(),
                     kind: RelationKind::EDB,
                 },
             );
@@ -144,11 +140,7 @@ mod compile {
             lib.insert(
                 Relation(name.0.clone()),
                 RelationSignature {
-                    params: sig
-                        .params
-                        .values()
-                        .map(|vt| value_type(vt))
-                        .collect(),
+                    params: sig.params.values().map(value_type).collect(),
                     kind: RelationKind::IDB,
                 },
             );
@@ -169,8 +161,7 @@ mod compile {
                     .map(|(fp, mn)| {
                         Predicate::Fact(free_fact(&lib.types, fp, mn))
                     })
-                    .into_iter()
-                    .chain(formula(&lib.types, &sig, &sig.condition))
+                    .chain(formula(&lib.types, sig, &sig.condition))
                     .collect(),
             })
             .collect()
@@ -211,7 +202,7 @@ mod compile {
             Predicate::PrimEq(var(&ret(), mp, &v.infer()), value(v))
         }));
 
-        prims.extend(formula(&lib.types, &fs, &fs.condition));
+        prims.extend(formula(&lib.types, fs, &fs.condition));
 
         heads
             .into_iter()
@@ -225,7 +216,7 @@ mod compile {
                         body: facts
                             .clone()
                             .into_iter()
-                            .map(|f| Predicate::Fact(f))
+                            .map(Predicate::Fact)
                             .chain(prims.clone())
                             .collect(),
                     },
@@ -236,7 +227,7 @@ mod compile {
                             .unwrap()
                             .params
                             .values()
-                            .map(|vt| value_type(vt))
+                            .map(value_type)
                             .collect(),
                         kind: RelationKind::IDB,
                     },
@@ -258,8 +249,8 @@ mod decompile {
 
     pub fn value(v: &datalog::Value) -> core::Value {
         match v {
-            datalog::Value::Bool(b) => core::Value::Bool(b.clone()),
-            datalog::Value::Int(x) => core::Value::Int(x.clone()),
+            datalog::Value::Bool(b) => core::Value::Bool(*b),
+            datalog::Value::Int(x) => core::Value::Int(*x),
             datalog::Value::Str(s) => core::Value::Str(s.clone()),
             datalog::Value::Var { .. } => panic!(),
         }
@@ -347,7 +338,7 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
                             .into_iter()
                             .map(|vals| {
                                 (
-                                    h.clone(),
+                                    h,
                                     ParameterizedFunction::from_sig(
                                         f_sig,
                                         f.clone(),

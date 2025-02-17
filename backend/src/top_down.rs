@@ -113,7 +113,7 @@ pub enum TopDownStep<F: Function> {
 
 impl<F: Function> Sketch<F> {
     pub fn free(context: &Sketch<F>, f: &F) -> Sketch<F> {
-        let holes = context.fresh().map(|h| Sketch::Hole(h));
+        let holes = context.fresh().map(Sketch::Hole);
         Sketch::App(f.clone(), f.arity().into_iter().zip(holes).collect())
     }
 
@@ -245,7 +245,7 @@ impl<O: InhabitationOracle> pbn::StepProvider
     ) -> Result<Vec<Self::Step>, TimerExpired> {
         let mut ret = vec![];
         for (h, f) in self.oracle.expansions(timer, e)? {
-            let holes = e.fresh().map(|h| Sketch::Hole(h));
+            let holes = e.fresh().map(Sketch::Hole);
             ret.push(TopDownStep::Extend(
                 h,
                 f.clone(),

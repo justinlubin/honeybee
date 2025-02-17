@@ -37,3 +37,6 @@ toml = "0.8.19"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[lints.clippy]
+new_without_default = "allow"

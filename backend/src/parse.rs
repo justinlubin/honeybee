@@ -120,7 +120,7 @@ fn met_option<T>(rhs: impl P<T>) -> impl P<Met<Option<T>>> {
 
 fn formula_atom() -> impl P<FormulaAtom> {
     choice((
-        value().map(|v| FormulaAtom::Lit(v)),
+        value().map(FormulaAtom::Lit),
         just("ret.")
             .then(lower_ident())
             .padded()
@@ -150,7 +150,7 @@ fn formula() -> impl P<Formula> {
                 Op::Eq => Formula::Eq(left, right),
                 Op::Lt => Formula::Lt(left, right),
             }),
-        met_option(formula_atom()).map(|ap| Formula::Ap(ap)),
+        met_option(formula_atom()).map(Formula::Ap),
     ))
 }
 

@@ -79,7 +79,7 @@ impl Compiler {
             Value::Bool(b) => self.write(&b.to_string()),
             Value::Int(x) => self.write(&x.to_string()),
             Value::Str(s) => self.write(&format!("\"{}\"", s)),
-            Value::Var { name, typ: _ } => self.write(&name),
+            Value::Var { name, typ: _ } => self.write(name),
         }
     }
 
@@ -250,6 +250,7 @@ mod parse {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum State {
     Uncached { egglog_program: Option<String> },
     Cached { egraph: Option<EGraph> },
@@ -293,7 +294,7 @@ impl Engine for Egglog {
                     .parse_and_run_program(None, &egglog_program)
                     .unwrap();
 
-                if messages.len() != 0 {
+                if !messages.is_empty() {
                     panic!("expected 0 messages, got:\n\n{:?}", messages);
                 }
 
