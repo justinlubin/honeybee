@@ -184,7 +184,8 @@ fig.save(f"{OUTPUT_DIR}/any.pdf")
 
 fig, ax = summary_plot(
     particular_summary.filter(
-        (pl.col("suite_name") == "fin") & (pl.col("algorithm") == "TODO"),
+        (pl.col("suite_name") == "fin")
+        & (pl.col("algorithm") == "PBNConstructiveOracle"),
     ),
 )
 
@@ -194,7 +195,8 @@ fig.save(f"{OUTPUT_DIR}/naive-fin.pdf")
 
 fig, ax = summary_plot(
     particular_summary.filter(
-        (pl.col("suite_name") == "inf") & (pl.col("algorithm") == "TODO"),
+        (pl.col("suite_name") == "inf")
+        & (pl.col("algorithm") == "PBNConstructiveOracle"),
     ),
 )
 
