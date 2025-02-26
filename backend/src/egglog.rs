@@ -252,8 +252,8 @@ mod parse {
 
 #[allow(clippy::large_enum_variant)]
 enum State {
-    Uncached { egglog_program: Option<String> },
-    Cached { egraph: Option<EGraph> },
+    NoCache { egglog_program: Option<String> },
+    Cache { egraph: Option<EGraph> },
 }
 
 pub struct Egglog {
@@ -264,13 +264,13 @@ impl Egglog {
     pub fn new(cache: bool) -> Self {
         if cache {
             Self {
-                state: State::Uncached {
-                    egglog_program: None,
-                },
+                state: State::Cache { egraph: None },
             }
         } else {
             Self {
-                state: State::Cached { egraph: None },
+                state: State::NoCache {
+                    egglog_program: None,
+                },
             }
         }
     }
@@ -285,10 +285,10 @@ impl Engine for Egglog {
         log::debug!("Egglog program constructed\n{}", egglog_program);
 
         self.state = match self.state {
-            State::Uncached { .. } => State::Uncached {
+            State::NoCache { .. } => State::NoCache {
                 egglog_program: Some(egglog_program),
             },
-            State::Cached { .. } => {
+            State::Cache { .. } => {
                 let mut egraph = EGraph::default();
                 let messages = egraph
                     .parse_and_run_program(None, &egglog_program)
@@ -298,7 +298,7 @@ impl Engine for Egglog {
                     panic!("expected 0 messages, got:\n\n{:?}", messages);
                 }
 
-                State::Cached {
+                State::Cache {
                     egraph: Some(egraph),
                 }
             }
@@ -326,7 +326,7 @@ impl Engine for Egglog {
         log::debug!("Egglog query constructed\n{}", egglog_query);
 
         let messages = match &mut self.state {
-            State::Uncached {
+            State::NoCache {
                 egglog_program: Some(p),
             } => {
                 let combined_program = format!("{}\n{}", p, egglog_query);
@@ -338,7 +338,7 @@ impl Engine for Egglog {
                     })
                     .unwrap()
             }
-            State::Cached { egraph: Some(e) } => {
+            State::Cache { egraph: Some(e) } => {
                 // TODO: might not need to push/pop here
                 e.push();
                 let messages =

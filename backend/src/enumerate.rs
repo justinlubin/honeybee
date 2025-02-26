@@ -226,6 +226,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         let type_context = typecheck::Context(&self.problem);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
+            timer.tick()?;
             let sup = match &e {
                 Sketch::Hole(_) => panic!(),
                 Sketch::App(f, args) => self.support_fun(timer, f, args)?,
