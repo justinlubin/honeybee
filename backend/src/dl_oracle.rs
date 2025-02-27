@@ -32,9 +32,14 @@ impl CompileContext<'_> {
     }
 
     pub fn fact(&self, m: &Met<core::Value>) -> Fact {
+        let sig = self.0 .0.library.props.get(&m.name).unwrap();
         Fact {
             relation: Relation(m.name.0.clone()),
-            args: m.args.values().map(|v| Some(self.value(v))).collect(),
+            args: sig
+                .params
+                .keys()
+                .map(|mp| Some(self.value(m.args.get(mp).unwrap())))
+                .collect(),
         }
     }
 
@@ -43,12 +48,19 @@ impl CompileContext<'_> {
         fs: &FunctionSignature,
         ap: &AtomicProposition,
     ) -> Predicate {
+        let sig = self.0 .0.library.props.get(&ap.name).unwrap();
         Predicate::Fact(Fact {
             relation: Relation(ap.name.0.clone()),
-            args: ap
-                .args
-                .values()
-                .map(|ofa| ofa.as_ref().map(|fa| self.formula_atom(fs, fa)))
+            args: sig
+                .params
+                .keys()
+                .map(|mp| {
+                    ap.args
+                        .get(mp)
+                        .unwrap()
+                        .as_ref()
+                        .map(|fa| self.formula_atom(fs, &fa))
+                })
                 .collect(),
         })
     }
