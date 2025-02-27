@@ -50,6 +50,9 @@ def distributions(
         )
     )
 
+    if len(groups) == 0:
+        return plt.subplots(1, 1)
+
     if flip:
         fig, ax = plt.subplots(
             1,

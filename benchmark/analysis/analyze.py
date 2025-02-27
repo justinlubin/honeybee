@@ -1,21 +1,32 @@
+import sys
+
+if len(sys.argv) != 4:
+    print(
+        f"usage: uv run {sys.argv[0]} MAX_DURATION_SECONDS INPUT_TSV OUTPUT_DIR",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 ################################################################################
 # % % Imports
 
-import matplotlib.pyplot as plt
+import lib
+
 import numpy as np
 import polars as pl
 import importlib
 
-import lib
-
 ################################################################################
 # % % Config and load
 
-# The directory to output to
-OUTPUT_DIR = "output"
+# The synthesis cutoff duration, in milliseconds
+MAX_DURATION_MS = int(sys.argv[1]) * 1000
 
-# Whether or not to perform validity checks of benchmark csv
-CHECK = True
+# The CSV to load the data from
+INPUT = sys.argv[2]
+
+# The directory to output to
+OUTPUT_DIR = sys.argv[3]
 
 # The maximum breadth/depth for scalability analysis
 MAX_DEPTH = 10
@@ -38,16 +49,33 @@ TASKS = SUITES + ["entry_name"]
 REPLICATES = TASKS + ["solution_name"]
 
 # Load metadata and data
-raw_data = pl.read_csv("../data/data.tsv", separator="\t")
+raw_data = pl.read_csv(INPUT, separator="\t")
 algorithm_metadata = pl.read_csv("algorithm_metadata.csv")
 
 ################################################################################
-# % % Check data
+# % % Check and clean data
 
-if CHECK:
-    # Check that completed and successful columns are identical (no unsolvable
-    # problems)
-    assert (raw_data["completed"] == raw_data["success"]).all()
+# Check that completed and successful columns are identical (no unsolvable
+# problems)
+assert (raw_data["completed"] == raw_data["success"]).all()
+
+print(
+    "note:",
+    raw_data.select(
+        pl.col("completed") & (pl.col("duration") > MAX_DURATION_MS)
+    )
+    .sum()
+    .item(),
+    "entries completed after time cutoff of",
+    MAX_DURATION_MS // 1000,
+    "seconds",
+)
+
+raw_data = raw_data.drop("success").with_columns(
+    completed=pl.when(pl.col("duration") <= MAX_DURATION_MS)
+    .then(raw_data["completed"])
+    .otherwise(pl.lit(False))
+)
 
 ################################################################################
 # % % Process data
@@ -143,7 +171,7 @@ def summary_plot(df):
         color_feature="algorithm_color",
         count_feature="overall_completed",
         total_feature="total",
-        bins=np.arange(0, 10.1, 1),
+        bins=np.arange(0, 40.1, 2),
         xlabel="Time taken (s)",
         flip=True,
     )
@@ -157,7 +185,7 @@ fig, ax = summary_plot(
     )
 )
 
-fig.save(f"{OUTPUT_DIR}/fin.pdf")
+fig.save(f"{OUTPUT_DIR}/01-fin.pdf")
 
 # Inf
 
@@ -168,7 +196,7 @@ fig, ax = summary_plot(
     )
 )
 
-fig.save(f"{OUTPUT_DIR}/inf.pdf")
+fig.save(f"{OUTPUT_DIR}/02-inf.pdf")
 
 # Any
 
@@ -178,7 +206,7 @@ fig, ax = summary_plot(
     ),
 )
 
-fig.save(f"{OUTPUT_DIR}/any.pdf")
+fig.save(f"{OUTPUT_DIR}/05-any.pdf")
 
 # Naive oracle, Fin
 
@@ -189,7 +217,7 @@ fig, ax = summary_plot(
     ),
 )
 
-fig.save(f"{OUTPUT_DIR}/naive-fin.pdf")
+fig.save(f"{OUTPUT_DIR}/06-naive-fin.pdf")
 
 # Naive oracle, Inf
 
@@ -200,7 +228,7 @@ fig, ax = summary_plot(
     ),
 )
 
-fig.save(f"{OUTPUT_DIR}/naive-inf.pdf")
+fig.save(f"{OUTPUT_DIR}/07-naive-inf.pdf")
 
 ### Speedup plot
 
@@ -215,7 +243,7 @@ df = df.filter(
     (pl.col("algorithm") == "PBNHoneybee") & (pl.col("completed"))
 ).join(
     df.filter(
-        (pl.col("algorithm") == "PrunedEnumeration") & (pl.col("completed"))
+        (pl.col("algorithm") == "PBNHoneybeeNoMemo") & (pl.col("completed"))
     ),
     how="inner",
     on=["suite_name", "entry_name"],
@@ -234,14 +262,14 @@ fig, ax = lib.speedup(
     right_short_name="Ablation",
 )
 
-fig.save(f"{OUTPUT_DIR}/speedup.pdf")
+fig.save(f"{OUTPUT_DIR}/04-speedup.pdf")
 
 ### Scalability
 
 fig, ax = lib.scalability(
-    scal.filter(pl.col("completed")).join(
-        algorithm_metadata, how="left", on="algorithm", validate="m:1"
-    ),
+    scal.filter(pl.col("completed"))
+    .join(algorithm_metadata, how="left", on="algorithm", validate="m:1")
+    .filter(pl.col("algorithm_main")),
     max_breadth=MAX_BREADTH,
     max_depth=MAX_DEPTH,
     const_breadth=CONST_BREADTH,
@@ -256,4 +284,4 @@ fig, ax = lib.scalability(
     breadth_feature="breadth",
 )
 
-fig.save(f"{OUTPUT_DIR}/scalability.pdf", bbox_inches="tight")
+fig.save(f"{OUTPUT_DIR}/03-scalability.pdf", bbox_inches="tight")
