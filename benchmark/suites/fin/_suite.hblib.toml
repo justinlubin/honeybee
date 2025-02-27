@@ -340,7 +340,7 @@ params.in = "Choice"
 ret = "RHGoal"
 condition = []
 
-###  limited_cycle
+### limited_cycle
 
 [Type.LimitedCycle]
 params.count = "Int"
@@ -552,17 +552,9 @@ params.data = "Str"
 
 # Datatypes
 
-[Type.LoadedSeqFile]
-params.sample = "Str"
-params.at = "Int"
-params.data = "Str"
-
-[Type.Seq]
-params.sample = "Str"
-params.at = "Int"
-
-[Type.LoadedReferenceGenomeFile]
-params.data = "Str"
+# [Type.Seq]
+# params.sample = "Str"
+# params.at = "Int"
 
 [Type.ReferenceGenome]
 params = {}
@@ -588,30 +580,17 @@ params.at = "Int"
 
 # Load sequence data
 
-[Function.load_seq_file]
-params = {}
-ret = "LoadedSeqFile"
-condition = ["SeqFile { sample = ret.sample, at = ret.at, data = ret.data }"]
-
-[Function.load_seq]
-params.lsf = "LoadedSeqFile"
-ret = "Seq"
-condition = [
-    "ret.sample = lsf.sample",
-    "ret.at = lsf.at"
-]
+# [Function.load_seq]
+# params = {}
+# ret = "Seq"
+# condition = ["SeqFile { sample = ret.sample, at = ret.at, data = _ }"]
 
 # Load reference genome
 
 [Function.load_reference_genome_file]
 params = {}
-ret = "LoadedReferenceGenomeFile"
-condition = ["ReferenceGenomeFile { data = ret.data }"]
-
-[Function.load_ref]
-params.lrgf = "LoadedReferenceGenomeFile"
 ret = "ReferenceGenome"
-condition = []
+condition = ["ReferenceGenomeFile { data = _ }"]
 
 [Function.load_hg38]
 params = {}
@@ -621,32 +600,26 @@ condition = []
 # Quantifiers
 
 [Function.kallisto]
-params.seq = "Seq"
 params.ref = "ReferenceGenome"
 ret = "ReadCounts"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "SeqFile { sample = ret.sample, at = ret.at, data = _ }"
 ]
 
 [Function.salmon]
-params.seq = "Seq"
 params.ref = "ReferenceGenome"
 ret = "ReadCounts"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "SeqFile { sample = ret.sample, at = ret.at, data = _ }"
 ]
 
 # Aligners
 
 [Function.bowtie2]
-params.seq = "Seq"
 params.ref = "ReferenceGenome"
 ret = "Alignment"
 condition = [
-    "ret.sample = seq.sample",
-    "ret.at = seq.at",
+    "SeqFile { sample = ret.sample, at = ret.at, data = _ }"
 ]
 
 # Read summarization
@@ -728,17 +701,12 @@ condition = []
 
 [Function.mageck]
 params.t = "Transfection"
-params.s1 = "Seq"
-params.s2 = "Seq"
 ret = "Enrichment"
 condition = [
+    "SeqFile { sample = ret.sample, at = ret.start, data = _ }",
+    "SeqFile { sample = ret.sample, at = ret.end, data = _ }",
     "ret.sample = t.sample",
-    "ret.start = s1.at",
-    "ret.end = s2.at",
-    "t.sample = s1.sample",
-    "t.sample = s1.sample",
-    "t.at < s1.at",
-    "s1.at < s2.at",
+    "ret.start < ret.end",
 ]
 
 [Function.l2fc]
