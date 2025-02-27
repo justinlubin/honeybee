@@ -18,6 +18,7 @@ pub fn interact(
     program: PathBuf,
     quiet: bool,
     json: Option<PathBuf>,
+    algorithm: menu::Algorithm,
 ) -> Result<(), String> {
     if let Some(path) = &json {
         let ok = match path.parent() {
@@ -61,7 +62,6 @@ pub fn interact(
         )
     })?;
 
-    let algorithm = menu::Algorithm::PBNHoneybee;
     let timer = util::Timer::infinite();
     let mut controller = algorithm.controller(timer, problem);
 

@@ -140,3 +140,11 @@ impl Algorithm {
         }
     }
 }
+
+impl std::str::FromStr for Algorithm {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(&format!("\"{}\"", s))
+    }
+}

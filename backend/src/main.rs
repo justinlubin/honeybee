@@ -33,9 +33,7 @@ mod custom_parse {
         if s.is_empty() {
             menu::Algorithm::all()
         } else {
-            s.split(",")
-                .map(|x| serde_json::from_str(&format!("\"{}\"", x)).unwrap())
-                .collect()
+            s.split(",").map(|s| s.parse().unwrap()).collect()
         }
     }
 }
@@ -84,6 +82,15 @@ enum Command {
         /// Path to output JSON of synthesized expression (blank for no output)
         #[arg(short, long, value_name = "FILE", default_value = "")]
         json: String,
+
+        /// The algorithm to use
+        #[arg(
+            short,
+            long,
+            value_name = "ALGORITHM",
+            default_value = "PBNHoneybee"
+        )]
+        algorithm: honeybee::menu::Algorithm,
     },
 
     Benchmark {
@@ -133,11 +140,13 @@ impl Command {
                 program,
                 quiet,
                 json,
+                algorithm,
             } => main_handler::interact(
                 library,
                 program,
                 quiet,
                 custom_parse::at_most_one_path(&json),
+                algorithm,
             ),
             Self::Benchmark {
                 suite,
