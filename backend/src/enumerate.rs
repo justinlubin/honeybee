@@ -87,6 +87,12 @@ impl Prune for ExhaustivePruner {
         match e {
             Sketch::Hole(_) => Ok(true),
             Sketch::App(f, args) => {
+                for arg in args.values() {
+                    if !self.possible(timer, problem, support, arg)? {
+                        return Ok(false);
+                    }
+                }
+
                 let mut choices = IndexMap::new();
                 let sig = problem.library.functions.get(&f.name).unwrap();
                 for (fp, arg) in args {
@@ -231,6 +237,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
                 Sketch::Hole(_) => panic!(),
                 Sketch::App(f, args) => self.support_fun(timer, f, args)?,
             };
+
             if sup.is_empty() {
                 if type_context.infer_exp(&e).is_ok() {
                     solutions.push(e);
