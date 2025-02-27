@@ -19,7 +19,7 @@ def save(self, filename, *args, **kwargs):
 matplotlib.figure.Figure.save = save
 
 
-def show(df, sort_by=["algorithm", "entry_name"]):
+def show(df, sort_by=["algorithm"]):
     with pl.Config(tbl_cols=-1, tbl_rows=-1):
         print(df.sort(by=sort_by))
 
@@ -368,6 +368,9 @@ def scalability(
     marker_feature,
     depth_feature,
     breadth_feature,
+    y_max=12,
+    step=2,
+    outliers_min=65,
 ):
     fig, ax = plt.subplots(
         2,
@@ -425,16 +428,12 @@ def scalability(
             fontweight="bold",
         )
 
-        y_max = 12
-        step = 2
-
         ax[1, i].set_xlim([0, x_max + 0.5])
         ax[1, i].set_ylim([0, y_max + step - 1])
         ax[1, i].set_xticks(np.arange(0, x_max + 0.1, 1))
         ax[1, i].set_yticks(np.arange(0, y_max + 0.1, step))
         ax[1, i].yaxis.set_tick_params(labelleft=True)
 
-        outliers_min = 65
         outliers_max = outliers_min + y_max
 
         assert (
