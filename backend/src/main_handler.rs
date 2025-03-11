@@ -186,13 +186,13 @@ pub fn benchmark(
     suite_paths: Vec<PathBuf>,
     algorithms: Vec<menu::Algorithm>,
     replicates: usize,
-    timeout_millis: u64,
+    timeout_secs: u64,
     entry_filter: String,
     parallel: bool,
 ) -> Result<(), String> {
     let config = benchmark::Config {
         replicates,
-        timeout: Duration::from_millis(timeout_millis),
+        timeout: Duration::from_secs(timeout_secs),
         entry_filter,
         parallel,
         algorithms,

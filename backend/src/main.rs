@@ -106,13 +106,8 @@ enum Command {
         #[arg(short, long, value_name = "N", default_value_t = 1)]
         replicates: usize,
 
-        /// The (soft) time cutoff to use for synthesis (in milliseconds)
-        #[arg(
-            short,
-            long,
-            value_name = "MILLISECONDS",
-            default_value_t = 2000
-        )]
+        /// The (soft) time cutoff to use for synthesis (in seconds)
+        #[arg(short, long, value_name = "SECONDS", default_value_t = 2)]
         timeout: u64,
 
         /// Filter to benchmark entries that contain this substring
