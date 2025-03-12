@@ -170,24 +170,27 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         timer: &Timer,
         f: &ParameterizedFunction,
         args: &IndexMap<FunParam, Exp>,
-    ) -> Result<Vec<(HoleName, ParameterizedFunction, Exp)>, TimerExpired> {
-        let mut expansions = vec![];
+    ) -> Result<IndexMap<HoleName, Vec<ParameterizedFunction>>, TimerExpired>
+    {
+        let mut expansions = IndexMap::new();
         let fs = self.problem.library.functions.get(&f.name).unwrap();
         for (fp, mn) in &fs.params {
             match args.get(fp).unwrap() {
                 Sketch::Hole(h) => {
+                    let mut h_expansions = vec![];
                     let ms = self.problem.library.types.get(mn).unwrap();
                     for metadata in self.support.met_signature(timer, ms)? {
-                        expansions.extend(
+                        h_expansions.extend(
                             self.support_hole(&Met {
                                 name: mn.clone(),
                                 args: metadata,
-                            })
-                            .into_iter()
-                            .map(|g| {
-                                (*h, g, Sketch::App(f.clone(), args.clone()))
-                            }),
+                            }), // .into_iter()
+                                // .map(|g| (g, Sketch::App(f.clone(), args.clone()))),
                         );
+                    }
+                    match expansions.insert(*h, h_expansions) {
+                        Some(_) => panic!("Duplicate hole name {}", h),
+                        None => (),
                     }
                 }
                 Sketch::App(g, g_args) => {
@@ -222,7 +225,6 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         }
     }
 
-    // TODO: add memoization? (seen list)
     fn enumerate_worklist(
         &self,
         timer: &Timer,
@@ -247,14 +249,20 @@ impl<P: Prune> EnumerativeSynthesis<P> {
                 }
                 continue;
             }
-            for (h, f, parent) in sup {
-                let app = Sketch::free(&e, &f);
-                let new_e = e.substitute(h, &app);
+
+            let sup_prod = util::cartesian_product(timer, sup)?;
+
+            for choice in sup_prod {
+                let mut new_e = e.clone();
+                for (h, f) in choice {
+                    let app = Sketch::free(&new_e, &f);
+                    new_e = new_e.substitute(h, &app);
+                }
                 if !self.pruner.possible(
                     timer,
                     &self.problem,
                     &self.support,
-                    &parent.substitute(h, &app),
+                    &new_e,
                 )? {
                     continue;
                 }
@@ -315,21 +323,23 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
     ) -> Result<Vec<(HoleName, Self::F)>, TimerExpired> {
         let (top_f, top_args) = self.wrap(e);
         let mut expansions = vec![];
-        for (h, f, parent) in self.support_fun(timer, &top_f, &top_args)? {
-            let app = Sketch::free(&parent, &f);
-            let new_e = e.substitute(h, &app);
+        for (h, h_expansions) in self.support_fun(timer, &top_f, &top_args)? {
+            for f in h_expansions {
+                let app = Sketch::free(&e, &f);
+                let new_e = e.substitute(h, &app);
 
-            if !self.pruner.possible(
-                timer,
-                &self.problem,
-                &self.support,
-                &parent.substitute(h, &app),
-            )? {
-                continue;
-            }
+                if !self.pruner.possible(
+                    timer,
+                    &self.problem,
+                    &self.support,
+                    &new_e,
+                )? {
+                    continue;
+                }
 
-            if self.provide_any(timer, &new_e)?.is_some() {
-                expansions.push((h, f))
+                if self.provide_any(timer, &new_e)?.is_some() {
+                    expansions.push((h, f))
+                }
             }
         }
         Ok(expansions)
