@@ -1,6 +1,6 @@
 use crate::pbn::*;
 use crate::top_down::*;
-use crate::util::{Timer, TimerExpired};
+use crate::util::{EarlyCutoff, Timer};
 
 use indexmap::IndexMap;
 
@@ -13,7 +13,7 @@ pub trait AnySynthesizer {
         &mut self,
         timer: &Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired>;
+    ) -> Result<Option<HoleFilling<Self::F>>, EarlyCutoff>;
 }
 
 /// The type of synthesizers solving the traditional All task (for sketches).
@@ -23,7 +23,7 @@ pub trait AllSynthesizer {
         &mut self,
         timer: &Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Vec<HoleFilling<Self::F>>, TimerExpired>;
+    ) -> Result<Vec<HoleFilling<Self::F>>, EarlyCutoff>;
 }
 
 pub struct AllBasedStepProvider<Synth: AllSynthesizer>(pub Synth);
@@ -35,7 +35,7 @@ impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
         &mut self,
         timer: &Timer,
         e: &Sketch<Synth::F>,
-    ) -> Result<Vec<Self::Step>, TimerExpired> {
+    ) -> Result<Vec<Self::Step>, EarlyCutoff> {
         let mut steps = vec![];
         for solution in self.0.provide_all(timer, e)? {
             for (h, binding) in solution {
@@ -87,7 +87,7 @@ impl<
         &mut self,
         timer: &Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Option<HoleFilling<Self::F>>, TimerExpired> {
+    ) -> Result<Option<HoleFilling<Self::F>>, EarlyCutoff> {
         let mut ret = start.clone();
         loop {
             let options = self.provider.provide(timer, &ret)?;

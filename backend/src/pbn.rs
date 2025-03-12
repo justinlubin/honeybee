@@ -4,7 +4,7 @@
 //! By Navigation. In particular, it defines the interface that is necessary for
 //! the Programming By Navigation interaction and guarantees.
 
-use crate::util::{Timer, TimerExpired};
+use crate::util::{EarlyCutoff, Timer};
 
 /// The type of steps.
 ///
@@ -31,7 +31,7 @@ pub trait StepProvider {
         &mut self,
         timer: &Timer,
         e: &<Self::Step as Step>::Exp,
-    ) -> Result<Vec<Self::Step>, TimerExpired>;
+    ) -> Result<Vec<Self::Step>, EarlyCutoff>;
 }
 
 pub struct Controller<S: Step> {
@@ -56,7 +56,7 @@ impl<S: Step> Controller<S> {
         }
     }
 
-    pub fn provide(&mut self) -> Result<Vec<S>, TimerExpired> {
+    pub fn provide(&mut self) -> Result<Vec<S>, EarlyCutoff> {
         self.provider.provide(&self.timer, &self.state)
     }
 

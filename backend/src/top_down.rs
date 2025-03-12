@@ -11,7 +11,7 @@
 //! arguments (with the right keyword arguments).
 
 use crate::pbn;
-use crate::util::{self, Timer, TimerExpired};
+use crate::util::{self, EarlyCutoff, Timer};
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -59,6 +59,15 @@ impl<F: Function> Sketch<F> {
         match self {
             Sketch::Hole(_) => false,
             Sketch::App(_, args) => args.values().all(|s| s.ground()),
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            Sketch::Hole(_) => 1,
+            Sketch::App(_, args) => {
+                1 + args.values().map(|x| x.size()).sum::<usize>()
+            }
         }
     }
 }
@@ -219,7 +228,7 @@ pub trait InhabitationOracle {
         &mut self,
         timer: &Timer,
         e: &Sketch<Self::F>,
-    ) -> Result<Vec<Expansion<Self::F>>, TimerExpired>;
+    ) -> Result<Vec<Expansion<Self::F>>, EarlyCutoff>;
 }
 
 /// Top-down classical-constructive synthesis, a solution to the Programming By
@@ -242,7 +251,7 @@ impl<O: InhabitationOracle> pbn::StepProvider
         &mut self,
         timer: &Timer,
         e: &<Self::Step as pbn::Step>::Exp,
-    ) -> Result<Vec<Self::Step>, TimerExpired> {
+    ) -> Result<Vec<Self::Step>, EarlyCutoff> {
         let mut ret = vec![];
         for (h, f) in self.oracle.expansions(timer, e)? {
             let holes = e.fresh().map(Sketch::Hole);

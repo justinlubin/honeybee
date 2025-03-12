@@ -2,7 +2,7 @@ use crate::core::{self, *};
 use crate::datalog::{self, *};
 use crate::top_down::*;
 use crate::typecheck;
-use crate::util::{Timer, TimerExpired};
+use crate::util::{EarlyCutoff, Timer};
 use indexmap::IndexMap;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -329,7 +329,7 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
         &mut self,
         timer: &Timer,
         e: &Sketch<Self::F>,
-    ) -> Result<Vec<Expansion<Self::F>>, TimerExpired> {
+    ) -> Result<Vec<Expansion<Self::F>>, EarlyCutoff> {
         let compile = CompileContext(typecheck::Context(&self.problem));
 
         let mut ret = vec![];
