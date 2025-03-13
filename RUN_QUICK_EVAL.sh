@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Call this script with one argument: the number of threads to use (default 2)
+
 ################################################################################
 ## Set up variables and directories
 
@@ -24,7 +26,9 @@ cd $backend_dir
 cargo build
 hb="./target/debug/honeybee"
 
-export RAYON_NUM_THREADS=8
+echo "Benchmarking with ${1:-2} threads (configurable via first argument)"
+
+export RAYON_NUM_THREADS=${1:-2}
 
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
