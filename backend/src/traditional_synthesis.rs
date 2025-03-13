@@ -89,7 +89,11 @@ impl<
         start: &Sketch<Self::F>,
     ) -> Result<Option<HoleFilling<Self::F>>, EarlyCutoff> {
         let mut ret = start.clone();
-        for _ in 1..util::MAX_STEPS {
+        loop {
+            if ret.size() > util::MAX_EXP_SIZE {
+                return Err(EarlyCutoff::OutOfMemory);
+            }
+
             let options = self.provider.provide(timer, &ret)?;
             let step = match options.into_iter().next() {
                 Some(step) => step,
@@ -100,6 +104,5 @@ impl<
                 return Ok(start.pattern_match(&ret));
             }
         }
-        Err(EarlyCutoff::OutOfMemory)
     }
 }

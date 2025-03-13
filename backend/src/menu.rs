@@ -1,3 +1,10 @@
+//! # A menu of possible synthesizers
+//!
+//! This module hooks together all the components (ingredients) of this project
+//! into a set of items on a menu of possible choices. To the extent possible,
+//! these menu items all share the same interface and can be used in the same
+//! way (e.g. as controllers for Programming By Navigation).
+
 use crate::*;
 
 use serde::{Deserialize, Serialize};

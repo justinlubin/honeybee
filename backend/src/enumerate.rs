@@ -258,7 +258,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         let type_context = typecheck::Context(&self.problem);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
-            if e.size() > util::MAX_STEPS {
+            if e.size() > util::MAX_EXP_SIZE {
                 return Err(EarlyCutoff::OutOfMemory);
             }
 
@@ -280,6 +280,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 
             let sup_prod = util::cartesian_product(timer, sup)?;
 
+            println!("{} {}", e.size(), worklist.len());
             for choice in sup_prod {
                 let mut new_e = e.clone();
                 for (h, f) in choice {

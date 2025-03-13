@@ -34,6 +34,10 @@ pub trait StepProvider {
     ) -> Result<Vec<Self::Step>, EarlyCutoff>;
 }
 
+/// A Programming By Navigation controller. Controllers abstract away the
+/// actual step provider (and validity checker) and can be used to engage in
+/// the Programming By Navigation interactive process in a way that is
+/// abstracted from the underlying synthesis algorithm.
 pub struct Controller<S: Step> {
     timer: Timer,
     provider: Box<dyn StepProvider<Step = S> + 'static>,
@@ -42,6 +46,7 @@ pub struct Controller<S: Step> {
 }
 
 impl<S: Step> Controller<S> {
+    /// Create a new controller
     pub fn new(
         timer: Timer,
         provider: impl StepProvider<Step = S> + 'static,
@@ -56,18 +61,24 @@ impl<S: Step> Controller<S> {
         }
     }
 
+    /// Ask the synthesizer to provide a list of possible next steps (all and
+    /// only the valid ones)
     pub fn provide(&mut self) -> Result<Vec<S>, EarlyCutoff> {
         self.provider.provide(&self.timer, &self.state)
     }
 
+    /// Decide which step to take - must be selected from among the ones that
+    /// are provided by the [`provide`] function
     pub fn decide(&mut self, step: S) {
         self.state = step.apply(&self.state).unwrap();
     }
 
+    /// Returns the current working expression
     pub fn working_expression(&self) -> S::Exp {
         self.state.clone()
     }
 
+    /// Returns whether or not the current working expression is valid
     pub fn valid(&self) -> bool {
         self.checker.check(&self.state)
     }

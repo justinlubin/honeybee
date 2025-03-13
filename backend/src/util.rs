@@ -14,9 +14,9 @@ pub enum EarlyCutoff {
     OutOfMemory,
 }
 
-/// The max number of steps to take to avoid getting an actual out of memory
-/// (or stack overflow) error.
-pub const MAX_STEPS: usize = 2500;
+/// The maximum size of an expression to consider to avoid stack overflows.
+/// (This number must be bigger than any expression that is to be synthesized.)
+pub const MAX_EXP_SIZE: usize = 500;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Timer

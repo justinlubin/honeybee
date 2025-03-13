@@ -1,3 +1,7 @@
+//! # Top-level handlers
+//!
+//! This module handles the top-level commands that Honeybee provides
+
 use crate::*;
 
 use ansi_term::Color::*;
@@ -13,6 +17,7 @@ fn write_file(path: PathBuf, s: &str) -> Result<(), String> {
     }
 }
 
+/// Use Programming By Navigation interactively
 pub fn interact(
     library: PathBuf,
     program: PathBuf,
@@ -174,14 +179,19 @@ pub fn interact(
     Ok(())
 }
 
-pub fn translate(path: PathBuf) -> Result<(), String> {
+/// Translate a serialized json file to a Python program
+pub fn translate(path: PathBuf, print_size: bool) -> Result<(), String> {
     let exp_string =
         std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let exp = parse::exp(&exp_string)?;
     println!("{}", codegen::python_multi(&exp, 0));
+    if print_size {
+        println!("# size: {}", exp.size());
+    }
     Ok(())
 }
 
+/// Benchmark the synthesizers in this project
 pub fn benchmark(
     suite_paths: Vec<PathBuf>,
     algorithms: Vec<menu::Algorithm>,

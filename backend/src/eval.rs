@@ -1,8 +1,15 @@
+//! # Evaluating Honeybee formula
+//!
+//! This module provides functions for evaluating / checking the satisfaction
+//! of Honeybee formula.
+
 use crate::core::*;
 use crate::top_down::FunParam;
 
 use indexmap::IndexMap;
 
+/// Provides the evaluation context (the ground propositions, the current function
+/// arguments' metadata, and the return metadata)
 pub struct Context<'a> {
     pub props: &'a Vec<Met<Value>>,
     pub args: &'a IndexMap<FunParam, IndexMap<MetParam, Value>>,
@@ -47,6 +54,7 @@ impl Context<'_> {
         true
     }
 
+    /// Check whether or not a formula is satisfied in a context
     pub fn sat(&self, phi: &Formula) -> bool {
         match phi {
             Formula::True => true,

@@ -118,13 +118,13 @@ enum Command {
         #[arg(short, long, value_name = "SUBSTRING", default_value = "")]
         filter: String,
 
-        /// Use a quick (parallel) approximation - not for publication use
-        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
-        parallel: bool,
-
         /// Set the maximum number of particular solutions to use (blank for no limit)
         #[arg(short, long, value_name = "N", default_value = "")]
         limit: String,
+
+        /// Run benchmarks in parallel (for approximation only)
+        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
+        parallel: bool,
     },
 
     /// Translate serialized JSON to Python expression
@@ -132,6 +132,10 @@ enum Command {
         /// Path to serialized JSON
         #[arg(short, long, value_name = "FILE")]
         path: PathBuf,
+
+        /// Whether or not to print the size as a comment at the end of the file
+        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
+        size: bool,
     },
 }
 
@@ -168,7 +172,9 @@ impl Command {
                 parallel,
                 custom_parse::limit(&limit),
             ),
-            Self::Translate { path } => main_handler::translate(path),
+            Self::Translate { path, size } => {
+                main_handler::translate(path, size)
+            }
         }
     }
 }
