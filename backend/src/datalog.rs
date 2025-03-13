@@ -48,6 +48,8 @@ impl Value {
         Ok(())
     }
 
+    /// Infer the type of a value (do not take into consideration domain
+    /// restriction).
     pub fn unsafe_infer(&self) -> ValueType {
         match self {
             Value::Bool(_) => ValueType::Bool,
@@ -57,6 +59,7 @@ impl Value {
         }
     }
 
+    /// Infer the type of a value (including a domain check).
     pub fn infer(&self, dom: &Domain) -> Result<ValueType, Error> {
         self.check_domain(dom)?;
         Ok(self.unsafe_infer())
@@ -306,6 +309,7 @@ impl Rule {
     const X_PREFIX: &'static str = "&x_";
     const Y_PREFIX: &'static str = "&y_";
 
+    /// Cut one rule with another.
     pub fn cut(&self, other: &Rule, j: usize) -> Option<Rule> {
         let mut self_body_without_cut_fact = self.body.clone();
         let self_cut_fact = match self_body_without_cut_fact.remove(j) {
@@ -357,6 +361,7 @@ impl Rule {
         })
     }
 
+    /// Returns the set of values in a rule.
     pub fn vals(&self) -> IndexSet<Value> {
         let mut ret = self.head.vals();
         for f in &self.body {

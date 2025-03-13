@@ -1,3 +1,8 @@
+//! # Code generation
+//!
+//! This is the backend of the backend! After Programming By Navigation is
+//! performed, this module can be used to generate actual code (e.g., Python).
+
 use crate::core::*;
 use crate::top_down;
 
@@ -10,6 +15,7 @@ fn python_value(v: &Value) -> String {
     }
 }
 
+/// Translate an expression into a multi-line Python expression
 pub fn python_multi(e: &Exp, current_indent: usize) -> String {
     match e {
         top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
@@ -39,6 +45,7 @@ pub fn python_multi(e: &Exp, current_indent: usize) -> String {
     }
 }
 
+/// Translate an expression into a single-line Python expression
 pub fn python_single(e: &Exp) -> String {
     match e {
         top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
@@ -60,10 +67,3 @@ pub fn python_single(e: &Exp) -> String {
         }
     }
 }
-
-// func(hello = g(goodbye = 3))
-// func(
-//   hello = g(
-//     goodbye = 3
-//   ),
-// )
