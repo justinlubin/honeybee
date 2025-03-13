@@ -30,6 +30,8 @@ echo "Benchmarking with ${1:-2} threads (configurable via first argument)"
 
 export RAYON_NUM_THREADS=${1:-2}
 
+echo "Running part 1 of 3..."
+
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo,NaiveEnumeration,PrunedEnumeration \
@@ -39,6 +41,8 @@ $hb benchmark \
     --parallel \
     > "$data_dir/finscal.tsv"
 
+echo "Running part 2 of 3..."
+
 $hb benchmark \
     --suite ../benchmark/suites/inf \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo \
@@ -47,6 +51,8 @@ $hb benchmark \
     --limit 1 \
     --parallel \
     > "$data_dir/inf-pbn.tsv"
+
+echo "Running part 3 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
@@ -71,6 +77,10 @@ cat \
 ################################################################################
 ## Generate graphs
 
+echo "Analyzing results..."
+
 cd $analysis_dir
 
 uv run analyze.py 90 "$data_dir/combined.tsv" $output_dir
+
+echo "All done!"
