@@ -24,6 +24,8 @@ cd $backend_dir
 cargo build
 hb="./target/debug/honeybee"
 
+echo "Running part 1 of 3..."
+
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo,NaiveEnumeration,PrunedEnumeration \
@@ -31,12 +33,16 @@ $hb benchmark \
     --timeout 120 \
     > "$data_dir/finscal.tsv"
 
+echo "Running part 2 of 3..."
+
 $hb benchmark \
     --suite ../benchmark/suites/inf \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo \
     --replicates 5 \
     --timeout 120 \
     > "$data_dir/inf-pbn.tsv"
+
+echo "Running part 3 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
@@ -60,6 +66,10 @@ cat \
 ################################################################################
 ## Generate graphs
 
+echo "Analyzing results..."
+
 cd $analysis_dir
 
 uv run analyze.py 120 "$data_dir/combined.tsv" $output_dir
+
+echo "All done!"
