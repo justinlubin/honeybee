@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
+echo -n "Starting at: "
+date +"%D %T"
+
 ################################################################################
 ## Set up variables and directories
 
 MODE="full"
 
-timestamp=$(date +'y%Y-m%m-d%d_hr%H-min%M-sec%S-ms%3N')
+timestamp=$(date +'y%Y-m%m-d%d_hr%H-min%M-sec%S')
 
 mkdir -p "benchmark/data/$MODE/$timestamp"
 mkdir -p "benchmark/analysis/output/$MODE/$timestamp"
@@ -15,6 +18,8 @@ analysis_dir=$(realpath "benchmark/analysis")
 
 data_dir=$(realpath "benchmark/data/$MODE/$timestamp")
 output_dir=$(realpath "benchmark/analysis/output/$MODE/$timestamp")
+
+echo "Using timestamp '$timestamp'"
 
 ################################################################################
 ## Benchmark synthesizers
@@ -73,3 +78,6 @@ cd $analysis_dir
 uv run analyze.py 120 "$data_dir/combined.tsv" $output_dir
 
 echo "All done!"
+
+echo -n "Finished at: "
+date +"%D %T"
