@@ -106,6 +106,7 @@ impl Prune for ExhaustivePruner {
         support: &Support,
         e: &Exp,
     ) -> Result<bool, EarlyCutoff> {
+        timer.tick()?;
         match e {
             Sketch::Hole(_) => Ok(true),
             Sketch::App(f, args) => {
@@ -118,6 +119,7 @@ impl Prune for ExhaustivePruner {
                 let mut choices = IndexMap::new();
                 let sig = problem.library.functions.get(&f.name).unwrap();
                 for (fp, arg) in args {
+                    timer.tick()?;
                     match arg {
                         Sketch::Hole(_) => choices.insert(
                             fp.clone(),
@@ -136,6 +138,7 @@ impl Prune for ExhaustivePruner {
                     };
                 }
                 for arg_choice in util::cartesian_product(timer, choices)? {
+                    timer.tick()?;
                     let ctx = eval::Context {
                         props: &problem.program.props,
                         args: &arg_choice,
@@ -199,6 +202,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         let mut expansions = IndexMap::new();
         let fs = self.problem.library.functions.get(&f.name).unwrap();
         for (fp, mn) in &fs.params {
+            timer.tick()?;
             match args.get(fp).unwrap() {
                 Sketch::Hole(h) => {
                     let mut h_expansions = vec![];
@@ -258,11 +262,12 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         let type_context = typecheck::Context(&self.problem);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
+            timer.tick()?;
+
             if e.size() > util::MAX_EXP_SIZE {
                 return Err(EarlyCutoff::OutOfMemory);
             }
 
-            timer.tick()?;
             let sup = match &e {
                 Sketch::Hole(_) => panic!(),
                 Sketch::App(f, args) => self.support_fun(timer, f, args)?,
@@ -280,8 +285,8 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 
             let sup_prod = util::cartesian_product(timer, sup)?;
 
-            println!("{} {}", e.size(), worklist.len());
             for choice in sup_prod {
+                timer.tick()?;
                 let mut new_e = e.clone();
                 for (h, f) in choice {
                     let app = Sketch::free(&new_e, &f);
