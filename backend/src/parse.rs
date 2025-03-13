@@ -1,3 +1,10 @@
+//! # Parsing Honeybee core syntax
+//!
+//! Most of the parsing for Honeybee comes from deriving TOML parsing on the
+//! data structures. However, for some things (in particular, parsing formulas),
+//! we have a custom parser. We also expose some nice functions in this module
+//! to abstract away from the fact that we are parsing using TOML.
+
 use crate::core::*;
 use crate::top_down::FunParam;
 
@@ -5,7 +12,7 @@ use chumsky::prelude::*;
 
 // Shorthand
 
-pub trait P<T>: Parser<char, T, Error = Simple<char>> {}
+trait P<T>: Parser<char, T, Error = Simple<char>> {}
 impl<S, T> P<T> for S where S: Parser<char, T, Error = Simple<char>> {}
 
 // Errors
@@ -177,14 +184,17 @@ impl TryFrom<Vec<String>> for Formula {
 
 // Top-level functions
 
+/// Parse a library
 pub fn library(lib: &str) -> Result<Library, String> {
     toml::from_str(lib).map_err(|e| e.to_string())
 }
 
+/// Parse a program
 pub fn program(prog: &str) -> Result<Program, String> {
     toml::from_str(prog).map_err(|e| e.to_string())
 }
 
+/// Parse an expression
 pub fn exp(exp: &str) -> Result<Exp, String> {
     serde_json::from_str(exp).map_err(|e| e.to_string())
 }

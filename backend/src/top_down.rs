@@ -51,10 +51,12 @@ pub enum Sketch<F: Function> {
 }
 
 impl<F: Function> Sketch<F> {
+    /// Returns the blank expression
     pub fn blank() -> Self {
         Self::Hole(0)
     }
 
+    /// Returns whether or not an expression is ground
     pub fn ground(&self) -> bool {
         match self {
             Sketch::Hole(_) => false,
@@ -62,6 +64,7 @@ impl<F: Function> Sketch<F> {
         }
     }
 
+    /// Returns the size of an expression
     pub fn size(&self) -> usize {
         match self {
             Sketch::Hole(_) => 1,
@@ -72,21 +75,14 @@ impl<F: Function> Sketch<F> {
     }
 }
 
+/// Pretty-print a hole
 pub fn pretty_hole_string(h: HoleName) -> String {
     ansi_term::Color::Yellow
         .paint(format!("?{}", util::subscript_numbers(&h.to_string())))
         .to_string()
 }
 
-// impl<F: Function + Display> std::fmt::Display for Sketch<F> {
-//     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Sketch::Hole(h) => write!(fmt, "?{}", h),
-//             Sketch::App(f, args) => write!(fmt, "{}[]"),
-//         }
-//     }
-// }
-
+/// Wrapper for checking whether or not an expression is ground
 pub struct GroundChecker<F: Function> {
     function_type: PhantomData<F>,
 }
@@ -121,6 +117,7 @@ pub enum TopDownStep<F: Function> {
 }
 
 impl<F: Function> Sketch<F> {
+    /// Creates a new function application whose arguments are fresh holes
     pub fn free(context: &Sketch<F>, f: &F) -> Sketch<F> {
         let holes = context.fresh().map(Sketch::Hole);
         Sketch::App(f.clone(), f.arity().into_iter().zip(holes).collect())
@@ -136,6 +133,7 @@ impl<F: Function> Sketch<F> {
         }
     }
 
+    /// Substitute a hole for an expression
     pub fn substitute(&self, h: HoleName, e: &Self) -> Self {
         match self {
             Self::Hole(h2) => {
@@ -163,10 +161,12 @@ impl<F: Function> Sketch<F> {
         }
     }
 
+    /// Returns an iterator of fresh hole names
     pub fn fresh(&self) -> impl Iterator<Item = HoleName> {
         return (self.max_hole() + 1)..;
     }
 
+    /// Pattern match a ground expression against self
     pub fn pattern_match(
         &self,
         ground: &Self,
@@ -218,6 +218,7 @@ impl<F: Function> pbn::Step for TopDownStep<F> {
 // Top-Down Classical-Constructive Synthesis
 //   (Solving the Programming By Navigation Synthesis Problem)
 
+/// The type of expansions
 pub type Expansion<F> = (HoleName, F);
 
 /// The type of inhabitation oracles for use in top-down classical-constructive

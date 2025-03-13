@@ -1,11 +1,26 @@
+//! # Type-checking Honeybee core syntax
+//!
+//! This module provides type-checking for the Honeybee core syntax. This
+//! includes both (a) routine checks to make sure that the library and given
+//! program are self-consistent and consistent with each other and (b) the
+//! type-checking code to determine if an *expression* is well-typed, which
+//! includes recursively checking whether the metadata at each function
+//! application satisfies the validity condition.
+
 use crate::core::*;
 use crate::eval;
 use crate::top_down::{FunParam, Sketch};
 
 use indexmap::{IndexMap, IndexSet};
 
+/// A typing context; this must be created first in order to type-check.
+///
+/// For convenience, these are created automatically as part of the [`problem`]
+/// function, but more fine-grained control (to check particular components of
+/// Honeybee core syntax) are provided in the `impl` block for this struct.
 pub struct Context<'a>(pub &'a Problem);
 
+/// The type of type errors.
 #[derive(Debug)]
 pub struct Error {
     pub context: Vec<String>,
@@ -14,12 +29,12 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn with_context(mut self, ctx: String) -> Self {
+    fn with_context(mut self, ctx: String) -> Self {
         self.context.push(ctx);
         self
     }
 
-    pub fn new(message: String) -> Self {
+    fn new(message: String) -> Self {
         Self {
             context: vec![],
             message,
@@ -27,23 +42,23 @@ impl Error {
         }
     }
 
-    pub fn fp(fp: &FunParam) -> Self {
+    fn fp(fp: &FunParam) -> Self {
         Self::new(format!("unknown function parameter '{}'", fp.0))
     }
 
-    pub fn mn(name: &MetName) -> Self {
+    fn mn(name: &MetName) -> Self {
         Self::new(format!("unknown metadata name '{}'", name.0))
     }
 
-    pub fn mp(mp: &MetParam) -> Self {
+    fn mp(mp: &MetParam) -> Self {
         Self::new(format!("unknown metadata parameter '{}'", mp.0))
     }
 
-    pub fn bf(bf: &BaseFunction) -> Self {
+    fn bf(bf: &BaseFunction) -> Self {
         Self::new(format!("unknown base function '{}'", bf.0))
     }
 
-    pub fn argcount(got: usize, expected: usize) -> Self {
+    fn argcount(got: usize, expected: usize) -> Self {
         Self::new(format!("got {} args, expected {}", got, expected))
     }
 }
@@ -51,6 +66,7 @@ impl Error {
 type Check = Result<(), Error>;
 type Infer<T> = Result<T, Error>;
 
+/// Create a context from a problem and use that context to check the problem.
 pub fn problem(problem: &Problem) -> Check {
     let context = Context(problem);
 
@@ -161,7 +177,7 @@ impl Context<'_> {
         Ok(())
     }
 
-    pub fn check_atomic_proposition(
+    fn check_atomic_proposition(
         &self,
         fs: &FunctionSignature,
         ap: &AtomicProposition,

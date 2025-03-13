@@ -1,5 +1,10 @@
-//algos: hb, ne, pe, hb-ablate, pe-constructive
-//tasks: any, particular
+//! # Benchmarking
+//!
+//! This module defines everything necessary to benchmark the synthesizers in
+//! this project.
+//!
+//! To use this code, create a [`Runner`] object using [`Runner::new`],
+//! then call [`Runner::suites`] to run a set of benchmark suits.
 
 use crate::pbn::Step;
 use crate::util::{EarlyCutoff, Timer};
@@ -12,15 +17,23 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+/// Benchmark configuration.
 pub struct Config {
+    /// How many times to run each entry
     pub replicates: usize,
+    /// When to cut off the benchmark early
     pub timeout: Duration,
+    /// Whether or not to run the benchmarks in parallel
     pub parallel: bool,
+    /// Run only the benchmarks that contain this string
     pub entry_filter: String,
+    /// The algorithms to benchmark
     pub algorithms: Vec<menu::Algorithm>,
+    /// Consider at most this many particular solutions (set to usize::MAX for all)
     pub particular_solution_limit: usize,
 }
 
+/// The core data structure for running benchmarks.
 pub struct Runner {
     config: Config,
     wtr: Arc<Mutex<csv::Writer<Box<dyn io::Write + Send + 'static>>>>,
@@ -53,6 +66,9 @@ struct EntryResult {
 }
 
 impl Runner {
+    /// Create a new benchmark runner (start here!). The `writer` argument is
+    /// the location that the benchmark results will get written to
+    /// (e.g., stdout).
     pub fn new(
         config: Config,
         writer: impl io::Write + Send + 'static,
@@ -223,6 +239,7 @@ impl Runner {
         wtr.flush().unwrap();
     }
 
+    /// Run a set of benchmark suites
     pub fn suites(&self, suite_paths: &Vec<PathBuf>) {
         let entries = self.load_entries(suite_paths);
 

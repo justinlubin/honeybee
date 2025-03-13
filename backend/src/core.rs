@@ -64,6 +64,7 @@ pub struct Met<T> {
 }
 
 impl<T> Met<T> {
+    /// The context string for a Met.
     pub fn context(&self) -> String {
         format!("metadata tuple '{}'", self.name.0).to_owned()
     }
@@ -83,6 +84,7 @@ pub enum FormulaAtom {
 }
 
 impl FormulaAtom {
+    /// Returns the set of values in a formula atom.
     pub fn vals(&self) -> IndexSet<Value> {
         match self {
             FormulaAtom::Param(_, _) => IndexSet::new(),
@@ -92,9 +94,12 @@ impl FormulaAtom {
     }
 }
 
+/// The type of atomic propositions (essentially, facts that may have
+/// omitted arguments).
 pub type AtomicProposition = Met<Option<FormulaAtom>>;
 
 impl AtomicProposition {
+    /// Returns the set of values in an atomic proposition.
     pub fn vals(&self) -> IndexSet<Value> {
         let mut ret = IndexSet::new();
         for ofa in self.args.values() {
@@ -120,6 +125,7 @@ pub enum Formula {
 }
 
 impl Formula {
+    /// Create a conjunct of formulas.
     pub fn conjunct(fs: impl Iterator<Item = Formula>) -> Formula {
         let mut phi = Self::True;
         for f in fs {
@@ -128,6 +134,7 @@ impl Formula {
         phi
     }
 
+    /// Returns the set of values in a formula.
     pub fn vals(&self) -> IndexSet<Value> {
         match self {
             Formula::True => IndexSet::new(),
@@ -165,6 +172,7 @@ pub struct FunctionSignature {
 }
 
 impl FunctionSignature {
+    /// Returns the set of values in a function signature.
     pub fn vals(&self) -> IndexSet<Value> {
         self.condition.vals()
     }
@@ -213,6 +221,8 @@ pub struct ParameterizedFunction {
 }
 
 impl ParameterizedFunction {
+    /// Creates a parameterized function from a function signature (usually
+    /// resulting from selecting the function signature from a library.)
     pub fn from_sig(
         sig: &FunctionSignature,
         name: BaseFunction,
@@ -254,6 +264,7 @@ pub struct Problem {
 }
 
 impl Problem {
+    /// Returns the set of values in a problem.
     pub fn vals(&self) -> IndexSet<Value> {
         let mut dom = IndexSet::new();
         for fs in self.library.functions.values() {
@@ -270,6 +281,7 @@ impl Problem {
 ////////////////////////////////////////////////////////////////////////////////
 // Goal convenience wrapper
 
+/// A convenience wrapper type for handling goal-related types and functions.
 pub struct Goal {
     pub function: BaseFunction,
     pub param: FunParam,
@@ -277,6 +289,7 @@ pub struct Goal {
 }
 
 impl Goal {
+    /// Create a new goal with the specified metadata
     pub fn new(goal: &Met<Value>) -> Self {
         let function = BaseFunction("&goal".to_owned());
         let param = FunParam("&goalparam".to_owned());
@@ -300,10 +313,12 @@ impl Goal {
         }
     }
 
+    /// Add a goal to a library
     pub fn add_to_library(&self, functions: &mut FunctionLibrary) {
         functions.insert(self.function.clone(), self.signature.clone());
     }
 
+    /// Create an application whose head is the goal function
     pub fn app(
         &self,
         e: &Exp,

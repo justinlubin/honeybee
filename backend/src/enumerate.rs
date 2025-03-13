@@ -1,3 +1,13 @@
+//! # Term enumeration
+//!
+//! This module implements term enumeration that is parameterized by a pruning
+//! algorithm; the main struct is [`EnumerativeSynthesis`]. This struct
+//! implements the traditional Any and All tasks (and thus can be used as a
+//! Programming By Navigation step provider), and it *also* implements the
+//! required interface for an inhabitation oracle, so it can be used as a
+//! "fully-constructive" oracle for top-down classical-constructive program
+//! synthesis.
+
 use crate::core::*;
 use crate::top_down::*;
 use crate::traditional_synthesis::*;
@@ -7,12 +17,15 @@ use crate::{eval, typecheck};
 use indexmap::{IndexMap, IndexSet};
 use std::collections::VecDeque;
 
+/// The domain of values to use; use to construct the "support" of various
+/// components, which is the set of possible values that could be filled in.
 pub struct Support {
     ints: Vec<Value>,
     strings: Vec<Value>,
 }
 
 impl Support {
+    /// Create a new support from a set of values
     fn new(values: IndexSet<Value>) -> Self {
         let mut ints = vec![];
         let mut strings = vec![];
@@ -50,6 +63,12 @@ impl Support {
     }
 }
 
+/// The type of pruning algorithms. To be used for Programming By Navigation, a
+/// pruning algorithm MUST NOT filter out any valid programs (enumeration must
+/// be complete). It is entirely okay not to filter out invalid programs
+/// (enumeration need not be sound), though, as all enumerated programs
+/// ultimately go through a final post hoc validity check (which automatically
+/// enforces soundness).
 pub trait Prune {
     fn possible(
         &self,
@@ -60,6 +79,7 @@ pub trait Prune {
     ) -> Result<bool, EarlyCutoff>;
 }
 
+/// A pruner that does not filter out any programs.
 pub struct NaivePruner;
 
 impl Prune for NaivePruner {
@@ -74,6 +94,8 @@ impl Prune for NaivePruner {
     }
 }
 
+/// A pruner that tries to identify when no set of values can satisfy the
+/// provided formulas.
 pub struct ExhaustivePruner;
 
 impl Prune for ExhaustivePruner {
@@ -130,6 +152,7 @@ impl Prune for ExhaustivePruner {
     }
 }
 
+/// The main enumerative synthesis struct.
 pub struct EnumerativeSynthesis<P: Prune> {
     problem: Problem,
     goal: Goal,
@@ -138,6 +161,7 @@ pub struct EnumerativeSynthesis<P: Prune> {
 }
 
 impl<P: Prune> EnumerativeSynthesis<P> {
+    /// Create a new enumerative synthesis instance
     pub fn new(mut problem: Problem, pruner: P) -> Self {
         let goal = Goal::new(&problem.program.goal);
         goal.add_to_library(&mut problem.library.functions);
@@ -316,7 +340,7 @@ impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
     }
 }
 
-// Constructive oracle
+// "Fully-constructive" oracle
 impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
     type F = ParameterizedFunction;
 

@@ -1,3 +1,9 @@
+//! # Datalog-backed Inhabitation Oracle
+//!
+//! This module defines a datalog-backed inhabitation oracle: [`Oracle`]. It
+//! is parameterized by a Datalog engine and can be used as part of Programming
+//! By Navigation.
+
 use crate::core::{self, *};
 use crate::datalog::{self, *};
 use crate::top_down::*;
@@ -280,6 +286,7 @@ mod decompile {
 ////////////////////////////////////////////////////////////////////////////////
 // Oracle
 
+/// A datalog-backed inhabitation oracle
 pub struct Oracle<Eng: Engine> {
     engine: Eng,
     problem: Problem,
@@ -288,6 +295,7 @@ pub struct Oracle<Eng: Engine> {
 }
 
 impl<Eng: Engine> Oracle<Eng> {
+    /// Create a new inhabitation oracle from a Datalog engine and core problem
     pub fn new(
         mut engine: Eng,
         mut problem: Problem,
