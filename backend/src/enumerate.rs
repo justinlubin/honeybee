@@ -107,6 +107,7 @@ impl Prune for ExhaustivePruner {
         e: &Exp,
     ) -> Result<bool, EarlyCutoff> {
         timer.tick()?;
+
         match e {
             Sketch::Hole(_) => Ok(true),
             Sketch::App(f, args) => {
@@ -208,6 +209,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
                     let mut h_expansions = vec![];
                     let ms = self.problem.library.types.get(mn).unwrap();
                     for metadata in self.support.met_signature(timer, ms)? {
+                        timer.tick()?;
                         h_expansions.extend(
                             self.support_hole(&Met {
                                 name: mn.clone(),
@@ -359,6 +361,8 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
         let mut expansions = vec![];
         for (h, h_expansions) in self.support_fun(timer, &top_f, &top_args)? {
             for f in h_expansions {
+                timer.tick()?;
+
                 let app = Sketch::free(&e, &f);
                 let new_e = e.substitute(h, &app);
 
