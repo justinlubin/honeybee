@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::top_down::*;
 use crate::traditional_synthesis::*;
-use crate::util::{self, Timer, TimerExpired};
+use crate::util::{self, EarlyCutoff, Timer};
 use crate::{eval, typecheck};
 
 use indexmap::{IndexMap, IndexSet};
@@ -40,7 +40,7 @@ impl Support {
         &self,
         timer: &Timer,
         sig: &MetSignature,
-    ) -> Result<Vec<IndexMap<MetParam, Value>>, TimerExpired> {
+    ) -> Result<Vec<IndexMap<MetParam, Value>>, EarlyCutoff> {
         let choices = sig
             .params
             .iter()
@@ -57,7 +57,7 @@ pub trait Prune {
         problem: &Problem,
         support: &Support,
         e: &Exp,
-    ) -> Result<bool, TimerExpired>;
+    ) -> Result<bool, EarlyCutoff>;
 }
 
 pub struct NaivePruner;
@@ -69,7 +69,7 @@ impl Prune for NaivePruner {
         _: &Problem,
         _: &Support,
         _: &Exp,
-    ) -> Result<bool, TimerExpired> {
+    ) -> Result<bool, EarlyCutoff> {
         Ok(true)
     }
 }
@@ -83,7 +83,7 @@ impl Prune for ExhaustivePruner {
         problem: &Problem,
         support: &Support,
         e: &Exp,
-    ) -> Result<bool, TimerExpired> {
+    ) -> Result<bool, EarlyCutoff> {
         match e {
             Sketch::Hole(_) => Ok(true),
             Sketch::App(f, args) => {
@@ -170,7 +170,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         timer: &Timer,
         f: &ParameterizedFunction,
         args: &IndexMap<FunParam, Exp>,
-    ) -> Result<IndexMap<HoleName, Vec<ParameterizedFunction>>, TimerExpired>
+    ) -> Result<IndexMap<HoleName, Vec<ParameterizedFunction>>, EarlyCutoff>
     {
         let mut expansions = IndexMap::new();
         let fs = self.problem.library.functions.get(&f.name).unwrap();
@@ -230,10 +230,14 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         timer: &Timer,
         mut worklist: VecDeque<Exp>,
         max_solutions: usize,
-    ) -> Result<Vec<Exp>, TimerExpired> {
+    ) -> Result<Vec<Exp>, EarlyCutoff> {
         let type_context = typecheck::Context(&self.problem);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
+            if e.size() > 2500 {
+                return Err(EarlyCutoff::OutOfMemory);
+            }
+
             timer.tick()?;
             let sup = match &e {
                 Sketch::Hole(_) => panic!(),
@@ -277,7 +281,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         timer: &Timer,
         start: &Exp,
         max_solutions: usize,
-    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, TimerExpired> {
+    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
         let (f, args) = self.wrap(start);
         let worklist = VecDeque::from([Sketch::App(f, args)]);
         Ok(self
@@ -295,7 +299,7 @@ impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
         &mut self,
         timer: &Timer,
         start: &Exp,
-    ) -> Result<Option<HoleFilling<ParameterizedFunction>>, TimerExpired> {
+    ) -> Result<Option<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
         Ok(self.enumerate(timer, start, 1)?.into_iter().next())
     }
 }
@@ -307,7 +311,7 @@ impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
         &mut self,
         timer: &Timer,
         start: &Exp,
-    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, TimerExpired> {
+    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
         self.enumerate(timer, start, usize::MAX)
     }
 }
@@ -320,7 +324,7 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
         &mut self,
         timer: &Timer,
         e: &Sketch<Self::F>,
-    ) -> Result<Vec<(HoleName, Self::F)>, TimerExpired> {
+    ) -> Result<Vec<(HoleName, Self::F)>, EarlyCutoff> {
         let (top_f, top_args) = self.wrap(e);
         let mut expansions = vec![];
         for (h, h_expansions) in self.support_fun(timer, &top_f, &top_args)? {

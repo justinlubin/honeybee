@@ -2,7 +2,7 @@
 //tasks: any, particular
 
 use crate::pbn::Step;
-use crate::util::{Timer, TimerExpired};
+use crate::util::{EarlyCutoff, Timer};
 use crate::{core, menu, parse, top_down, typecheck};
 
 use instant::{Duration, Instant};
@@ -151,7 +151,7 @@ impl Runner {
         algorithm: menu::Algorithm,
         problem: core::Problem,
         solution: core::Exp,
-    ) -> Result<bool, TimerExpired> {
+    ) -> Result<bool, EarlyCutoff> {
         let timer = Timer::finite(self.config.timeout);
         let mut controller = algorithm.controller(timer, problem);
 
@@ -181,7 +181,7 @@ impl Runner {
         &self,
         algorithm: menu::Algorithm,
         problem: core::Problem,
-    ) -> Result<bool, TimerExpired> {
+    ) -> Result<bool, EarlyCutoff> {
         let timer = Timer::finite(self.config.timeout);
         let start = top_down::Sketch::blank();
         let mut synth = algorithm.any_synthesizer(problem);

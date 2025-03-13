@@ -171,7 +171,7 @@ def summary_plot(df):
         color_feature="algorithm_color",
         count_feature="overall_completed",
         total_feature="total",
-        bins=np.arange(0, 40.1, 2),
+        bins=np.arange(0, 120.1, 2),
         xlabel="Time taken (s)",
         flip=True,
     )

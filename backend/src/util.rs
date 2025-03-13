@@ -12,7 +12,10 @@ enum TimerInner {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TimerExpired;
+pub enum EarlyCutoff {
+    TimerExpired,
+    OutOfMemory,
+}
 
 #[derive(Debug)]
 pub struct Timer(TimerInner);
@@ -28,11 +31,11 @@ impl Timer {
         Timer(TimerInner::Infinite)
     }
 
-    pub fn tick(&self) -> Result<(), TimerExpired> {
+    pub fn tick(&self) -> Result<(), EarlyCutoff> {
         match self.0 {
             TimerInner::Finite { end } => {
                 if Instant::now() > end {
-                    Err(TimerExpired)
+                    Err(EarlyCutoff::TimerExpired)
                 } else {
                     Ok(())
                 }
@@ -48,7 +51,7 @@ impl Timer {
 pub fn cartesian_product<K: Clone + Eq + std::hash::Hash, V: Clone>(
     timer: &Timer,
     choices: IndexMap<K, Vec<V>>,
-) -> Result<Vec<IndexMap<K, V>>, TimerExpired> {
+) -> Result<Vec<IndexMap<K, V>>, EarlyCutoff> {
     let mut results = vec![IndexMap::new()];
     for (k, vs) in choices.iter() {
         let mut new_results = vec![];
