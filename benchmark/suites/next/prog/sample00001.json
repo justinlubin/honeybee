@@ -1,1 +1,0 @@
-{"App":[{"name":"salmon","metadata":{"sample":"TLE","at":5},"arity":["ref","seq"]},{"ref":{"App":[{"name":"hg38","metadata":{},"arity":[]},{}]},"seq":{"App":[{"name":"seq_of_seq_file","metadata":{"sample":"TLE","at":5},"arity":["file"]},{"file":{"App":[{"name":"load_seq_file","metadata":{"sample":"TLE","at":5,"filename":"tle.fastq"},"arity":[]},{}]}}]}}]}

@@ -5,8 +5,6 @@ import random
 import shutil
 import sys
 
-random.seed(0)
-
 OPTION_COUNT = "option count: "
 LIB_EXT = ".hblib.toml"
 PROG_EXT = ".hb.toml"
@@ -57,6 +55,8 @@ async def run_all(suite, max_retries=30):
         shutil.rmtree(base, ignore_errors=True)
 
     for prog in progs:
+        random.seed(0)
+
         print(f"Working on '{prog}'... ", end="", flush=True)
         base = prog[: -len(PROG_EXT)]
         os.makedirs(base)
