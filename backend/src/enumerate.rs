@@ -234,7 +234,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         let type_context = typecheck::Context(&self.problem);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
-            if e.size() > 2500 {
+            if e.size() > util::MAX_STEPS {
                 return Err(EarlyCutoff::OutOfMemory);
             }
 

@@ -114,7 +114,7 @@ impl Runner {
                         .filter_map(Result::ok)
                         .enumerate()
                 {
-                    if i > self.config.particular_solution_limit {
+                    if i >= self.config.particular_solution_limit {
                         break;
                     }
 

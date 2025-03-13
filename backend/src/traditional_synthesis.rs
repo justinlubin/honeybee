@@ -1,6 +1,6 @@
 use crate::pbn::*;
 use crate::top_down::*;
-use crate::util::{EarlyCutoff, Timer};
+use crate::util::{self, EarlyCutoff, Timer};
 
 use indexmap::IndexMap;
 
@@ -89,7 +89,7 @@ impl<
         start: &Sketch<Self::F>,
     ) -> Result<Option<HoleFilling<Self::F>>, EarlyCutoff> {
         let mut ret = start.clone();
-        loop {
+        for _ in 1..util::MAX_STEPS {
             let options = self.provider.provide(timer, &ret)?;
             let step = match options.into_iter().next() {
                 Some(step) => step,
@@ -100,5 +100,6 @@ impl<
                 return Ok(start.pattern_match(&ret));
             }
         }
+        Err(EarlyCutoff::OutOfMemory)
     }
 }

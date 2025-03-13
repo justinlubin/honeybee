@@ -5,16 +5,21 @@ use instant::Instant;
 ////////////////////////////////////////////////////////////////////////////////
 // Timer
 
-#[derive(Debug)]
-enum TimerInner {
-    Finite { end: Instant },
-    Infinite,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EarlyCutoff {
     TimerExpired,
     OutOfMemory,
+}
+
+pub const MAX_STEPS: usize = 2500;
+
+////////////////////////////////////////////////////////////////////////////////
+// Timer
+
+#[derive(Debug)]
+enum TimerInner {
+    Finite { end: Instant },
+    Infinite,
 }
 
 #[derive(Debug)]
