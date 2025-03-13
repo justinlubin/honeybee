@@ -36,6 +36,10 @@ mod custom_parse {
             s.split(",").map(|s| s.parse().unwrap()).collect()
         }
     }
+
+    pub fn limit(s: &str) -> usize {
+        s.parse::<usize>().unwrap_or(usize::MAX)
+    }
 }
 
 fn styles() -> Styles {
@@ -116,7 +120,11 @@ enum Command {
 
         /// Use a quick (parallel) approximation - not for publication use
         #[arg(short, long, value_name = "BOOL", default_value_t = false)]
-        quick: bool,
+        parallel: bool,
+
+        /// Set the maximum number of particular solutions to use (blank for no limit)
+        #[arg(short, long, value_name = "N", default_value = "")]
+        limit: String,
     },
 
     /// Translate serialized JSON to Python expression
@@ -149,14 +157,16 @@ impl Command {
                 replicates,
                 timeout,
                 filter,
-                quick,
+                parallel,
+                limit,
             } => main_handler::benchmark(
                 custom_parse::one_or_more_paths(&suite, "--suite")?,
                 custom_parse::algs(&algorithms),
                 replicates,
                 timeout,
                 filter,
-                quick,
+                parallel,
+                custom_parse::limit(&limit),
             ),
             Self::Translate { path } => main_handler::translate(path),
         }

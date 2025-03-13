@@ -189,6 +189,7 @@ pub fn benchmark(
     timeout_secs: u64,
     entry_filter: String,
     parallel: bool,
+    particular_solution_limit: usize,
 ) -> Result<(), String> {
     let config = benchmark::Config {
         replicates,
@@ -196,6 +197,7 @@ pub fn benchmark(
         entry_filter,
         parallel,
         algorithms,
+        particular_solution_limit,
     };
     let runner = benchmark::Runner::new(config, std::io::stdout());
     runner.suites(&suite_paths);

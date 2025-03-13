@@ -18,6 +18,7 @@ pub struct Config {
     pub parallel: bool,
     pub entry_filter: String,
     pub algorithms: Vec<menu::Algorithm>,
+    pub particular_solution_limit: usize,
 }
 
 pub struct Runner {
@@ -107,11 +108,16 @@ impl Runner {
 
                 let mut solutions = vec![("<ANY>".to_owned(), None)];
 
-                for solution_path in
+                for (i, solution_path) in
                     glob::glob(prog_path_noext.join("*.json").to_str().unwrap())
                         .unwrap()
                         .filter_map(Result::ok)
+                        .enumerate()
                 {
+                    if i > self.config.particular_solution_limit {
+                        break;
+                    }
+
                     let solution_name = solution_path
                         .file_name()
                         .unwrap()
