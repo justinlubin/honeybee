@@ -1,11 +1,20 @@
-![Tests workflow results](https://github.com/justinlubin/honeybee/actions/workflows/tests.yml/badge.svg)
+# Getting Started Guide
 
-![A honey bee approaching a flower](https://jlubin.net/assets/bee.jpg)
+_Estimated time to complete this section: 10 minutes._
 
-_Image credit: [Louise Docker](https://www.flickr.com/photos/aussiegall/) on
-[Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pollinationn.jpg),
-[CC BY 2.0](https://creativecommons.org/licenses/by/2.0/)._
+To evaluate this artifact, we recommend using the included Docker image `pldi25ae-honeybee.tar.gz`.
 
-[https://www.youtube.com/watch?v=-7ijI-g4jHg](https://www.youtube.com/watch?v=-7ijI-g4jHg)
+First, you will need to [install Docker](https://docs.docker.com/get-started/get-docker/). Docker Desktop is a particularly easy path to installing Docker, but any standard installation of Docker should do.
 
-[Honeybee navigation](https://www.cell.com/current-biology/fulltext/S0960-9822(03)00836-4)
+Second, here is how to "kick the tires" to make sure that everything is installed properly:
+
+1. Load the Docker image by running `docker load -i pldi25ae-honeybee.tar.gz`.
+2. Run the Docker image by running `./RUN_DOCKER.sh`. This command should boot you into a Bash shell in the Ubuntu environment provided by the Docker image.
+3. Run `./KICK_TIRES.sh` and ensure that no errors ensue.
+
+And that's it!
+
+_**Tip:** If Docker does not work well with your system, it is also easy (but not recommended) to work directly from the source repository; the only external dependencies are [Rust](https://www.rust-lang.org/) and [uv](https://docs.astral.sh/uv/). If you follow this approach, simply start at Step 3 below to "kick the tires."_
+
+
+# Step-by-Step Instructions
