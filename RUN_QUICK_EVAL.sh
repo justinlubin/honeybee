@@ -44,8 +44,8 @@ $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo,NaiveEnumeration,PrunedEnumeration \
     --replicates 1 \
-    --timeout 90 \
-    --limit 1 \
+    --timeout 120 \
+    --limit 2 \
     --parallel \
     > "$data_dir/finscal.tsv"
 
@@ -58,8 +58,8 @@ $hb benchmark \
     --suite ../benchmark/suites/inf \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo \
     --replicates 1 \
-    --timeout 90 \
-    --limit 1 \
+    --timeout 120 \
+    --limit 2 \
     --parallel \
     > "$data_dir/inf-pbn.tsv"
 
@@ -95,7 +95,7 @@ echo "Analyzing results..."
 
 cd $analysis_dir
 
-uv run analyze.py 90 "$data_dir/combined.tsv" $output_dir
+uv run analyze.py 120 "$data_dir/combined.tsv" $output_dir
 
 echo "All done!"
 

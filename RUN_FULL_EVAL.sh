@@ -8,7 +8,7 @@ date +"%D %T"
 
 MODE="full"
 
-timestamp=$(date +'y%Y-m%m-d%d_hr%H-min%M-sec%S')
+timestamp=$(date +'%Y-%m-%d_%H-%M-%S')
 
 mkdir -p "benchmark/data/$MODE/$timestamp"
 mkdir -p "benchmark/analysis/output/$MODE/$timestamp"
