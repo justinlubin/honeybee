@@ -2,15 +2,15 @@
 
 # Call this script with one argument: the number of threads to use (default 2)
 
-echo -n "Starting at: "
+echo -n "The current time is: "
 date +"%D %T"
 
 ################################################################################
-## Set up variables and directories
+# %% Set up variables and directories
 
 MODE="quick"
 
-timestamp=$(date +'y%Y-m%m-d%d_hr%H-min%M-sec%S')
+timestamp=$(date +'%Y-%m-%d_%H-%M-%S')
 
 mkdir -p "benchmark/data/$MODE/$timestamp"
 mkdir -p "benchmark/analysis/output/$MODE/$timestamp"
@@ -24,7 +24,7 @@ output_dir=$(realpath "benchmark/analysis/output/$MODE/$timestamp")
 echo "Using timestamp '$timestamp'"
 
 ################################################################################
-## Benchmark synthesizers
+# %% Benchmark synthesizers
 
 cd $backend_dir
 
@@ -37,6 +37,9 @@ export RAYON_NUM_THREADS=${1:-2}
 
 echo "Running part 1 of 3..."
 
+echo -n "The current time is: "
+date +"%D %T"
+
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo,NaiveEnumeration,PrunedEnumeration \
@@ -47,6 +50,9 @@ $hb benchmark \
     > "$data_dir/finscal.tsv"
 
 echo "Running part 2 of 3..."
+
+echo -n "The current time is: "
+date +"%D %T"
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
@@ -59,6 +65,9 @@ $hb benchmark \
 
 echo "Running part 3 of 3..."
 
+echo -n "The current time is: "
+date +"%D %T"
+
 $hb benchmark \
     --suite ../benchmark/suites/inf \
     --algorithms NaiveEnumeration,PrunedEnumeration \
@@ -69,18 +78,18 @@ $hb benchmark \
     > "$data_dir/inf-baseline.tsv"
 
 ################################################################################
-## Combine results
+# %% Combine results
 
 cd $data_dir
 
 cat \
     finscal.tsv \
-    < (tail -n +2 inf-pbn.tsv) \
-    < (tail -n +2 inf-baseline.txt) \
+    <(tail -n +2 inf-pbn.tsv) \
+    <(tail -n +2 inf-baseline.tsv) \
     > combined.tsv
 
 ################################################################################
-## Generate graphs
+# %% Generate graphs
 
 echo "Analyzing results..."
 
@@ -90,5 +99,5 @@ uv run analyze.py 90 "$data_dir/combined.tsv" $output_dir
 
 echo "All done!"
 
-echo -n "Finished at: "
+echo -n "The current time is: "
 date +"%D %T"

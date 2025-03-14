@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-echo -n "Starting at: "
+echo -n "The current time is: "
 date +"%D %T"
 
 ################################################################################
-## Set up variables and directories
+# %% Set up variables and directories
 
 MODE="full"
 
@@ -22,7 +22,7 @@ output_dir=$(realpath "benchmark/analysis/output/$MODE/$timestamp")
 echo "Using timestamp '$timestamp'"
 
 ################################################################################
-## Benchmark synthesizers
+# %% Benchmark synthesizers
 
 cd $backend_dir
 
@@ -30,6 +30,9 @@ cargo build
 hb="./target/debug/honeybee"
 
 echo "Running part 1 of 3..."
+
+echo -n "The current time is: "
+date +"%D %T"
 
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
@@ -40,6 +43,9 @@ $hb benchmark \
 
 echo "Running part 2 of 3..."
 
+echo -n "The current time is: "
+date +"%D %T"
+
 $hb benchmark \
     --suite ../benchmark/suites/inf \
     --algorithms PBNHoneybee,PBNHoneybeeNoMemo \
@@ -48,6 +54,9 @@ $hb benchmark \
     > "$data_dir/inf-pbn.tsv"
 
 echo "Running part 3 of 3..."
+
+echo -n "The current time is: "
+date +"%D %T"
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
@@ -58,18 +67,18 @@ $hb benchmark \
     > "$data_dir/inf-baseline.tsv"
 
 ################################################################################
-## Combine results
+# %% Combine results
 
 cd $data_dir
 
 cat \
     finscal.tsv \
-    < (tail -n +2 inf-pbn.tsv) \
-    < (tail -n +2 inf-baseline.txt) \
+    <(tail -n +2 inf-pbn.tsv) \
+    <(tail -n +2 inf-baseline.tsv) \
     > combined.tsv
 
 ################################################################################
-## Generate graphs
+# %% Generate graphs
 
 echo "Analyzing results..."
 
@@ -79,5 +88,5 @@ uv run analyze.py 120 "$data_dir/combined.tsv" $output_dir
 
 echo "All done!"
 
-echo -n "Finished at: "
+echo -n "The current time is: "
 date +"%D %T"
