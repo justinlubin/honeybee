@@ -19,6 +19,7 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
+    /// A list of all the possible synthesizers
     pub fn all() -> Vec<Self> {
         vec![
             Self::PBNHoneybee,
@@ -29,6 +30,8 @@ impl Algorithm {
         ]
     }
 
+    /// Returns a controller to solve the Programming By Navigation Synthesis
+    /// Problem using the underlying synthesis algorithm
     pub fn controller(
         &self,
         timer: util::Timer,
@@ -86,6 +89,8 @@ impl Algorithm {
         }
     }
 
+    /// Returns an AnySynthesizer to solve the traditional Any task using the
+    /// underlying synthesis algorithm
     pub fn any_synthesizer(
         &self,
         problem: core::Problem,

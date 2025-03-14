@@ -4,6 +4,7 @@ use crate::util::{self, EarlyCutoff, Timer};
 
 use indexmap::IndexMap;
 
+/// The type of hole fillings (mappings from hole names to sketches).
 pub type HoleFilling<F> = IndexMap<HoleName, Sketch<F>>;
 
 /// The type of synthesizers solving the traditional Any task (for sketches).
@@ -26,6 +27,8 @@ pub trait AllSynthesizer {
     ) -> Result<Vec<HoleFilling<Self::F>>, EarlyCutoff>;
 }
 
+/// A wrapper for solving the Programming By Navigation Synthesis Problem using
+/// a complete All synthesizer.
 pub struct AllBasedStepProvider<Synth: AllSynthesizer>(pub Synth);
 
 impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
@@ -52,6 +55,8 @@ impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
     }
 }
 
+/// A wrapper for solving the traditional Any task using a Programming By
+/// Navigation synthesizer.
 pub struct StepProviderBasedAnySynthesizer<
     F: Function,
     SP: StepProvider<Step = TopDownStep<F>>,

@@ -4,6 +4,9 @@
 //! data structures. However, for some things (in particular, parsing formulas),
 //! we have a custom parser. We also expose some nice functions in this module
 //! to abstract away from the fact that we are parsing using TOML.
+//!
+//! Additionally, we provide deserialization/parsing from JSON for expressions
+//! with [`exp`].
 
 use crate::core::*;
 use crate::top_down::FunParam;
