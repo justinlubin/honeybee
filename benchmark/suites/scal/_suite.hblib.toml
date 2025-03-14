@@ -1,0 +1,99 @@
+[Prop.In]
+params.x = "Int"
+
+[Type.Choice]
+params.x = "Int"
+
+[Type.Step01]
+params = {}
+
+[Type.Step02]
+params = {}
+
+[Type.Step03]
+params = {}
+
+[Type.Step04]
+params = {}
+
+[Type.Step05]
+params = {}
+
+[Type.Step06]
+params = {}
+
+[Type.Step07]
+params = {}
+
+[Type.Step08]
+params = {}
+
+[Type.Step09]
+params = {}
+
+[Type.Step10]
+params = {}
+
+[Function.choose]
+params = {}
+ret = "Choice"
+condition = ["In { x = ret.x }"]
+
+[Function.f01]
+params.choice = "Choice"
+ret = "Step01"
+condition = []
+
+[Function.f02]
+params.s = "Step01"
+params.choice = "Choice"
+ret = "Step02"
+condition = []
+
+[Function.f03]
+params.s = "Step02"
+params.choice = "Choice"
+ret = "Step03"
+condition = []
+
+[Function.f04]
+params.s = "Step03"
+params.choice = "Choice"
+ret = "Step04"
+condition = []
+
+[Function.f05]
+params.s = "Step04"
+params.choice = "Choice"
+ret = "Step05"
+condition = []
+
+[Function.f06]
+params.s = "Step05"
+params.choice = "Choice"
+ret = "Step06"
+condition = []
+
+[Function.f07]
+params.s = "Step06"
+params.choice = "Choice"
+ret = "Step07"
+condition = []
+
+[Function.f08]
+params.s = "Step07"
+params.choice = "Choice"
+ret = "Step08"
+condition = []
+
+[Function.f09]
+params.s = "Step08"
+params.choice = "Choice"
+ret = "Step09"
+condition = []
+
+[Function.f10]
+params.s = "Step09"
+params.choice = "Choice"
+ret = "Step10"
+condition = []

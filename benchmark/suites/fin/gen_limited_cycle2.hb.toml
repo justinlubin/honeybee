@@ -1,0 +1,83 @@
+[[Prop]]
+name = "In"
+args.x = 1
+
+[[Prop]]
+name = "In"
+args.x = 2
+
+[[Prop]]
+name = "In"
+args.x = 3
+
+[[Prop]]
+name = "In"
+args.x = 4
+
+[[Prop]]
+name = "In"
+args.x = 5
+
+[[Prop]]
+name = "In"
+args.x = 6
+
+[[Prop]]
+name = "In"
+args.x = 7
+
+[[Prop]]
+name = "In"
+args.x = 8
+
+[[Prop]]
+name = "In"
+args.x = 9
+
+[[Prop]]
+name = "In"
+args.x = 10
+
+[[Prop]]
+name = "In"
+args.x = 11
+
+[[Prop]]
+name = "In"
+args.x = 12
+
+[[Prop]]
+name = "In"
+args.x = 13
+
+[[Prop]]
+name = "In"
+args.x = 14
+
+[[Prop]]
+name = "In"
+args.x = 15
+
+[[Prop]]
+name = "In"
+args.x = 16
+
+[[Prop]]
+name = "In"
+args.x = 17
+
+[[Prop]]
+name = "In"
+args.x = 18
+
+[[Prop]]
+name = "In"
+args.x = 19
+
+[[Prop]]
+name = "In"
+args.x = 20
+
+[Goal]
+name = "LimitedCycleAnswer"
+args = {}

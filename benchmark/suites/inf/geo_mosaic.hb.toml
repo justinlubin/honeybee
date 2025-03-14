@@ -1,0 +1,33 @@
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:32610"
+
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:32611"
+
+[[Prop]]
+name = "InputRaster"
+args.name = "Hillshade 1"
+args.data = "hillshade-1.tif"
+args.resolution = 30
+args.crs = "EPSG:32610"
+args.bands = 1
+args.sensor = "unknown"
+
+
+[[Prop]]
+name = "InputRaster"
+args.name = "Hillshade 2"
+args.data = "hillshade-2.tif"
+args.resolution = 30
+args.crs = "EPSG:32611"
+args.bands = 2
+args.sensor = "unknown"
+
+[Goal]
+name = "Raster"
+args.name = "Mosaiced Hillshade"
+args.crs = "EPSG:32610"
+args.resolution = 30
+args.bands = 1

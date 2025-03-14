@@ -1,0 +1,21 @@
+[[Prop]]
+name = "ReferenceGenomeFile"
+args.data = "hg38.fasta"
+
+[[Prop]]
+name = "SeqFile"
+args.sample = "Healthy"
+args.at = 5
+args.data = "healthy.fastq"
+
+[[Prop]]
+name = "SeqFile"
+args.sample = "TLE"
+args.at = 5
+args.data = "tle.fastq"
+
+[Goal]
+name = "DifferentialGeneExpression"
+args.sample1 = "Healthy"
+args.sample2 = "TLE"
+args.at = 5

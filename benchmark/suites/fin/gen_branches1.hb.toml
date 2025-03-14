@@ -1,0 +1,11 @@
+[[Prop]]
+name = "In"
+args.x = 1
+
+[[Prop]]
+name = "In"
+args.x = 2
+
+[Goal]
+name = "BranchTop"
+args = {}

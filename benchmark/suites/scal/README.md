@@ -1,1 +1,1 @@
- To generate the scalability suite, run `python3 gen.py`.
+ To generate the scalability suite, run `python3 generate.py`.

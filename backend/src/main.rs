@@ -1,146 +1,182 @@
 #![allow(dead_code)]
 
-use honeybee::*;
+use honeybee::main_handler;
 
-use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
+use ansi_term::Color::*;
+use clap::{builder::styling::*, Parser, Subcommand};
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
-enum RunMode {
-    Interactive,
-    Auto,
-    ProcessInteractive,
-}
+mod custom_parse {
+    use honeybee::menu;
+    use std::path::PathBuf;
 
-impl RunMode {
-    pub fn analyzer(&self) -> analysis::CLI {
-        match self {
-            RunMode::Interactive => analysis::CLI {
-                mode: analysis::CLIMode::Manual,
-                print_mode: analysis::CLIPrintMode::Full,
-            },
-            RunMode::Auto => analysis::CLI {
-                mode: analysis::CLIMode::Auto,
-                print_mode: analysis::CLIPrintMode::NoPrint,
-            },
-            RunMode::ProcessInteractive => analysis::CLI {
-                mode: analysis::CLIMode::Manual,
-                print_mode: analysis::CLIPrintMode::LenPrint,
-            },
+    pub fn at_most_one_path(s: &str) -> Option<PathBuf> {
+        if s.is_empty() {
+            None
+        } else {
+            Some(PathBuf::from(s))
         }
+    }
+
+    pub fn one_or_more_paths(
+        s: &str,
+        option: &str,
+    ) -> Result<Vec<PathBuf>, String> {
+        if s.is_empty() {
+            Err(format!("{} must be nonempty", option))
+        } else {
+            Ok(s.split(",").map(PathBuf::from).collect())
+        }
+    }
+
+    pub fn algs(s: &str) -> Vec<menu::Algorithm> {
+        if s.is_empty() {
+            menu::Algorithm::all()
+        } else {
+            s.split(",").map(|s| s.parse().unwrap()).collect()
+        }
+    }
+
+    pub fn limit(s: &str) -> usize {
+        s.parse::<usize>().unwrap_or(usize::MAX)
     }
 }
 
-/// Programming by Navigation with 🐝 Honeybee
+fn styles() -> Styles {
+    Styles::styled()
+        .header(AnsiColor::Green.on_default().bold())
+        .usage(AnsiColor::Green.on_default().bold())
+        .literal(AnsiColor::Cyan.on_default().bold())
+        .placeholder(AnsiColor::Cyan.on_default())
+        .valid(AnsiColor::Green.on_default())
+        .invalid(AnsiColor::Yellow.on_default())
+}
+
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(
+    version,
+    about = format!("{} with {}",
+        Purple.bold().paint("Programming by Navigation"),
+        Yellow.bold().paint("🐝 Honeybee"),
+    ),
+    long_about = None,
+    styles = styles(),
+)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Command,
 }
 
 #[derive(Subcommand)]
-enum Commands {
+enum Command {
     /// Run Honeybee interactively in the CLI
-    Run {
-        /// The library file to use (.hblib)
+    Interact {
+        /// The library file to use (.hblib.toml)
         #[arg(short, long, value_name = "FILE")]
         library: PathBuf,
 
-        /// The library implementation file to use (.py)
-        #[arg(short, long, value_name = "FILE")]
-        implementation: PathBuf,
-
-        /// The Honeybee program to use (.hb)
+        /// The Honeybee program to use (.hb.toml)
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
 
-        /// The run mode
-        #[arg(short, long, value_name = "MODE", value_enum, default_value_t = RunMode::Interactive)]
-        mode: RunMode,
+        /// Whether or not to use "quiet" mode
+        #[arg(short, long, action)]
+        quiet: bool,
 
-        /// Path to output JSON of synthesized derivation tree (blank for no output)
+        /// Path to output JSON of synthesized expression (blank for no output)
         #[arg(short, long, value_name = "FILE", default_value = "")]
         json: String,
+
+        /// The algorithm to use
+        #[arg(
+            short,
+            long,
+            value_name = "ALGORITHM",
+            default_value = "PBNHoneybee"
+        )]
+        algorithm: honeybee::menu::Algorithm,
     },
-    /// Benchmark Honeybee and baselines
+
     Benchmark {
         /// The benchmark suite directories to use (comma-separated list)
         #[arg(short, long, value_name = "DIRS")]
         suite: String,
 
+        /// Algorithms to use (comma-separated list, blank for all)
+        #[arg(short, long, value_name = "ALGORITHMS", default_value = "")]
+        algorithms: String,
+
         /// The number of times to run each benchmark entry
         #[arg(short, long, value_name = "N", default_value_t = 1)]
         replicates: usize,
 
-        /// The (soft) time cutoff to use for synthesis in milliseconds
-        #[arg(
-            short,
-            long,
-            value_name = "MILLISECONDS",
-            default_value_t = 2000
-        )]
-        timeout: u128,
+        /// The (soft) time cutoff to use for synthesis (in seconds)
+        #[arg(short, long, value_name = "SECONDS", default_value_t = 2)]
+        timeout: u64,
 
         /// Filter to benchmark entries that contain this substring
         #[arg(short, long, value_name = "SUBSTRING", default_value = "")]
         filter: String,
 
-        /// Use a quick (parallel) approximation - not for publication use
+        /// Set the maximum number of particular solutions to use (blank for no limit)
+        #[arg(short, long, value_name = "N", default_value = "")]
+        limit: String,
+
+        /// Run benchmarks in parallel (for approximation only)
         #[arg(short, long, value_name = "BOOL", default_value_t = false)]
-        quick: bool,
+        parallel: bool,
+    },
 
-        /// Set the algorithms and tasks
-        #[arg(
-            short,
-            long,
-            value_name = "A1:T1,A2:T2,...",
-            default_value = "PBN_DLmem:Particular,PBN_DL:Particular,EP:All,E:All"
-        )]
-        algotasks: String,
+    /// Translate serialized JSON to Python expression
+    Translate {
+        /// Path to serialized JSON
+        #[arg(short, long, value_name = "FILE")]
+        path: PathBuf,
 
-        /// Show results for each benchmark row (results in invalid TSV)
-        #[arg(long, value_name = "BOOL", default_value_t = false)]
-        show_results: bool,
+        /// Whether or not to print the size as a comment at the end of the file
+        #[arg(short, long, value_name = "BOOL", default_value_t = false)]
+        size: bool,
     },
 }
 
-fn parse_json_path(s: &str) -> Option<PathBuf> {
-    if s.is_empty() {
-        None
-    } else {
-        Some(PathBuf::from(s))
+impl Command {
+    pub fn handle(self) -> Result<(), String> {
+        match self {
+            Self::Interact {
+                library,
+                program,
+                quiet,
+                json,
+                algorithm,
+            } => main_handler::interact(
+                library,
+                program,
+                quiet,
+                custom_parse::at_most_one_path(&json),
+                algorithm,
+            ),
+            Self::Benchmark {
+                suite,
+                algorithms,
+                replicates,
+                timeout,
+                filter,
+                parallel,
+                limit,
+            } => main_handler::benchmark(
+                custom_parse::one_or_more_paths(&suite, "--suite")?,
+                custom_parse::algs(&algorithms),
+                replicates,
+                timeout,
+                filter,
+                parallel,
+                custom_parse::limit(&limit),
+            ),
+            Self::Translate { path, size } => {
+                main_handler::translate(path, size)
+            }
+        }
     }
-}
-
-fn parse_suites(s: &str) -> Vec<PathBuf> {
-    if s.is_empty() {
-        println!(
-            "{} {}",
-            ansi_term::Color::Red.bold().paint("error:"),
-            "--suite must be nonempty"
-        );
-        std::process::exit(1)
-    } else {
-        s.split(",").map(|x| PathBuf::from(x)).collect()
-    }
-}
-
-fn parse_algotasks(
-    s: &str,
-) -> Vec<(benchmark_data::Algorithm, benchmark_data::Task)> {
-    s.split(",")
-        .map(|at| {
-            let (a, t) = at
-                .split_once(":")
-                .expect(&format!("malformed algotask: {}", at));
-            (
-                serde_json::from_str(&format!("\"{}\"", a)).unwrap(),
-                serde_json::from_str(&format!("\"{}\"", t)).unwrap(),
-            )
-        })
-        .collect()
 }
 
 fn main() {
@@ -148,46 +184,12 @@ fn main() {
 
     let cli = Cli::parse();
 
-    let result = match &cli.command {
-        Commands::Run {
-            library,
-            implementation,
-            program,
-            mode,
-            json,
-        } => {
-            let json = parse_json_path(json);
-            run::run(mode.analyzer(), library, implementation, program, &json)
-        }
-        Commands::Benchmark {
-            suite,
-            replicates,
-            timeout,
-            filter,
-            quick,
-            algotasks,
-            show_results,
-        } => {
-            let suites = parse_suites(suite);
-            let algotasks = parse_algotasks(&algotasks);
-            benchmark::run(
-                &suites,
-                *replicates,
-                *timeout,
-                filter,
-                true,
-                *quick,
-                *show_results,
-                &algotasks,
-            )
-            .map(|_| ())
-        }
-    };
+    let result = cli.command.handle();
 
     match result {
         Ok(()) => (),
         Err(e) => {
-            println!("{} {}", ansi_term::Color::Red.bold().paint("error:"), e);
+            eprintln!("{}", e);
             std::process::exit(1)
         }
     }

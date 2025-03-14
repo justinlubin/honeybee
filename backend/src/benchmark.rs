@@ -1,437 +1,252 @@
-use crate::ir::*;
+//! # Benchmarking
+//!
+//! This module defines everything necessary to benchmark the synthesizers in
+//! this project.
+//!
+//! To use this code, create a [`Runner`] object using [`Runner::new`],
+//! then call [`Runner::suites`] to run a set of benchmark suits.
 
-use crate::derivation;
-use crate::enumerate;
-use crate::pbn;
-use crate::syntax;
-use crate::task;
+use crate::pbn::Step;
+use crate::util::{EarlyCutoff, Timer};
+use crate::{core, menu, parse, top_down, typecheck};
 
+use instant::{Duration, Instant};
 use rayon::prelude::*;
-
-use chumsky::Parser;
 use serde::Serialize;
-
+use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
 
-use crate::benchmark_data::*;
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Record {
-    pub suite: String,
-    pub entry: String,
-    pub task: Task,
-    pub subentry: String,
-    pub replicate: usize,
-    pub algorithm: Algorithm,
-    pub completed: bool,
-    pub duration: u128,
-    pub solution_count: usize,
-    pub solution_size: usize,
+/// Benchmark configuration.
+pub struct Config {
+    /// How many times to run each entry
+    pub replicates: usize,
+    /// When to cut off the benchmark early
+    pub timeout: Duration,
+    /// Whether or not to run the benchmarks in parallel
+    pub parallel: bool,
+    /// Run only the benchmarks that contain this string
+    pub entry_filter: String,
+    /// The algorithms to benchmark
+    pub algorithms: Vec<menu::Algorithm>,
+    /// Consider at most this many particular solutions (set to usize::MAX for all)
+    pub particular_solution_limit: usize,
 }
 
-struct Timed<T> {
-    val: T,
+/// The core data structure for running benchmarks.
+pub struct Runner {
+    config: Config,
+    wtr: Arc<Mutex<csv::Writer<Box<dyn io::Write + Send + 'static>>>>,
+}
+
+struct Entry {
+    // Key
+    suite_name: String,
+    entry_name: String,
+    solution_name: String,
+    algorithm: menu::Algorithm,
+    replicate: usize,
+    // Value
+    problem: core::Problem,
+    solution: Option<core::Exp>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct EntryResult {
+    // Key
+    suite_name: String,
+    entry_name: String,
+    solution_name: String,
+    algorithm: menu::Algorithm,
+    replicate: usize,
+    // Value
+    completed: bool,
+    success: bool,
     duration: u128,
 }
 
-fn run_one(
-    sp: task::SynthesisProblem,
-    algorithm: Algorithm,
-) -> Timed<task::SynthesisResult> {
-    let now = Instant::now();
-    let sr = match algorithm {
-        Algorithm::E => enumerate::synthesize(sp, enumerate::Config::Basic),
-        Algorithm::EP => enumerate::synthesize(sp, enumerate::Config::Prune),
-        Algorithm::PBN_DL => pbn::synthesize(sp, pbn::Config::Basic),
-        Algorithm::PBN_DLmem => pbn::synthesize(sp, pbn::Config::Memo),
-        Algorithm::PBN_E => {
-            pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Basic))
+impl Runner {
+    /// Create a new benchmark runner (start here!). The `writer` argument is
+    /// the location that the benchmark results will get written to
+    /// (e.g., stdout).
+    pub fn new(
+        config: Config,
+        writer: impl io::Write + Send + 'static,
+    ) -> Self {
+        Self {
+            wtr: Arc::new(Mutex::new(
+                csv::WriterBuilder::new()
+                    .delimiter(b'\t')
+                    .from_writer(Box::new(writer)),
+            )),
+            config,
         }
-        Algorithm::PBN_EP => {
-            pbn::synthesize(sp, pbn::Config::Enum(enumerate::Config::Prune))
-        }
-    };
-    // for t in &sr.results {
-    //     // To be fair to LLMs, include Python conversion time
-    //     let _ = backend::Python::new(t).emit().plain_text("");
-    // }
-    let duration = now.elapsed().as_millis();
-    Timed { val: sr, duration }
-}
-
-fn task_results(
-    lib: &Library,
-    prog: &Program,
-    soft_timeout: u128,
-    run_count: usize,
-    suite: &str,
-    entry: &str,
-    algorithm: Algorithm,
-    task: Task,
-    synthesis_task: task::Task,
-    subentry: &str,
-    show_results: bool,
-    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
-) -> Vec<Record> {
-    let sp = task::SynthesisProblem {
-        lib: &lib,
-        prog: &prog,
-        task: synthesis_task,
-        soft_timeout,
-    };
-
-    let mut records = vec![];
-
-    for replicate in 0..run_count {
-        let Timed {
-            val: task::SynthesisResult { results, completed },
-            duration,
-        } = run_one(sp.clone(), algorithm.clone());
-
-        let r = Record {
-            suite: suite.to_owned(),
-            entry: entry.to_owned(),
-            task: task.clone(),
-            subentry: subentry.to_owned(),
-            replicate,
-            algorithm: algorithm.clone(),
-            completed,
-            duration,
-            solution_count: results.len(),
-            solution_size: results.iter().map(|t| t.size()).sum(),
-        };
-
-        records.push(r.clone());
-
-        Arc::clone(wtr).lock().unwrap().as_mut().map(|wtr| {
-            wtr.serialize(r).unwrap();
-            wtr.flush().unwrap();
-            if show_results {
-                println!(">>> Start Results >>>\n");
-                for r in results {
-                    println!("{}", r);
-                }
-                println!("<<< End Results <<<");
-            }
-        });
     }
 
-    records
-}
+    fn load_entries(&self, suite_paths: &Vec<PathBuf>) -> Vec<Entry> {
+        let mut entries = vec![];
 
-fn results(
-    lib: &Library,
-    prog: &Program,
-    particulars: &Vec<(String, derivation::Tree)>,
-    soft_timeout: u128,
-    run_count: usize,
-    suite: &str,
-    entry: &str,
-    algorithm: Algorithm,
-    task: Task,
-    parallel: bool,
-    show_results: bool,
-    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
-) -> Vec<Record> {
-    let synthesis_tasks = match task {
-        Task::Any => vec![("NA".to_owned(), task::Task::AnyValid)],
-        Task::All => vec![("NA".to_owned(), task::Task::AllValid)],
-        Task::Particular => particulars
-            .iter()
-            .map(|(subentry, dt)| {
-                (subentry.clone(), task::Task::Particular(dt.clone()))
-            })
-            .collect(),
-    };
+        for suite_path in suite_paths {
+            let suite_name = suite_path.file_name().unwrap().to_str().unwrap();
 
-    if parallel {
-        synthesis_tasks
-            .par_iter()
-            .flat_map(|(subentry, synthesis_task)| {
-                task_results(
-                    &lib,
-                    &prog,
-                    soft_timeout,
-                    run_count,
-                    &suite,
-                    &entry,
-                    algorithm.clone(),
-                    task.clone(),
-                    synthesis_task.clone(),
-                    subentry,
-                    show_results,
-                    wtr,
-                )
-            })
-            .collect()
-    } else {
-        synthesis_tasks
-            .iter()
-            .flat_map(|(subentry, synthesis_task)| {
-                task_results(
-                    &lib,
-                    &prog,
-                    soft_timeout,
-                    run_count,
-                    &suite,
-                    &entry,
-                    algorithm.clone(),
-                    task.clone(),
-                    synthesis_task.clone(),
-                    subentry,
-                    show_results,
-                    wtr,
-                )
-            })
-            .collect()
-    }
-}
+            let lib_path = suite_path.join("_suite.hblib.toml");
+            let lib_string = std::fs::read_to_string(lib_path).unwrap();
+            let library = parse::library(&lib_string).unwrap();
 
-fn entry_results(
-    lib: &Library,
-    prog: &Program,
-    entry: &str,
-    particulars: &Vec<(String, derivation::Tree)>,
-    soft_timeout: u128,
-    run_count: usize,
-    suite: &str,
-    parallel: bool,
-    show_results: bool,
-    algotasks: &Vec<(Algorithm, Task)>,
-    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
-) -> Vec<Record> {
-    // let particulars = {
-    //     let sr = pbn::synthesize(
-    //         task::SynthesisProblem {
-    //             lib: &lib,
-    //             prog: &prog,
-    //             task: task::Task::AllValid,
-    //             soft_timeout,
-    //         },
-    //         pbn::Config::Memo,
-    //     );
+            for prog_path in
+                glob::glob(suite_path.join("*.hb.toml").to_str().unwrap())
+                    .unwrap()
+                    .filter_map(Result::ok)
+            {
+                let prog_path_noext =
+                    prog_path.with_extension("").with_extension("");
 
-    //     if sr.completed {
-    //         Some(sr.results)
-    //     } else {
-    //         None
-    //     }
-    // };
-
-    if parallel {
-        algotasks
-            .par_iter()
-            .flat_map(|(algorithm, task)| {
-                results(
-                    &lib,
-                    &prog,
-                    &particulars,
-                    soft_timeout,
-                    run_count,
-                    &suite,
-                    &entry,
-                    algorithm.clone(),
-                    task.clone(),
-                    parallel,
-                    show_results,
-                    wtr,
-                )
-            })
-            .collect()
-    } else {
-        algotasks
-            .iter()
-            .flat_map(|(algorithm, task)| {
-                results(
-                    &lib,
-                    &prog,
-                    &particulars,
-                    soft_timeout,
-                    run_count,
-                    &suite,
-                    &entry,
-                    algorithm.clone(),
-                    task.clone(),
-                    parallel,
-                    show_results,
-                    wtr,
-                )
-            })
-            .collect()
-    }
-}
-
-pub fn suite_results(
-    suite_directory: &PathBuf,
-    run_count: usize,
-    soft_timeout: u128, // in milliseconds
-    filter: &str,
-    parallel: bool,
-    show_results: bool,
-    algotasks: &Vec<(Algorithm, Task)>,
-    wtr: &Arc<Mutex<Option<csv::Writer<std::io::Stdout>>>>,
-) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
-    let suite = suite_directory.file_name().unwrap().to_str().unwrap();
-    let lib_filename = suite_directory.join("_suite.hblib");
-    let imp_filename = suite_directory.join("_suite.py");
-
-    let lib_src = std::fs::read_to_string(lib_filename).unwrap();
-    let _imp_src = std::fs::read_to_string(imp_filename).unwrap();
-
-    let lib = syntax::parse::library()
-        .parse(lib_src)
-        .map_err(|_| "Library parse error")?;
-    lib.check()
-        .map_err(|e| format!("[Library type error] {}", e))?;
-
-    let mut progs = vec![];
-
-    for prog_filename in
-        glob::glob(suite_directory.join("*.hb").to_str().unwrap())
-            .unwrap()
-            .filter_map(Result::ok)
-    {
-        let prog_filename_without_extension = prog_filename.with_extension("");
-        let entry = prog_filename_without_extension
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned();
-
-        if !entry.contains(filter) {
-            continue;
-        }
-
-        let prog_src = std::fs::read_to_string(&prog_filename).unwrap();
-        let prog = syntax::parse::program()
-            .parse(prog_src)
-            .map_err(|_| "Program parse error")?;
-        prog.check(&lib)
-            .map_err(|e| format!("[Program type error] {}", e))?;
-
-        let mut particulars = vec![];
-        for particular_filename in glob::glob(
-            prog_filename_without_extension
-                .join("*.json")
-                .to_str()
-                .unwrap(),
-        )
-        .unwrap()
-        .filter_map(Result::ok)
-        {
-            let particular_json =
-                std::fs::read_to_string(&particular_filename).unwrap();
-            let particular = serde_json::from_str(&particular_json).expect(
-                &format!("unparseable particular: {:?}", particular_filename),
-            );
-            particulars.push((
-                particular_filename
-                    .with_extension("")
+                let entry_name = prog_path_noext
                     .file_name()
                     .unwrap()
                     .to_str()
                     .unwrap()
-                    .to_owned(),
-                particular,
-            ));
+                    .to_owned();
+
+                if !entry_name.contains(&self.config.entry_filter) {
+                    continue;
+                }
+
+                let prog_string = std::fs::read_to_string(prog_path).unwrap();
+                let program = parse::program(&prog_string).unwrap();
+
+                let problem = core::Problem {
+                    library: library.clone(),
+                    program,
+                };
+
+                typecheck::problem(&problem).unwrap();
+
+                let mut solutions = vec![("<ANY>".to_owned(), None)];
+
+                for (i, solution_path) in
+                    glob::glob(prog_path_noext.join("*.json").to_str().unwrap())
+                        .unwrap()
+                        .filter_map(Result::ok)
+                        .enumerate()
+                {
+                    if i >= self.config.particular_solution_limit {
+                        break;
+                    }
+
+                    let solution_name = solution_path
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned();
+                    let solution_string =
+                        std::fs::read_to_string(&solution_path).unwrap();
+                    let solution = parse::exp(&solution_string).unwrap();
+
+                    solutions.push((solution_name, Some(solution)));
+                }
+
+                for (solution_name, solution) in solutions {
+                    for algorithm in &self.config.algorithms {
+                        for replicate in 0..self.config.replicates {
+                            entries.push(Entry {
+                                suite_name: suite_name.to_owned(),
+                                entry_name: entry_name.clone(),
+                                solution_name: solution_name.to_owned(),
+                                algorithm: algorithm.clone(),
+                                replicate,
+                                problem: problem.clone(),
+                                solution: solution.clone(),
+                            });
+                        }
+                    }
+                }
+            }
         }
 
-        progs.push((prog, entry, particulars));
+        entries
     }
 
-    Ok(if parallel {
-        progs
-            .par_iter()
-            .flat_map(|(prog, entry, particulars)| {
-                entry_results(
-                    &lib,
-                    prog,
-                    entry,
-                    particulars,
-                    soft_timeout,
-                    run_count,
-                    suite,
-                    parallel,
-                    show_results,
-                    algotasks,
-                    &wtr,
-                )
-            })
-            .collect()
-    } else {
-        progs
-            .iter()
-            .flat_map(|(prog, entry, particulars)| {
-                entry_results(
-                    &lib,
-                    prog,
-                    entry,
-                    particulars,
-                    soft_timeout,
-                    run_count,
-                    suite,
-                    parallel,
-                    show_results,
-                    algotasks,
-                    &wtr,
-                )
-            })
-            .collect()
-    })
-}
+    fn entry_particular(
+        &self,
+        algorithm: menu::Algorithm,
+        problem: core::Problem,
+        solution: core::Exp,
+    ) -> Result<bool, EarlyCutoff> {
+        let timer = Timer::finite(self.config.timeout);
+        let mut controller = algorithm.controller(timer, problem);
 
-// Directory format:
-// - suite_directory/
-//   - _suite.hblib
-//   - _suite.py
-//   - some_benchmark_name.hb
-//   - some_benchmark_name.txt (the particular solution)
-//   - another_benchmark.hb
-//   - another_benchmark.txt
-//   - yet_another.hb
-//   - yet_another.txt
-//   - ...
-pub fn run(
-    suite_directories: &Vec<PathBuf>,
-    run_count: usize,
-    soft_timeout: u128, // in milliseconds
-    filter: &str,
-    write_stdout: bool,
-    parallel: bool,
-    show_results: bool,
-    algotasks: &Vec<(Algorithm, Task)>,
-) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
-    for suite_directory in suite_directories {
-        assert!(suite_directory.is_dir());
+        loop {
+            let working_expression = controller.working_expression();
+
+            if working_expression == solution {
+                return Ok(true);
+            }
+
+            let options = controller.provide()?;
+            if options.is_empty() {
+                return Ok(false);
+            }
+
+            match options.into_iter().find(|opt| {
+                let tentative = opt.apply(&working_expression).unwrap();
+                tentative.pattern_match(&solution).is_some()
+            }) {
+                Some(step) => controller.decide(step),
+                None => return Ok(false),
+            }
+        }
     }
 
-    let wtr = Arc::new(Mutex::new(if write_stdout {
-        Some(
-            csv::WriterBuilder::new()
-                .delimiter(b'\t')
-                .from_writer(std::io::stdout()),
-        )
-    } else {
-        None
-    }));
-
-    let mut results = vec![];
-
-    for suite_directory in suite_directories {
-        results.extend(suite_results(
-            &suite_directory,
-            run_count,
-            soft_timeout,
-            filter,
-            parallel,
-            show_results,
-            algotasks,
-            &wtr,
-        )?);
+    fn entry_any(
+        &self,
+        algorithm: menu::Algorithm,
+        problem: core::Problem,
+    ) -> Result<bool, EarlyCutoff> {
+        let timer = Timer::finite(self.config.timeout);
+        let start = top_down::Sketch::blank();
+        let mut synth = algorithm.any_synthesizer(problem);
+        Ok(synth.provide_any(&timer, &start)?.is_some())
     }
 
-    Ok(results)
+    fn entry(&self, e: Entry) {
+        let now = Instant::now();
+
+        let synthesis_result = match e.solution {
+            Some(sol) => {
+                self.entry_particular(e.algorithm.clone(), e.problem, sol)
+            }
+            None => self.entry_any(e.algorithm.clone(), e.problem),
+        };
+
+        let duration = now.elapsed().as_millis();
+
+        let r = EntryResult {
+            suite_name: e.suite_name.clone(),
+            entry_name: e.entry_name.clone(),
+            solution_name: e.solution_name.clone(),
+            algorithm: e.algorithm,
+            replicate: e.replicate,
+            completed: synthesis_result.is_ok(),
+            success: synthesis_result == Ok(true),
+            duration,
+        };
+
+        let wtr = Arc::clone(&self.wtr);
+        let mut wtr = wtr.lock().unwrap();
+        wtr.serialize(r).unwrap();
+        wtr.flush().unwrap();
+    }
+
+    /// Run a set of benchmark suites
+    pub fn suites(&self, suite_paths: &Vec<PathBuf>) {
+        let entries = self.load_entries(suite_paths);
+
+        if self.config.parallel {
+            entries.into_par_iter().for_each(|e| self.entry(e));
+        } else {
+            entries.into_iter().for_each(|e| self.entry(e));
+        }
+    }
 }

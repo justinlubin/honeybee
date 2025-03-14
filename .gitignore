@@ -1,14 +1,12 @@
 backend/target
-backend/output/*.ipynb
+backend/output/*
 
 benchmark/data
-benchmark/analysis/**/*.pdf
-benchmark/analysis/**/*.png
-benchmark/analysis/**/*.html
-benchmark/analysis/**/*.svg
-
-compendium/data
+benchmark/analysis/output
 
 .venv
 node_modules
 gh-pages
+__pycache__
+
+DOCKER_MOUNT

@@ -5,10 +5,12 @@ import random
 import shutil
 import sys
 
-random.seed(0)
+OPTION_COUNT = "option count: "
+LIB_EXT = ".hblib.toml"
+PROG_EXT = ".hb.toml"
 
 
-async def run_one(hblib, py, prog, json):
+async def run_one(hblib, prog, json):
     hb = await asyncio.create_subprocess_shell(
         " ".join(
             [
@@ -16,13 +18,10 @@ async def run_one(hblib, py, prog, json):
                 "run",
                 "-q",
                 "--",
-                "run",
-                "--mode",
-                "process-interactive",
+                "interact",
+                "--quiet",
                 "-l",
                 hblib,
-                "-i",
-                py,
                 "-p",
                 prog,
                 "-j",
@@ -35,37 +34,38 @@ async def run_one(hblib, py, prog, json):
 
     while True:
         stdout = (await hb.stdout.readline()).decode()
-        try:
-            options = int(stdout)
-        except ValueError:
+        if stdout.startswith(OPTION_COUNT):
+            options = int(stdout[len(OPTION_COUNT) :])
+        else:
             await hb.communicate()
             break
-        choice = random.randint(0, options - 1)
+        choice = random.randint(1, options)
 
         hb.stdin.write((str(choice) + "\n").encode("utf-8"))
         await hb.stdin.drain()
 
 
 async def run_all(suite, max_retries=30):
-    hblib = suite + "/_suite.hblib"
-    py = suite + "/_suite.py"
+    hblib = suite + "/_suite" + LIB_EXT
 
-    progs = sorted(glob.glob(suite + "/*.hb"))
+    progs = sorted(glob.glob(suite + "/*" + PROG_EXT))
 
     for prog in progs:
-        base = prog[:-3]
+        base = prog[: -len(PROG_EXT)]
         shutil.rmtree(base, ignore_errors=True)
 
     for prog in progs:
+        random.seed(0)
+
         print(f"Working on '{prog}'... ", end="", flush=True)
-        base = prog[:-3]
+        base = prog[: -len(PROG_EXT)]
         os.makedirs(base)
         outputs = set()
         for sample in range(1, N + 1):
             print(f"{sample}, ", end="", flush=True)
             json = f"{base}/sample{sample:05d}.json"
             for _ in range(max_retries):
-                await run_one(hblib, py, prog, json)
+                await run_one(hblib, prog, json)
                 with open(json, "r") as f:
                     output = f.read()
                 if output in outputs:

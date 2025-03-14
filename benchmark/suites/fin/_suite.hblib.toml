@@ -1,0 +1,722 @@
+################################################################################
+### GENERIC FUNCTIONS ###
+################################################################################
+
+[Prop.In]
+params.x = "Int"
+
+[Type.Choice]
+params.x = "Int"
+
+[Function.choose]
+params = {}
+ret = "Choice"
+condition = ["In { x = ret.x }"]
+
+### independent_choices
+
+# Types
+
+[Type.Step1]
+params = {}
+
+[Type.Step2]
+params = {}
+
+[Type.Step3]
+params = {}
+
+[Type.Step4]
+params = {}
+
+[Type.Step5]
+params = {}
+
+[Type.Step6]
+params = {}
+
+[Type.Step7]
+params = {}
+
+[Type.Step8]
+params = {}
+
+[Type.Step9]
+params = {}
+
+[Type.Step10]
+params = {}
+
+# Step 1
+
+[Function.a1]
+params.in = "Choice"
+ret = "Step1"
+condition = []
+
+[Function.b1]
+params.in = "Choice"
+ret = "Step1"
+condition = []
+
+[Function.c1]
+params.in = "Choice"
+ret = "Step1"
+condition = []
+
+[Function.d1]
+params.in = "Choice"
+ret = "Step1"
+condition = []
+
+[Function.e1]
+params.in = "Choice"
+ret = "Step1"
+condition = []
+
+# Step 2
+
+[Function.a2]
+params.in = "Step1"
+ret = "Step2"
+condition = []
+
+[Function.b2]
+params.in = "Step1"
+ret = "Step2"
+condition = []
+
+[Function.c2]
+params.in = "Step1"
+ret = "Step2"
+condition = []
+
+[Function.d2]
+params.in = "Step1"
+ret = "Step2"
+condition = []
+
+[Function.e2]
+params.in = "Step1"
+ret = "Step2"
+condition = []
+
+# Step 3
+
+[Function.a3]
+params.in = "Step2"
+ret = "Step3"
+condition = []
+
+[Function.b3]
+params.in = "Step2"
+ret = "Step3"
+condition = []
+
+[Function.c3]
+params.in = "Step2"
+ret = "Step3"
+condition = []
+
+[Function.d3]
+params.in = "Step2"
+ret = "Step3"
+condition = []
+
+[Function.e3]
+params.in = "Step2"
+ret = "Step3"
+condition = []
+
+# Step 4
+
+[Function.a4]
+params.in = "Step3"
+ret = "Step4"
+condition = []
+
+[Function.b4]
+params.in = "Step3"
+ret = "Step4"
+condition = []
+
+[Function.c4]
+params.in = "Step3"
+ret = "Step4"
+condition = []
+
+[Function.d4]
+params.in = "Step3"
+ret = "Step4"
+condition = []
+
+[Function.e4]
+params.in = "Step3"
+ret = "Step4"
+condition = []
+
+# Step 5
+
+[Function.a5]
+params.in = "Step4"
+ret = "Step5"
+condition = []
+
+[Function.b5]
+params.in = "Step4"
+ret = "Step5"
+condition = []
+
+[Function.c5]
+params.in = "Step4"
+ret = "Step5"
+condition = []
+
+[Function.d5]
+params.in = "Step4"
+ret = "Step5"
+condition = []
+
+[Function.e5]
+params.in = "Step4"
+ret = "Step5"
+condition = []
+
+# Step 6
+
+[Function.a6]
+params.in = "Step5"
+ret = "Step6"
+condition = []
+
+[Function.b6]
+params.in = "Step5"
+ret = "Step6"
+condition = []
+
+[Function.c6]
+params.in = "Step5"
+ret = "Step6"
+condition = []
+
+[Function.d6]
+params.in = "Step5"
+ret = "Step6"
+condition = []
+
+[Function.e6]
+params.in = "Step5"
+ret = "Step6"
+condition = []
+
+# Step 7
+
+[Function.a7]
+params.in = "Step6"
+ret = "Step7"
+condition = []
+
+[Function.b7]
+params.in = "Step6"
+ret = "Step7"
+condition = []
+
+[Function.c7]
+params.in = "Step6"
+ret = "Step7"
+condition = []
+
+[Function.d7]
+params.in = "Step6"
+ret = "Step7"
+condition = []
+
+[Function.e7]
+params.in = "Step6"
+ret = "Step7"
+condition = []
+
+# Step 8
+
+[Function.a8]
+params.in = "Step7"
+ret = "Step8"
+condition = []
+
+[Function.b8]
+params.in = "Step7"
+ret = "Step8"
+condition = []
+
+[Function.c8]
+params.in = "Step7"
+ret = "Step8"
+condition = []
+
+[Function.d8]
+params.in = "Step7"
+ret = "Step8"
+condition = []
+
+[Function.e8]
+params.in = "Step7"
+ret = "Step8"
+condition = []
+
+# Step 9
+
+[Function.a9]
+params.in = "Step8"
+ret = "Step9"
+condition = []
+
+[Function.b9]
+params.in = "Step8"
+ret = "Step9"
+condition = []
+
+[Function.c9]
+params.in = "Step8"
+ret = "Step9"
+condition = []
+
+[Function.d9]
+params.in = "Step8"
+ret = "Step9"
+condition = []
+
+[Function.e9]
+params.in = "Step8"
+ret = "Step9"
+condition = []
+
+# Step 10
+
+[Function.a10]
+params.in = "Step9"
+ret = "Step10"
+condition = []
+
+[Function.b10]
+params.in = "Step9"
+ret = "Step10"
+condition = []
+
+[Function.c10]
+params.in = "Step9"
+ret = "Step10"
+condition = []
+
+[Function.d10]
+params.in = "Step9"
+ret = "Step10"
+condition = []
+
+[Function.e10]
+params.in = "Step9"
+ret = "Step10"
+condition = []
+
+### rabbit_hole
+
+[Type.RabbitHole]
+params = {}
+
+[Type.RHGoal]
+params = {}
+
+[Function.rh_continue]
+params.in = "RabbitHole"
+ret = "RabbitHole"
+condition = []
+
+[Function.rh]
+params.in = "RabbitHole"
+ret = "RHGoal"
+condition = []
+
+[Function.non_rh]
+params.in = "Choice"
+ret = "RHGoal"
+condition = []
+
+### limited_cycle
+
+[Type.LimitedCycle]
+params.count = "Int"
+
+[Type.LimitedCycleAnswer]
+params = {}
+
+[Function.start_lc]
+params.in = "Choice"
+ret = "LimitedCycle"
+condition = ["ret.count = in.x"]
+
+[Function.continue_lc]
+params.in = "LimitedCycle"
+ret = "LimitedCycle"
+condition = [
+    "ret.count < in.count",
+    "0 < ret.count",
+]
+
+[Function.end_lc]
+params.in = "LimitedCycle"
+ret = "LimitedCycleAnswer"
+condition = []
+
+### branches
+
+[Type.BranchTop]
+params = {}
+
+[Type.BranchMid]
+params = {}
+
+[Function.btop]
+params.b1 = "BranchMid"
+params.b2 = "BranchMid"
+params.b3 = "BranchMid"
+params.b4 = "BranchMid"
+ret = "BranchTop"
+condition = []
+
+[Function.bmid1]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = []
+
+[Function.bmid2]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = []
+
+[Function.bmid3]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = []
+
+[Function.bmid_impossible1]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = [
+    "in1.x = in2.x",
+    "in1.x < in2.x",
+]
+
+[Function.bmid_impossible2]
+params.in1 = "Choice"
+params.in2 = "Choice"
+ret = "BranchMid"
+condition = [
+    "in2.x < in1.x",
+    "in1.x < in2.x",
+]
+
+### breadth_sorted
+
+[Type.BreadthSorted]
+params = {}
+
+[Function.breadth_sorted]
+params.in1 = "Choice"
+params.in2 = "Choice"
+params.in3 = "Choice"
+params.in4 = "Choice"
+params.in5 = "Choice"
+ret = "BreadthSorted"
+condition = [
+    "in1.x < in2.x",
+    "in2.x < in3.x",
+    "in3.x < in4.x",
+    "in4.x < in5.x",
+]
+
+### depth_sorted
+
+[Type.DepthSorted]
+params = {}
+
+[Type.DS1]
+params.x = "Int"
+
+[Type.DS2]
+params.x = "Int"
+
+[Type.DS3]
+params.x = "Int"
+
+[Type.DS4]
+params.x = "Int"
+
+[Function.as0]
+params.in = "DS1"
+ret = "DepthSorted"
+condition = []
+
+[Function.as1]
+params.in = "DS2"
+ret = "DS1"
+condition = ["ret.x < in.x"]
+
+[Function.as2]
+params.in = "DS3"
+ret = "DS2"
+condition = ["ret.x < in.x"]
+
+[Function.as3]
+params.in = "DS4"
+ret = "DS3"
+condition = ["ret.x < in.x"]
+
+[Function.as4]
+params.in = "Choice"
+ret = "DS4"
+condition = ["ret.x < in.x"]
+
+### same
+
+[Type.Same]
+params = {}
+
+[Type.SameOption]
+params.x = "Int"
+
+[Function.same]
+params.s1 = "SameOption"
+params.s2 = "SameOption"
+params.s3 = "SameOption"
+params.s4 = "SameOption"
+params.s5 = "SameOption"
+params.s6 = "SameOption"
+params.s7 = "SameOption"
+params.s8 = "SameOption"
+params.s9 = "SameOption"
+params.s10 = "SameOption"
+ret = "Same"
+condition = [
+    "s1.x = s2.x",
+    "s2.x = s3.x",
+    "s3.x = s4.x",
+    "s4.x = s5.x",
+    "s5.x = s6.x",
+    "s6.x = s7.x",
+    "s7.x = s8.x",
+    "s8.x = s9.x",
+    "s9.x = s10.x",
+]
+
+[Function.same_option]
+params.in = "Choice"
+ret = "SameOption"
+condition = ["ret.x = in.x"]
+
+### descending_tree
+
+[Type.DTree]
+params.x = "Int"
+
+[Function.dtree]
+params.dt1 = "DTree"
+params.dt2 = "DTree"
+ret = "DTree"
+condition = [
+    "dt1.x < ret.x",
+    "dt2.x < ret.x",
+    "dt2.x < dt1.x",
+]
+
+[Function.dtree_leaf]
+params = {}
+ret = "DTree"
+condition = []
+
+################################################################################
+### BIOINFORMATICS ANALYSES ###
+################################################################################
+
+# Raw inputs
+
+[Prop.SeqFile]
+params.sample = "Str"
+params.at = "Int"
+params.data = "Str"
+
+[Prop.ReferenceGenomeFile]
+params.data = "Str"
+
+# Datatypes
+
+# [Type.Seq]
+# params.sample = "Str"
+# params.at = "Int"
+
+[Type.ReferenceGenome]
+params = {}
+
+[Type.Alignment]
+params.sample = "Str"
+params.at = "Int"
+
+[Type.ReadCounts]
+params.sample = "Str"
+params.at = "Int"
+
+[Type.ReadCountMatrix]
+params.sample1 = "Str"
+params.sample2 = "Str"
+params.at = "Int"
+params.bc = "Bool"
+
+[Type.DifferentialGeneExpression]
+params.sample1 = "Str"
+params.sample2 = "Str"
+params.at = "Int"
+
+# Load sequence data
+
+# [Function.load_seq]
+# params = {}
+# ret = "Seq"
+# condition = ["SeqFile { sample = ret.sample, at = ret.at, data = _ }"]
+
+# Load reference genome
+
+[Function.load_reference_genome_file]
+params = {}
+ret = "ReferenceGenome"
+condition = ["ReferenceGenomeFile { data = _ }"]
+
+[Function.load_hg38]
+params = {}
+ret = "ReferenceGenome"
+condition = []
+
+# Quantifiers
+
+[Function.kallisto]
+params.ref = "ReferenceGenome"
+ret = "ReadCounts"
+condition = [
+    "SeqFile { sample = ret.sample, at = ret.at, data = _ }"
+]
+
+[Function.salmon]
+params.ref = "ReferenceGenome"
+ret = "ReadCounts"
+condition = [
+    "SeqFile { sample = ret.sample, at = ret.at, data = _ }"
+]
+
+# Aligners
+
+[Function.bowtie2]
+params.ref = "ReferenceGenome"
+ret = "Alignment"
+condition = [
+    "SeqFile { sample = ret.sample, at = ret.at, data = _ }"
+]
+
+# Read summarization
+
+[Function.featureCounts]
+params.a = "Alignment"
+ret = "ReadCounts"
+condition = [
+    "ret.sample = a.sample",
+    "ret.at = a.at",
+]
+
+# Combine reads
+
+[Function.combine_reads]
+params.r1 = "ReadCounts"
+params.r2 = "ReadCounts"
+ret = "ReadCountMatrix"
+condition = [
+    "ret.sample1 = r1.sample",
+    "ret.sample2 = r2.sample",
+    "ret.at = r1.at",
+    "ret.at = r2.at",
+    "ret.bc = false",
+]
+
+# Batch correction
+
+[Function.combat_seq]
+params.rcm = "ReadCountMatrix"
+ret = "ReadCountMatrix"
+condition = [
+    "ret.sample1 = rcm.sample1",
+    "ret.sample2 = rcm.sample2",
+    "ret.at = rcm.at",
+    "rcm.bc = false",
+    "ret.bc = true",
+]
+
+# Differential gene expression
+
+[Function.deseq2]
+params.rcm = "ReadCountMatrix"
+ret = "DifferentialGeneExpression"
+condition = [
+    "ret.sample1 = rcm.sample1",
+    "ret.sample2 = rcm.sample2",
+    "ret.at = rcm.at",
+]
+
+### Pooled CRISPR screen
+
+[Prop.TransfectionFile]
+params.sample = "Str"
+params.at = "Int"
+params.library = "Str"
+
+[Type.Transfection]
+params.sample = "Str"
+params.at = "Int"
+params.library = "Str"
+
+[Type.Enrichment]
+params.sample = "Str"
+params.start = "Int"
+params.end = "Int"
+
+[Function.load_transfection_file]
+params = {}
+ret = "Transfection"
+condition = [
+    "TransfectionFile { sample = ret.sample, at = ret.at, library = ret.library }",
+]
+
+[Function.reference_from_transfection]
+params.t = "Transfection"
+ret = "ReferenceGenome"
+condition = []
+
+[Function.mageck]
+params.t = "Transfection"
+ret = "Enrichment"
+condition = [
+    "SeqFile { sample = ret.sample, at = ret.start, data = _ }",
+    "SeqFile { sample = ret.sample, at = ret.end, data = _ }",
+    "ret.sample = t.sample",
+    "ret.start < ret.end",
+]
+
+[Function.l2fc]
+params.r1 = "ReadCounts"
+params.r2 = "ReadCounts"
+ret = "Enrichment"
+condition = [
+    "ret.start = r1.at",
+    "ret.end = r2.at",
+    "ret.sample = r1.sample",
+    "ret.sample = r2.sample",
+    "r1.at < r2.at",
+]

@@ -1,0 +1,35 @@
+[[Prop]]
+name = "ResolutionChoice"
+args.val = 30
+
+[[Prop]]
+name = "ResolutionChoice"
+args.val = 90
+
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:32610"
+
+[[Prop]]
+name = "CRSChoice"
+args.val = "EPSG:26943"
+
+[[Prop]]
+name = "ResamplingMethodChoice"
+args.val = "bilinear"
+
+[[Prop]]
+name = "InputRaster"
+args.name = "Landsat Scene"
+args.data = "LC09_L1TP_044034_20240508_20240508_02_T1.tif"
+args.resolution = 30
+args.crs = "EPSG:32610"
+args.bands = 11
+args.sensor = "landsat-9"
+
+[Goal]
+name = "Raster"
+args.name = "Landsat NDVI"
+args.resolution = 90
+args.crs = "EPSG:26943"
+args.bands = 1

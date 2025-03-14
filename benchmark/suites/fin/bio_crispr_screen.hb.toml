@@ -1,0 +1,23 @@
+[[Prop]]
+name = "TransfectionFile"
+args.sample = "A"
+args.at = 1
+args.library = "library.csv"
+
+[[Prop]]
+name = "SeqFile"
+args.sample = "A"
+args.at = 2
+args.data = "initial.fastq"
+
+[[Prop]]
+name = "SeqFile"
+args.sample = "A"
+args.at = 3
+args.data = "final.fastq"
+
+[Goal]
+name = "Enrichment"
+args.sample = "A"
+args.start = 2
+args.end = 3

@@ -1,296 +1,385 @@
-use crate::derivation;
-use crate::ir::*;
-use crate::task::*;
-use crate::util;
+//! # Term enumeration
+//!
+//! This module implements term enumeration that is parameterized by a pruning
+//! algorithm; the main struct is [`EnumerativeSynthesis`]. This struct
+//! implements the traditional Any and All tasks (and thus can be used as a
+//! Programming By Navigation step provider), and it *also* implements the
+//! required interface for an inhabitation oracle, so it can be used as a
+//! "fully-constructive" oracle for top-down classical-constructive program
+//! synthesis.
 
-use std::time::Instant;
+use crate::core::*;
+use crate::top_down::*;
+use crate::traditional_synthesis::*;
+use crate::util::{self, EarlyCutoff, Timer};
+use crate::{eval, typecheck};
 
-#[derive(Debug, Clone)]
-pub enum Config {
-    Basic,
-    Prune,
+use indexmap::{IndexMap, IndexSet};
+use std::collections::VecDeque;
+
+/// The domain of values to use; use to construct the "support" of various
+/// components, which is the set of possible values that could be filled in.
+pub struct Support {
+    ints: Vec<Value>,
+    strings: Vec<Value>,
 }
 
-pub enum ExpansionResult {
-    Complete(derivation::Tree),
-    Incomplete(Vec<derivation::Tree>),
-    TimedOut,
-}
+impl Support {
+    /// Create a new support from a set of values
+    fn new(values: IndexSet<Value>) -> Self {
+        let mut ints = vec![];
+        let mut strings = vec![];
 
-fn support_one(prog: &Program, vt: &ValueType) -> Vec<Value> {
-    let mut result = match vt {
-        // 0 and 1 for bool false/true
-        ValueType::Int => vec![Value::Int(0), Value::Int(1)],
-        _ => vec![],
-    };
-    for f in &prog.annotations {
-        for (_, v) in &f.args {
-            if v.infer() == *vt && !result.contains(v) {
-                result.push(v.clone())
+        for v in values {
+            match v {
+                Value::Bool(_) => (),
+                Value::Int(_) => ints.push(v),
+                Value::Str(_) => strings.push(v),
             }
         }
+
+        Self { ints, strings }
     }
-    for (_, v) in &prog.goal.args {
-        if v.infer() == *vt && !result.contains(v) {
-            result.push(v.clone())
+
+    fn value_type(&self, vt: &ValueType) -> Vec<Value> {
+        match vt {
+            ValueType::Bool => vec![Value::Bool(true), Value::Bool(false)],
+            ValueType::Int => self.ints.clone(),
+            ValueType::Str => self.strings.clone(),
         }
     }
-    result
-}
 
-pub fn support(
-    prog: &Program,
-    params: &Vec<(String, ValueType)>,
-) -> Vec<Vec<(String, Value)>> {
-    let choices = params
-        .iter()
-        .map(|(p, vt)| {
-            support_one(prog, vt)
-                .into_iter()
-                .map(|v| (p.clone(), v))
-                .collect()
-        })
-        .collect();
-    util::timed_cartesian_product(choices, u128::MAX).unwrap()
-}
-
-fn should_keep(
-    antecedents: &Vec<(String, derivation::Tree)>,
-    consequent: &Fact,
-    predicate: &Predicate,
-    config: Config,
-) -> bool {
-    match config {
-        Config::Basic => true,
-        Config::Prune => {
-            let args = antecedents
-                .iter()
-                .map(|(s, t)| {
-                    (
-                        s.clone(),
-                        match t {
-                            derivation::Tree::Axiom(f) => f,
-                            derivation::Tree::Step { consequent, .. } => {
-                                consequent
-                            }
-                            derivation::Tree::Goal(_) => {
-                                panic!("Cannot prune goal antecedent")
-                            }
-                            derivation::Tree::Collect(_, _) => todo!(),
-                        }
-                        .clone(),
-                    )
-                })
-                .collect();
-            predicate.iter().all(|pr| pr.sat(consequent, &args))
-        }
+    fn met_signature(
+        &self,
+        timer: &Timer,
+        sig: &MetSignature,
+    ) -> Result<Vec<IndexMap<MetParam, Value>>, EarlyCutoff> {
+        let choices = sig
+            .params
+            .iter()
+            .map(|(k, vt)| (k.clone(), self.value_type(vt)))
+            .collect();
+        util::cartesian_product(timer, choices)
     }
 }
 
-pub fn expand(
-    lib: &Library,
-    prog: &Program,
-    tree: derivation::Tree,
-    config: Config,
-    start: Instant,
-    soft_timeout: u128,
-) -> ExpansionResult {
-    match tree {
-        derivation::Tree::Axiom(_) => ExpansionResult::Complete(tree),
-        derivation::Tree::Goal(fact_name) => {
-            let fact_sig = lib.fact_signature(&fact_name).unwrap();
-            match fact_sig.kind {
-                FactKind::Input => ExpansionResult::Incomplete(
-                    prog.annotations
-                        .iter()
-                        .filter_map(|f| {
-                            if f.name == fact_name {
-                                Some(derivation::Tree::Axiom(f.clone()))
-                            } else {
-                                None
-                            }
-                        })
-                        .collect(),
-                ),
-                FactKind::Output => {
-                    let mut expansions = vec![];
-                    for cs in lib.matching_computation_signatures(&fact_name) {
-                        let fact_params =
-                            &lib.fact_signature(&fact_name).unwrap().params;
-                        for args in support(&prog, fact_params) {
-                            let consequent = Fact {
-                                name: fact_name.clone(),
-                                args,
-                            };
-                            expansions.push(derivation::Tree::Step {
-                                label: cs.name.clone(),
-                                antecedents: cs
-                                    .params
-                                    .iter()
-                                    .map(|(tag, goal_name, _)| {
-                                        (
-                                            tag.clone(),
-                                            derivation::Tree::Goal(
-                                                goal_name.clone(),
-                                            ),
-                                        )
-                                    })
-                                    .collect(),
-                                consequent,
-                                side_condition: cs.precondition.clone(),
-                            });
-                        }
-                    }
-                    ExpansionResult::Incomplete(expansions)
-                }
-            }
-        }
-        derivation::Tree::Collect(_, _) => todo!(),
-        derivation::Tree::Step {
-            ref label,
-            ref antecedents,
-            ref consequent,
-            ref side_condition,
-        } => {
-            let mut complete = true;
-            let mut antecedent_choices = vec![];
-            for (tag, subtree) in antecedents.clone() {
-                match expand(
-                    lib,
-                    prog,
-                    subtree,
-                    config.clone(),
-                    start,
-                    soft_timeout,
-                ) {
-                    ExpansionResult::Complete(t) => {
-                        antecedent_choices.push(vec![(tag, t)])
-                    }
-                    ExpansionResult::Incomplete(ts) => {
-                        complete = false;
-                        antecedent_choices.push(
-                            ts.into_iter().map(|t| (tag.clone(), t)).collect(),
-                        )
-                    }
-                    ExpansionResult::TimedOut => {
-                        return ExpansionResult::TimedOut
-                    }
-                }
-            }
-            if complete {
-                ExpansionResult::Complete(tree)
-            } else {
-                let elapsed = start.elapsed().as_millis();
-                if elapsed > soft_timeout {
-                    return ExpansionResult::TimedOut;
-                }
-                match util::timed_cartesian_product(
-                    antecedent_choices,
-                    soft_timeout - elapsed,
-                ) {
-                    Some(prod) => ExpansionResult::Incomplete(
-                        prod.into_iter()
-                            .filter_map(|new_antecedents| {
-                                if should_keep(
-                                    &new_antecedents,
-                                    consequent,
-                                    &side_condition,
-                                    config.clone(),
-                                ) {
-                                    Some(derivation::Tree::Step {
-                                        label: label.clone(),
-                                        antecedents: new_antecedents,
-                                        consequent: consequent.clone(),
-                                        side_condition: side_condition.clone(),
-                                    })
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect(),
-                    ),
-                    None => ExpansionResult::TimedOut,
-                }
-            }
-        }
+/// The type of pruning algorithms. To be used for Programming By Navigation, a
+/// pruning algorithm MUST NOT filter out any valid programs (enumeration must
+/// be complete). It is entirely okay not to filter out invalid programs
+/// (enumeration need not be sound), though, as all enumerated programs
+/// ultimately go through a final post hoc validity check (which automatically
+/// enforces soundness).
+pub trait Prune {
+    fn possible(
+        &self,
+        timer: &Timer,
+        problem: &Problem,
+        support: &Support,
+        e: &Exp,
+    ) -> Result<bool, EarlyCutoff>;
+}
+
+/// A pruner that does not filter out any programs.
+pub struct NaivePruner;
+
+impl Prune for NaivePruner {
+    fn possible(
+        &self,
+        _: &Timer,
+        _: &Problem,
+        _: &Support,
+        _: &Exp,
+    ) -> Result<bool, EarlyCutoff> {
+        Ok(true)
     }
 }
 
-pub fn synthesize(sp: SynthesisProblem, config: Config) -> SynthesisResult {
-    let worklist = vec![derivation::Tree::from_goal(&sp.prog.goal)];
-    synthesize_worklist(sp, config, worklist)
-}
+/// A pruner that tries to identify when no set of values can satisfy the
+/// provided formulas.
+pub struct ExhaustivePruner;
 
-pub fn synthesize_worklist(
-    SynthesisProblem {
-        lib,
-        prog,
-        task,
-        soft_timeout,
-    }: SynthesisProblem,
-    config: Config,
-    mut worklist: Vec<derivation::Tree>,
-) -> SynthesisResult {
-    let mut results = vec![];
+impl Prune for ExhaustivePruner {
+    fn possible(
+        &self,
+        timer: &Timer,
+        problem: &Problem,
+        support: &Support,
+        e: &Exp,
+    ) -> Result<bool, EarlyCutoff> {
+        timer.tick()?;
 
-    let now = Instant::now();
-
-    while !worklist.is_empty() {
-        let mut new_worklist = vec![];
-
-        for t in worklist.into_iter() {
-            if now.elapsed().as_millis() > soft_timeout {
-                return SynthesisResult {
-                    results,
-                    completed: false,
-                };
-            }
-
-            match expand(lib, prog, t, config.clone(), now, soft_timeout) {
-                ExpansionResult::Complete(new_t) => match task {
-                    Task::AnyValid => {
-                        if new_t.valid(&prog.annotations) {
-                            return SynthesisResult {
-                                results: vec![new_t],
-                                completed: true,
-                            };
-                        }
+        match e {
+            Sketch::Hole(_) => Ok(true),
+            Sketch::App(f, args) => {
+                for arg in args.values() {
+                    if !self.possible(timer, problem, support, arg)? {
+                        return Ok(false);
                     }
-                    Task::AllValid => {
-                        if new_t.valid(&prog.annotations) {
-                            results.push(new_t)
+                }
+
+                let mut choices = IndexMap::new();
+                let sig = problem.library.functions.get(&f.name).unwrap();
+                for (fp, arg) in args {
+                    timer.tick()?;
+                    match arg {
+                        Sketch::Hole(_) => choices.insert(
+                            fp.clone(),
+                            support.met_signature(
+                                timer,
+                                problem
+                                    .library
+                                    .types
+                                    .get(sig.params.get(fp).unwrap())
+                                    .unwrap(),
+                            )?,
+                        ),
+                        Sketch::App(g, _) => {
+                            choices.insert(fp.clone(), vec![g.metadata.clone()])
                         }
-                    }
-                    Task::AnySimplyTyped => {
-                        return SynthesisResult {
-                            results: vec![new_t],
-                            completed: true,
-                        }
-                    }
-                    Task::AllSimplyTyped => results.push(new_t),
-                    Task::Particular(ref choice) => {
-                        if new_t.eq_ignoring_conditions(choice) {
-                            return SynthesisResult {
-                                results: vec![new_t],
-                                completed: true,
-                            };
-                        }
-                    }
-                },
-                ExpansionResult::Incomplete(ts) => new_worklist.extend(ts),
-                ExpansionResult::TimedOut => {
-                    return SynthesisResult {
-                        results,
-                        completed: false,
                     };
                 }
+                for arg_choice in util::cartesian_product(timer, choices)? {
+                    timer.tick()?;
+                    let ctx = eval::Context {
+                        props: &problem.program.props,
+                        args: &arg_choice,
+                        ret: &f.metadata,
+                    };
+
+                    if ctx.sat(&sig.condition) {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
             }
         }
-
-        worklist = new_worklist;
     }
-    SynthesisResult {
-        results,
-        completed: true,
+}
+
+/// The main enumerative synthesis struct.
+pub struct EnumerativeSynthesis<P: Prune> {
+    problem: Problem,
+    goal: Goal,
+    pruner: P,
+    support: Support,
+}
+
+impl<P: Prune> EnumerativeSynthesis<P> {
+    /// Create a new enumerative synthesis instance
+    pub fn new(mut problem: Problem, pruner: P) -> Self {
+        let goal = Goal::new(&problem.program.goal);
+        goal.add_to_library(&mut problem.library.functions);
+
+        Self {
+            support: Support::new(problem.vals()),
+            problem,
+            goal,
+            pruner,
+        }
+    }
+
+    fn support_hole(&self, typ: &Met<Value>) -> Vec<ParameterizedFunction> {
+        let mut funcs = vec![];
+        for (g, gsig) in &self.problem.library.functions {
+            if gsig.ret != typ.name {
+                continue;
+            }
+            funcs.push(ParameterizedFunction::from_sig(
+                gsig,
+                g.clone(),
+                typ.args.clone(),
+            ));
+        }
+        funcs
+    }
+
+    fn support_fun(
+        &self,
+        timer: &Timer,
+        f: &ParameterizedFunction,
+        args: &IndexMap<FunParam, Exp>,
+    ) -> Result<IndexMap<HoleName, Vec<ParameterizedFunction>>, EarlyCutoff>
+    {
+        let mut expansions = IndexMap::new();
+        let fs = self.problem.library.functions.get(&f.name).unwrap();
+        for (fp, mn) in &fs.params {
+            timer.tick()?;
+            match args.get(fp).unwrap() {
+                Sketch::Hole(h) => {
+                    let mut h_expansions = vec![];
+                    let ms = self.problem.library.types.get(mn).unwrap();
+                    for metadata in self.support.met_signature(timer, ms)? {
+                        timer.tick()?;
+                        h_expansions.extend(
+                            self.support_hole(&Met {
+                                name: mn.clone(),
+                                args: metadata,
+                            }), // .into_iter()
+                                // .map(|g| (g, Sketch::App(f.clone(), args.clone()))),
+                        );
+                    }
+                    match expansions.insert(*h, h_expansions) {
+                        Some(_) => panic!("Duplicate hole name {}", h),
+                        None => (),
+                    }
+                }
+                Sketch::App(g, g_args) => {
+                    expansions.extend(self.support_fun(timer, g, g_args)?)
+                }
+            };
+        }
+
+        Ok(expansions)
+    }
+
+    fn wrap(
+        &self,
+        e: &Exp,
+    ) -> (ParameterizedFunction, IndexMap<FunParam, Exp>) {
+        match e {
+            Sketch::Hole(_) => self.goal.app(e),
+            Sketch::App(f, args) => (f.clone(), args.clone()),
+        }
+    }
+
+    fn unwrap(&self, e: Exp) -> Exp {
+        match e {
+            Sketch::Hole(_) => panic!(),
+            Sketch::App(f, mut args) => {
+                if f.name == self.goal.function {
+                    args.swap_remove(&self.goal.param).unwrap()
+                } else {
+                    Sketch::App(f, args)
+                }
+            }
+        }
+    }
+
+    fn enumerate_worklist(
+        &self,
+        timer: &Timer,
+        mut worklist: VecDeque<Exp>,
+        max_solutions: usize,
+    ) -> Result<Vec<Exp>, EarlyCutoff> {
+        let type_context = typecheck::Context(&self.problem);
+        let mut solutions = vec![];
+        while let Some(e) = worklist.pop_front() {
+            timer.tick()?;
+
+            if e.size() > util::MAX_EXP_SIZE {
+                return Err(EarlyCutoff::OutOfMemory);
+            }
+
+            let sup = match &e {
+                Sketch::Hole(_) => panic!(),
+                Sketch::App(f, args) => self.support_fun(timer, f, args)?,
+            };
+
+            if sup.is_empty() {
+                if type_context.infer_exp(&e).is_ok() {
+                    solutions.push(e);
+                }
+                if solutions.len() >= max_solutions {
+                    break;
+                }
+                continue;
+            }
+
+            let sup_prod = util::cartesian_product(timer, sup)?;
+
+            for choice in sup_prod {
+                timer.tick()?;
+                let mut new_e = e.clone();
+                for (h, f) in choice {
+                    let app = Sketch::free(&new_e, &f);
+                    new_e = new_e.substitute(h, &app);
+                }
+                if !self.pruner.possible(
+                    timer,
+                    &self.problem,
+                    &self.support,
+                    &new_e,
+                )? {
+                    continue;
+                }
+                worklist.push_back(new_e)
+            }
+        }
+        Ok(solutions)
+    }
+
+    fn enumerate(
+        &self,
+        timer: &Timer,
+        start: &Exp,
+        max_solutions: usize,
+    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
+        let (f, args) = self.wrap(start);
+        let worklist = VecDeque::from([Sketch::App(f, args)]);
+        Ok(self
+            .enumerate_worklist(timer, worklist, max_solutions)?
+            .into_iter()
+            .map(|e| start.pattern_match(&self.unwrap(e)).unwrap())
+            .collect())
+    }
+}
+
+impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
+    type F = ParameterizedFunction;
+
+    fn provide_any(
+        &mut self,
+        timer: &Timer,
+        start: &Exp,
+    ) -> Result<Option<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
+        Ok(self.enumerate(timer, start, 1)?.into_iter().next())
+    }
+}
+
+impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
+    type F = ParameterizedFunction;
+
+    fn provide_all(
+        &mut self,
+        timer: &Timer,
+        start: &Exp,
+    ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
+        self.enumerate(timer, start, usize::MAX)
+    }
+}
+
+// "Fully-constructive" oracle
+impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
+    type F = ParameterizedFunction;
+
+    fn expansions(
+        &mut self,
+        timer: &Timer,
+        e: &Sketch<Self::F>,
+    ) -> Result<Vec<(HoleName, Self::F)>, EarlyCutoff> {
+        let (top_f, top_args) = self.wrap(e);
+        let mut expansions = vec![];
+        for (h, h_expansions) in self.support_fun(timer, &top_f, &top_args)? {
+            for f in h_expansions {
+                timer.tick()?;
+
+                let app = Sketch::free(&e, &f);
+                let new_e = e.substitute(h, &app);
+
+                if !self.pruner.possible(
+                    timer,
+                    &self.problem,
+                    &self.support,
+                    &new_e,
+                )? {
+                    continue;
+                }
+
+                if self.provide_any(timer, &new_e)?.is_some() {
+                    expansions.push((h, f))
+                }
+            }
+        }
+        Ok(expansions)
     }
 }
