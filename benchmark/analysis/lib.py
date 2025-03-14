@@ -34,6 +34,7 @@ def distributions(
     color_feature,
     count_feature,
     total_feature,
+    count_total_agg_feature,
     bins,
     xlabel,
     ylabel="Count",
@@ -75,8 +76,14 @@ def distributions(
         name = group[name_feature][0]
         vals = group[value_feature]
         color = group[color_feature][0]
-        count = group[count_feature][0]
-        total = group[total_feature][0]
+
+        count_total_df = group.group_by(count_total_agg_feature).agg(
+            count=pl.col(count_feature).first(),
+            total=pl.col(total_feature).first(),
+        )
+
+        count = count_total_df["count"].sum()
+        total = count_total_df["total"].sum()
 
         assert min(vals) >= min(bins), (name, min(vals))
         assert max(vals) <= max(bins), (name, max(vals))
