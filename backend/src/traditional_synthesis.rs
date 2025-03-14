@@ -43,9 +43,6 @@ impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
                     Sketch::Hole(_) => panic!(),
                     Sketch::App(f, args) => {
                         let step = TopDownStep::Extend(h, f, args);
-                        if steps.contains(&step) {
-                            continue;
-                        }
                         steps.push(step);
                     }
                 }
