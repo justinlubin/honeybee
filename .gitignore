@@ -8,3 +8,5 @@ benchmark/analysis/output
 node_modules
 gh-pages
 __pycache__
+
+DOCKER_MOUNT

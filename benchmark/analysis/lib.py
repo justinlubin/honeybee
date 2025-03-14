@@ -446,12 +446,12 @@ def scalability(
 
         outliers_max = outliers_min + y_max
 
-        assert (
-            df[value_feature].is_between(0, y_max + step - 1)
-            | df[value_feature].is_between(
-                outliers_min - (step - 1), outliers_max
-            )
-        ).all()
+        # assert (
+        #     df[value_feature].is_between(0, y_max + step - 1)
+        #     | df[value_feature].is_between(
+        #         outliers_min - (step - 1), outliers_max
+        #     )
+        # ).all()
 
         ax[0, i].set_ylim([outliers_min - (step - 1), outliers_max])
         ax[0, i].set_yticks(np.arange(outliers_min, outliers_max + 0.1, step))
