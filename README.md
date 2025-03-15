@@ -23,7 +23,7 @@ _**Tip:** If Docker does not work well with your system, it is also easy (but no
 
 _Estimated hands-on time to complete this section: 20 minutes._
 
-_Estimated hands-off time to complete this section: between 1-2 hours (recommended setup) to approximately 1 week (full setup)._
+_Estimated hands-off time to complete this section: between 1-3 hours (recommended setup) to approximately 1 week (full setup)._
 
 All steps below assume that you are booted into the Docker image as in Step 2 of the Getting Started Guide. (You may also run these steps below without Docker if you have the required dependencies mentioned above, but this is not recommended.)
 
@@ -44,7 +44,7 @@ We provide two scripts to run this evaluation:
 - `RUN_QUICK_EVAL.sh <NUM_CORES>`: **Quick evaluation (recommended approach).** This script runs all the experiments in the paper but with the following two changes: (1) Benchmarks are run in parallel with `<NUM_CORES>` cores. (2) Benchmarks are run with only 1 replicate and 2 "PARTICULAR" samples. Overall, this script sacrifices precision for a quicker evaluation harness.
 - `RUN_FULL_EVAL.sh`: **Full evaluation.** This script runs all the experiments in the paper sequentially and exactly as described in the paper.
 
-On our machine, running `./RUN_QUICK_EVAL.sh 8` takes about 30 minutes. The full evaluation can take close to a week. We recommend the quick evaluation approach as the performance trends are the same between the two approaches, and the quick evaluation is enough to support the claims we make in the paper.
+On our machine, running `./RUN_QUICK_EVAL.sh 8` takes about 1.5 hours in Docker. The full evaluation can take close to a week. We recommend the quick evaluation approach as the performance trends are the same between the two approaches, and the quick evaluation is enough to support the claims we make in the paper.
 
 Both of these scripts produce output in the `DOCKER_MOUNT` directory on the **host machine**. The `DOCKER_MOUNT/data` subdirectory includes the raw timing data and the `DOCKER_MOUNT/output` subdirectory contains the graphs that appear as figures in the paper.
 
