@@ -6,9 +6,11 @@ import os
 CONST_DEPTH = 5
 CONST_BREADTH = 5
 
+MIN_DEPTH = 1
+MIN_BREADTH = 1
+
 MAX_BREADTH = 10
 MAX_DEPTH = 10
-
 
 # Helpers
 
@@ -29,10 +31,10 @@ def make_entry(depth, breadth):
 for filename in glob.glob("b[0-9][0-9]d[0-9][0-9].hb.toml"):
     os.remove(filename)
 
-for depth in range(1, MAX_DEPTH + 1):
+for depth in range(MIN_DEPTH, MAX_DEPTH + 1):
     make_entry(depth, CONST_BREADTH)
 
-for breadth in range(2, MAX_BREADTH + 1):
+for breadth in range(MIN_BREADTH, MAX_BREADTH + 1):
     make_entry(CONST_DEPTH, breadth)
 
 with open("_suite.hblib.toml", "w") as f:

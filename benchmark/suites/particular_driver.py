@@ -79,6 +79,13 @@ async def run_all(suite, max_retries=30):
         print("done!")
 
 
+if len(sys.argv) != 3:
+    print(
+        f"usage: python3 {sys.argv[0]} SUITE_NAME N_SAMPLES",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 suite_name = sys.argv[1]
 N = int(sys.argv[2])
 

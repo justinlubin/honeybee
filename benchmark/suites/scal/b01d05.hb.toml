@@ -1,0 +1,7 @@
+[[Prop]]
+name = "In"
+args.x = 1
+
+[Goal]
+name = "Step05"
+args = {}
