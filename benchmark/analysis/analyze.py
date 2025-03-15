@@ -19,6 +19,9 @@ import importlib
 ################################################################################
 # % % Config and load
 
+# Whether or not to use assertion checks
+CHECK = False
+
 # The synthesis cutoff duration, in milliseconds
 MAX_DURATION_MS = int(sys.argv[1]) * 1000
 
@@ -57,7 +60,8 @@ algorithm_metadata = pl.read_csv("algorithm_metadata.csv")
 
 # Check that completed and successful columns are identical (no unsolvable
 # problems)
-assert (raw_data["completed"] == raw_data["success"]).all()
+if CHECK:
+    assert (raw_data["completed"] == raw_data["success"]).all()
 
 print(
     "note:",
@@ -164,6 +168,7 @@ any_summary = (
 def summary_plot(df):
     return lib.distributions(
         df,
+        check=CHECK,
         group_feature="algorithm",
         sort_feature="algorithm_order",
         name_feature="algorithm_name",
@@ -271,6 +276,7 @@ fig, ax = lib.scalability(
     scal.filter(pl.col("completed"))
     .join(algorithm_metadata, how="left", on="algorithm", validate="m:1")
     .filter(pl.col("algorithm_main")),
+    check=CHECK,
     max_breadth=MAX_BREADTH,
     max_depth=MAX_DEPTH,
     const_breadth=CONST_BREADTH,

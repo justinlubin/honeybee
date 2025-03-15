@@ -27,6 +27,7 @@ def show(df, sort_by=["algorithm"]):
 def distributions(
     df,
     *,
+    check,
     group_feature,
     sort_feature,
     name_feature,
@@ -41,7 +42,7 @@ def distributions(
     flip=False,
     xticklabels=None,
 ):
-    if xticklabels is not None:
+    if check and (xticklabels is not None):
         assert len(xticklabels) == len(bins)
 
     groups = list(
@@ -85,8 +86,9 @@ def distributions(
         count = count_total_df["count"].sum()
         total = count_total_df["total"].sum()
 
-        assert min(vals) >= min(bins), (name, min(vals))
-        assert max(vals) <= max(bins), (name, max(vals))
+        if check:
+            assert min(vals) >= min(bins), (name, min(vals))
+            assert max(vals) <= max(bins), (name, max(vals))
 
         axa = ax[3 * i + 1] if flip else ax[3 * i]
 
@@ -366,6 +368,7 @@ def speedup(
 def scalability(
     scal,
     *,
+    check,
     max_breadth,
     max_depth,
     const_breadth,
@@ -446,12 +449,13 @@ def scalability(
 
         outliers_max = outliers_min + y_max
 
-        # assert (
-        #     df[value_feature].is_between(0, y_max + step - 1)
-        #     | df[value_feature].is_between(
-        #         outliers_min - (step - 1), outliers_max
-        #     )
-        # ).all()
+        if check:
+            assert (
+                df[value_feature].is_between(0, y_max + step - 1)
+                | df[value_feature].is_between(
+                    outliers_min - (step - 1), outliers_max
+                )
+            ).all()
 
         ax[0, i].set_ylim([outliers_min - (step - 1), outliers_max])
         ax[0, i].set_yticks(np.arange(outliers_min, outliers_max + 0.1, step))
