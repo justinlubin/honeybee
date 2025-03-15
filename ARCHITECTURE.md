@@ -19,11 +19,15 @@ The next set of files to take a look at are `pbn.rs`, `top_down.rs`, and `core.r
 
 - The `pbn.rs` file contains all the definitions from the paper relating to the fully-general version of Programming By Navigation. The `Controller` type in this file provides an interface that abstracts over the particular Programming By Navigation synthesizer and can be seen being used in the `main_handler.rs` file.
 - The `top_down.rs` file defines one particular instantiation of Programming By Navigation to top-down steps. This is the instantiation that is used throughout the paper and is the only one that is implemented in the codebase (as of now). It also includes the definition of the top-down classical-constructive synthesis algorithm as well as inhabitation oracles.
-- The `core.rs` file contains all the definitions for the core Honeybee syntax, such as functions (and function libraries), formulas, and expressions. Parsing, unparsing, type-checking, and evaluation for these expressions are defined in `parse.rs`, `unparse.rs`, `typecheck.rs`, and `eval.rs` respectively.
+- The `core.rs` file contains all the definitions for the core Honeybee syntax, such as functions (and function libraries), formulas, and expressions. Parsing, unparsing, type-checking, evaluation, and code generation (to Python) for these expressions are defined in `parse.rs`, `unparse.rs`, `typecheck.rs`, `eval.rs`, and `codegen.rs` respectively.
 
 The `dl_oracle.rs` file translates problems using the definitions of `core.rs` into Datalog for use as a top-down oracle. The small Datalog IR is defined in the `datalog.rs` file and can be compiled into a variety of Datalog engine backends; for now, we only compile to [egglog](https://github.com/egraphs-good/egglog/) using `egglog.rs`.
 
-All code related to benchmarking is found in `benchmark.rs`.
+The `traditional_synthesis.rs` file defines the traditional program synthesis tasks and a baseline implementation of Programming By Navigation assuming a complete "All" synthesizer. It also defines how to use a Programming By Navigation synthesizer to solve the "Any" task.
+
+The `enumerate.rs` file defines a term enumeration algorithm that can be used to implement the above traditional synthesis tasks, and thereby serves as a baseline Programming By Navigation synthesizer. It does not support solving Programming By Navigation problems for which there are infinitely many solutions.
+
+Finally, all code related to benchmarking is included in `benchmark.rs` and a set of utilities is included in `util.rs`.
 
 ## Evaluation materials
 
