@@ -78,8 +78,8 @@ And that's it! Thank you so much for your service as an artifact evaluator!
 
 # Optional: Looking at the Honeybee codebase
 
-If you would like to take a look at implementation of Cobbler, please refer to the file `ARCHITECTURE.md` for how to dive in!
+If you would like to take a look at implementation of Cobbler, please refer to the file `ARCHITECTURE.md` for how to dive in! Each file in the codebase also has documentation that should help reading the code.
 
 # Optional: Running more examples
 
-Please take a look at the script
+Please take a look at the script `RUN_OVERVIEW_EXAMPLE.sh` to see an example of how to run Honeybee. You can run Honeybee interactively on any of the suites and programs available in the `benchmark/suites` directory. You can also run `cargo run -- help` from the `backend` directory for more help.
