@@ -72,7 +72,7 @@ $hb benchmark \
     --suite ../benchmark/suites/inf \
     --algorithms NaiveEnumeration,PrunedEnumeration \
     --replicates 1 \
-    --timeout 90 \
+    --timeout 120 \
     --limit 0 \
     --parallel \
     > "$data_dir/inf-baseline.tsv"
