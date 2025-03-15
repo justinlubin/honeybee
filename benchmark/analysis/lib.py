@@ -3,6 +3,7 @@ import numpy as np
 import polars as pl
 
 import matplotlib.figure
+from matplotlib.ticker import MultipleLocator
 
 import os
 
@@ -41,6 +42,7 @@ def distributions(
     ylabel="Count",
     flip=False,
     xticklabels=None,
+    stretch=10,
 ):
     if check and (xticklabels is not None):
         assert len(xticklabels) == len(bins)
@@ -60,7 +62,7 @@ def distributions(
             1,
             3 * len(groups),
             gridspec_kw={"width_ratios": [1, 3, 1] * len(groups)},
-            figsize=(4 * len(groups), 5),
+            figsize=(4 * len(groups), stretch),
             sharey=True,
         )
     else:
@@ -68,7 +70,7 @@ def distributions(
             3 * len(groups),
             1,
             gridspec_kw={"height_ratios": [3, 1, 1] * len(groups)},
-            figsize=(5, 4 * len(groups)),
+            figsize=(stretch, 4 * len(groups)),
             sharex=True,
         )
 
@@ -305,18 +307,18 @@ def speedup(
         zorder=2,
     )
 
-    max_duration = (
+    duration_limit = (
         int(
             max(
                 df[left_value_feature].max(),
                 df[right_value_feature].max(),
             )
         )
-        + 1
+        + 2
     )
 
-    ax.set_xlim([0, max_duration])
-    ax.set_ylim([0, max_duration])
+    ax.set_xlim([0, duration_limit])
+    ax.set_ylim([0, duration_limit])
 
     ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
 
@@ -381,16 +383,19 @@ def scalability(
     marker_feature,
     depth_feature,
     breadth_feature,
-    y_max=12,
-    step=2,
-    outliers_min=65,
+    figsize=(8, 5),
+    step1=0.25,
+    step2=5,
+    step2_start=5,
+    y_break=1,
 ):
     fig, ax = plt.subplots(
         2,
         2,
-        figsize=(8, 5),
+        figsize=figsize,
         sharex="col",
         sharey="row",
+        gridspec_kw={"height_ratios": [2, 1]},
     )
 
     for i, (metric_feature, const_metric_feature, const, x_max) in enumerate(
@@ -416,14 +421,29 @@ def scalability(
             color = group[color_feature][0]
             marker = group[marker_feature][0]
 
-            for row in range(0, 2):
-                ax[row, i].plot(
-                    group[metric_feature],
-                    group[value_feature],
-                    c=color,
-                    marker=marker,
-                    label=name if i == 0 and row == 0 else None,
-                )
+            ax[1, i].plot(
+                group[metric_feature],
+                group[value_feature],
+                marker=marker,
+                c=color,
+                label=name if i == 0 else None,
+            )
+
+            ax[0, i].plot(
+                group[metric_feature],
+                group[value_feature],
+                c=color,
+                zorder=j,
+            )
+
+            idx = pl.col(value_feature) >= y_break
+            ax[0, i].scatter(
+                group.filter(idx)[metric_feature],
+                group.filter(idx)[value_feature],
+                c=color,
+                marker=marker,
+                zorder=j,
+            )
 
         ax[1, i].spines[["top", "right"]].set_visible(False)
         # ax[i].set_aspect("equal", adjustable="box")
@@ -442,44 +462,38 @@ def scalability(
         )
 
         ax[1, i].set_xlim([0, x_max + 0.5])
-        ax[1, i].set_ylim([0, y_max + step - 1])
+        ax[1, i].set_ylim([0, y_break])
         ax[1, i].set_xticks(np.arange(0, x_max + 0.1, 1))
-        ax[1, i].set_yticks(np.arange(0, y_max + 0.1, step))
+        ax[1, i].set_yticks(np.arange(0, y_break + 0.1, step1))
         ax[1, i].yaxis.set_tick_params(labelleft=True)
+        ax[1, i].axhline(y=y_break, color="#CCCCCC", ls="--")
 
-        outliers_max = outliers_min + y_max
+        outliers_max = int(df[value_feature].max()) + 2  # outliers_min + y_max
 
-        if check:
-            assert (
-                df[value_feature].is_between(0, y_max + step - 1)
-                | df[value_feature].is_between(
-                    outliers_min - (step - 1), outliers_max
-                )
-            ).all()
-
-        ax[0, i].set_ylim([outliers_min - (step - 1), outliers_max])
-        ax[0, i].set_yticks(np.arange(outliers_min, outliers_max + 0.1, step))
+        ax[0, i].set_ylim([y_break, outliers_max])
+        ax[0, i].set_yticks(np.arange(step2_start, outliers_max + 0.1, step2))
         ax[0, i].spines[["top", "right", "bottom"]].set_visible(False)
         ax[0, i].xaxis.set_tick_params(bottom=False)
         ax[0, i].yaxis.set_tick_params(labelleft=True)
 
         # proportion of vertical to horizontal extent of the slanted line
-        d = 0.5
+        # d = 0.5
 
-        kwargs = dict(
-            marker=[(-1, -d), (1, d)],
-            markersize=12,
-            linestyle="none",
-            color="k",
-            mec="k",
-            mew=1,
-            clip_on=False,
-        )
+        # kwargs = dict(
+        #     marker=[(-1, -d), (1, d)],
+        #     markersize=12,
+        #     linestyle="none",
+        #     color="k",
+        #     mec="k",
+        #     mew=1,
+        #     clip_on=False,
+        # )
 
-        ax[0, i].plot([0], [0], transform=ax[0, i].transAxes, **kwargs)
-        ax[1, i].plot([0], [1], transform=ax[1, i].transAxes, **kwargs)
+        # ax[0, i].plot([0], [0], transform=ax[0, i].transAxes, **kwargs)
+        # ax[1, i].plot([0], [1], transform=ax[1, i].transAxes, **kwargs)
 
     fig.legend(ncol=len(groups), loc="upper center", bbox_to_anchor=(0.5, 0))
     fig.tight_layout()
+    fig.subplots_adjust(hspace=0)
 
     return fig, ax

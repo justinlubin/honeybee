@@ -223,7 +223,8 @@ fig, ax = summary_plot(
     ),
 )
 
-fig.save(f"{OUTPUT_DIR}/06-naive-fin.pdf")
+# Appendix plot
+# fig.save(f"{OUTPUT_DIR}/06-naive-fin.pdf")
 
 # Naive oracle, Inf
 
@@ -234,7 +235,8 @@ fig, ax = summary_plot(
     ),
 )
 
-fig.save(f"{OUTPUT_DIR}/07-naive-inf.pdf")
+# Appendix plot
+# fig.save(f"{OUTPUT_DIR}/07-naive-inf.pdf")
 
 ### Speedup plot
 
