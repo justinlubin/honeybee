@@ -11,10 +11,19 @@ The following sections provide additional details about these sections.
 
 ## Main implementation
 
-The `backend/` directory contains all the code (written in Rust) for implementing the synthesizers that are used as part of Honeybee.
+The `backend/src/` directory contains all the code (written in Rust) for implementing the synthesizers that are used as part of Honeybee.
 
-The entry point is `main.rs`; this file defines all the command line arguments for Honeybee.
+The entry point is `main.rs`. This file defines all the subcommands and command line arguments for Honeybee. The subcommands are handled by `main_handler.rs`. These files rely on `menu.rs`, which assembles all of the below components together into a variety of configurations that make up the synthesizers described in the PLDI '25 paper. These three files are a great way to see how all the pieces of the codebase work together.
 
+The next set of files to take a look at are `pbn.rs`, `top_down.rs`, and `core.rs`. These implement the languages defined in the PLDI '25 paper:
+
+- The `pbn.rs` file contains all the definitions from the paper relating to the fully-general version of Programming By Navigation. The `Controller` type in this file provides an interface that abstracts over the particular Programming By Navigation synthesizer and can be seen being used in the `main_handler.rs` file.
+- The `top_down.rs` file defines one particular instantiation of Programming By Navigation to top-down steps. This is the instantiation that is used throughout the paper and is the only one that is implemented in the codebase (as of now). It also includes the definition of the top-down classical-constructive synthesis algorithm as well as inhabitation oracles.
+- The `core.rs` file contains all the definitions for the core Honeybee syntax, such as functions (and function libraries), formulas, and expressions. Parsing, unparsing, type-checking, and evaluation for these expressions are defined in `parse.rs`, `unparse.rs`, `typecheck.rs`, and `eval.rs` respectively.
+
+The `dl_oracle.rs` file translates problems using the definitions of `core.rs` into Datalog for use as a top-down oracle. The small Datalog IR is defined in the `datalog.rs` file and can be compiled into a variety of Datalog engine backends; for now, we only compile to [egglog](https://github.com/egraphs-good/egglog/) using `egglog.rs`.
+
+All code related to benchmarking is found in `benchmark.rs`.
 
 ## Evaluation materials
 
@@ -28,7 +37,7 @@ Each entry (`.hb.toml` file) has 10 associated solutions that the synthesizers m
 
 The `data/` subdirectory is a convenient location to store the raw results of the `benchmark` subcommand of the main implementation. 
 
-The `analysis/` subdirectory contains a small Python uv project to analyze the raw data produced by the `benchmark` subcommand. The main script is `analyze.py` (it contains its own usage documentation) and helper functions are stored in `lib.py`.
+The `analysis/` subdirectory contains a small Python [uv](https://docs.astral.sh/uv/) project to analyze the raw data produced by the `benchmark` subcommand. The main script is `analyze.py` (it contains its own usage documentation) and helper functions are stored in `lib.py`.
 
 The `analysis/output/` subdirectory is a convenient location to store the results of the above `analyze.py` script.
 
