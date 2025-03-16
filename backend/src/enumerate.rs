@@ -178,19 +178,33 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         }
     }
 
-    fn support_hole(&self, typ: &Met<Value>) -> Vec<ParameterizedFunction> {
+    fn support_hole(
+        &self,
+        timer: &Timer,
+        typ: &Met<Value>,
+    ) -> Result<Vec<ParameterizedFunction>, EarlyCutoff> {
         let mut funcs = vec![];
         for (g, gsig) in &self.problem.library.functions {
             if gsig.ret != typ.name {
                 continue;
             }
-            funcs.push(ParameterizedFunction::from_sig(
+            let gfunc = ParameterizedFunction::from_sig(
                 gsig,
                 g.clone(),
                 typ.args.clone(),
-            ));
+            );
+            let gfunc_app = Sketch::free(&Sketch::blank(), &gfunc);
+            if !self.pruner.possible(
+                timer,
+                &self.problem,
+                &self.support,
+                &gfunc_app,
+            )? {
+                continue;
+            }
+            funcs.push(gfunc);
         }
-        funcs
+        Ok(funcs)
     }
 
     fn support_fun(
@@ -210,13 +224,13 @@ impl<P: Prune> EnumerativeSynthesis<P> {
                     let ms = self.problem.library.types.get(mn).unwrap();
                     for metadata in self.support.met_signature(timer, ms)? {
                         timer.tick()?;
-                        h_expansions.extend(
-                            self.support_hole(&Met {
+                        h_expansions.extend(self.support_hole(
+                            timer,
+                            &Met {
                                 name: mn.clone(),
                                 args: metadata,
-                            }), // .into_iter()
-                                // .map(|g| (g, Sketch::App(f.clone(), args.clone()))),
-                        );
+                            },
+                        )?);
                     }
                     match expansions.insert(*h, h_expansions) {
                         Some(_) => panic!("Duplicate hole name {}", h),
