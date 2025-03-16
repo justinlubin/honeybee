@@ -8,6 +8,7 @@ benchmark/analysis/output
 node_modules
 gh-pages
 __pycache__
+.DS_Store
 
 DOCKER_MOUNT
 pldi25ae-honeybee.tar.gz
