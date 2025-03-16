@@ -47,8 +47,14 @@ The `analysis/output/` subdirectory is a convenient location to store the result
 
 ## Top-level helper scripts
 
+There are four Docker-relevant scripts:
+
 * `BUILD_DOCKER.sh` creates a Docker image (for use in the PLDI '25 Artifact Evaluation)
 * `RUN_DOCKER.sh` runs this image, setting up the necessary files in the process.
+* `SAVE_DOCKER.sh` and `LOAD_DOCKER.sh` save and load this image respectively
+
+The remainder are helpers for running Honeybee:
+
 * `RUN_QUICK_EVAL.sh` and `RUN_FULL_EVAL.sh` provide methods to run the paper evaluation (see `README.md` for more details).
 * `RUN_OVERVIEW_EXAMPLE.sh` runs the example from the overview in the paper and serves as an example for how to call the synthesizer interactively.
 * `KICK_TIRES.sh` checks to make sure all the external dependencies (Rust and uv) are installed correctly.
