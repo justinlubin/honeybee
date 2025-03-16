@@ -35,7 +35,9 @@ All steps below assume that you are booted into the Docker image as in Step 2 of
 ## Step 2: Run benchmark suite
 
 
-The goal of this step is to run the benchmark suite from Section 7 (Evaluation) of the paper. At a high level, each entry in the benchmark has an associated "ANY" task and ten associated "PARTICULAR" tasks (the median performance on which is reported). As we are measuring performance, it is expected that there will be some machine-to-machine variation in the results, but the overall trends should be the same as in the paper.
+The goal of this step is to run the benchmark suite from Section 7 (Evaluation) of the paper. At a high level, each entry in the benchmark has an associated "ANY" task and ten associated "PARTICULAR" tasks (the median performance on which is reported).
+
+As we are measuring performance, it is expected that there will be some machine-to-machine variation in the results, but the overall trends should be the same as in the paper.
 
 _**Tip (optional):** If you want to take a look at these benchmarks, you can see them in the subdirectories of `benchmark/suites/`._
 
