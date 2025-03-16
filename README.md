@@ -42,7 +42,7 @@ We provide two scripts to run this evaluation:
 - `RUN_QUICK_EVAL.sh <NUM_CORES>`: **Quick evaluation (recommended approach).** This script runs all the experiments in the paper but with the following two changes: (1) Benchmarks are run in parallel with `<NUM_CORES>` cores. (2) Benchmarks are run with only 1 replicate and 2 "PARTICULAR" samples. Overall, this script sacrifices precision for a quicker evaluation harness.
 - `RUN_FULL_EVAL.sh`: **Full evaluation.** This script runs all the experiments in the paper sequentially and exactly as described in the paper.
 
-On our machine, running `./RUN_QUICK_EVAL.sh 8` takes about 2 hours in Docker. The full evaluation can take close to a week. We recommend the quick evaluation approach as the performance trends are the same between the two approaches, and the quick evaluation is enough to support the claims we make in the paper.
+On our machine, running `./RUN_QUICK_EVAL.sh 8` takes about 30 minutes in Docker. The full evaluation can take close to a week. We recommend the quick evaluation approach as the performance trends are the same between the two approaches, and the quick evaluation is enough to support the claims we make in the paper.
 
 Both of these scripts produce output in the `DOCKER_MOUNT` directory on the **host machine**. The `DOCKER_MOUNT/data` subdirectory includes the raw timing data and the `DOCKER_MOUNT/output` subdirectory contains the graphs that appear as figures in the paper. The output is organized by the start time of the evaluation run in UTC (not the host machine's timezone).
 
