@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo -n "The current time is: "
+echo -n "Time at start: "
 date +"%D %T"
 
 ################################################################################
@@ -29,10 +29,10 @@ cd $backend_dir
 cargo build
 hb="./target/debug/honeybee"
 
-echo "Running part 1 of 3..."
-
-echo -n "The current time is: "
+echo -n "Time before part 1 of 3: "
 date +"%D %T"
+
+echo "Running part 1 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
@@ -41,10 +41,10 @@ $hb benchmark \
     --timeout 120 \
     > "$data_dir/finscal.tsv"
 
-echo "Running part 2 of 3..."
-
-echo -n "The current time is: "
+echo -n "Done! Time between part 1 and 2: "
 date +"%D %T"
+
+echo "Running part 2 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
@@ -53,10 +53,10 @@ $hb benchmark \
     --timeout 120 \
     > "$data_dir/inf-pbn.tsv"
 
-echo "Running part 3 of 3..."
-
-echo -n "The current time is: "
+echo -n "Done! Time between part 2 and 3: "
 date +"%D %T"
+
+echo "Running part 3 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
@@ -65,6 +65,9 @@ $hb benchmark \
     --timeout 120 \
     --limit 0 \
     > "$data_dir/inf-baseline.tsv"
+
+echo -n "Done! Time after part 3: "
+date +"%D %T"
 
 ################################################################################
 # %% Combine results
@@ -88,5 +91,5 @@ uv run analyze.py 120 "$data_dir/combined.tsv" $output_dir
 
 echo "All done!"
 
-echo -n "The current time is: "
+echo -n "The final time is: "
 date +"%D %T"
