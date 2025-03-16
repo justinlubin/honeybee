@@ -26,6 +26,8 @@ All steps below assume that you are booted into the Docker image as in Step 2 of
 
 ## Step 1: Run overview example
 
+### Steps to take
+
 1. Run the example from the Section 2 (Overview) of the paper by running `./RUN_OVERVIEW_EXAMPLE.sh`.
 2. Verify that the program synthesizer lets you interactively construct a Python program.
 
