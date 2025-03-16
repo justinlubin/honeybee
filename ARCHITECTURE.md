@@ -3,6 +3,7 @@
 This file documents the high-level architecture of this repository. Further documentation can be found in the code modules themselves.
 
 This repository is split into three main sections:
+
 1. The main implementation of Honeybee (in `backend`)
 2. The evaluation materials (in `benchmark`)
 3. The top-level helper scripts
