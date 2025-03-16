@@ -79,7 +79,7 @@ And that's it! Thank you so much for your service as an artifact evaluator!
 
 # Optional: Looking at the Honeybee codebase
 
-If you would like to take a look at implementation of Cobbler, please refer to the file `ARCHITECTURE.md` in the code repository for how to dive in! Each file in the codebase also has documentation that should help reading the code.
+If you would like to take a look at implementation of Honeybee, please refer to the file `ARCHITECTURE.md` in the code repository for how to dive in! Each file in the codebase also has documentation that should help reading the code.
 
 # Optional: Running more examples
 
