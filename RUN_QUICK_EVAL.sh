@@ -31,9 +31,8 @@ cd $backend_dir
 cargo build
 hb="./target/debug/honeybee"
 
-echo "Benchmarking with ${1:-4} threads (configurable via first argument)"
-
 export RAYON_NUM_THREADS=${1:-4}
+echo "Benchmarking with $RAYON_NUM_THREADS threads (configurable via first argument)"
 
 echo -n "Time before part 1 of 3: "
 date +"%D %T"
