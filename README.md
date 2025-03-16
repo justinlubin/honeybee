@@ -48,10 +48,11 @@ On our machine, running `./RUN_QUICK_EVAL.sh 8` takes about 30 minutes in Docker
 
 Both of these scripts produce output in the `DOCKER_MOUNT` directory on the **host machine**. The `DOCKER_MOUNT/data` subdirectory includes the raw timing data and the `DOCKER_MOUNT/output` subdirectory contains the graphs that appear as figures in the paper. The output is organized by the start time of the evaluation run in UTC (not the host machine's timezone).
 
-
 ### Steps to take
 
 1. Run _either_ `./RUN_QUICK_EVAL.sh <NUM_CORES>` (for example, `./RUN_QUICK_EVAL 8`) for the quick evaluation _or_ `./RUN_FULL_EVAL.sh` for the full evaluation.
+
+_**Tip:** If you run the `RUN_QUICK_EVAL.sh` script and see a message from the operating system that the process was killed, it is likely because the evaluation used too much RAM on your machine. Please try decreasing the number of cores that you use for parallelism to reduce the memory footprint of the evaluation and try again._
 
 ## Step 3: Verify the claims in the paper
 
