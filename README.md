@@ -2,22 +2,19 @@
 
 _Estimated time to complete this section: 10 minutes._
 
-To evaluate this artifact, we recommend using the included Docker image `pldi25ae-honeybee.tar.gz`.
+To evaluate this artifact, please use the Docker image from the Zenodo archive, `pldi25ae-honeybee.tar.gz`.
 
 First, you will need to [install Docker](https://docs.docker.com/get-started/get-docker/). Docker Desktop is a particularly easy path to installing Docker, but any standard installation of Docker should do.
 
-Second, here is how to "kick the tires" to make sure that everything is installed properly.
+With Docker installed, you can now "kick the tires" to make sure that everything is installed properly.
 
-**Step 1:** Load the Docker image by running `docker load -i pldi25ae-honeybee.tar.gz`.
+**Step 1:** Load the Docker image by running `./LOAD_DOCKER.sh` (included in the Zenodo archive).
 
-**Step 2:** Run the Docker image by running `./RUN_DOCKER.sh`. This command should boot you into a Bash shell in the Ubuntu environment provided by the Docker image.
+**Step 2:** Run the Docker image by running `./RUN_DOCKER.sh` (included in the Zenodo archive). This command should boot you into a Bash shell in the Ubuntu environment provided by the Docker image.
 
-**Step 3:** Run `./KICK_TIRES.sh` and ensure that no errors ensue.
+**Step 3:** In the Docker-provided environment, run `./KICK_TIRES.sh` and ensure that no errors ensue.
 
-And that's it!
-
-_**Tip:** If Docker does not work well with your system, it is also easy (but not recommended) to work directly from the source repository; the only external dependencies are [Rust](https://www.rust-lang.org/) and [uv](https://docs.astral.sh/uv/). If you follow this approach, simply start at Step 3 below to "kick the tires."_
-
+And that's it for the kick-the-tires phase!
 
 # Step-by-Step Instructions
 
@@ -25,15 +22,14 @@ _Estimated hands-on time to complete this section: 20 minutes._
 
 _Estimated hands-off time to complete this section: between 1-3 hours (recommended setup) to approximately 1 week (full setup)._
 
-All steps below assume that you are booted into the Docker image as in Step 2 of the Getting Started Guide. (You may also run these steps below without Docker if you have the required dependencies mentioned above, but this is not recommended.)
+All steps below assume that you are booted into the Docker image as in Step 2 of the Getting Started Guide.
 
 ## Step 1: Run overview example
 
-1. Run the example from the Section 2 (Overview) of the paper by running `RUN_OVERVIEW_EXAMPLE.sh`.
+1. Run the example from the Section 2 (Overview) of the paper by running `./RUN_OVERVIEW_EXAMPLE.sh`.
 2. Verify that the program synthesizer lets you interactively construct a Python program.
 
 ## Step 2: Run benchmark suite
-
 
 The goal of this step is to run the benchmark suite from Section 7 (Evaluation) of the paper. At a high level, each entry in the benchmark has an associated "ANY" task and ten associated "PARTICULAR" tasks (the median performance on which is reported).
 
