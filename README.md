@@ -66,9 +66,9 @@ Pruned Enumeration solve smaller problems faster.
 The graphs produced from the previous step provide the evidence for these claims. (For context, the "baselines" are Naïve Enumeration and Pruned Enumeration in these graphs.) Here is how we interpret the graphs in terms of the research questions (RQs):
 
 * **To verify RQ1:** The graph `01-fin.pdf` should show that Honeybee solves all 13/13 problems, and that the baselines do not. Moreover, the graph `02-inf.pdf` should show that Honeybee can solve 8/8 problems that the baselines cannot even represent (and thus are not plotted).
-* **To verify RQ2:** The graph `03-scalability.pdf` should show that Honeybee scales linearly in depth and is roughly constant in breadth, whereas the scale substantially worse. For sufficiently large problems, Honeybee should substantially outperform the baselines.
-* **To verify RQ3:** Most (if not all) the points should be in the bottom-right quadrant of the graph `04-speedup.pdf`.
-* **To verify RQ4:** The Honeybee plot in the graph `05-any.pdf` should be similar to the baselines.
+* **To verify RQ2:** The graph `03-scalability.pdf` should show that Honeybee scales linearly in depth and is roughly constant in breadth, whereas the baselines scale substantially worse. For sufficiently large problems, Honeybee should substantially outperform the baselines.
+* **To verify RQ3:** Most (if not all) the points should be in the bottom-right half of the graph `04-speedup.pdf`.
+* **To verify RQ4:** The Honeybee plot in the graph `05-any.pdf` should be similar to the baseline plots.
 
 ### Steps to take
 
@@ -78,7 +78,7 @@ And that's it! Thank you so much for your service as an artifact evaluator!
 
 # Optional: Looking at the Honeybee codebase
 
-If you would like to take a look at implementation of Cobbler, please refer to the file `ARCHITECTURE.md` for how to dive in! Each file in the codebase also has documentation that should help reading the code.
+If you would like to take a look at implementation of Cobbler, please refer to the file `ARCHITECTURE.md` in the code repository for how to dive in! Each file in the codebase also has documentation that should help reading the code.
 
 # Optional: Running more examples
 
