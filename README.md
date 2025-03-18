@@ -8,9 +8,9 @@ First, you will need to [install Docker](https://docs.docker.com/get-started/get
 
 With Docker installed, you can now "kick the tires" to make sure that everything is installed properly.
 
-**Step 1:** Load the Docker image by running `./LOAD_DOCKER.sh` (included in the Zenodo archive).
+**Step 1:** Load the Docker image by running `bash LOAD_DOCKER.sh` (included in the Zenodo archive).
 
-**Step 2:** Run the Docker image by running `./RUN_DOCKER.sh` (included in the Zenodo archive). This command should boot you into a Bash shell in the Ubuntu environment provided by the Docker image.
+**Step 2:** Run the Docker image by running `bash RUN_DOCKER.sh` (included in the Zenodo archive). This command should boot you into a Bash shell in the Ubuntu environment provided by the Docker image.
 
 **Step 3:** In the Docker-provided environment, run `./KICK_TIRES.sh` and ensure that no errors ensue.
 
