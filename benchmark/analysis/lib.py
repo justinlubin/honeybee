@@ -3,7 +3,6 @@ import numpy as np
 import polars as pl
 
 import matplotlib.figure
-from matplotlib.ticker import MultipleLocator
 
 import os
 
@@ -283,13 +282,9 @@ def speedup(
     right_name,
     right_short_name,
 ):
-    better_left = df.filter(
-        pl.col(left_value_feature) < pl.col(right_value_feature)
-    )
+    better_left = df.filter(pl.col(left_value_feature) < pl.col(right_value_feature))
 
-    better_right = df.filter(
-        pl.col(right_value_feature) < pl.col(left_value_feature)
-    )
+    better_right = df.filter(pl.col(right_value_feature) < pl.col(left_value_feature))
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
 
@@ -322,12 +317,8 @@ def speedup(
 
     ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
 
-    ax.set_xlabel(
-        r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
-    )
-    ax.set_ylabel(
-        r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
-    )
+    ax.set_xlabel(r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)")
+    ax.set_ylabel(r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)")
 
     padding = 0.05
 
@@ -346,10 +337,7 @@ def speedup(
     ax.text(
         1 - padding,
         padding,
-        r"$\bf{"
-        + left_short_name
-        + r"}$"
-        + f" better ({len(better_left)}/{len(df)})",
+        r"$\bf{" + left_short_name + r"}$" + f" better ({len(better_left)}/{len(df)})",
         ha="right",
         va="bottom",
         transform=ax.transAxes,
