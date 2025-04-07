@@ -578,13 +578,6 @@ params.sample1 = "Str"
 params.sample2 = "Str"
 params.at = "Int"
 
-# Load sequence data
-
-# [Function.load_seq]
-# params = {}
-# ret = "Seq"
-# condition = ["SeqFile { sample = ret.sample, at = ret.at, data = _ }"]
-
 # Load reference genome
 
 [Function.load_reference_genome_file]
