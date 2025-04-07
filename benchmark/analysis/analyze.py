@@ -20,7 +20,7 @@ import importlib
 # % % Config and load
 
 # Whether or not to use assertion checks
-CHECK = False
+CHECK = True
 
 # The synthesis cutoff duration, in milliseconds
 MAX_DURATION_MS = int(sys.argv[1]) * 1000
@@ -165,7 +165,7 @@ any_summary = (
 )
 
 
-def summary_plot(df):
+def summary_plot(df, *, bins, **kwargs):
     return lib.distributions(
         df,
         check=CHECK,
@@ -177,9 +177,10 @@ def summary_plot(df):
         count_feature="overall_completed",
         total_feature="total",
         count_total_agg_feature="suite_name",
-        bins=np.arange(0, 120.1, 2),
+        bins=bins,
         xlabel="Time taken (s)",
         flip=True,
+        **kwargs,
     )
 
 
@@ -188,7 +189,9 @@ def summary_plot(df):
 fig, ax = summary_plot(
     particular_summary.filter(
         (pl.col("suite_name") == "fin") & pl.col("algorithm_main"),
-    )
+    ),
+    bins=np.arange(0, 51, 2),
+    stretch=5,
 )
 
 fig.save(f"{OUTPUT_DIR}/01-fin.pdf")
@@ -199,7 +202,9 @@ fig, ax = summary_plot(
     particular_summary.filter(
         (pl.col("suite_name") == "inf")
         & (pl.col("algorithm") == "PBNHoneybee"),
-    )
+    ),
+    bins=np.arange(0, 5.1, 0.5),
+    stretch=5,
 )
 
 fig.save(f"{OUTPUT_DIR}/02-inf.pdf")
@@ -210,6 +215,8 @@ fig, ax = summary_plot(
     any_summary.filter(
         (pl.col("suite_name").is_in(["fin", "inf"])) & pl.col("algorithm_main"),
     ),
+    bins=np.arange(0, 91, 5),
+    stretch=5,
 )
 
 fig.save(f"{OUTPUT_DIR}/05-any.pdf")
@@ -221,10 +228,12 @@ fig, ax = summary_plot(
         (pl.col("suite_name") == "fin")
         & (pl.col("algorithm") == "PBNConstructiveOracle"),
     ),
+    bins=np.arange(0, 91, 5),
+    stretch=5,
 )
 
 # Appendix plot
-# fig.save(f"{OUTPUT_DIR}/06-naive-fin.pdf")
+fig.save(f"{OUTPUT_DIR}/06-naive-fin.pdf")
 
 # Naive oracle, Inf
 
@@ -233,10 +242,12 @@ fig, ax = summary_plot(
         (pl.col("suite_name") == "inf")
         & (pl.col("algorithm") == "PBNConstructiveOracle"),
     ),
+    bins=np.arange(0, 5.1, 0.5),
+    stretch=5,
 )
 
 # Appendix plot
-# fig.save(f"{OUTPUT_DIR}/07-naive-inf.pdf")
+fig.save(f"{OUTPUT_DIR}/07-naive-inf.pdf")
 
 ### Speedup plot
 
@@ -268,6 +279,7 @@ fig, ax = lib.speedup(
     right_color_feature="algorithm_color_right",
     right_name="Honeybee (Ablation)",
     right_short_name="Ablation",
+    padding=0.1,
 )
 
 fig.save(f"{OUTPUT_DIR}/04-speedup.pdf")
@@ -294,3 +306,24 @@ fig, ax = lib.scalability(
 )
 
 fig.save(f"{OUTPUT_DIR}/03-scalability.pdf", bbox_inches="tight")
+
+fig, ax = lib.scalability(
+    scal.filter(pl.col("completed"))
+    .join(algorithm_metadata, how="left", on="algorithm", validate="m:1")
+    .filter(pl.col("algorithm") == "PBNConstructiveOracle"),
+    check=CHECK,
+    max_breadth=MAX_BREADTH,
+    max_depth=MAX_DEPTH,
+    const_breadth=CONST_BREADTH,
+    const_depth=CONST_DEPTH,
+    group_feature="algorithm",
+    sort_feature="algorithm_order",
+    name_feature="algorithm_name",
+    value_feature="duration",
+    color_feature="algorithm_color",
+    marker_feature="algorithm_marker",
+    depth_feature="depth",
+    breadth_feature="breadth",
+)
+
+fig.save(f"{OUTPUT_DIR}/08-naive-scalability.pdf", bbox_inches="tight")

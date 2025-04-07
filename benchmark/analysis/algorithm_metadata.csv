@@ -2,3 +2,4 @@ algorithm,algorithm_name,algorithm_color,algorithm_order,algorithm_main,algorith
 NaiveEnumeration,Naïve Enumeration,#66CCEE,0,true,s
 PrunedEnumeration,Pruned Enumeration,#4477AA,1,true,^
 PBNHoneybee,Honeybee,#AA3377,2,true,o
+PBNConstructiveOracle,Naïve Oracle,#555555,3,false,o

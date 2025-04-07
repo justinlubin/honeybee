@@ -281,10 +281,15 @@ def speedup(
     right_color_feature,
     right_name,
     right_short_name,
+    padding=0.05,
 ):
-    better_left = df.filter(pl.col(left_value_feature) < pl.col(right_value_feature))
+    better_left = df.filter(
+        pl.col(left_value_feature) < pl.col(right_value_feature)
+    )
 
-    better_right = df.filter(pl.col(right_value_feature) < pl.col(left_value_feature))
+    better_right = df.filter(
+        pl.col(right_value_feature) < pl.col(left_value_feature)
+    )
 
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
 
@@ -317,10 +322,12 @@ def speedup(
 
     ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
 
-    ax.set_xlabel(r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)")
-    ax.set_ylabel(r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)")
-
-    padding = 0.05
+    ax.set_xlabel(
+        r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
+    )
+    ax.set_ylabel(
+        r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
+    )
 
     ax.text(
         padding,
@@ -337,7 +344,10 @@ def speedup(
     ax.text(
         1 - padding,
         padding,
-        r"$\bf{" + left_short_name + r"}$" + f" better ({len(better_left)}/{len(df)})",
+        r"$\bf{"
+        + left_short_name
+        + r"}$"
+        + f" better ({len(better_left)}/{len(df)})",
         ha="right",
         va="bottom",
         transform=ax.transAxes,
@@ -347,6 +357,11 @@ def speedup(
     ax.set_aspect("equal", adjustable="box")
 
     fig.tight_layout()
+
+    median_speedup = (df[right_value_feature] / df[left_value_feature]).median()
+    print(
+        f"Median speedup for {left_name} over {right_name}: {median_speedup:.1f}x"
+    )
 
     return fig, ax
 
@@ -458,7 +473,7 @@ def scalability(
 
         outliers_max = int(df[value_feature].max()) + 2  # outliers_min + y_max
 
-        ax[0, i].set_ylim([y_break, outliers_max])
+        ax[0, i].set_ylim([y_break, outliers_max + 1])
         ax[0, i].set_yticks(np.arange(step2_start, outliers_max + 0.1, step2))
         ax[0, i].spines[["top", "right", "bottom"]].set_visible(False)
         ax[0, i].xaxis.set_tick_params(bottom=False)
