@@ -83,6 +83,27 @@ impl CompileContext<'_> {
         }
     }
 
+    // fn pathed_var(
+    //     &self,
+    //     path: &Vec<FunParam>,
+    //     fp: &FunParam,
+    //     mp: &MetParam,
+    //     vt: &core::ValueType,
+    // ) -> datalog::Value {
+    //     datalog::Value::Var {
+    //         name: format!(
+    //             "{}{}*{}",
+    //             path.iter()
+    //                 .map(|p| format!("{}**", p.0))
+    //                 .collect::<Vec<_>>()
+    //                 .join(""),
+    //             fp.0,
+    //             mp.0
+    //         ),
+    //         typ: self.value_type(vt),
+    //     }
+    // }
+
     fn free_fact(&self, fp: &FunParam, mn: &MetName) -> Fact {
         let sig = self.0 .0.library.types.get(mn).unwrap();
         Fact {
@@ -187,61 +208,85 @@ impl CompileContext<'_> {
             .collect()
     }
 
-    pub fn queries(
+    pub fn premises(
         &self,
-        f: &ParameterizedFunction,
-        args: &IndexMap<FunParam, Exp>,
-    ) -> Vec<(Rule, RelationSignature, usize, HoleName)> {
-        let mut facts = vec![];
-        let mut prims = vec![];
-        let mut heads = vec![];
-        let mut rec_calls = vec![];
+        e: &Exp,
+        typ: &MetName,
+        path: &FunParam,
+    ) -> Option<(Vec<Predicate>, Vec<(HoleName, usize, MetName)>)> {
+        match e {
+            Sketch::Hole(h) => Some((
+                vec![Predicate::Fact(self.free_fact(path, typ))],
+                vec![(*h, 0, typ.clone())],
+            )),
+            Sketch::App(f, args) => {
+                let fs = self.0 .0.library.functions.get(&f.name).unwrap();
 
-        let fs = self.0 .0.library.functions.get(&f.name).unwrap();
+                if fs.ret != *typ {
+                    return None;
+                }
 
-        for (j, (fp, e)) in args.iter().enumerate() {
-            let mn = fs.params.get(fp).unwrap();
-            facts.push(self.free_fact(fp, mn));
-            match e {
-                Sketch::App(g, g_args) => {
-                    for (mp, v) in &g.metadata {
-                        prims.push(Predicate::PrimEq(
-                            self.var(fp, mp, &self.0.infer_value(v)),
+                let mut predicates = f
+                    .metadata
+                    .iter()
+                    .map(|(mp, v)| {
+                        Predicate::PrimEq(
+                            self.var(&Self::ret(), mp, &self.0.infer_value(v)),
                             self.value(v),
-                        ));
-                    }
-                    rec_calls.extend(self.queries(g, g_args));
+                        )
+                    })
+                    .collect::<Vec<_>>();
+
+                predicates.extend(self.formula(fs, &fs.condition));
+
+                let mut options = vec![];
+
+                for (fp, arg) in args {
+                    let offset = predicates.len();
+                    let mn = fs.params.get(fp).unwrap();
+
+                    let rec = self.premises(arg, mn, fp)?;
+                    predicates.extend(rec.0);
+                    options.extend(
+                        rec.1.into_iter().map(|(h, k, mn)| (h, k + offset, mn)),
+                    )
                 }
-                Sketch::Hole(h) => {
-                    heads.push((fp.clone(), mn.clone(), j, *h));
-                }
+
+                Some((
+                    predicates
+                        .into_iter()
+                        .map(|p| p.prefix_vars(&format!("{}*", path.0)))
+                        .collect(),
+                    options,
+                ))
             }
         }
+    }
 
-        prims.extend(f.metadata.iter().map(|(mp, v)| {
-            Predicate::PrimEq(
-                self.var(&Self::ret(), mp, &self.0.infer_value(v)),
-                self.value(v),
-            )
-        }));
+    pub fn queries(
+        &self,
+        e: &Exp,
+        typ: &MetName,
+    ) -> Vec<(Rule, RelationSignature, HoleName, usize)> {
+        let (body, options) =
+            match self.premises(e, typ, &FunParam("&root".to_owned())) {
+                Some(x) => x,
+                None => return vec![],
+            };
 
-        prims.extend(self.formula(fs, &fs.condition));
-
-        heads
+        options
             .into_iter()
-            .map(|(fp, mn, j, h)| {
-                let mut head = self.free_fact(&fp, &mn);
-                head.relation = Relation(format!("&Query_{}_{}", j, h));
+            .map(|(h, k, mn)| {
+                let mut head = match &body[k] {
+                    Predicate::Fact(fact) => fact.clone(),
+                    _ => panic!(),
+                };
+                head.relation = Relation(format!("&Query_{}_{}", h, k));
                 (
                     Rule {
-                        name: format!("&query_{}_{}", j, h),
+                        name: format!("&query_{}_{}", h, k),
                         head,
-                        body: facts
-                            .clone()
-                            .into_iter()
-                            .map(Predicate::Fact)
-                            .chain(prims.clone())
-                            .collect(),
+                        body: body.clone(),
                     },
                     RelationSignature {
                         params: self
@@ -257,13 +302,90 @@ impl CompileContext<'_> {
                             .collect(),
                         kind: RelationKind::IDB,
                     },
-                    j,
                     h,
+                    k,
                 )
             })
-            .chain(rec_calls)
             .collect()
     }
+
+    // :pub fn _old_queries(
+    // :    &self,
+    // :    f: &ParameterizedFunction,
+    // :    args: &IndexMap<FunParam, Exp>,
+    // :) -> Vec<(Rule, RelationSignature, usize, HoleName)> {
+    // :    let mut facts = vec![];
+    // :    let mut prims = vec![];
+    // :    let mut heads = vec![];
+    // :    let mut rec_calls = vec![];
+
+    // :    let fs = self.0 .0.library.functions.get(&f.name).unwrap();
+
+    // :    for (j, (fp, e)) in args.iter().enumerate() {
+    // :        let mn = fs.params.get(fp).unwrap();
+    // :        facts.push(self.free_fact(fp, mn));
+    // :        match e {
+    // :            Sketch::App(g, g_args) => {
+    // :                for (mp, v) in &g.metadata {
+    // :                    prims.push(Predicate::PrimEq(
+    // :                        self.var(fp, mp, &self.0.infer_value(v)),
+    // :                        self.value(v),
+    // :                    ));
+    // :                }
+    // :                rec_calls.extend(self._old_queries(g, g_args));
+    // :            }
+    // :            Sketch::Hole(h) => {
+    // :                heads.push((fp.clone(), mn.clone(), j, *h));
+    // :            }
+    // :        }
+    // :    }
+
+    // :    prims.extend(f.metadata.iter().map(|(mp, v)| {
+    // :        Predicate::PrimEq(
+    // :            self.var(&Self::ret(), mp, &self.0.infer_value(v)),
+    // :            self.value(v),
+    // :        )
+    // :    }));
+
+    // :    prims.extend(self.formula(fs, &fs.condition));
+
+    // :    heads
+    // :        .into_iter()
+    // :        .map(|(fp, mn, j, h)| {
+    // :            let mut head = self.free_fact(&fp, &mn);
+    // :            head.relation = Relation(format!("&Query_{}_{}", j, h));
+    // :            (
+    // :                Rule {
+    // :                    name: format!("&query_{}_{}", j, h),
+    // :                    head,
+    // :                    body: facts
+    // :                        .clone()
+    // :                        .into_iter()
+    // :                        .map(Predicate::Fact)
+    // :                        .chain(prims.clone())
+    // :                        .collect(),
+    // :                },
+    // :                RelationSignature {
+    // :                    params: self
+    // :                        .0
+    // :                         .0
+    // :                        .library
+    // :                        .types
+    // :                        .get(&mn)
+    // :                        .unwrap()
+    // :                        .params
+    // :                        .values()
+    // :                        .map(|vt| self.value_type(vt))
+    // :                        .collect(),
+    // :                    kind: RelationKind::IDB,
+    // :                },
+    // :                j,
+    // :                h,
+    // :            )
+    // :        })
+    // :        .chain(rec_calls)
+    // :        .collect()
+    // :}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -344,24 +466,27 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
 
         let (goal_pf, goal_args) = self.goal.app(e);
 
-        let queries = compile.queries(&goal_pf, &goal_args);
+        let queries = compile.queries(
+            &Sketch::App(goal_pf, goal_args),
+            &self.goal.signature.ret,
+        );
 
         log::debug!(
             "Found {} queries: {}",
             queries.len(),
             queries
                 .iter()
-                .map(|(_, _, j, h)| format!("(j={}, h={})", j, h))
+                .map(|(_, _, h, k)| format!("(h={}, k={})", h, k))
                 .collect::<Vec<_>>()
                 .join(", ")
         );
 
-        for (query, query_sig, j, h) in queries {
-            log::debug!("Trying query with (j={j:}, h={h:}):\n{query:#?}");
+        for (query, query_sig, h, k) in queries {
+            log::debug!("Trying query with (h={h:}, k={k:}):\n{query:#?}");
             for rule in &self.header {
                 log::debug!("Trying header rule '{}'", rule.name);
                 timer.tick()?;
-                if let Some(cut_rule) = query.cut(rule, j) {
+                if let Some(cut_rule) = query.cut(rule, k) {
                     log::debug!("Header rule '{}' matches", rule.name);
                     let f = BaseFunction(rule.name.clone());
                     let f_sig = self.problem.library.functions.get(&f).unwrap();

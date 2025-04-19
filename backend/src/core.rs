@@ -285,7 +285,7 @@ impl Problem {
 pub struct Goal {
     pub function: BaseFunction,
     pub param: FunParam,
-    signature: FunctionSignature,
+    pub signature: FunctionSignature,
 }
 
 impl Goal {

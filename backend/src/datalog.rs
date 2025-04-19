@@ -248,7 +248,7 @@ impl Predicate {
         }
     }
 
-    fn prefix_vars(&self, prefix: &str) -> Self {
+    pub fn prefix_vars(&self, prefix: &str) -> Self {
         match self {
             Predicate::Fact(f) => Predicate::Fact(f.prefix_vars(prefix)),
             Predicate::PrimEq(left, right) => Predicate::PrimEq(
