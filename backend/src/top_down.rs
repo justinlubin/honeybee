@@ -152,6 +152,59 @@ impl<F: Function> Sketch<F> {
         }
     }
 
+    /// Substitute a unique hole for an expression and also return the parent
+    /// (if not the root)
+    #[allow(dead_code)]
+    pub fn substitute_unique(
+        &self,
+        h: HoleName,
+        e: &Self,
+    ) -> (Self, Option<Self>) {
+        let mut parent = None;
+        let mut modified = false;
+        let res =
+            self.substitute_unique_helper(h, e, &mut parent, &mut modified);
+        (res, parent)
+    }
+
+    fn substitute_unique_helper(
+        &self,
+        h: HoleName,
+        e: &Self,
+        parent: &mut Option<Self>,
+        modified: &mut bool,
+    ) -> Self {
+        match self {
+            Self::Hole(h2) => {
+                if *h2 == h {
+                    *modified = true;
+                    e.clone()
+                } else {
+                    Self::Hole(*h2)
+                }
+            }
+            Self::App(f, args) => {
+                let res = Self::App(
+                    f.clone(),
+                    args.iter()
+                        .map(|(k, v)| {
+                            (
+                                k.clone(),
+                                v.substitute_unique_helper(
+                                    h, e, parent, modified,
+                                ),
+                            )
+                        })
+                        .collect(),
+                );
+                if *modified && *parent == None {
+                    *parent = Some(res.clone());
+                }
+                res
+            }
+        }
+    }
+
     fn max_hole(&self) -> HoleName {
         match self {
             Self::Hole(h) => *h,
