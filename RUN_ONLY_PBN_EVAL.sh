@@ -29,42 +29,20 @@ cd $backend_dir
 cargo build
 hb="./target/debug/honeybee"
 
-echo -n "Time before part 1 of 2: "
+echo -n "Time before part 1 of 1: "
 date +"%D %T"
 
-echo "Running part 1 of 2..."
+echo "Running part 1 of 1..."
 
 $hb benchmark \
-    --suite ../benchmark/suites/fin,../benchmark/suites/scal \
-    --algorithms PBNHoneybee,PBNHoneybeeNoMemo,PBNConstructiveOracle \
+    --suite ../benchmark/suites/fin,../benchmark/suites/scal,../benchmark/suites/inf \
+    --algorithms PBNHoneybee,PBNHoneybeeNoMemo \
     --replicates 5 \
     --timeout 120 \
-    > "$data_dir/finscal.tsv"
+    > "$data_dir/combined.tsv"
 
-echo -n "Done! Time between part 1 and 2: "
+echo -n "Done! Time after part 1: "
 date +"%D %T"
-
-echo "Running part 2 of 2..."
-
-$hb benchmark \
-    --suite ../benchmark/suites/inf \
-    --algorithms PBNHoneybee,PBNHoneybeeNoMemo,PBNConstructiveOracle \
-    --replicates 5 \
-    --timeout 120 \
-    > "$data_dir/inf-pbn.tsv"
-
-echo -n "Done! Time after part 2: "
-date +"%D %T"
-
-################################################################################
-# %% Combine results
-
-cd $data_dir
-
-cat \
-    finscal.tsv \
-    <(tail -n +2 inf-pbn.tsv) \
-    > combined.tsv
 
 ################################################################################
 # %% Generate graphs

@@ -350,7 +350,7 @@ impl Rule {
             });
 
         Some(Rule {
-            name: format!("&cut_{}/{}", other.name, self.name),
+            name: format!("&cut_{}/{}/{}", other.name, j, self.name),
             head: self.head.prefix_vars(Self::Y_PREFIX),
             body: self_body_without_cut_fact
                 .iter()
