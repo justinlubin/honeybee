@@ -290,7 +290,6 @@ impl CompileContext<'_> {
     }
 
     /// Assumes that all existing function applications do not need checking
-    /// (branch caching)
     pub fn fast_queries(
         &self,
         f: &ParameterizedFunction,
