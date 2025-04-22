@@ -26,10 +26,13 @@ All steps below assume that you are booted into the Docker image as in Step 2 of
 
 ## Step 1: Run overview example
 
+We've included a slightly-generalized version of the example from Section 2 (Overview) in the paper to get a feel for how Honeybee works.
+
 ### Steps to take
 
-1. Run the example from the Section 2 (Overview) of the paper by running `./RUN_OVERVIEW_EXAMPLE.sh`.
-2. Verify that the program synthesizer lets you interactively construct a Python program.
+1. Run the generalized Overview example by running `./RUN_OVERVIEW_EXAMPLE.sh`.
+2. Choose any of the options that are presented to you; they all lead to a valid solution.
+3. Repeat Step 2 until arriving at a valid solution.
 
 ## Step 2: Run benchmark suite
 

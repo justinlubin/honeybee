@@ -36,7 +36,7 @@ echo "Running part 1 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/fin,../benchmark/suites/scal \
-    --algorithms PBNHoneybee,PBNHoneybeeNoMemo,NaiveEnumeration,PrunedEnumeration \
+    --algorithms PBNHoneybee,PBNHoneybeeNoMemo,NaiveEnumeration,PrunedEnumeration,PBNConstructiveOracle \
     --replicates 5 \
     --timeout 120 \
     > "$data_dir/finscal.tsv"
@@ -48,7 +48,7 @@ echo "Running part 2 of 3..."
 
 $hb benchmark \
     --suite ../benchmark/suites/inf \
-    --algorithms PBNHoneybee,PBNHoneybeeNoMemo \
+    --algorithms PBNHoneybee,PBNHoneybeeNoMemo,PBNConstructiveOracle \
     --replicates 5 \
     --timeout 120 \
     > "$data_dir/inf-pbn.tsv"

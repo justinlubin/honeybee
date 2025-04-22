@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Call this script with one argument: the number of threads to use (default 2)
+# Call this script with one argument: the number of threads to use (default 4)
 
 echo -n "Time at start: "
 date +"%D %T"

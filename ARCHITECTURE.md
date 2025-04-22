@@ -57,5 +57,5 @@ There are four Docker-relevant scripts:
 The remainder are helpers for running Honeybee:
 
 * `RUN_QUICK_EVAL.sh` and `RUN_FULL_EVAL.sh` provide methods to run the paper evaluation (see `README.md` for more details).
-* `RUN_OVERVIEW_EXAMPLE.sh` runs the example from the overview in the paper and serves as an example for how to call the synthesizer interactively.
+* `RUN_OVERVIEW_EXAMPLE.sh` runs a slightly generalized version of the example from the overview in the paper and serves as an example for how to call the synthesizer interactively.
 * `KICK_TIRES.sh` checks to make sure all the external dependencies (Rust and uv) are installed correctly.
