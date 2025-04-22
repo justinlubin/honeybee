@@ -3,8 +3,23 @@ import numpy as np
 import polars as pl
 
 import matplotlib.figure
+import matplotlib
 
 import os
+
+SERIF_FONT = "Linux Libertine O"
+SANS_SERIF_FONT = "Linux Biolinum O"
+
+plt.rcParams.update(
+    {
+        "pdf.fonttype": 42,
+        "font.family": [SANS_SERIF_FONT],
+        "mathtext.fontset": "custom",
+        "mathtext.rm": SANS_SERIF_FONT,
+        "mathtext.it": SANS_SERIF_FONT + ":italic",
+        "mathtext.bf": SANS_SERIF_FONT + ":bold",
+    }
+)
 
 
 def save(self, filename, *args, **kwargs):
@@ -103,9 +118,9 @@ def distributions(
         max_bin_count = max(max_bin_count, max(n))
 
         if flip:
-            axa.set_yticks(bins)
+            axa.set_yticks(bins, labels=bins, family=SERIF_FONT)
         else:
-            axa.set_xticks(bins)
+            axa.set_xticks(bins, labels=bins, family=SERIF_FONT)
 
         axa.spines[["top", "right"]].set_visible(False)
 
@@ -123,7 +138,7 @@ def distributions(
 
         axa.text(
             0.5,
-            1.03,
+            1.035,
             f"({count}/{total} solved)",
             transform=axa.transAxes,
             color=color,
@@ -133,9 +148,9 @@ def distributions(
         )
 
         if flip:
-            axa.set_xlabel(ylabel, fontweight="bold")
+            axa.set_xlabel(ylabel, fontweight="bold", fontsize=13)
         else:
-            axa.set_ylabel(ylabel, fontweight="bold")
+            axa.set_ylabel(ylabel, fontweight="bold", fontsize=13)
 
         axb = ax[3 * i] if flip else ax[3 * i + 1]
 
@@ -152,16 +167,18 @@ def distributions(
             axb.tick_params(left=True, labelleft=True)
             if xticklabels:
                 axb.set_yticks(bins, labels=xticklabels)
+            axb.set_yticklabels(axb.get_yticklabels(), family=SERIF_FONT)
             axb.spines[["right", "top", "bottom"]].set_visible(False)
             axb.get_xaxis().set_visible(False)
-            axb.set_ylabel(xlabel, fontweight="bold")
+            axb.set_ylabel(xlabel, fontweight="bold", fontsize=13)
         else:
             axb.tick_params(bottom=True, labelbottom=True)
             if xticklabels:
                 axb.set_xticks(bins, labels=xticklabels)
+            axb.set_xticklabels(axb.get_xticklabels(), family=SERIF_FONT)
             axb.spines[["right", "top", "left"]].set_visible(False)
             axb.get_yaxis().set_visible(False)
-            axb.set_xlabel(xlabel, fontweight="bold")
+            axb.set_xlabel(xlabel, fontweight="bold", fontsize=13)
 
         axc = ax[3 * i + 2]
         axc.set_visible(False)
@@ -169,9 +186,17 @@ def distributions(
     count_ticks = np.arange(0, max_bin_count + 1, max(1, max_bin_count // 4))
     for i in range(0, len(groups)):
         if flip:
-            ax[3 * i + 1].set_xticks(count_ticks)
+            ax[3 * i + 1].set_xticks(
+                count_ticks,
+                labels=[str(int(t)) for t in count_ticks],
+                family=SERIF_FONT,
+            )
         else:
-            ax[3 * i].set_yticks(count_ticks)
+            ax[3 * i].set_yticks(
+                count_ticks,
+                labels=[str(int(t)) for t in count_ticks],
+                family=SERIF_FONT,
+            )
 
     fig.tight_layout()
     if flip:
@@ -320,13 +345,22 @@ def speedup(
     ax.set_xlim([0, duration_limit])
     ax.set_ylim([0, duration_limit])
 
+    ax.set_xticklabels(
+        [str(int(t)) for t in ax.get_xticks()], family=SERIF_FONT
+    )
+    ax.set_yticklabels(
+        [str(int(t)) for t in ax.get_yticks()], family=SERIF_FONT
+    )
+
     ax.axline(xy1=(0, 0), slope=1, ls="--", c="lightgray", zorder=1)
 
     ax.set_xlabel(
-        r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
+        r"$\bf{" + right_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)",
+        fontsize=13,
     )
     ax.set_ylabel(
-        r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)"
+        r"$\bf{" + left_name.replace(" ", r"\ ") + "}$" + "\nTime taken (s)",
+        fontsize=13,
     )
 
     ax.text(
@@ -339,6 +373,7 @@ def speedup(
         ha="left",
         va="top",
         transform=ax.transAxes,
+        fontsize=13,
     )
 
     ax.text(
@@ -351,6 +386,7 @@ def speedup(
         ha="right",
         va="bottom",
         transform=ax.transAxes,
+        fontsize=13,
     )
 
     ax.spines[["top", "right"]].set_visible(False)
@@ -457,11 +493,13 @@ def scalability(
             + metric_feature[1:]
             + r"}$ $\bf{of}$ $\bf{search}$ $\bf{space}$"
             + f"\n(for {const_metric_feature} = {const})",
+            fontsize=13,
         )
 
         ax[1, i].set_ylabel(
             "Time taken (s)",
             fontweight="bold",
+            fontsize=13,
         )
 
         ax[1, i].set_xlim([0, x_max + 0.5])
@@ -470,6 +508,11 @@ def scalability(
         ax[1, i].set_yticks(np.arange(0, y_break + 0.1, step1))
         ax[1, i].yaxis.set_tick_params(labelleft=True)
         ax[1, i].axhline(y=y_break, color="#CCCCCC", ls="--")
+        ax[1, i].set_xticklabels(
+            [str(int(t)) for t in ax[1, i].get_xticks()],
+            family=SERIF_FONT,
+        )
+        ax[1, i].set_yticklabels(ax[1, i].get_yticklabels(), family=SERIF_FONT)
 
         outliers_max = int(df[value_feature].max()) + 2  # outliers_min + y_max
 
@@ -478,6 +521,10 @@ def scalability(
         ax[0, i].spines[["top", "right", "bottom"]].set_visible(False)
         ax[0, i].xaxis.set_tick_params(bottom=False)
         ax[0, i].yaxis.set_tick_params(labelleft=True)
+        ax[0, i].set_yticklabels(
+            [str(int(t)) for t in ax[0, i].get_yticks()],
+            family=SERIF_FONT,
+        )
 
         # proportion of vertical to horizontal extent of the slanted line
         # d = 0.5
@@ -495,7 +542,14 @@ def scalability(
         # ax[0, i].plot([0], [0], transform=ax[0, i].transAxes, **kwargs)
         # ax[1, i].plot([0], [1], transform=ax[1, i].transAxes, **kwargs)
 
-    fig.legend(ncol=len(groups), loc="upper center", bbox_to_anchor=(0.5, 0))
+    fig.legend(
+        ncol=len(groups),
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0),
+        handleheight=0.3,
+        fontsize=13,
+    )
+
     fig.tight_layout()
     fig.subplots_adjust(hspace=0)
 
