@@ -1,8 +1,15 @@
 module Main exposing (..)
 
-import Html exposing (Html)
+import Browser
+import Model
+import Update
+import View
 
 
-main : Html msg
+main : Program () Model.Model Update.Msg
 main =
-    Html.text "hello world!"
+    Browser.sandbox
+        { init = Model.init
+        , update = Update.update
+        , view = View.view
+        }

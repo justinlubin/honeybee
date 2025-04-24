@@ -1,0 +1,12 @@
+[[Prop]]
+name = "RNAseq"
+args.sample = "Healthy"
+
+[[Prop]]
+name = "RNAseq"
+args.sample = "TLE"
+
+[Goal]
+name = "DifferentialGeneExpression"
+args.sample1 = "Healthy"
+args.sample2 = "TLE"

@@ -1,0 +1,10 @@
+body {
+    margin: 10px;
+}
+
+ol {
+    list-style-type: decimal;
+    margin-left: 20px;
+}
+
+b { font-weight: bold }
