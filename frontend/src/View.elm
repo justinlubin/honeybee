@@ -7,6 +7,10 @@ import Model exposing (Model)
 import Update exposing (Msg)
 
 
+type alias Context a =
+    { a | library : Library }
+
+
 stringFromValue : Value -> String
 stringFromValue v =
     case v of
@@ -28,15 +32,15 @@ arg argName v =
     text <| argName ++ ": " ++ stringFromValue v ++ ". "
 
 
-step : Step -> Html Msg
-step s =
+step : Context a -> Step -> Html Msg
+step ctx s =
     span [] <|
         b [] [ text <| s.name ++ ". " ]
             :: Assoc.mapCollapse arg s.args
 
 
-goal : Maybe Step -> Html Msg
-goal g =
+goal : Context a -> Maybe Step -> Html Msg
+goal ctx g =
     case g of
         Just s ->
             span []
@@ -48,14 +52,15 @@ goal g =
             text "No goal yet!"
 
 
-workflow : Workflow -> Html Msg
-workflow w =
+workflow : Context a -> Workflow -> Html Msg
+workflow ctx w =
     div []
-        [ ol [] (List.map (\s -> li [] [ step s ]) w.steps)
-        , goal w.goal
+        [ ol [] (List.map (\s -> li [] [ step ctx s ]) w.steps)
+        , goal ctx w.goal
+        , button [] [ text "Add step" ]
         ]
 
 
 view : Model -> Html Msg
 view model =
-    workflow model.workflow
+    workflow model model.workflow
