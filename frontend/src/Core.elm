@@ -1,6 +1,6 @@
 module Core exposing (..)
 
-import OrderedDict exposing (OrderedDict)
+import Assoc exposing (Assoc)
 
 
 type ValueType
@@ -16,17 +16,19 @@ type Value
 
 
 type alias Library =
-    OrderedDict String StepSignature
+    { props : Assoc String StepSignature
+    , types : Assoc String StepSignature
+    }
 
 
 type alias StepSignature =
-    { params : OrderedDict String ValueType
+    { params : Assoc String ValueType
     }
 
 
 type alias Step =
     { name : String
-    , args : OrderedDict String Value
+    , args : Assoc String Value
     }
 
 

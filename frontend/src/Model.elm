@@ -1,7 +1,6 @@
 module Model exposing (Model, init)
 
 import Core exposing (..)
-import OrderedDict as OD
 
 
 type alias Model =
@@ -10,18 +9,22 @@ type alias Model =
     }
 
 
-init : Model
-init =
-    { library = OD.empty
+init : Library -> Model
+init library =
+    { library = library
     , workflow =
         { steps =
-            [ { name = "RNA-seq", args = OD.fromList [ ( "day", VInt 1 ) ] }
-            , { name = "RNA-seq", args = OD.empty }
+            [ { name = "RNA-seq"
+              , args = [ ( "day", VInt 1 ) ]
+              }
+            , { name = "RNA-seq"
+              , args = []
+              }
             ]
         , goal =
             Just
                 { name = "Differential gene expression"
-                , args = OD.empty
+                , args = []
                 }
         }
     }

@@ -1,9 +1,9 @@
 module View exposing (view)
 
+import Assoc
 import Core exposing (..)
 import Html exposing (..)
 import Model exposing (Model)
-import OrderedDict as OD
 import Update exposing (Msg)
 
 
@@ -32,7 +32,7 @@ step : Step -> Html Msg
 step s =
     span [] <|
         b [] [ text <| s.name ++ ". " ]
-            :: (OD.map arg s.args |> OD.values)
+            :: Assoc.mapCollapse arg s.args
 
 
 goal : Maybe Step -> Html Msg

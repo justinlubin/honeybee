@@ -1,15 +1,26 @@
 module Main exposing (..)
 
 import Browser
+import Core
+import Decode
+import Json.Decode
 import Model
 import Update
 import View
 
 
-main : Program () Model.Model Update.Msg
+main : Program Json.Decode.Value Model.Model Update.Msg
 main =
-    Browser.sandbox
-        { init = Model.init
+    Browser.element
+        { init =
+            \v ->
+                ( v
+                    |> Json.Decode.decodeValue Decode.library
+                    |> Result.withDefault { props = [], types = [] }
+                    |> Model.init
+                , Cmd.none
+                )
         , update = Update.update
         , view = View.view
+        , subscriptions = \_ -> Sub.none
         }
