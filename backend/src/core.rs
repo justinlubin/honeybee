@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 // Values
 
 /// The types that values may take on.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ValueType {
     Bool,
     Int,
@@ -34,7 +34,7 @@ pub enum Value {
 ///
 /// Types and atomic propositions are named by this type. Consequently, type
 /// names serve as the keys for type libraries.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct MetName(pub String);
 
 /// The type of metadata-indexed tuple parameter keys.
@@ -46,7 +46,7 @@ pub struct MetName(pub String);
 pub struct MetParam(pub String);
 
 /// Signatures for metadata-indexed tuples that define their arity.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct MetSignature {
     pub params: IndexMap<MetParam, ValueType>,
 }
@@ -57,7 +57,7 @@ pub type MetLibrary = IndexMap<MetName, MetSignature>;
 /// The type of metadata-indexed tuples.
 ///
 /// This struct is used for atomic propositions and types
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Met<T> {
     pub name: MetName,
     pub args: IndexMap<MetParam, T>,
@@ -76,7 +76,7 @@ impl<T> Met<T> {
 /// The type of formula atoms.
 ///
 /// Conceptually, formula atoms "evaluate" to a value in a particular context.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum FormulaAtom {
     Param(FunParam, MetParam),
     Ret(MetParam),
@@ -114,7 +114,7 @@ impl AtomicProposition {
 }
 
 /// The type of formulas.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(try_from = "Vec<String>")]
 pub enum Formula {
     True,
@@ -164,7 +164,7 @@ pub struct BaseFunction(pub String);
 ///
 /// The condition formula refers to the metadata values on the parameter types
 /// and return type.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct FunctionSignature {
     pub params: IndexMap<FunParam, MetName>,
     pub ret: MetName,
@@ -185,7 +185,7 @@ pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
 // Composite libraries and programs
 
 /// The libraries necessary for a Honeybee problem.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Library {
     #[serde(rename = "Prop")]
     pub props: MetLibrary,

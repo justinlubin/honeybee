@@ -20,6 +20,6 @@ mod util;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn greet(name: &str) -> String {
-    format!("Hello, {}!", name)
+pub fn parse_library(lib: &str) -> JsValue {
+    serde_wasm_bindgen::to_value(&parse::library(lib)).unwrap()
 }
