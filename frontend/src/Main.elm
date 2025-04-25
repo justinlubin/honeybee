@@ -15,7 +15,7 @@ main =
             \v ->
                 ( v
                     |> Json.Decode.decodeValue Decode.library
-                    |> Result.withDefault { props = [], types = [] }
+                    |> Result.withDefault []
                     |> Model.init
                 , Cmd.none
                 )

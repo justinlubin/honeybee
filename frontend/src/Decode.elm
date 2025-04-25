@@ -24,14 +24,14 @@ valueType =
             )
 
 
-stepSignature : Decoder StepSignature
-stepSignature =
-    map (\p -> { params = p })
+stepSignature : StepKind -> Decoder StepSignature
+stepSignature kind =
+    map (\p -> { params = p, kind = kind })
         (field "params" <| keyValuePairs valueType)
 
 
 library : Decoder Library
 library =
-    map2 (\props types -> { props = props, types = types })
-        (field "props" <| keyValuePairs stepSignature)
-        (field "types" <| keyValuePairs stepSignature)
+    map2 (\props types -> props ++ types)
+        (field "props" <| keyValuePairs (stepSignature Prop))
+        (field "types" <| keyValuePairs (stepSignature Type))

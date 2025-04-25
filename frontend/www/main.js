@@ -10,11 +10,11 @@ window._lib = library;
 const flags = { props: {}, types: {} };
 
 for (const [name, { params }] of library.Ok.Prop) {
-    flags.props[name] = { params: params };
+    flags.props[name] = { params: Object.fromEntries(params) };
 }
 
 for (const [name, { params }] of library.Ok.Type) {
-    flags.types[name] = { params: params };
+    flags.types[name] = { params: Object.fromEntries(params) };
 }
 
 const app = Elm.Main.init({
