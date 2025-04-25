@@ -68,7 +68,7 @@ step lib mi s =
                         lib
 
         SConcrete { name, args } ->
-            span [] <|
+            div [] <|
                 (select
                     [ E.onInput
                         (\k ->
@@ -90,18 +90,12 @@ step lib mi s =
                     :: Assoc.mapCollapse arg args
 
 
-goal : Library -> Step -> Html Msg
-goal lib g =
-    div []
-        [ b [] [ text "Goal: " ]
-        , step (types lib) Nothing g
-        ]
-
-
 workflow : Library -> Workflow -> Html Msg
 workflow lib w =
-    div []
-        [ goal lib w.goal
+    div [ A.class "workflow" ]
+        [ h2 [] [ text "Goal of Experiment" ]
+        , step (types lib) Nothing w.goal
+        , h2 [] [ text "Experimental Workflow" ]
         , button
             [ E.onClick Update.AddBlankStep
             ]

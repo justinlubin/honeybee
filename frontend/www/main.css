@@ -1,5 +1,5 @@
 body {
-    margin: 10px;
+    margin: 20px;
 }
 
 ol {
@@ -7,4 +7,24 @@ ol {
     margin-left: 20px;
 }
 
-b { font-weight: bold }
+b {
+    font-weight: bold
+}
+
+h2 {
+    font-weight: bold;
+    font-size: 1.4em;
+}
+
+.workflow > * {
+    margin-bottom: 10px;
+}
+
+li {
+    margin-bottom: 5px;
+}
+
+select {
+    width: 200px;
+    margin-right: 10px;
+}
