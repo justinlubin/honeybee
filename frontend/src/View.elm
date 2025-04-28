@@ -24,20 +24,25 @@ stringFromValue v =
         VStr s ->
             "\"" ++ s ++ "\""
 
+        VHole _ ->
+            "?"
 
-arg : String -> Maybe Value -> Html Msg
-arg argName mv =
-    text <|
-        argName
-            ++ ": "
-            ++ (case mv of
-                    Nothing ->
-                        "?"
 
-                    Just v ->
-                        stringFromValue v
-               )
-            ++ ". "
+arg : StepIndex -> String -> Value -> Html Msg
+arg si argName v =
+    span []
+        [ b [] [ text (argName ++ ": ") ]
+        , input
+            [ E.onInput (Update.SetArgumentByString (valueType v) si argName)
+            ]
+            []
+        , text <| " (" ++ stringFromValue v ++ ")"
+        ]
+
+
+args : StepIndex -> Assoc String Value -> List (Html Msg)
+args si a =
+    Assoc.mapCollapse (arg si) a
 
 
 step : Library -> StepIndex -> Step -> Html Msg
@@ -55,48 +60,35 @@ step lib si s =
                 Goal ->
                     text ""
 
-        result =
+        inputEvent =
+            E.onInput <|
+                \k ->
+                    if k == "<blank>" then
+                        Update.ClearStep si
+
+                    else
+                        Update.SetStep si k
+
+        ( name, extras ) =
             case s of
                 SHole ->
-                    [ select
-                        [ E.onInput
-                            (\k ->
-                                if k == "<blank>" then
-                                    Update.ClearStep si
+                    ( "<blank>", [] )
 
-                                else
-                                    Update.SetStep si k
-                            )
-                        ]
-                      <|
-                        option [ A.selected True ] [ text "<blank>" ]
-                            :: Assoc.mapCollapse
-                                (\k _ -> option [] [ text k ])
-                                lib
-                    ]
+                SConcrete st ->
+                    ( st.name, args si st.args )
 
-                SConcrete { name, args } ->
-                    [ select
-                        [ E.onInput
-                            (\k ->
-                                if k == "<blank>" then
-                                    Update.ClearStep si
+        options =
+            "<blank>" :: Assoc.mapCollapse (\k _ -> k) lib
 
-                                else
-                                    Update.SetStep si k
-                            )
-                        ]
-                      <|
-                        option [] [ text "<blank>" ]
-                            :: Assoc.mapCollapse
-                                (\k _ ->
-                                    option [ A.selected (k == name) ] [ text k ]
-                                )
-                                lib
-                    ]
-                        ++ Assoc.mapCollapse arg args
+        dropdown =
+            select
+                [ inputEvent ]
+                (List.map
+                    (\k -> option [ A.selected (k == name) ] [ text k ])
+                    options
+                )
     in
-    div [] (deleteButton :: result)
+    div [] (deleteButton :: dropdown :: extras)
 
 
 workflow : Library -> Workflow -> Html Msg

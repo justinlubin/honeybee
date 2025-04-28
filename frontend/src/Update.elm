@@ -10,6 +10,31 @@ type Msg
     | SetStep StepIndex String
     | ClearStep StepIndex
     | RemoveStep Int
+    | SetArgumentByString ValueType StepIndex String String
+
+
+valueFromString : ValueType -> String -> Value
+valueFromString vt str =
+    case vt of
+        VTInt ->
+            str
+                |> String.toInt
+                |> Maybe.map VInt
+                |> Maybe.withDefault (VHole VTInt)
+
+        VTBool ->
+            case String.toLower str of
+                "true" ->
+                    VBool True
+
+                "false" ->
+                    VBool False
+
+                _ ->
+                    VHole VTBool
+
+        VTStr ->
+            VStr str
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -48,5 +73,29 @@ update msg model =
 
         RemoveStep i ->
             ( { model | workflow = Core.removeStep i model.workflow }
+            , Cmd.none
+            )
+
+        SetArgumentByString vt si param str ->
+            let
+                v =
+                    valueFromString vt str
+            in
+            ( { model
+                | workflow =
+                    Core.modifyStep si
+                        (\s ->
+                            case s of
+                                SHole ->
+                                    SHole
+
+                                SConcrete { name, args } ->
+                                    SConcrete
+                                        { name = name
+                                        , args = args |> Assoc.set param v
+                                        }
+                        )
+                        model.workflow
+              }
             , Cmd.none
             )

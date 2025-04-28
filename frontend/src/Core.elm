@@ -11,11 +11,13 @@ module Core exposing
     , freshStep
     , goal
     , insertStep
+    , modifyStep
     , props
     , removeStep
     , setStep
     , steps
     , types
+    , valueType
     )
 
 import Assoc exposing (Assoc)
@@ -32,6 +34,23 @@ type Value
     = VBool Bool
     | VInt Int
     | VStr String
+    | VHole ValueType
+
+
+valueType : Value -> ValueType
+valueType v =
+    case v of
+        VBool _ ->
+            VTBool
+
+        VInt _ ->
+            VTInt
+
+        VStr _ ->
+            VTStr
+
+        VHole vt ->
+            vt
 
 
 type StepKind
@@ -49,7 +68,7 @@ type Step
     = SHole
     | SConcrete
         { name : String
-        , args : Assoc String (Maybe Value)
+        , args : Assoc String Value
         }
 
 
@@ -57,7 +76,7 @@ freshStep : String -> StepSignature -> Step
 freshStep name sig =
     SConcrete
         { name = name
-        , args = List.map (\( k, _ ) -> ( k, Nothing )) sig.params
+        , args = List.map (\( k, vt ) -> ( k, VHole vt )) sig.params
         }
 
 
@@ -103,10 +122,15 @@ goal (W w) =
 
 
 setStep : StepIndex -> Step -> Workflow -> Workflow
-setStep si step (W w) =
+setStep si step w =
+    modifyStep si (\_ -> step) w
+
+
+modifyStep : StepIndex -> (Step -> Step) -> Workflow -> Workflow
+modifyStep si modify (W w) =
     case si of
         Goal ->
-            W { w | goal = step }
+            W { w | goal = modify w.goal }
 
         Step i ->
             W
@@ -116,7 +140,7 @@ setStep si step (W w) =
                             |> List.indexedMap
                                 (\j s ->
                                     if i == j then
-                                        step
+                                        modify s
 
                                     else
                                         s
