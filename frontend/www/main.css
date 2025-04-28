@@ -28,3 +28,8 @@ select {
     width: 200px;
     margin-right: 10px;
 }
+
+.delete-button {
+    display: inline-block;
+    margin-right: 5px;
+}

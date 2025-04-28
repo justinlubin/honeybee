@@ -46,11 +46,11 @@ step lib si s =
         deleteButton =
             case si of
                 Step i ->
-                    span []
-                        [ button [ E.onClick (Update.RemoveStep i) ]
-                            [ text "X" ]
-                        , text " "
+                    button
+                        [ A.class "delete-button"
+                        , E.onClick (Update.RemoveStep i)
                         ]
+                        [ text "X" ]
 
                 Goal ->
                     text ""
