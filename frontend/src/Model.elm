@@ -12,8 +12,5 @@ type alias Model =
 init : Library -> Model
 init library =
     { library = library
-    , workflow =
-        { steps = []
-        , goal = SHole
-        }
+    , workflow = emptyWorkflow
     }

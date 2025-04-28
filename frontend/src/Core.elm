@@ -1,6 +1,25 @@
-module Core exposing (..)
+module Core exposing
+    ( Library
+    , Step(..)
+    , StepIndex(..)
+    , StepKind(..)
+    , StepSignature
+    , Value(..)
+    , ValueType(..)
+    , Workflow
+    , emptyWorkflow
+    , freshStep
+    , goal
+    , insertStep
+    , props
+    , removeStep
+    , setStep
+    , steps
+    , types
+    )
 
 import Assoc exposing (Assoc)
+import Util
 
 
 type ValueType
@@ -34,8 +53,8 @@ type Step
         }
 
 
-newStep : String -> StepSignature -> Step
-newStep name sig =
+freshStep : String -> StepSignature -> Step
+freshStep name sig =
     SConcrete
         { name = name
         , args = List.map (\( k, _ ) -> ( k, Nothing )) sig.params
@@ -56,7 +75,80 @@ types =
     List.filter (\( _, s ) -> s.kind == Type)
 
 
-type alias Workflow =
-    { steps : List Step
-    , goal : Step
-    }
+type Workflow
+    = W
+        { steps : List Step
+        , goal : Step
+        }
+
+
+emptyWorkflow : Workflow
+emptyWorkflow =
+    W { steps = [], goal = SHole }
+
+
+type StepIndex
+    = Goal
+    | Step Int
+
+
+steps : Workflow -> List Step
+steps (W w) =
+    w.steps
+
+
+goal : Workflow -> Step
+goal (W w) =
+    w.goal
+
+
+setStep : StepIndex -> Step -> Workflow -> Workflow
+setStep si step (W w) =
+    case si of
+        Goal ->
+            W { w | goal = step }
+
+        Step i ->
+            W
+                { w
+                    | steps =
+                        w.steps
+                            |> List.indexedMap
+                                (\j s ->
+                                    if i == j then
+                                        step
+
+                                    else
+                                        s
+                                )
+                }
+
+
+insertStep : Int -> Step -> Workflow -> Workflow
+insertStep i step (W w) =
+    if i == List.length w.steps then
+        W { w | steps = w.steps ++ [ step ] }
+
+    else
+        W
+            { w
+                | steps =
+                    w.steps
+                        |> List.indexedMap
+                            (\j s ->
+                                if i == j then
+                                    [ step, s ]
+
+                                else
+                                    [ s ]
+                            )
+                        |> List.concat
+            }
+
+
+removeStep : Int -> Workflow -> Workflow
+removeStep i (W w) =
+    W
+        { w
+            | steps = w.steps |> Util.indexedFilter (\j _ -> i /= j)
+        }
