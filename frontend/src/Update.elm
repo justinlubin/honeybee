@@ -15,26 +15,30 @@ type Msg
 
 valueFromString : ValueType -> String -> Value
 valueFromString vt str =
-    case vt of
-        VTInt ->
-            str
-                |> String.toInt
-                |> Maybe.map VInt
-                |> Maybe.withDefault (VHole VTInt)
+    if String.isEmpty str then
+        VHole vt
 
-        VTBool ->
-            case String.toLower str of
-                "true" ->
-                    VBool True
+    else
+        case vt of
+            VTInt ->
+                str
+                    |> String.toInt
+                    |> Maybe.map VInt
+                    |> Maybe.withDefault (VHole VTInt)
 
-                "false" ->
-                    VBool False
+            VTBool ->
+                case String.toLower str of
+                    "true" ->
+                        VBool True
 
-                _ ->
-                    VHole VTBool
+                    "false" ->
+                        VBool False
 
-        VTStr ->
-            VStr str
+                    _ ->
+                        VHole VTBool
+
+            VTStr ->
+                VStr str
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

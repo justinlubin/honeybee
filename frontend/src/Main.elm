@@ -16,6 +16,7 @@ main =
                 ( v
                     |> Json.Decode.decodeValue Decode.library
                     |> Result.withDefault []
+                    |> Debug.log "library"
                     |> Model.init
                 , Cmd.none
                 )

@@ -31,9 +31,10 @@ stringFromValue v =
 arg : StepIndex -> String -> Value -> Html Msg
 arg si argName v =
     span []
-        [ b [] [ text (argName ++ ": ") ]
+        [ b [ A.class "argument-name" ] [ text (argName ++ ": ") ]
         , input
             [ E.onInput (Update.SetArgumentByString (valueType v) si argName)
+            , A.class "argument-input"
             ]
             []
         , text <| " (" ++ stringFromValue v ++ ")"

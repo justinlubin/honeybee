@@ -5,6 +5,11 @@ type alias Assoc k v =
     List ( k, v )
 
 
+map : (k -> a -> b) -> Assoc k a -> Assoc k b
+map f =
+    List.map (\( x, y ) -> ( x, f x y ))
+
+
 mapCollapse : (k -> v -> b) -> Assoc k v -> List b
 mapCollapse f =
     List.map (\( x, y ) -> f x y)
@@ -26,4 +31,16 @@ get k a =
 
 set : k -> v -> Assoc k v -> Assoc k v
 set k v a =
-    ( k, v ) :: List.filter (\( k2, _ ) -> k2 /= k) a
+    if List.any (\( k2, _ ) -> k2 == k) a then
+        map
+            (\k2 v2 ->
+                if k2 == k then
+                    v
+
+                else
+                    v2
+            )
+            a
+
+    else
+        ( k, v ) :: a
