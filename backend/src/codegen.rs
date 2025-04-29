@@ -15,6 +15,64 @@ fn python_value(v: &Value) -> String {
     }
 }
 
+/// Translate an expression into a list of Python "cells" (prep for ipynb)
+pub fn python_list_multi_wrapper(e: &Exp) -> String {
+    // Eventually use the ipynb crate here
+    let (_final_var_name, cells) = python_list_multi(e, Vec::new());
+    cells.join("\n\n")
+}
+
+/// Generate a variable name based on the number of cells so far
+fn gen_var_name(cells: &[String]) -> String {
+    format!("var{}", cells.len()) // assume 1 assignment per cell
+}
+
+fn python_list_multi(e: &Exp, mut cells: Vec<String>) -> (String, Vec<String>) {
+    match e {
+        top_down::Sketch::Hole(h) => {
+            let var_name = gen_var_name(&cells);
+            cells.push(format!(
+                "{} = {}",
+                var_name,
+                top_down::pretty_hole_string(*h)
+            ));
+            (var_name, cells)
+        },
+        top_down::Sketch::App(f, args) => {
+            let mut arg_var_names = Vec::with_capacity(args.len());
+            for (_fp, arg) in args.iter() {
+                    let (name, new_cells) = python_list_multi(arg, cells);
+                    arg_var_names.push(name);
+                    cells = new_cells
+                };
+            // cells length may have changed, so must gen var_name here
+            let var_name = gen_var_name(&cells);
+            let args_str = args.iter()
+                .enumerate()
+                .map(|(i, (fp, _arg))| format!(
+                    "{}={}, ",
+                    fp.0,
+                    arg_var_names[i]
+                ))
+                .collect::<String>();
+            let metadata_str = f.metadata.iter()
+                .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            cells.push(
+                format!(
+                    "{} = {}({}_metadata={{{}}})",
+                    var_name,
+                    f.name.0,
+                    args_str,
+                    metadata_str
+                )
+            );
+            (var_name, cells)
+        }
+    }
+}
+
 /// Translate an expression into a multi-line Python expression
 pub fn python_multi(e: &Exp, current_indent: usize) -> String {
     match e {
