@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Compile
 import Decode
 import Json.Decode
 import Model
@@ -16,7 +17,6 @@ main =
                 ( v
                     |> Json.Decode.decodeValue Decode.library
                     |> Result.withDefault []
-                    |> Debug.log "library"
                     |> Model.init
                 , Cmd.none
                 )

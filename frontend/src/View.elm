@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Assoc exposing (Assoc)
+import Compile
 import Core exposing (..)
 import Html exposing (..)
 import Html.Attributes as A
@@ -111,4 +112,8 @@ workflow lib w =
 
 view : Model -> Html Msg
 view model =
-    workflow model.library model.workflow
+    div
+        []
+        [ workflow model.library model.workflow
+        , pre [] [ text <| Compile.compile model.workflow ]
+        ]
