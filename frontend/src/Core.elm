@@ -8,6 +8,7 @@ module Core exposing
     , ValueType(..)
     , Workflow
     , emptyWorkflow
+    , exampleWorkflow
     , freshStep
     , goal
     , insertStep
@@ -104,6 +105,30 @@ type Workflow
 emptyWorkflow : Workflow
 emptyWorkflow =
     W { steps = [], goal = SHole }
+
+
+exampleWorkflow : Workflow
+exampleWorkflow =
+    W
+        { steps =
+            [ SConcrete
+                { name = "RNAseq"
+                , args = [ ( "sample", VStr "1" ) ]
+                }
+            , SConcrete
+                { name = "RNAseq"
+                , args = [ ( "sample", VStr "2" ) ]
+                }
+            ]
+        , goal =
+            SConcrete
+                { name = "DifferentialGeneExpression"
+                , args =
+                    [ ( "sample1", VStr "1" )
+                    , ( "sample2", VStr "2" )
+                    ]
+                }
+        }
 
 
 type StepIndex

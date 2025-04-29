@@ -22,5 +22,5 @@ main =
                 )
         , update = Update.update
         , view = View.view
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = Update.subscriptions
         }

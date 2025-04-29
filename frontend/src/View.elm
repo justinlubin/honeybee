@@ -110,10 +110,31 @@ workflow lib w =
         ]
 
 
+synthesisResult : Maybe String -> Html Msg
+synthesisResult ms =
+    case ms of
+        Nothing ->
+            text ""
+
+        Just s ->
+            div
+                [ A.class "synthesis-result" ]
+                [ h2 [] [ text "Python script to analyze this experiment" ]
+                , code [] [ pre [] [ text s ] ]
+                ]
+
+
 view : Model -> Html Msg
 view model =
+    let
+        programSource =
+            Compile.compile model.workflow
+    in
     div
         []
         [ workflow model.library model.workflow
-        , pre [] [ text <| Compile.compile model.workflow ]
+        , button
+            [ E.onClick <| Update.MakePythonScript programSource ]
+            [ text "Make Python script" ]
+        , synthesisResult model.synthesisResult
         ]

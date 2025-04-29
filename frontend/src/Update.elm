@@ -1,8 +1,9 @@
-module Update exposing (Msg(..), update)
+module Update exposing (Msg(..), subscriptions, update)
 
 import Assoc
 import Core exposing (..)
 import Model exposing (Model)
+import Port
 
 
 type Msg
@@ -11,6 +12,8 @@ type Msg
     | ClearStep StepIndex
     | RemoveStep Int
     | SetArgumentByString ValueType StepIndex String String
+    | MakePythonScript String
+    | ReceivePortMessage Port.ReceiveMessage
 
 
 valueFromString : ValueType -> String -> Value
@@ -103,3 +106,18 @@ update msg model =
               }
             , Cmd.none
             )
+
+        MakePythonScript programSource ->
+            ( model
+            , Port.send { programSource = programSource }
+            )
+
+        ReceivePortMessage rm ->
+            ( { model | synthesisResult = Just rm.synthesisResult }
+            , Cmd.none
+            )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Port.receive ReceivePortMessage
