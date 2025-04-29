@@ -2,8 +2,13 @@
 
 [Prop.RNAseq]
 params.sample = "Str"
+params.path = "Str"
 
 ### Datatypes
+
+[Type.LoadedRNAseq]
+params.sample = "Str"
+params.path = "Str"
 
 [Type.Alignment]
 params.sample = "Str"
@@ -22,37 +27,47 @@ params.sample2 = "Str"
 
 ### Functions
 
+# Load
+
+[Function.load_rna_seq]
+params = {}
+ret = "LoadedRNAseq"
+condition = [
+    "RNAseq { sample = ret.sample, path = ret.path }"
+]
+
 # Quantifiers
 
 [Function.kallisto]
-params = {}
+params.in = "LoadedRNAseq"
 ret = "ReadCountVector"
 condition = [
-    "RNAseq { sample = ret.sample }"
+    "ret.sample = in.sample"
 ]
 
 [Function.salmon]
-params = {}
+params.in = "LoadedRNAseq"
 ret = "ReadCountVector"
 condition = [
-    "RNAseq { sample = ret.sample }"
+    "ret.sample = in.sample"
 ]
 
 # Aligners
 
 [Function.bowtie2]
-params = {}
+params.in = "LoadedRNAseq"
 ret = "Alignment"
 condition = [
-    "RNAseq { sample = ret.sample }"
+    "ret.sample = in.sample"
 ]
 
 [Function.STAR]
-params = {}
+params.in = "LoadedRNAseq"
 ret = "Alignment"
 condition = [
-    "RNAseq { sample = ret.sample }"
+    "ret.sample = in.sample"
 ]
+
 
 # Read summarization
 

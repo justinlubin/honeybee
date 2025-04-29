@@ -20,8 +20,10 @@ mod util;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn parse_library(lib_src: &str) -> JsValue {
-    serde_wasm_bindgen::to_value(&parse::library(lib_src)).unwrap()
+pub fn parse_library(lib_src: &str) -> Result<JsValue, String> {
+    let library = parse::library(lib_src)?;
+    serde_wasm_bindgen::to_value(&library)
+        .map_err(|_| "serde_wasm_bindgen error: to_value(library)".to_owned())
 }
 
 #[wasm_bindgen]
@@ -29,6 +31,9 @@ pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
     let library = parse::library(&lib_src)?;
     let program = parse::program(&prog_src)?;
     let problem = core::Problem { library, program };
+
+    typecheck::problem(&problem)
+        .map_err(|e| format!("type error: {}", e.message))?;
 
     let timer = util::Timer::infinite();
     let start = top_down::Sketch::blank();

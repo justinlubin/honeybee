@@ -9,11 +9,11 @@ window._lib = library;
 
 const flags = { props: {}, types: {} };
 
-for (const [name, { params }] of library.Ok.Prop) {
+for (const [name, { params }] of library.Prop) {
     flags.props[name] = { params: Object.fromEntries(params) };
 }
 
-for (const [name, { params }] of library.Ok.Type) {
+for (const [name, { params }] of library.Type) {
     flags.types[name] = { params: Object.fromEntries(params) };
 }
 

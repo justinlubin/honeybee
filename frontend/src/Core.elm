@@ -113,11 +113,17 @@ exampleWorkflow =
         { steps =
             [ SConcrete
                 { name = "RNAseq"
-                , args = [ ( "sample", VStr "1" ) ]
+                , args =
+                    [ ( "sample", VStr "1" )
+                    , ( "path", VStr "raw_data/rnaseq/control/" )
+                    ]
                 }
             , SConcrete
                 { name = "RNAseq"
-                , args = [ ( "sample", VStr "2" ) ]
+                , args =
+                    [ ( "sample", VStr "2" )
+                    , ( "path", VStr "raw_data/rnaseq/experimental/" )
+                    ]
                 }
             ]
         , goal =
