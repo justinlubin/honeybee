@@ -3,6 +3,9 @@
 [Prop.RNAseq]
 params.sample = "Str"
 params.path = "Str"
+info.overview = "RNA-sequencing data"
+info.params.sample = "A label for the sample (you can choose anything you'd like)"
+info.params.path = "The path to the folder containing the raw FASTQ files for the sample"
 
 ### Datatypes
 
@@ -44,6 +47,7 @@ ret = "ReadCountVector"
 condition = [
     "ret.sample = in.sample"
 ]
+info.overview ="The kallisto RNAseq quantifier"
 
 [Function.salmon]
 params.in = "LoadedRNAseq"

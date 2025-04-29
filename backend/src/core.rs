@@ -46,9 +46,13 @@ pub struct MetName(pub String);
 pub struct MetParam(pub String);
 
 /// Signatures for metadata-indexed tuples that define their arity.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MetSignature {
+    /// The arity
     pub params: IndexMap<MetParam, ValueType>,
+
+    /// Optional additional info that may be helpful for the end user
+    pub info: Option<toml::Table>,
 }
 
 /// Libraries of metadata-indexed tuples.
@@ -164,11 +168,15 @@ pub struct BaseFunction(pub String);
 ///
 /// The condition formula refers to the metadata values on the parameter types
 /// and return type.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FunctionSignature {
     pub params: IndexMap<FunParam, MetName>,
     pub ret: MetName,
     pub condition: Formula,
+
+    /// Optional additional info that may be helpful for the end user (not
+    /// checked in Eq instance)
+    pub info: Option<toml::Table>,
 }
 
 impl FunctionSignature {
@@ -177,6 +185,16 @@ impl FunctionSignature {
         self.condition.vals()
     }
 }
+
+impl PartialEq for FunctionSignature {
+    fn eq(&self, other: &Self) -> bool {
+        self.params == other.params
+            && self.ret == other.ret
+            && self.condition == other.condition
+    }
+}
+
+impl Eq for FunctionSignature {}
 
 /// Libraries of defined parameterized functions.
 pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
@@ -304,6 +322,7 @@ impl Goal {
             })),
             ret: ret.clone(),
             params: IndexMap::from([(param.clone(), goal.name.clone())]),
+            info: None,
         };
 
         Self {

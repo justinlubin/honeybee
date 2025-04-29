@@ -1,10 +1,12 @@
 [[Prop]]
 name = "RNAseq"
 args.sample = "Healthy"
+args.path = "raw_data/healthy/"
 
 [[Prop]]
 name = "RNAseq"
 args.sample = "TLE"
+args.path = "raw_data/tle/"
 
 [Goal]
 name = "DifferentialGeneExpression"
