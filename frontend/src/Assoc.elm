@@ -44,3 +44,19 @@ set k v a =
 
     else
         ( k, v ) :: a
+
+
+leftMerge : b -> Assoc k a -> Assoc k b -> Assoc k ( a, b )
+leftMerge missing left right =
+    map
+        (\k v1 ->
+            ( v1
+            , case get k right of
+                Nothing ->
+                    missing
+
+                Just v2 ->
+                    v2
+            )
+        )
+        left

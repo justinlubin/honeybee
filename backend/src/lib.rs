@@ -17,8 +17,23 @@ mod typecheck;
 mod unparse;
 mod util;
 
+use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+
+fn load_problem(
+    lib_src: &str,
+    prog_src: &str,
+) -> Result<core::Problem, String> {
+    let library = parse::library(&lib_src)?;
+    let program = parse::program(&prog_src)?;
+    let problem = core::Problem { library, program };
+
+    typecheck::problem(&problem)
+        .map_err(|e| format!("type error: {}", e.message))?;
+
+    Ok(problem)
+}
 
 #[wasm_bindgen]
 pub fn parse_library(lib_src: &str) -> Result<JsValue, String> {
@@ -29,13 +44,7 @@ pub fn parse_library(lib_src: &str) -> Result<JsValue, String> {
 
 #[wasm_bindgen]
 pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
-    let library = parse::library(&lib_src)?;
-    let program = parse::program(&prog_src)?;
-    let problem = core::Problem { library, program };
-
-    typecheck::problem(&problem)
-        .map_err(|e| format!("type error: {}", e.message))?;
-
+    let problem = load_problem(lib_src, prog_src)?;
     let timer = util::Timer::infinite();
     let start = top_down::Sketch::blank();
     let mut synth = menu::Algorithm::PBNHoneybee.any_synthesizer(problem);
@@ -52,6 +61,45 @@ pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
     }
 
     Ok(codegen::python_multi(&res, 0, false))
+}
+
+#[allow(non_snake_case)]
+#[derive(Serialize, Deserialize)]
+struct ValidGoalMetadataMessage {
+    goalName: String,
+    choices: Vec<(String, Vec<core::Value>)>,
+}
+
+#[wasm_bindgen]
+pub fn valid_goal_metadata(
+    lib_src: &str,
+    prog_src: &str,
+) -> Result<JsValue, String> {
+    let problem = load_problem(lib_src, prog_src)?;
+    let goal_name = problem.program.goal.name.0.clone();
+
+    let engine = egglog::Egglog::new(true);
+    let mut oracle = dl_oracle::Oracle::new(engine, problem)?;
+    let vgm = oracle.valid_goal_metadata();
+
+    let mut res = IndexMap::new();
+    for assignment in vgm {
+        for (mp, v) in assignment {
+            let _ = res.entry(mp.0).or_insert(IndexSet::new()).insert(v);
+        }
+    }
+
+    let msg = ValidGoalMetadataMessage {
+        goalName: goal_name,
+        choices: res
+            .into_iter()
+            .map(|(k, vs)| (k, vs.into_iter().collect()))
+            .collect(),
+    };
+
+    serde_wasm_bindgen::to_value(&msg).map_err(|_| {
+        "serde_wasm_bindgen error in valid_goal_metadata".to_owned()
+    })
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,18 +160,12 @@ fn send_message() -> Result<JsValue, String> {
     };
 
     serde_wasm_bindgen::to_value(&msg)
-        .map_err(|_| "serde_wasm_bindgen error: to_value(msg)".to_owned())
+        .map_err(|_| "serde_wasm_bindgen error in send_message".to_owned())
 }
 
 #[wasm_bindgen]
 pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
-    let library = parse::library(&lib_src)?;
-    let program = parse::program(&prog_src)?;
-    let problem = core::Problem { library, program };
-
-    typecheck::problem(&problem)
-        .map_err(|e| format!("type error: {}", e.message))?;
-
+    let problem = load_problem(lib_src, prog_src)?;
     let timer = util::Timer::infinite();
     let algorithm = menu::Algorithm::PBNHoneybee;
 

@@ -7,6 +7,14 @@ import Assoc exposing (Assoc)
 -- Outgoing messages
 
 
+type alias PbnCheckMessage =
+    { programSource : String
+    }
+
+
+port sendPbnCheck : PbnCheckMessage -> Cmd msg
+
+
 type alias PbnInitMessage =
     { programSource : String
     }
@@ -34,6 +42,17 @@ port sendDownload : DownloadMessage -> Cmd msg
 
 
 -- Incoming messages
+
+
+type alias ValidGoalMetadataMessage =
+    { goalName : String
+    , choices : Assoc String (List String)
+    }
+
+
+port receiveValidGoalMetadata :
+    (ValidGoalMetadataMessage -> msg)
+    -> Sub msg
 
 
 type alias PbnStatusMessage =

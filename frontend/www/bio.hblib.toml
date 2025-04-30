@@ -114,4 +114,5 @@ ret = "DifferentialGeneExpression"
 condition = [
     "ret.sample1 = rcm.sample1",
     "ret.sample2 = rcm.sample2",
+    "ret.sample1 = ret.sample2",
 ]

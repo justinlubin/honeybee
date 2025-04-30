@@ -22,6 +22,19 @@ const app = Elm.Main.init({
     flags: flags,
 });
 
+app.ports.sendPbnCheck.subscribe((msg) => {
+    try {
+        const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
+            librarySource,
+            msg.programSource,
+        );
+        console.log(validGoalMetadataMessage);
+        app.ports.receiveValidGoalMetadata.send(validGoalMetadataMessage);
+    } catch (e) {
+        console.error(e);
+    }
+});
+
 app.ports.sendPbnInit.subscribe((msg) => {
     try {
         const pbnStatusMessage = Honeybee.pbn_init(

@@ -31,8 +31,8 @@ stringFromValue v =
             "?"
 
 
-arg : StepIndex -> String -> Value -> Html Msg
-arg si argName v =
+arg : StepIndex -> String -> ( Value, List Value ) -> Html Msg
+arg si argName ( v, suggestions ) =
     span []
         [ b [ A.class "argument-name" ] [ text (argName ++ ": ") ]
         , input
@@ -40,6 +40,10 @@ arg si argName v =
             , A.class "argument-input"
             ]
             []
+        , text <|
+            " [try: "
+                ++ String.join ", " (List.map stringFromValue suggestions)
+                ++ "]"
         , text <|
             if Config.debug then
                 " (" ++ stringFromValue v ++ ")"
@@ -49,13 +53,18 @@ arg si argName v =
         ]
 
 
-args : StepIndex -> Assoc String Value -> List (Html Msg)
+args : StepIndex -> Assoc String ( Value, List Value ) -> List (Html Msg)
 args si a =
     Assoc.mapCollapse (arg si) a
 
 
-step : Library -> StepIndex -> Step -> Html Msg
-step lib si s =
+step :
+    Library
+    -> Assoc String (List Value)
+    -> StepIndex
+    -> Step
+    -> Html Msg
+step library goalSuggestions si s =
     let
         deleteButton =
             case si of
@@ -84,10 +93,14 @@ step lib si s =
                     ( "<blank>", [] )
 
                 SConcrete st ->
-                    ( st.name, args si st.args )
+                    ( st.name
+                    , args
+                        si
+                        (Assoc.leftMerge [] st.args goalSuggestions)
+                    )
 
         options =
-            "<blank>" :: Assoc.mapCollapse (\k _ -> k) lib
+            "<blank>" :: Assoc.mapCollapse (\k _ -> k) library
 
         dropdown =
             select
@@ -100,8 +113,11 @@ step lib si s =
     div [] (deleteButton :: dropdown :: extras)
 
 
-workflow : Library -> Workflow -> Html Msg
-workflow lib w =
+workflow :
+    { m | library : Library, goalSuggestions : Assoc String (List Value) }
+    -> Workflow
+    -> Html Msg
+workflow ctx w =
     div [ A.class "workflow" ]
         [ h2 [] [ text "Experimental Workflow" ]
         , button
@@ -109,11 +125,11 @@ workflow lib w =
             [ text "Add step" ]
         , ol []
             (List.indexedMap
-                (\i s -> li [] [ step (props lib) (Step i) s ])
+                (\i s -> li [] [ step (props ctx.library) ctx.goalSuggestions (Step i) s ])
                 (steps w)
             )
         , h2 [] [ text "Goal of Experiment" ]
-        , step (types lib) Goal (goal w)
+        , step (types ctx.library) ctx.goalSuggestions Goal (goal w)
         ]
 
 
@@ -171,7 +187,7 @@ view model =
     in
     div
         []
-        [ workflow model.library model.workflow
+        [ workflow model model.workflow
         , button
             [ E.onClick <|
                 Update.StartNavigating
