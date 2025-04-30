@@ -17,28 +17,10 @@ fn write_file(path: PathBuf, s: &str) -> Result<(), String> {
     }
 }
 
-/// Use Programming By Navigation interactively
-pub fn interact(
+fn load_problem(
     library: PathBuf,
     program: PathBuf,
-    quiet: bool,
-    json: Option<PathBuf>,
-    algorithm: menu::Algorithm,
-) -> Result<(), String> {
-    if let Some(path) = &json {
-        let ok = match path.parent() {
-            Some(parent) => parent.exists(),
-            None => false,
-        };
-        if !ok {
-            return Err(format!(
-                "{} invalid json path '{}'",
-                Red.bold().paint("error:"),
-                path.to_str().unwrap()
-            ));
-        }
-    }
-
+) -> Result<core::Problem, String> {
     let lib_string =
         std::fs::read_to_string(library).map_err(|e| e.to_string())?;
     let prog_string =
@@ -66,6 +48,33 @@ pub fn interact(
                 .join("")
         )
     })?;
+
+    Ok(problem)
+}
+
+/// Use Programming By Navigation interactively
+pub fn interact(
+    library: PathBuf,
+    program: PathBuf,
+    quiet: bool,
+    json: Option<PathBuf>,
+    algorithm: menu::Algorithm,
+) -> Result<(), String> {
+    if let Some(path) = &json {
+        let ok = match path.parent() {
+            Some(parent) => parent.exists(),
+            None => false,
+        };
+        if !ok {
+            return Err(format!(
+                "{} invalid json path '{}'",
+                Red.bold().paint("error:"),
+                path.to_str().unwrap()
+            ));
+        }
+    }
+
+    let problem = load_problem(library, program)?;
 
     let timer = util::Timer::infinite();
     let mut controller = algorithm.controller(timer, problem);
@@ -183,6 +192,21 @@ pub fn interact(
         };
     }
 
+    Ok(())
+}
+
+/// Check if a Honeybee poblem is solvable
+pub fn check(library: PathBuf, program: PathBuf) -> Result<(), String> {
+    let problem = load_problem(library, program)?;
+    let chosen_metadata = problem.program.goal.args.clone();
+    let engine = egglog::Egglog::new(true);
+    let mut oracle = dl_oracle::Oracle::new(engine, problem).unwrap();
+    let vgm = oracle.valid_goal_metadata();
+    if vgm.contains(&chosen_metadata) {
+        println!("{}", Green.bold().paint("Solvable!"));
+    } else {
+        println!("{}", Red.bold().paint("Not solvable..."));
+    }
     Ok(())
 }
 

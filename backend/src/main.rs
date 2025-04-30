@@ -97,6 +97,18 @@ enum Command {
         algorithm: honeybee::menu::Algorithm,
     },
 
+    /// Check if a Honeybee problem is solvable
+    Check {
+        /// The library file to use (.hblib.toml)
+        #[arg(short, long, value_name = "FILE")]
+        library: PathBuf,
+
+        /// The Honeybee program to use (.hb.toml)
+        #[arg(short, long, value_name = "FILE")]
+        program: PathBuf,
+    },
+
+    /// Run a benchmark suite
     Benchmark {
         /// The benchmark suite directories to use (comma-separated list)
         #[arg(short, long, value_name = "DIRS")]
@@ -155,6 +167,9 @@ impl Command {
                 custom_parse::at_most_one_path(&json),
                 algorithm,
             ),
+            Self::Check { library, program } => {
+                main_handler::check(library, program)
+            }
             Self::Benchmark {
                 suite,
                 algorithms,

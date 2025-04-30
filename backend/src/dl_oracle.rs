@@ -367,6 +367,32 @@ impl CompileContext<'_> {
             .chain(rec_calls)
             .collect()
     }
+
+    pub fn solvability_query(
+        &self,
+        goal: &MetName,
+    ) -> (Rule, RelationSignature) {
+        let goal_sig = self.0 .0.library.types.get(goal).unwrap();
+        let mut head = self.free_fact(&Self::ret(), &goal);
+        head.relation = Relation("&Solvability".to_owned());
+
+        let rule = Rule {
+            name: "&solvability".to_owned(),
+            head,
+            body: vec![Predicate::Fact(self.free_fact(&Self::ret(), goal))],
+        };
+
+        let relation_signature = RelationSignature {
+            params: goal_sig
+                .params
+                .values()
+                .map(|vt| self.value_type(vt))
+                .collect(),
+            kind: RelationKind::IDB,
+        };
+
+        (rule, relation_signature)
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -430,6 +456,29 @@ impl<Eng: Engine> Oracle<Eng> {
             header,
             goal,
         })
+    }
+
+    pub fn valid_goal_metadata(
+        &mut self,
+    ) -> Vec<IndexMap<MetParam, core::Value>> {
+        let goal = &self.problem.program.goal;
+        let goal_sig = self.problem.library.types.get(&goal.name).unwrap();
+
+        let compile = CompileContext(typecheck::Context(&self.problem));
+        let (query, query_sig) = compile.solvability_query(&goal.name);
+
+        self.engine
+            .query(&query_sig, &query)
+            .into_iter()
+            .map(|vals| {
+                goal_sig
+                    .params
+                    .keys()
+                    .cloned()
+                    .zip(vals.iter().map(decompile::value))
+                    .collect()
+            })
+            .collect()
     }
 }
 
