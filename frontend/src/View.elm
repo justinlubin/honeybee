@@ -103,9 +103,7 @@ step lib si s =
 workflow : Library -> Workflow -> Html Msg
 workflow lib w =
     div [ A.class "workflow" ]
-        [ h2 [] [ text "Goal of Experiment" ]
-        , step (types lib) Goal (goal w)
-        , h2 [] [ text "Experimental Workflow" ]
+        [ h2 [] [ text "Experimental Workflow" ]
         , button
             [ E.onClick Update.AddBlankStep ]
             [ text "Add step" ]
@@ -114,6 +112,8 @@ workflow lib w =
                 (\i s -> li [] [ step (props lib) (Step i) s ])
                 (steps w)
             )
+        , h2 [] [ text "Goal of Experiment" ]
+        , step (types lib) Goal (goal w)
         ]
 
 
