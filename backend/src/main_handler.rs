@@ -92,7 +92,11 @@ pub fn interact(
                     "═".repeat(40)
                 )),
                 Cyan.bold().paint("Working expression:"),
-                codegen::python_multi(&controller.working_expression(), 1),
+                codegen::python_multi(
+                    &controller.working_expression(),
+                    1,
+                    true
+                ),
                 Cyan.bold().paint("Possible next steps:"),
             );
         }
@@ -158,14 +162,16 @@ pub fn interact(
     if quiet {
         println!(
             "output: {}",
-            codegen::python_multi(&controller.working_expression(), 1)
+            codegen::python_multi(&controller.working_expression(), 1, true),
         );
     } else {
         println!(
             "\n{}\n\n  {}\n\n{}",
             Green.bold().paint("Final expression:"),
-            codegen::python_multi(&controller.working_expression(), 1),
-            codegen::python_list_multi_wrapper(&controller.working_expression())
+            codegen::python_multi(&controller.working_expression(), 1, true),
+            codegen::python_list_multi_wrapper(
+                &controller.working_expression()
+            )
         );
     }
 
@@ -185,7 +191,7 @@ pub fn translate(path: PathBuf, print_size: bool) -> Result<(), String> {
     let exp_string =
         std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let exp = parse::exp(&exp_string)?;
-    println!("{}", codegen::python_multi(&exp, 0));
+    println!("{}", codegen::python_multi(&exp, 0, false));
     if print_size {
         println!("# size: {}", exp.size());
     }

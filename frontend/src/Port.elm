@@ -1,17 +1,46 @@
 port module Port exposing (..)
 
+import Assoc exposing (Assoc)
 
-type alias SendMessage =
+
+
+-- Outgoing messages
+
+
+type alias PbnInitMessage =
     { programSource : String
     }
 
 
-type alias ReceiveMessage =
-    { synthesisResult : String
+port sendPbnInit : PbnInitMessage -> Cmd msg
+
+
+type alias PbnChoiceMessage =
+    { choice : Int
     }
 
 
-port send : SendMessage -> Cmd msg
+port sendPbnChoice : PbnChoiceMessage -> Cmd msg
 
 
-port receive : (ReceiveMessage -> msg) -> Sub msg
+type alias DownloadMessage =
+    { filename : String
+    , text : String
+    }
+
+
+port sendDownload : DownloadMessage -> Cmd msg
+
+
+
+-- Incoming messages
+
+
+type alias PbnStatusMessage =
+    { workingExpression : String
+    , choices : Assoc Int String
+    , valid : Bool
+    }
+
+
+port receivePbnStatus : (PbnStatusMessage -> msg) -> Sub msg

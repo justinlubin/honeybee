@@ -17,6 +17,7 @@ mod typecheck;
 mod unparse;
 mod util;
 
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -50,5 +51,93 @@ pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
         res = res.substitute(lhs, &rhs);
     }
 
-    Ok(codegen::python_multi(&res, 0))
+    Ok(codegen::python_multi(&res, 0, false))
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PBN Interaction
+
+static mut STATE: Option<
+    pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
+> = None;
+
+#[allow(non_snake_case)]
+#[derive(Serialize, Deserialize)]
+struct PbnStatusMessage {
+    workingExpression: String,
+    choices: Vec<(usize, String)>,
+    valid: bool,
+}
+
+#[allow(static_mut_refs)]
+fn get_controller() -> Result<
+    &'static mut pbn::Controller<
+        top_down::TopDownStep<core::ParameterizedFunction>,
+    >,
+    String,
+> {
+    match unsafe { STATE.as_mut() } {
+        Some(c) => Ok(c),
+        None => Err("must call pbn_init first".to_owned()),
+    }
+}
+
+fn send_message() -> Result<JsValue, String> {
+    let controller = get_controller()?;
+
+    let options = controller.provide().map_err(|e| format!("{:?}", e))?;
+
+    // TODO: Need to handle metadata values
+    let mut choices = vec![];
+
+    for opt in options {
+        match opt {
+            top_down::TopDownStep::Extend(h, f, _) => {
+                choices.push((h, f.name.0))
+            }
+            top_down::TopDownStep::Seq(..) => {
+                return Err("sequenced steps unsupported".to_owned())
+            }
+        }
+    }
+
+    let msg = PbnStatusMessage {
+        workingExpression: codegen::python_multi(
+            &controller.working_expression(),
+            0,
+            false,
+        ),
+        choices,
+        valid: controller.valid(),
+    };
+
+    serde_wasm_bindgen::to_value(&msg)
+        .map_err(|_| "serde_wasm_bindgen error: to_value(msg)".to_owned())
+}
+
+#[wasm_bindgen]
+pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
+    let library = parse::library(&lib_src)?;
+    let program = parse::program(&prog_src)?;
+    let problem = core::Problem { library, program };
+
+    typecheck::problem(&problem)
+        .map_err(|e| format!("type error: {}", e.message))?;
+
+    let timer = util::Timer::infinite();
+    let algorithm = menu::Algorithm::PBNHoneybee;
+
+    unsafe {
+        STATE = Some(algorithm.controller(timer, problem));
+    }
+
+    send_message()
+}
+
+#[wasm_bindgen]
+pub fn pbn_choose(choice: usize) -> Result<JsValue, String> {
+    let controller = get_controller()?;
+    let mut options = controller.provide().map_err(|e| format!("{:?}", e))?;
+    controller.decide(options.swap_remove(choice));
+    send_message()
 }

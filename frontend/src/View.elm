@@ -2,11 +2,13 @@ module View exposing (view)
 
 import Assoc exposing (Assoc)
 import Compile
+import Config
 import Core exposing (..)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
 import Model exposing (Model)
+import Port
 import Update exposing (Msg)
 
 
@@ -38,7 +40,12 @@ arg si argName v =
             , A.class "argument-input"
             ]
             []
-        , text <| " (" ++ stringFromValue v ++ ")"
+        , text <|
+            if Config.debug then
+                " (" ++ stringFromValue v ++ ")"
+
+            else
+                ""
         ]
 
 
@@ -110,17 +117,49 @@ workflow lib w =
         ]
 
 
-synthesisResult : Maybe String -> Html Msg
-synthesisResult ms =
+pbnStatus : Maybe Port.PbnStatusMessage -> Html Msg
+pbnStatus ms =
     case ms of
         Nothing ->
             text ""
 
-        Just s ->
+        Just { workingExpression, choices, valid } ->
             div
-                [ A.class "synthesis-result" ]
+                []
                 [ h2 [] [ text "Python script to analyze this experiment" ]
-                , code [] [ pre [] [ text s ] ]
+                , code [] [ pre [] [ text workingExpression ] ]
+                , if valid then
+                    div []
+                        [ h2 [] [ text "All done!" ]
+                        , button
+                            [ E.onClick
+                                (Update.Download
+                                    { filename = "analysis.py"
+                                    , text = workingExpression
+                                    }
+                                )
+                            ]
+                            [ text "Download script" ]
+                        ]
+
+                  else
+                    div []
+                        [ h2 [] [ text "Possible next steps" ]
+                        , ol []
+                            (List.indexedMap
+                                (\i ( h, f ) ->
+                                    li []
+                                        [ button [ E.onClick (Update.MakePbnChoice i) ]
+                                            [ span [] [ text "?" ]
+                                            , sub [] [ text (String.fromInt h) ]
+                                            , span [] [ text " ↦ " ]
+                                            , span [] [ text f ]
+                                            ]
+                                        ]
+                                )
+                                choices
+                            )
+                        ]
                 ]
 
 
@@ -134,7 +173,10 @@ view model =
         []
         [ workflow model.library model.workflow
         , button
-            [ E.onClick <| Update.MakePythonScript programSource ]
-            [ text "Make Python script" ]
-        , synthesisResult model.synthesisResult
+            [ E.onClick <|
+                Update.StartNavigating
+                    { programSource = programSource }
+            ]
+            [ text "Start navigating" ]
+        , pbnStatus model.pbnStatus
         ]

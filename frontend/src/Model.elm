@@ -1,18 +1,25 @@
 module Model exposing (Model, init)
 
+import Config
 import Core exposing (..)
+import Port
 
 
 type alias Model =
     { library : Library
     , workflow : Workflow
-    , synthesisResult : Maybe String
+    , pbnStatus : Maybe Port.PbnStatusMessage
     }
 
 
 init : Library -> Model
 init library =
     { library = library
-    , workflow = exampleWorkflow
-    , synthesisResult = Nothing
+    , workflow =
+        if Config.debug then
+            exampleWorkflow
+
+        else
+            emptyWorkflow
+    , pbnStatus = Nothing
     }

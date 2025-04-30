@@ -12,8 +12,10 @@ type Msg
     | ClearStep StepIndex
     | RemoveStep Int
     | SetArgumentByString ValueType StepIndex String String
-    | MakePythonScript String
-    | ReceivePortMessage Port.ReceiveMessage
+    | StartNavigating { programSource : String }
+    | MakePbnChoice Int
+    | ReceivePbnStatus Port.PbnStatusMessage
+    | Download Port.DownloadMessage
 
 
 valueFromString : ValueType -> String -> Value
@@ -107,17 +109,27 @@ update msg model =
             , Cmd.none
             )
 
-        MakePythonScript programSource ->
+        StartNavigating x ->
             ( model
-            , Port.send { programSource = programSource }
+            , Port.sendPbnInit x
             )
 
-        ReceivePortMessage rm ->
-            ( { model | synthesisResult = Just rm.synthesisResult }
+        MakePbnChoice i ->
+            ( model
+            , Port.sendPbnChoice { choice = i }
+            )
+
+        ReceivePbnStatus status ->
+            ( { model | pbnStatus = Just status }
             , Cmd.none
+            )
+
+        Download x ->
+            ( model
+            , Port.sendDownload x
             )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Port.receive ReceivePortMessage
+    Port.receivePbnStatus ReceivePbnStatus

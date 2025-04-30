@@ -22,16 +22,44 @@ const app = Elm.Main.init({
     flags: flags,
 });
 
-app.ports.send.subscribe((msg) => {
+app.ports.sendPbnInit.subscribe((msg) => {
     try {
-        const synthesisResult = Honeybee.autopilot(
+        const pbnStatusMessage = Honeybee.pbn_init(
             librarySource,
             msg.programSource,
         );
-        app.ports.receive.send({
-            synthesisResult: synthesisResult,
-        });
+        app.ports.receivePbnStatus.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);
     }
+});
+
+app.ports.sendPbnChoice.subscribe((msg) => {
+    try {
+        const pbnStatusMessage = Honeybee.pbn_choose(msg.choice);
+        app.ports.receivePbnStatus.send(pbnStatusMessage);
+    } catch (e) {
+        console.error(e);
+    }
+});
+
+// https://stackoverflow.com/a/18197341
+function download(filename, text) {
+    const element = document.createElement("a");
+    element.setAttribute(
+        "href",
+        "data:text/plain;charset=utf-8," + encodeURIComponent(text),
+    );
+    element.setAttribute("download", filename);
+
+    element.style.display = "none";
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
+
+app.ports.sendDownload.subscribe((msg) => {
+    download(msg.filename, msg.text);
 });

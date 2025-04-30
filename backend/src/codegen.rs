@@ -37,46 +37,48 @@ fn python_list_multi(e: &Exp, mut cells: Vec<String>) -> (String, Vec<String>) {
                 top_down::pretty_hole_string(*h)
             ));
             (var_name, cells)
-        },
+        }
         top_down::Sketch::App(f, args) => {
             let mut arg_var_names = Vec::with_capacity(args.len());
             for (_fp, arg) in args.iter() {
-                    let (name, new_cells) = python_list_multi(arg, cells);
-                    arg_var_names.push(name);
-                    cells = new_cells
-                };
+                let (name, new_cells) = python_list_multi(arg, cells);
+                arg_var_names.push(name);
+                cells = new_cells
+            }
             // cells length may have changed, so must gen var_name here
             let var_name = gen_var_name(&cells);
-            let args_str = args.iter()
+            let args_str = args
+                .iter()
                 .enumerate()
-                .map(|(i, (fp, _arg))| format!(
-                    "{}={}, ",
-                    fp.0,
-                    arg_var_names[i]
-                ))
+                .map(|(i, (fp, _arg))| {
+                    format!("{}={}, ", fp.0, arg_var_names[i])
+                })
                 .collect::<String>();
-            let metadata_str = f.metadata.iter()
+            let metadata_str = f
+                .metadata
+                .iter()
                 .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
                 .collect::<Vec<_>>()
                 .join(", ");
-            cells.push(
-                format!(
-                    "{} = {}({}_metadata={{{}}})",
-                    var_name,
-                    f.name.0,
-                    args_str,
-                    metadata_str
-                )
-            );
+            cells.push(format!(
+                "{} = {}({}_metadata={{{}}})",
+                var_name, f.name.0, args_str, metadata_str
+            ));
             (var_name, cells)
         }
     }
 }
 
 /// Translate an expression into a multi-line Python expression
-pub fn python_multi(e: &Exp, current_indent: usize) -> String {
+pub fn python_multi(e: &Exp, current_indent: usize, color: bool) -> String {
     match e {
-        top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
+        top_down::Sketch::Hole(h) => {
+            if color {
+                top_down::pretty_hole_string(*h)
+            } else {
+                top_down::plain_hole_string(*h)
+            }
+        }
         top_down::Sketch::App(f, args) => {
             let new_indent = current_indent + 1;
             format!(
@@ -87,7 +89,7 @@ pub fn python_multi(e: &Exp, current_indent: usize) -> String {
                         "\n{}{}={},",
                         "  ".repeat(new_indent),
                         fp.0,
-                        python_multi(arg, new_indent)
+                        python_multi(arg, new_indent, color)
                     ))
                     .collect::<Vec<_>>()
                     .join(""),
