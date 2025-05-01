@@ -9,6 +9,15 @@ import Json.Decode as D
 -- Outgoing messages
 
 
+type alias SetTextFieldMessage =
+    { id : String
+    , text : String
+    }
+
+
+port sendSetTextField : SetTextFieldMessage -> Cmd msg
+
+
 type alias PbnCheckMessage =
     { programSource : String
     }

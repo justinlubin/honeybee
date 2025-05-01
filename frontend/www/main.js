@@ -22,6 +22,10 @@ const app = Elm.Main.init({
     flags: flags,
 });
 
+app.ports.sendSetTextField.subscribe((msg) => {
+    document.getElementById(msg.id).value = msg.text;
+});
+
 app.ports.sendPbnCheck.subscribe((msg) => {
     try {
         const validGoalMetadataMessage = Honeybee.valid_goal_metadata(

@@ -14,6 +14,7 @@ type Msg
     | ClearStep StepIndex
     | RemoveStep Int
     | SetArgumentByString ValueType StepIndex String String
+    | SetArgumentTextField Port.SetTextFieldMessage StepIndex String Value
     | StartNavigating { programSource : String }
     | MakePbnChoice Int
     | ReceivePbnStatus Port.PbnStatusMessage
@@ -49,14 +50,39 @@ valueFromString vt str =
                 VStr str
 
 
-syncGoalSuggestions : Model -> ( Model, Cmd msg )
-syncGoalSuggestions model =
+setArgument : Model -> StepIndex -> String -> Value -> Model
+setArgument model si param v =
+    { model
+        | workflow =
+            Core.modifyStep si
+                (\s ->
+                    case s of
+                        SHole ->
+                            SHole
+
+                        SConcrete { name, args } ->
+                            SConcrete
+                                { name = name
+                                , args = args |> Assoc.set param v
+                                }
+                )
+                model.workflow
+    }
+
+
+syncGoalSuggestions : ( Model, Cmd msg ) -> ( Model, Cmd msg )
+syncGoalSuggestions ( model, cmd ) =
     case Compile.compile { allowGoalHoles = True } model.workflow of
         Just programSource ->
-            ( model, Port.sendPbnCheck { programSource = programSource } )
+            ( model
+            , Cmd.batch
+                [ cmd
+                , Port.sendPbnCheck { programSource = programSource }
+                ]
+            )
 
         Nothing ->
-            ( { model | goalSuggestions = [] }, Cmd.none )
+            ( { model | goalSuggestions = [] }, cmd )
 
 
 consistentSuggestions :
@@ -113,47 +139,33 @@ update msg model =
                                         model.workflow
                             }
             in
-            syncGoalSuggestions newModel
+            syncGoalSuggestions ( newModel, Cmd.none )
 
         ClearStep si ->
             let
                 newModel =
                     { model | workflow = Core.setStep si SHole model.workflow }
             in
-            syncGoalSuggestions newModel
+            syncGoalSuggestions ( newModel, Cmd.none )
 
         RemoveStep i ->
             let
                 newModel =
                     { model | workflow = Core.removeStep i model.workflow }
             in
-            syncGoalSuggestions newModel
+            syncGoalSuggestions ( newModel, Cmd.none )
 
         SetArgumentByString vt si param str ->
-            let
-                v =
-                    valueFromString vt str
-            in
-            let
-                newModel =
-                    { model
-                        | workflow =
-                            Core.modifyStep si
-                                (\s ->
-                                    case s of
-                                        SHole ->
-                                            SHole
+            syncGoalSuggestions
+                ( setArgument model si param (valueFromString vt str)
+                , Cmd.none
+                )
 
-                                        SConcrete { name, args } ->
-                                            SConcrete
-                                                { name = name
-                                                , args = args |> Assoc.set param v
-                                                }
-                                )
-                                model.workflow
-                    }
-            in
-            syncGoalSuggestions newModel
+        SetArgumentTextField x si param v ->
+            syncGoalSuggestions
+                ( setArgument model si param v
+                , Port.sendSetTextField x
+                )
 
         StartNavigating x ->
             ( model

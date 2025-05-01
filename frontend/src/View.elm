@@ -31,19 +31,78 @@ stringFromValue v =
             "?"
 
 
+unparseValue : Value -> Maybe String
+unparseValue v =
+    case v of
+        VBool True ->
+            Just "true"
+
+        VBool False ->
+            Just "false"
+
+        VInt n ->
+            Just (String.fromInt n)
+
+        VStr s ->
+            Just s
+
+        VHole _ ->
+            Nothing
+
+
 arg : StepIndex -> String -> ( Value, List Value ) -> Html Msg
 arg si argName ( v, suggestions ) =
+    let
+        id =
+            "step-"
+                ++ (case si of
+                        Goal ->
+                            "GOAL"
+
+                        Step i ->
+                            String.fromInt i
+                   )
+                ++ "-argument-"
+                ++ argName
+    in
     span []
         [ b [ A.class "argument-name" ] [ text (argName ++ ": ") ]
         , input
             [ E.onInput (Update.SetArgumentByString (valueType v) si argName)
             , A.class "argument-input"
+            , A.id id
             ]
             []
-        , text <|
-            " [try: "
-                ++ String.join ", " (List.map stringFromValue suggestions)
-                ++ "]"
+        , if List.isEmpty suggestions then
+            text ""
+
+          else
+            span [] <|
+                text " [Tip: Try "
+                    :: List.intersperse
+                        (text ", ")
+                        (List.filterMap
+                            (\sug ->
+                                Maybe.map
+                                    (\s ->
+                                        button
+                                            [ E.onClick
+                                                (Update.SetArgumentTextField
+                                                    { id = id
+                                                    , text = s
+                                                    }
+                                                    si
+                                                    argName
+                                                    sug
+                                                )
+                                            ]
+                                            [ text s ]
+                                    )
+                                    (unparseValue sug)
+                            )
+                            suggestions
+                        )
+                    ++ [ text "]" ]
         , text <|
             if Config.debug then
                 " (" ++ stringFromValue v ++ ")"
