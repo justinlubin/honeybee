@@ -105,7 +105,10 @@ consistentSuggestions args choices =
                                     Nothing
                             )
                         |> Util.unique
-                        |> List.sortBy (Core.unparseValue >> Maybe.withDefault "")
+                        |> List.sortBy
+                            (Core.unparseValue
+                                >> Maybe.withDefault ""
+                            )
 
                 _ ->
                     []
