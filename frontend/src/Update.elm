@@ -3,6 +3,7 @@ module Update exposing (Msg(..), subscriptions, update)
 import Assoc exposing (Assoc)
 import Compile
 import Core exposing (..)
+import Json.Decode as D
 import Model exposing (Model)
 import Port
 
@@ -17,7 +18,6 @@ type Msg
     | MakePbnChoice Int
     | ReceivePbnStatus Port.PbnStatusMessage
     | Download Port.DownloadMessage
-    | PbnCheck Port.PbnCheckMessage
     | ReceiveValidGoalMetadata Port.ValidGoalMetadataMessage
 
 
@@ -49,6 +49,41 @@ valueFromString vt str =
                 VStr str
 
 
+syncGoalSuggestions : Model -> ( Model, Cmd msg )
+syncGoalSuggestions model =
+    case Compile.compile { allowGoalHoles = True } model.workflow of
+        Just programSource ->
+            ( model, Port.sendPbnCheck { programSource = programSource } )
+
+        Nothing ->
+            ( { model | goalSuggestions = [] }, Cmd.none )
+
+
+consistentSuggestions :
+    Assoc String Value
+    -> List (Assoc String Value)
+    -> Assoc String (List Value)
+consistentSuggestions args choices =
+    Assoc.map
+        (\argName argValue ->
+            case argValue of
+                VHole _ ->
+                    List.filterMap
+                        (\choice ->
+                            if Core.argsConsistent args choice then
+                                Assoc.get argName choice
+
+                            else
+                                Nothing
+                        )
+                        choices
+
+                _ ->
+                    []
+        )
+        args
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -78,30 +113,21 @@ update msg model =
                                         model.workflow
                             }
             in
-            ( newModel
-            , Port.sendPbnCheck
-                { programSource = Compile.compile newModel.workflow }
-            )
+            syncGoalSuggestions newModel
 
         ClearStep si ->
             let
                 newModel =
                     { model | workflow = Core.setStep si SHole model.workflow }
             in
-            ( newModel
-            , Port.sendPbnCheck
-                { programSource = Compile.compile newModel.workflow }
-            )
+            syncGoalSuggestions newModel
 
         RemoveStep i ->
             let
                 newModel =
                     { model | workflow = Core.removeStep i model.workflow }
             in
-            ( newModel
-            , Port.sendPbnCheck
-                { programSource = Compile.compile newModel.workflow }
-            )
+            syncGoalSuggestions newModel
 
         SetArgumentByString vt si param str ->
             let
@@ -127,10 +153,7 @@ update msg model =
                                 model.workflow
                     }
             in
-            ( newModel
-            , Port.sendPbnCheck
-                { programSource = Compile.compile newModel.workflow }
-            )
+            syncGoalSuggestions newModel
 
         StartNavigating x ->
             ( model
@@ -152,11 +175,6 @@ update msg model =
             , Port.sendDownload x
             )
 
-        PbnCheck x ->
-            ( model
-            , Port.sendPbnCheck x
-            )
-
         ReceiveValidGoalMetadata { goalName, choices } ->
             case goal model.workflow of
                 SHole ->
@@ -169,39 +187,22 @@ update msg model =
                     else
                         ( { model
                             | goalSuggestions =
-                                List.map
-                                    (\( argName, argChoices ) ->
-                                        ( argName
-                                        , suggestions args argName argChoices
-                                        )
-                                    )
-                                    choices
+                                consistentSuggestions args choices
                           }
                         , Cmd.none
                         )
-
-
-suggestions :
-    Assoc String Value
-    -> String
-    -> List String
-    -> List Value
-suggestions existingArgs argName newArgStrings =
-    case Assoc.get argName existingArgs of
-        Nothing ->
-            []
-
-        Just v ->
-            let
-                vt =
-                    Core.valueType v
-            in
-            List.map (valueFromString vt) newArgStrings
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Port.receivePbnStatus ReceivePbnStatus
-        , Port.receiveValidGoalMetadata ReceiveValidGoalMetadata
+        , Port.receiveValidGoalMetadata <|
+            \val ->
+                case D.decodeValue Port.decodeValidGoalMetadata val of
+                    Ok vgm ->
+                        Debug.log "Msg" <| ReceiveValidGoalMetadata vgm
+
+                    Err _ ->
+                        ReceiveValidGoalMetadata { goalName = "", choices = [] }
         ]

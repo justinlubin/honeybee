@@ -13,3 +13,16 @@ indexedFilter pred xs =
                 else
                     Nothing
             )
+
+
+sequence : List (Maybe a) -> Maybe (List a)
+sequence xs =
+    let
+        result =
+            List.filterMap (\x -> x) xs
+    in
+    if List.length xs == List.length result then
+        Just result
+
+    else
+        Nothing

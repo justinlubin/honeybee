@@ -7,6 +7,8 @@ module Core exposing
     , Value(..)
     , ValueType(..)
     , Workflow
+    , argsConsistent
+    , consistent
     , emptyWorkflow
     , exampleWorkflow
     , freshStep
@@ -54,6 +56,28 @@ valueType v =
             vt
 
 
+consistent : Value -> Value -> Bool
+consistent v1 v2 =
+    case ( v1, v2 ) of
+        ( VInt n1, VInt n2 ) ->
+            n1 == n2
+
+        ( VBool b1, VBool b2 ) ->
+            b1 == b2
+
+        ( VStr s1, VStr s2 ) ->
+            s1 == s2
+
+        ( VHole vt1, _ ) ->
+            vt1 == valueType v2
+
+        ( _, VHole vt2 ) ->
+            valueType v1 == vt2
+
+        _ ->
+            False
+
+
 type StepKind
     = Prop
     | Type
@@ -79,6 +103,24 @@ freshStep name sig =
         { name = name
         , args = List.map (\( k, vt ) -> ( k, VHole vt )) sig.params
         }
+
+
+argsConsistent : Assoc String Value -> Assoc String Value -> Bool
+argsConsistent args1 args2 =
+    if List.length args1 /= List.length args2 then
+        False
+
+    else
+        List.all
+            (\( k1, v1 ) ->
+                case Assoc.get k1 args2 of
+                    Nothing ->
+                        False
+
+                    Just v2 ->
+                        consistent v1 v2
+            )
+            args1
 
 
 type alias Library =

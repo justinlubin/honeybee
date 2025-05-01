@@ -1,6 +1,8 @@
 port module Port exposing (..)
 
 import Assoc exposing (Assoc)
+import Core
+import Json.Decode as D
 
 
 
@@ -46,13 +48,27 @@ port sendDownload : DownloadMessage -> Cmd msg
 
 type alias ValidGoalMetadataMessage =
     { goalName : String
-    , choices : Assoc String (List String)
+    , choices : List (Assoc String Core.Value)
     }
 
 
-port receiveValidGoalMetadata :
-    (ValidGoalMetadataMessage -> msg)
-    -> Sub msg
+port receiveValidGoalMetadata : (D.Value -> msg) -> Sub msg
+
+
+decodeValue : D.Decoder Core.Value
+decodeValue =
+    D.oneOf
+        [ D.map Core.VInt D.int
+        , D.map Core.VBool D.bool
+        , D.map Core.VStr D.string
+        ]
+
+
+decodeValidGoalMetadata : D.Decoder ValidGoalMetadataMessage
+decodeValidGoalMetadata =
+    D.map2 ValidGoalMetadataMessage
+        (D.field "goalName" D.string)
+        (D.field "choices" <| D.list <| D.keyValuePairs decodeValue)
 
 
 type alias PbnStatusMessage =

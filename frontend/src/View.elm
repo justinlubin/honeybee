@@ -181,17 +181,18 @@ pbnStatus ms =
 
 view : Model -> Html Msg
 view model =
-    let
-        programSource =
-            Compile.compile model.workflow
-    in
     div
         []
         [ workflow model model.workflow
         , button
-            [ E.onClick <|
-                Update.StartNavigating
-                    { programSource = programSource }
+            [ case Compile.compile { allowGoalHoles = False } model.workflow of
+                Nothing ->
+                    A.disabled True
+
+                Just programSource ->
+                    E.onClick <|
+                        Update.StartNavigating
+                            { programSource = programSource }
             ]
             [ text "Start navigating" ]
         , pbnStatus model.pbnStatus

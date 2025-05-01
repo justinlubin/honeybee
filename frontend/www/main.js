@@ -28,6 +28,9 @@ app.ports.sendPbnCheck.subscribe((msg) => {
             librarySource,
             msg.programSource,
         );
+        validGoalMetadataMessage.choices = validGoalMetadataMessage.choices.map(
+            (m) => Object.fromEntries(m),
+        );
         console.log(validGoalMetadataMessage);
         app.ports.receiveValidGoalMetadata.send(validGoalMetadataMessage);
     } catch (e) {

@@ -17,7 +17,7 @@ mod typecheck;
 mod unparse;
 mod util;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -67,7 +67,7 @@ pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
 #[derive(Serialize, Deserialize)]
 struct ValidGoalMetadataMessage {
     goalName: String,
-    choices: Vec<(String, Vec<core::Value>)>,
+    choices: Vec<IndexMap<String, core::Value>>,
 }
 
 #[wasm_bindgen]
@@ -82,18 +82,13 @@ pub fn valid_goal_metadata(
     let mut oracle = dl_oracle::Oracle::new(engine, problem)?;
     let vgm = oracle.valid_goal_metadata();
 
-    let mut res = IndexMap::new();
-    for assignment in vgm {
-        for (mp, v) in assignment {
-            let _ = res.entry(mp.0).or_insert(IndexSet::new()).insert(v);
-        }
-    }
-
     let msg = ValidGoalMetadataMessage {
         goalName: goal_name,
-        choices: res
+        choices: vgm
             .into_iter()
-            .map(|(k, vs)| (k, vs.into_iter().collect()))
+            .map(|assignment| {
+                assignment.into_iter().map(|(k, vs)| (k.0, vs)).collect()
+            })
             .collect(),
     };
 

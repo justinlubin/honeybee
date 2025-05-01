@@ -60,3 +60,8 @@ leftMerge missing left right =
             )
         )
         left
+
+
+getAll : a -> List (Assoc a b) -> List b
+getAll k a =
+    List.filterMap (get k) a
