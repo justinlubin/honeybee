@@ -65,3 +65,19 @@ leftMerge missing left right =
 getAll : a -> List (Assoc a b) -> List b
 getAll k a =
     List.filterMap (get k) a
+
+
+collect : List ( a, b ) -> Assoc a (List b)
+collect xys =
+    case xys of
+        [] ->
+            []
+
+        ( x, y ) :: tl ->
+            let
+                collect_tl =
+                    collect tl
+            in
+            set x
+                (y :: (get x collect_tl |> Maybe.withDefault []))
+                collect_tl

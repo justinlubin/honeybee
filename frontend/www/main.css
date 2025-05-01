@@ -49,4 +49,5 @@ pre {
 
 code {
     font-family: monospace;
+    display: inline-block;
 }

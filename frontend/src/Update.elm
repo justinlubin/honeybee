@@ -10,7 +10,8 @@ import Util
 
 
 type Msg
-    = AddBlankStep
+    = Nop
+    | AddBlankStep
     | SetStep StepIndex String
     | ClearStep StepIndex
     | RemoveStep Int
@@ -119,6 +120,9 @@ consistentSuggestions args choices =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Nop ->
+            ( model, Cmd.none )
+
         AddBlankStep ->
             ( { model
                 | workflow =

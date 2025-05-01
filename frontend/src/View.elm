@@ -174,25 +174,100 @@ workflow ctx w =
         ]
 
 
+directManipulationPbn : Port.PbnStatusMessage -> Html Msg
+directManipulationPbn { workingExpression, choices } =
+    let
+        collectedChoices =
+            choices
+                |> List.indexedMap (\i ( h, f ) -> ( h, ( f, i ) ))
+                |> Assoc.collect
+
+        codeLines =
+            workingExpression
+                |> String.lines
+                |> List.map
+                    (\line ->
+                        case String.split "?" line of
+                            [ left, right ] ->
+                                case
+                                    right
+                                        |> String.split ","
+                                        |> List.head
+                                        |> Maybe.map Util.unSubscriptNumbers
+                                        |> Maybe.andThen String.toInt
+                                of
+                                    Just h ->
+                                        ( left, Just h )
+
+                                    Nothing ->
+                                        ( line, Nothing )
+
+                            _ ->
+                                ( line, Nothing )
+                    )
+    in
+    div [] <|
+        List.map
+            (\( line, maybeHole ) ->
+                div
+                    []
+                    [ code [] [ pre [] [ text line ] ]
+                    , case maybeHole of
+                        Just h ->
+                            case Assoc.get h collectedChoices of
+                                Just hChoices ->
+                                    select
+                                        [ A.class "h-choices"
+                                        , E.onInput <|
+                                            \s ->
+                                                case String.toInt s of
+                                                    Just i ->
+                                                        Update.MakePbnChoice i
+
+                                                    Nothing ->
+                                                        Update.Nop
+                                        ]
+                                        (option
+                                            [ A.value "" ]
+                                            [ text "Choose a step…" ]
+                                            :: List.map
+                                                (\( f, i ) ->
+                                                    option
+                                                        [ A.value (String.fromInt i) ]
+                                                        [ text f ]
+                                                )
+                                                hChoices
+                                        )
+
+                                Nothing ->
+                                    text ""
+
+                        Nothing ->
+                            text ""
+                    ]
+            )
+            codeLines
+
+
 pbnStatus : Maybe Port.PbnStatusMessage -> Html Msg
 pbnStatus ms =
     case ms of
         Nothing ->
             text ""
 
-        Just { workingExpression, choices, valid } ->
+        Just msg ->
             div
                 []
-                [ h2 [] [ text "Python script to analyze this experiment" ]
-                , code [] [ pre [] [ text workingExpression ] ]
-                , if valid then
+                [ h2 [] [ text "Interactively create a Python script to analyze this experiment!" ]
+                , directManipulationPbn msg
+                , if msg.valid then
                     div []
                         [ h2 [] [ text "All done!" ]
                         , button
                             [ E.onClick
                                 (Update.Download
                                     { filename = "analysis.py"
-                                    , text = workingExpression
+                                    , text = msg.workingExpression
                                     }
                                 )
                             ]
@@ -200,24 +275,7 @@ pbnStatus ms =
                         ]
 
                   else
-                    div []
-                        [ h2 [] [ text "Possible next steps" ]
-                        , ol []
-                            (List.indexedMap
-                                (\i ( h, f ) ->
-                                    li []
-                                        [ button [ E.onClick (Update.MakePbnChoice i) ]
-                                            [ text <|
-                                                "?"
-                                                    ++ Util.subscriptNumbers (String.fromInt h)
-                                                    ++ " ↦ "
-                                                    ++ f
-                                            ]
-                                        ]
-                                )
-                                choices
-                            )
-                        ]
+                    text ""
                 ]
 
 
