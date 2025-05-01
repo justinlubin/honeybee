@@ -10,6 +10,7 @@ import Html.Events as E
 import Model exposing (Model)
 import Port
 import Update exposing (Msg)
+import Util
 
 
 stringFromValue : Value -> String
@@ -206,10 +207,11 @@ pbnStatus ms =
                                 (\i ( h, f ) ->
                                     li []
                                         [ button [ E.onClick (Update.MakePbnChoice i) ]
-                                            [ span [] [ text "?" ]
-                                            , sub [] [ text (String.fromInt h) ]
-                                            , span [] [ text " ↦ " ]
-                                            , span [] [ text f ]
+                                            [ text <|
+                                                "?"
+                                                    ++ Util.subscriptNumbers (String.fromInt h)
+                                                    ++ " ↦ "
+                                                    ++ f
                                             ]
                                         ]
                                 )

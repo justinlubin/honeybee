@@ -40,3 +40,44 @@ unique xs =
 
             else
                 hd :: unique tl
+
+
+subscriptNumbers : String -> String
+subscriptNumbers s =
+    String.map
+        (\c ->
+            case c of
+                '0' ->
+                    '₀'
+
+                '1' ->
+                    '₁'
+
+                '2' ->
+                    '₂'
+
+                '3' ->
+                    '₃'
+
+                '4' ->
+                    '₄'
+
+                '5' ->
+                    '₅'
+
+                '6' ->
+                    '₆'
+
+                '7' ->
+                    '₇'
+
+                '8' ->
+                    '₈'
+
+                '9' ->
+                    '₉'
+
+                _ ->
+                    c
+        )
+        s

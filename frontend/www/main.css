@@ -17,10 +17,6 @@ h2 {
     margin: 15px 0 10px 0;
 }
 
-small, sub, sup { font-size: .83em }
-sub { vertical-align: sub }
-sup { vertical-align: super }
-
 .workflow > * {
     margin-bottom: 10px;
 }
