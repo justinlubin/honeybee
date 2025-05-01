@@ -139,7 +139,7 @@ impl Context<'_> {
     fn check_formula(&self, fs: &FunctionSignature, phi: &Formula) -> Check {
         match phi {
             Formula::True => Ok(()),
-            Formula::Eq(fa1, fa2) => {
+            Formula::Eq(fa1, fa2) | Formula::Neq(fa1, fa2) => {
                 self.check_formula_atom_types_equal(fs, fa1, fa2)
             }
             Formula::Lt(fa1, fa2) => {

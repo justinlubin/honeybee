@@ -61,6 +61,9 @@ impl Context<'_> {
             Formula::Eq(fa1, fa2) => {
                 self.formula_atom(fa1) == self.formula_atom(fa2)
             }
+            Formula::Neq(fa1, fa2) => {
+                self.formula_atom(fa1) != self.formula_atom(fa2)
+            }
             Formula::Lt(fa1, fa2) => {
                 match (self.formula_atom(fa1), self.formula_atom(fa2)) {
                     (Value::Int(x1), Value::Int(x2)) => x1 < x2,

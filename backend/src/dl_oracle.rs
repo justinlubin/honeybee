@@ -117,6 +117,12 @@ impl CompileContext<'_> {
                     self.formula_atom(fs, right),
                 )]
             }
+            Formula::Neq(left, right) => {
+                vec![Predicate::PrimNeq(
+                    self.formula_atom(fs, left),
+                    self.formula_atom(fs, right),
+                )]
+            }
             Formula::Lt(left, right) => {
                 vec![Predicate::PrimLt(
                     self.formula_atom(fs, left),

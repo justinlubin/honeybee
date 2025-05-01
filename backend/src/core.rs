@@ -124,6 +124,7 @@ pub enum Formula {
     True,
     Eq(FormulaAtom, FormulaAtom),
     Lt(FormulaAtom, FormulaAtom),
+    Neq(FormulaAtom, FormulaAtom),
     Ap(AtomicProposition),
     And(Box<Formula>, Box<Formula>),
 }
@@ -142,7 +143,9 @@ impl Formula {
     pub fn vals(&self) -> IndexSet<Value> {
         match self {
             Formula::True => IndexSet::new(),
-            Formula::Eq(fa1, fa2) | Formula::Lt(fa1, fa2) => {
+            Formula::Eq(fa1, fa2)
+            | Formula::Lt(fa1, fa2)
+            | Formula::Neq(fa1, fa2) => {
                 let mut ret = fa1.vals();
                 ret.extend(fa2.vals());
                 ret

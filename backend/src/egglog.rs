@@ -125,6 +125,13 @@ impl Compiler {
                 self.value(right);
                 self.write(")");
             }
+            Predicate::PrimNeq(left, right) => {
+                self.write("(!= ");
+                self.value(left);
+                self.write(" ");
+                self.value(right);
+                self.write(")");
+            }
         }
     }
 
