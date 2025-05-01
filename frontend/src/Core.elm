@@ -20,6 +20,7 @@ module Core exposing
     , setStep
     , steps
     , types
+    , unparseValue
     , valueType
     )
 
@@ -76,6 +77,25 @@ consistent v1 v2 =
 
         _ ->
             False
+
+
+unparseValue : Value -> Maybe String
+unparseValue v =
+    case v of
+        VBool True ->
+            Just "true"
+
+        VBool False ->
+            Just "false"
+
+        VInt n ->
+            Just (String.fromInt n)
+
+        VStr s ->
+            Just s
+
+        VHole _ ->
+            Nothing
 
 
 type StepKind

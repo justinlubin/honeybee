@@ -31,25 +31,6 @@ stringFromValue v =
             "?"
 
 
-unparseValue : Value -> Maybe String
-unparseValue v =
-    case v of
-        VBool True ->
-            Just "true"
-
-        VBool False ->
-            Just "false"
-
-        VInt n ->
-            Just (String.fromInt n)
-
-        VStr s ->
-            Just s
-
-        VHole _ ->
-            Nothing
-
-
 arg : StepIndex -> String -> ( Value, List Value ) -> Html Msg
 arg si argName ( v, suggestions ) =
     let
@@ -98,7 +79,7 @@ arg si argName ( v, suggestions ) =
                                             ]
                                             [ text s ]
                                     )
-                                    (unparseValue sug)
+                                    (Core.unparseValue sug)
                             )
                             suggestions
                         )

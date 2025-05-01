@@ -26,3 +26,17 @@ sequence xs =
 
     else
         Nothing
+
+
+unique : List a -> List a
+unique xs =
+    case xs of
+        [] ->
+            []
+
+        hd :: tl ->
+            if List.member hd tl then
+                unique tl
+
+            else
+                hd :: unique tl

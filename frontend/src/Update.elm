@@ -6,6 +6,7 @@ import Core exposing (..)
 import Json.Decode as D
 import Model exposing (Model)
 import Port
+import Util
 
 
 type Msg
@@ -94,15 +95,17 @@ consistentSuggestions args choices =
         (\argName argValue ->
             case argValue of
                 VHole _ ->
-                    List.filterMap
-                        (\choice ->
-                            if Core.argsConsistent args choice then
-                                Assoc.get argName choice
+                    choices
+                        |> List.filterMap
+                            (\choice ->
+                                if Core.argsConsistent args choice then
+                                    Assoc.get argName choice
 
-                            else
-                                Nothing
-                        )
-                        choices
+                                else
+                                    Nothing
+                            )
+                        |> Util.unique
+                        |> List.sortBy (Core.unparseValue >> Maybe.withDefault "")
 
                 _ ->
                     []
