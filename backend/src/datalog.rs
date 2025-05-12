@@ -209,6 +209,7 @@ pub enum Predicate {
     Fact(Fact),
     PrimEq(Value, Value),
     PrimLt(Value, Value),
+    PrimNeq(Value, Value),
 }
 
 impl Predicate {
@@ -234,7 +235,9 @@ impl Predicate {
                 let _ = f.infer(lib, dom)?;
                 Ok(())
             }
-            Predicate::PrimEq(v1, v2) => Self::check_equal_types(dom, v1, v2),
+            Predicate::PrimEq(v1, v2) | Predicate::PrimNeq(v1, v2) => {
+                Self::check_equal_types(dom, v1, v2)
+            }
             Predicate::PrimLt(v1, v2) => {
                 let vt1 = v1.infer(dom)?;
                 if vt1 != ValueType::Int {
@@ -259,16 +262,19 @@ impl Predicate {
                 left.prefix_vars(prefix),
                 right.prefix_vars(prefix),
             ),
+            Predicate::PrimNeq(left, right) => Predicate::PrimNeq(
+                left.prefix_vars(prefix),
+                right.prefix_vars(prefix),
+            ),
         }
     }
 
     fn vals(&self) -> IndexSet<Value> {
         match self {
             Predicate::Fact(f) => f.vals(),
-            Predicate::PrimEq(left, right) => {
-                IndexSet::from([left.clone(), right.clone()])
-            }
-            Predicate::PrimLt(left, right) => {
+            Predicate::PrimEq(left, right)
+            | Predicate::PrimLt(left, right)
+            | Predicate::PrimNeq(left, right) => {
                 IndexSet::from([left.clone(), right.clone()])
             }
         }
@@ -314,7 +320,9 @@ impl Rule {
         let mut self_body_without_cut_fact = self.body.clone();
         let self_cut_fact = match self_body_without_cut_fact.remove(j) {
             Predicate::Fact(f) => f,
-            Predicate::PrimEq(_, _) | Predicate::PrimLt(_, _) => {
+            Predicate::PrimEq(_, _)
+            | Predicate::PrimLt(_, _)
+            | Predicate::PrimNeq(_, _) => {
                 log::debug!(
                     "Can't cut {}/{}/{} because predicate {} of {} is a primitive",
                     other.name,

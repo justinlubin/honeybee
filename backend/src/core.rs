@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 // Values
 
 /// The types that values may take on.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ValueType {
     Bool,
     Int,
@@ -34,7 +34,7 @@ pub enum Value {
 ///
 /// Types and atomic propositions are named by this type. Consequently, type
 /// names serve as the keys for type libraries.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct MetName(pub String);
 
 /// The type of metadata-indexed tuple parameter keys.
@@ -46,9 +46,13 @@ pub struct MetName(pub String);
 pub struct MetParam(pub String);
 
 /// Signatures for metadata-indexed tuples that define their arity.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MetSignature {
+    /// The arity
     pub params: IndexMap<MetParam, ValueType>,
+
+    /// Optional additional info that may be helpful for the end user
+    pub info: Option<toml::Table>,
 }
 
 /// Libraries of metadata-indexed tuples.
@@ -57,7 +61,7 @@ pub type MetLibrary = IndexMap<MetName, MetSignature>;
 /// The type of metadata-indexed tuples.
 ///
 /// This struct is used for atomic propositions and types
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Met<T> {
     pub name: MetName,
     pub args: IndexMap<MetParam, T>,
@@ -76,7 +80,7 @@ impl<T> Met<T> {
 /// The type of formula atoms.
 ///
 /// Conceptually, formula atoms "evaluate" to a value in a particular context.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum FormulaAtom {
     Param(FunParam, MetParam),
     Ret(MetParam),
@@ -114,12 +118,13 @@ impl AtomicProposition {
 }
 
 /// The type of formulas.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(try_from = "Vec<String>")]
 pub enum Formula {
     True,
     Eq(FormulaAtom, FormulaAtom),
     Lt(FormulaAtom, FormulaAtom),
+    Neq(FormulaAtom, FormulaAtom),
     Ap(AtomicProposition),
     And(Box<Formula>, Box<Formula>),
 }
@@ -138,7 +143,9 @@ impl Formula {
     pub fn vals(&self) -> IndexSet<Value> {
         match self {
             Formula::True => IndexSet::new(),
-            Formula::Eq(fa1, fa2) | Formula::Lt(fa1, fa2) => {
+            Formula::Eq(fa1, fa2)
+            | Formula::Lt(fa1, fa2)
+            | Formula::Neq(fa1, fa2) => {
                 let mut ret = fa1.vals();
                 ret.extend(fa2.vals());
                 ret
@@ -164,11 +171,15 @@ pub struct BaseFunction(pub String);
 ///
 /// The condition formula refers to the metadata values on the parameter types
 /// and return type.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FunctionSignature {
     pub params: IndexMap<FunParam, MetName>,
     pub ret: MetName,
     pub condition: Formula,
+
+    /// Optional additional info that may be helpful for the end user (not
+    /// checked in Eq instance)
+    pub info: Option<toml::Table>,
 }
 
 impl FunctionSignature {
@@ -178,6 +189,16 @@ impl FunctionSignature {
     }
 }
 
+impl PartialEq for FunctionSignature {
+    fn eq(&self, other: &Self) -> bool {
+        self.params == other.params
+            && self.ret == other.ret
+            && self.condition == other.condition
+    }
+}
+
+impl Eq for FunctionSignature {}
+
 /// Libraries of defined parameterized functions.
 pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
 
@@ -185,7 +206,7 @@ pub type FunctionLibrary = IndexMap<BaseFunction, FunctionSignature>;
 // Composite libraries and programs
 
 /// The libraries necessary for a Honeybee problem.
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Library {
     #[serde(rename = "Prop")]
     pub props: MetLibrary,
@@ -304,6 +325,7 @@ impl Goal {
             })),
             ret: ret.clone(),
             params: IndexMap::from([(param.clone(), goal.name.clone())]),
+            info: None,
         };
 
         Self {

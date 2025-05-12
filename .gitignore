@@ -1,14 +1,22 @@
+# Backend
 backend/target
 backend/output/*
 
+# Benchmarks
 benchmark/data
 benchmark/analysis/output
 
+# Generic
 .venv
 node_modules
 gh-pages
 __pycache__
 .DS_Store
 
+# Docker
 DOCKER_MOUNT
 pldi25ae-honeybee.tar.gz
+
+# Frontend
+frontend/www/elm.js
+frontend/elm-stuff

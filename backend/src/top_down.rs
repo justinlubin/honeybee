@@ -78,8 +78,13 @@ impl<F: Function> Sketch<F> {
 /// Pretty-print a hole
 pub fn pretty_hole_string(h: HoleName) -> String {
     ansi_term::Color::Yellow
-        .paint(format!("?{}", util::subscript_numbers(&h.to_string())))
+        .paint(plain_hole_string(h))
         .to_string()
+}
+
+/// Plain-print a hole
+pub fn plain_hole_string(h: HoleName) -> String {
+    format!("?{}", util::subscript_numbers(&h.to_string()))
 }
 
 /// Wrapper for checking whether or not an expression is ground

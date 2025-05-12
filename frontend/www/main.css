@@ -1,0 +1,53 @@
+body {
+    margin: 20px;
+}
+
+ol {
+    list-style-type: decimal;
+    margin-left: 20px;
+}
+
+b {
+    font-weight: bold
+}
+
+h2 {
+    font-weight: bold;
+    font-size: 1.4em;
+    margin: 15px 0 10px 0;
+}
+
+.workflow > * {
+    margin-bottom: 10px;
+}
+
+li {
+    margin-bottom: 5px;
+}
+
+select {
+    width: 200px;
+}
+
+.delete-button {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.argument-name {
+    margin-left: 10px;
+}
+
+.argument-input {
+    display: inline-block;
+    width: 100px;
+}
+
+pre {
+    white-space: pre;
+}
+
+code {
+    font-family: monospace;
+    display: inline-block;
+}

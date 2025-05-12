@@ -149,15 +149,24 @@ fn formula() -> impl P<Formula> {
     enum Op {
         Eq,
         Lt,
+        Neq,
     }
 
     choice((
         formula_atom()
-            .then(choice((just('=').to(Op::Eq), just('<').to(Op::Lt))).padded())
+            .then(
+                choice((
+                    just('=').to(Op::Eq),
+                    just('<').to(Op::Lt),
+                    just("!=").to(Op::Neq),
+                ))
+                .padded(),
+            )
             .then(formula_atom())
             .map(|((left, op), right)| match op {
                 Op::Eq => Formula::Eq(left, right),
                 Op::Lt => Formula::Lt(left, right),
+                Op::Neq => Formula::Neq(left, right),
             }),
         met_option(formula_atom()).map(Formula::Ap),
     ))
