@@ -1,0 +1,23 @@
+{
+  "name": "honeybee",
+  "type": "module",
+  "collaborators": [
+    "Justin Lubin <justin@jlubin.net>"
+  ],
+  "version": "0.2.0",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justinlubin/honeybee"
+  },
+  "files": [
+    "honeybee_bg.wasm",
+    "honeybee.js",
+    "honeybee.d.ts"
+  ],
+  "main": "honeybee.js",
+  "types": "honeybee.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
