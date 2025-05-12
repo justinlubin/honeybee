@@ -16,6 +16,7 @@ fn python_value(v: &Value) -> String {
 }
 
 /// Translate an expression into a list of Python "cells" (prep for ipynb)
+#[allow(dead_code)]
 pub fn python_list_multi_wrapper(e: &Exp) -> String {
     // Eventually use the ipynb crate here
     let (_final_var_name, cells) = python_list_multi(e, Vec::new());

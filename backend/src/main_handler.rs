@@ -175,12 +175,9 @@ pub fn interact(
         );
     } else {
         println!(
-            "\n{}\n\n  {}\n\n{}",
+            "\n{}\n\n  {}",
             Green.bold().paint("Final expression:"),
             codegen::python_multi(&controller.working_expression(), 1, true),
-            codegen::python_list_multi_wrapper(
-                &controller.working_expression()
-            )
         );
     }
 
