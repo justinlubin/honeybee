@@ -5160,7 +5160,7 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Config$debug = true;
+var $author$project$Config$debug = false;
 var $author$project$Core$SHole = {$: 'SHole'};
 var $author$project$Core$W = function (a) {
 	return {$: 'W', a: a};
