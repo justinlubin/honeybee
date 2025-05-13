@@ -5160,7 +5160,7 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Config$debug = false;
+var $author$project$Config$debug = true;
 var $author$project$Core$SHole = {$: 'SHole'};
 var $author$project$Core$W = function (a) {
 	return {$: 'W', a: a};
@@ -5736,6 +5736,7 @@ var $author$project$Core$removeStep = F2(
 						w.steps)
 				}));
 	});
+var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -5749,6 +5750,20 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
+var $author$project$Port$scrollTo = _Platform_outgoingPort(
+	'scrollTo',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'x',
+					$elm$json$Json$Encode$int($.x)),
+					_Utils_Tuple2(
+					'y',
+					$elm$json$Json$Encode$int($.y))
+				]));
+	});
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Port$sendDownload = _Platform_outgoingPort(
 	'sendDownload',
@@ -5764,7 +5779,6 @@ var $author$project$Port$sendDownload = _Platform_outgoingPort(
 					$elm$json$Json$Encode$string($.text))
 				]));
 	});
-var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Port$sendPbnChoice = _Platform_outgoingPort(
 	'sendPbnChoice',
 	function ($) {
@@ -5851,6 +5865,7 @@ var $author$project$Update$setArgument = F4(
 		return _Utils_update(
 			model,
 			{
+				pbnStatus: $elm$core$Maybe$Nothing,
 				workflow: A3(
 					$author$project$Core$modifyStep,
 					si,
@@ -5986,21 +6001,26 @@ var $author$project$Compile$goal = F2(
 	function (fillHoles, s) {
 		return A3($author$project$Compile$step, fillHoles, '[Goal]\n', s);
 	});
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var $author$project$Compile$prop = function (s) {
 	return A3($author$project$Compile$step, false, '[[Prop]]\n', s);
 };
 var $author$project$Compile$compile = F2(
 	function (_v0, w) {
 		var allowGoalHoles = _v0.allowGoalHoles;
-		return A2(
+		var steps = $author$project$Core$steps(w);
+		return $elm$core$List$isEmpty(steps) ? $elm$core$Maybe$Nothing : A2(
 			$elm$core$Maybe$map,
 			$elm$core$String$join('\n\n'),
 			$author$project$Util$sequence(
 				_Utils_ap(
-					A2(
-						$elm$core$List$map,
-						$author$project$Compile$prop,
-						$author$project$Core$steps(w)),
+					A2($elm$core$List$map, $author$project$Compile$prop, steps),
 					_List_fromArray(
 						[
 							A2(
@@ -6086,6 +6106,7 @@ var $author$project$Update$update = F2(
 					_Utils_update(
 						model,
 						{
+							pbnStatus: $elm$core$Maybe$Nothing,
 							workflow: A3(
 								$author$project$Core$insertStep,
 								$elm$core$List$length(
@@ -6106,6 +6127,7 @@ var $author$project$Update$update = F2(
 						return _Utils_update(
 							model,
 							{
+								pbnStatus: $elm$core$Maybe$Nothing,
 								workflow: A3(
 									$author$project$Core$setStep,
 									si,
@@ -6121,6 +6143,7 @@ var $author$project$Update$update = F2(
 				var newModel = _Utils_update(
 					model,
 					{
+						pbnStatus: $elm$core$Maybe$Nothing,
 						workflow: A3($author$project$Core$setStep, si, $author$project$Core$SHole, model.workflow)
 					});
 				return $author$project$Update$syncGoalSuggestions(
@@ -6130,6 +6153,7 @@ var $author$project$Update$update = F2(
 				var newModel = _Utils_update(
 					model,
 					{
+						pbnStatus: $elm$core$Maybe$Nothing,
 						workflow: A2($author$project$Core$removeStep, i, model.workflow)
 					});
 				return $author$project$Update$syncGoalSuggestions(
@@ -6161,7 +6185,13 @@ var $author$project$Update$update = F2(
 				var x = msg.a;
 				return _Utils_Tuple2(
 					model,
-					$author$project$Port$sendPbnInit(x));
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								$author$project$Port$scrollTo(
+								{x: 0, y: 0}),
+								$author$project$Port$sendPbnInit(x)
+							])));
 			case 'MakePbnChoice':
 				var i = msg.a;
 				return _Utils_Tuple2(
@@ -6201,40 +6231,21 @@ var $author$project$Update$update = F2(
 				}
 		}
 	});
-var $author$project$Update$StartNavigating = function (a) {
-	return {$: 'StartNavigating', a: a};
-};
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
+var $elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
 		return A2(
 			_VirtualDom_property,
 			key,
-			$elm$json$Json$Encode$bool(bool));
+			$elm$json$Json$Encode$string(string));
 	});
-var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $author$project$Update$Download = function (a) {
 	return {$: 'Download', a: a};
 };
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $author$project$Update$MakePbnChoice = function (a) {
 	return {$: 'MakePbnChoice', a: a};
 };
@@ -6248,14 +6259,6 @@ var $elm$core$Maybe$andThen = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
-	});
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$code = _VirtualDom_node('code');
 var $author$project$Assoc$collect = function (xys) {
 	if (!xys.b) {
@@ -6295,6 +6298,7 @@ var $elm$html$Html$Events$alwaysStop = function (x) {
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -6321,6 +6325,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$option = _VirtualDom_node('option');
+var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$pre = _VirtualDom_node('pre');
 var $elm$html$Html$select = _VirtualDom_node('select');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
@@ -6365,9 +6370,9 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 		A2(
 			$elm$core$List$indexedMap,
 			F2(
-				function (i, _v9) {
-					var h = _v9.a;
-					var f = _v9.b;
+				function (i, _v10) {
+					var h = _v10.a;
+					var f = _v10.b;
 					return _Utils_Tuple2(
 						h,
 						_Utils_Tuple2(f, i));
@@ -6376,12 +6381,12 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 	var codeLines = A2(
 		$elm$core$List$map,
 		function (line) {
-			var _v6 = A2($elm$core$String$split, '?', line);
-			if ((_v6.b && _v6.b.b) && (!_v6.b.b.b)) {
-				var left = _v6.a;
-				var _v7 = _v6.b;
-				var right = _v7.a;
-				var _v8 = A2(
+			var _v7 = A2($elm$core$String$split, '?', line);
+			if ((_v7.b && _v7.b.b) && (!_v7.b.b.b)) {
+				var left = _v7.a;
+				var _v8 = _v7.b;
+				var right = _v8.a;
+				var _v9 = A2(
 					$elm$core$Maybe$andThen,
 					$elm$core$String$toInt,
 					A2(
@@ -6389,8 +6394,8 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 						$author$project$Util$unSubscriptNumbers,
 						$elm$core$List$head(
 							A2($elm$core$String$split, ',', right))));
-				if (_v8.$ === 'Just') {
-					var h = _v8.a;
+				if (_v9.$ === 'Just') {
+					var h = _v9.a;
 					return _Utils_Tuple2(
 						left,
 						$elm$core$Maybe$Just(h));
@@ -6402,9 +6407,41 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 			}
 		},
 		$elm$core$String$lines(workingExpression));
-	return A2(
+	var impossible = $elm$core$List$isEmpty(collectedChoices) && A2(
+		$elm$core$List$all,
+		function (_v6) {
+			var line = _v6.a;
+			return $elm$core$String$isEmpty(line);
+		},
+		codeLines);
+	return impossible ? A2(
 		$elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('pbn-impossible')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Honeybee can\'t figure out how to make analysis script for this experiment.')
+					])),
+				A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('There might be missing steps (or typos) in your experiment or the Honeybee library might not include the computational steps you need.')
+					]))
+			])) : A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('direct-manipulation-pbn')
+			]),
 		A2(
 			$elm$core$List$map,
 			function (_v1) {
@@ -6412,7 +6449,10 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 				var maybeHole = _v1.b;
 				return A2(
 					$elm$html$Html$div,
-					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('code-line')
+						]),
 					_List_fromArray(
 						[
 							A2(
@@ -6491,32 +6531,75 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 			},
 			codeLines));
 };
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
-		return $elm$html$Html$text('');
-	} else {
-		var msg = ms.a;
 		return A2(
 			$elm$html$Html$div,
-			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('pbn-inactive')
+				]),
 			_List_fromArray(
 				[
 					A2(
-					$elm$html$Html$h2,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Interactively create a Python script to analyze this experiment!')
-						])),
-					$author$project$View$directManipulationPbn(msg),
-					msg.valid ? A2(
 					$elm$html$Html$div,
 					_List_Nil,
 					_List_fromArray(
 						[
 							A2(
-							$elm$html$Html$h2,
+							$elm$html$Html$p,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Please complete your experimental workflow.')
+								])),
+							A2(
+							$elm$html$Html$p,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Then, click the \"Start navigating\" button.')
+								]))
+						]))
+				]));
+	} else {
+		var msg = ms.a;
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('pbn')
+				]),
+			_List_fromArray(
+				[
+					$author$project$View$directManipulationPbn(msg),
+					msg.valid ? A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('pbn-completed')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h3,
 							_List_Nil,
 							_List_fromArray(
 								[
@@ -6526,6 +6609,7 @@ var $author$project$View$pbnStatus = function (ms) {
 							$elm$html$Html$button,
 							_List_fromArray(
 								[
+									$elm$html$Html$Attributes$class('standout-button'),
 									$elm$html$Html$Events$onClick(
 									$author$project$Update$Download(
 										{filename: 'analysis.py', text: msg.workingExpression}))
@@ -6537,6 +6621,46 @@ var $author$project$View$pbnStatus = function (ms) {
 						])) : $elm$html$Html$text('')
 				]));
 	}
+};
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Update$StartNavigating = function (a) {
+	return {$: 'StartNavigating', a: a};
+};
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $author$project$View$startNavigation = function (w) {
+	return A2(
+		$elm$html$Html$button,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('start-navigation'),
+				$elm$html$Html$Attributes$class('standout-button'),
+				function () {
+				var _v0 = A2(
+					$author$project$Compile$compile,
+					{allowGoalHoles: false},
+					w);
+				if (_v0.$ === 'Nothing') {
+					return $elm$html$Html$Attributes$disabled(true);
+				} else {
+					var programSource = _v0.a;
+					return $elm$html$Html$Events$onClick(
+						$author$project$Update$StartNavigating(
+							{programSource: programSource}));
+				}
+			}()
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Start navigating')
+			]));
 };
 var $author$project$Update$AddBlankStep = {$: 'AddBlankStep'};
 var $author$project$Core$Goal = {$: 'Goal'};
@@ -6579,7 +6703,7 @@ var $author$project$Update$SetArgumentTextField = F4(
 	function (a, b, c, d) {
 		return {$: 'SetArgumentTextField', a: a, b: b, c: c, d: d};
 	});
-var $elm$html$Html$b = _VirtualDom_node('b');
+var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$List$intersperse = F2(
@@ -6600,14 +6724,8 @@ var $elm$core$List$intersperse = F2(
 			return A2($elm$core$List$cons, hd, spersed);
 		}
 	});
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm$html$Html$label = _VirtualDom_node('label');
+var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $author$project$View$stringFromValue = function (v) {
 	switch (v.$) {
 		case 'VBool':
@@ -6639,19 +6757,25 @@ var $author$project$View$arg = F3(
 			}
 		}() + ('-argument-' + argName));
 		return A2(
-			$elm$html$Html$span,
-			_List_Nil,
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('step-arg')
+				]),
 			_List_fromArray(
 				[
 					A2(
-					$elm$html$Html$b,
+					$elm$html$Html$label,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('argument-name')
+							$elm$html$Html$Attributes$for(id)
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text(argName + ': ')
+							$elm$html$Html$text(
+							_Utils_ap(
+								argName,
+								(false && $author$project$Config$debug) ? (' (' + ($author$project$View$stringFromValue(v) + ')')) : ''))
 						])),
 					A2(
 					$elm$html$Html$input,
@@ -6663,52 +6787,48 @@ var $author$project$View$arg = F3(
 								$author$project$Core$valueType(v),
 								si,
 								argName)),
-							$elm$html$Html$Attributes$class('argument-input'),
-							$elm$html$Html$Attributes$id(id)
+							$elm$html$Html$Attributes$id(id),
+							$elm$html$Html$Attributes$placeholder('Enter value here…')
 						]),
 					_List_Nil),
 					$elm$core$List$isEmpty(suggestions) ? $elm$html$Html$text('') : A2(
-					$elm$html$Html$span,
-					_List_Nil,
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('suggestion-tip')
+						]),
 					A2(
 						$elm$core$List$cons,
-						$elm$html$Html$text(' [Tip: Try '),
-						_Utils_ap(
+						$elm$html$Html$text('Try one of the following: '),
+						A2(
+							$elm$core$List$intersperse,
+							$elm$html$Html$text(', '),
 							A2(
-								$elm$core$List$intersperse,
-								$elm$html$Html$text(', '),
-								A2(
-									$elm$core$List$filterMap,
-									function (sug) {
-										return A2(
-											$elm$core$Maybe$map,
-											function (s) {
-												return A2(
-													$elm$html$Html$button,
-													_List_fromArray(
-														[
-															$elm$html$Html$Events$onClick(
-															A4(
-																$author$project$Update$SetArgumentTextField,
-																{id: id, text: s},
-																si,
-																argName,
-																sug))
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text(s)
-														]));
-											},
-											$author$project$Core$unparseValue(sug));
-									},
-									suggestions)),
-							_List_fromArray(
-								[
-									$elm$html$Html$text(']')
-								])))),
-					$elm$html$Html$text(
-					$author$project$Config$debug ? (' (' + ($author$project$View$stringFromValue(v) + ')')) : '')
+								$elm$core$List$filterMap,
+								function (sug) {
+									return A2(
+										$elm$core$Maybe$map,
+										function (s) {
+											return A2(
+												$elm$html$Html$button,
+												_List_fromArray(
+													[
+														$elm$html$Html$Events$onClick(
+														A4(
+															$author$project$Update$SetArgumentTextField,
+															{id: id, text: s},
+															si,
+															argName,
+															sug))
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(s)
+													]));
+										},
+										$author$project$Core$unparseValue(sug));
+								},
+								suggestions))))
 				]));
 	});
 var $author$project$View$args = F2(
@@ -6741,20 +6861,6 @@ var $author$project$Assoc$leftMerge = F3(
 var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
 var $author$project$View$step = F4(
 	function (library, goalSuggestions, si, s) {
-		var options = A2(
-			$elm$core$List$cons,
-			'<blank>',
-			A2(
-				$author$project$Assoc$mapCollapse,
-				F2(
-					function (k, _v3) {
-						return k;
-					}),
-				library));
-		var inputEvent = $elm$html$Html$Events$onInput(
-			function (k) {
-				return (k === '<blank>') ? $author$project$Update$ClearStep(si) : A2($author$project$Update$SetStep, si, k);
-			});
 		var deleteButton = function () {
 			if (si.$ === 'Step') {
 				var i = si.a;
@@ -6762,21 +6868,36 @@ var $author$project$View$step = F4(
 					$elm$html$Html$button,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('delete-button'),
+							$elm$html$Html$Attributes$class('step-delete'),
 							$elm$html$Html$Events$onClick(
 							$author$project$Update$RemoveStep(i))
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text('X')
+							$elm$html$Html$text('×')
 						]));
 			} else {
 				return $elm$html$Html$text('');
 			}
 		}();
+		var blankName = 'Choose a step…';
+		var inputEvent = $elm$html$Html$Events$onInput(
+			function (k) {
+				return _Utils_eq(k, blankName) ? $author$project$Update$ClearStep(si) : A2($author$project$Update$SetStep, si, k);
+			});
+		var options = A2(
+			$elm$core$List$cons,
+			blankName,
+			A2(
+				$author$project$Assoc$mapCollapse,
+				F2(
+					function (k, _v2) {
+						return k;
+					}),
+				library));
 		var _v0 = function () {
 			if (s.$ === 'SHole') {
-				return _Utils_Tuple2('<blank>', _List_Nil);
+				return _Utils_Tuple2(blankName, _List_Nil);
 			} else {
 				var st = s.a;
 				return _Utils_Tuple2(
@@ -6792,7 +6913,10 @@ var $author$project$View$step = F4(
 		var dropdown = A2(
 			$elm$html$Html$select,
 			_List_fromArray(
-				[inputEvent]),
+				[
+					$elm$html$Html$Attributes$class('step-title'),
+					inputEvent
+				]),
 			A2(
 				$elm$core$List$map,
 				function (k) {
@@ -6811,7 +6935,10 @@ var $author$project$View$step = F4(
 				options));
 		return A2(
 			$elm$html$Html$div,
-			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('step')
+				]),
 			A2(
 				$elm$core$List$cons,
 				deleteButton,
@@ -6833,25 +6960,18 @@ var $author$project$View$workflow = F2(
 			_List_fromArray(
 				[
 					A2(
-					$elm$html$Html$h2,
+					$elm$html$Html$h3,
 					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$text('Experimental Workflow')
-						])),
-					A2(
-					$elm$html$Html$button,
-					_List_fromArray(
-						[
-							$elm$html$Html$Events$onClick($author$project$Update$AddBlankStep)
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Add step')
+							$elm$html$Html$text('Experimental workflow')
 						])),
 					A2(
 					$elm$html$Html$ol,
-					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('steps')
+						]),
 					A2(
 						$elm$core$List$indexedMap,
 						F2(
@@ -6871,11 +6991,22 @@ var $author$project$View$workflow = F2(
 							}),
 						$author$project$Core$steps(w))),
 					A2(
-					$elm$html$Html$h2,
+					$elm$html$Html$button,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('step-add'),
+							$elm$html$Html$Events$onClick($author$project$Update$AddBlankStep)
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Add step')
+						])),
+					A2(
+					$elm$html$Html$h3,
 					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$text('Goal of Experiment')
+							$elm$html$Html$text('Goal of experiment')
 						])),
 					A4(
 					$author$project$View$step,
@@ -6887,35 +7018,75 @@ var $author$project$View$workflow = F2(
 	});
 var $author$project$View$view = function (model) {
 	return A2(
-		$elm$html$Html$div,
+		$elm$html$Html$main_,
 		_List_Nil,
 		_List_fromArray(
 			[
-				A2($author$project$View$workflow, model, model.workflow),
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						function () {
-						var _v0 = A2(
-							$author$project$Compile$compile,
-							{allowGoalHoles: false},
-							model.workflow);
-						if (_v0.$ === 'Nothing') {
-							return $elm$html$Html$Attributes$disabled(true);
-						} else {
-							var programSource = _v0.a;
-							return $elm$html$Html$Events$onClick(
-								$author$project$Update$StartNavigating(
-									{programSource: programSource}));
-						}
-					}()
+						$elm$html$Html$Attributes$class('specification-pane')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Start navigating')
+						A2(
+						$elm$html$Html$h2,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Step 1: ')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Write down your experimental workflow')
+									]))
+							])),
+						A2($author$project$View$workflow, model, model.workflow),
+						$author$project$View$startNavigation(model.workflow)
 					])),
-				$author$project$View$pbnStatus(model.pbnStatus)
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('navigation-pane')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h2,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class(
+								_Utils_eq(model.pbnStatus, $elm$core$Maybe$Nothing) ? 'inactive-pane-header' : '')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Step 2: ')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Create an analysis script for this experiment')
+									]))
+							])),
+						$author$project$View$pbnStatus(model.pbnStatus)
+					]))
 			]));
 };
 var $elm$core$Result$withDefault = F2(
