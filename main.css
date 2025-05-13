@@ -5,11 +5,21 @@
 }
 
 :root {
-    --primary-color: #c5d0d2;
+    /* --primary-color: #c5d0d2;
     --muted-primary-color: #829599;
     --secondary-color: #17170f;
     --accent-color: #b5661b;
-    --hover-color: rgba(0, 0, 0, 0.05);
+    --hover-color: rgba(0, 0, 0, 0.05); */
+
+    --accent1: #bd6e08;
+    --accent2: #a65b23;
+
+    --primary1: #d6dbdf;
+    --primary2: #c3cbd5;
+    --primary3: #8090a0;
+    --primary4: #36404d;
+    --primary5: #202530;
+    --hover: rgba(0, 0, 0, 0.03);
 
     --major-spacing: 30px;
     --minor-spacing: 10px;
@@ -18,8 +28,8 @@
 }
 
 body {
-    background-color: var(--primary-color);
-    color: var(--secondary-color);
+    background-color: var(--primary2);
+    color: var(--primary5);
     font-family: "Spline Sans", sans-serif;
 }
 
@@ -43,29 +53,22 @@ code {
     display: block;
     width: 100%;
     padding: 30px;
-    font-size: 1.1em;
+    font-size: 1.2em;
     border-radius: 5px;
-    background-color: var(--accent-color);
-    color: white;
+    background-color: var(--accent2);
+    color: var(--primary1);
     cursor: pointer;
     outline: 0;
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
-    position: relative;
-    top: 0;
-    left: 0;
+    border: none;
 }
 
-.standout-button:not([disabled]):active {
-    top: 1px;
-    left: 1px;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+.standout-button:not([disabled]):hover {
+    background-color: var(--accent1);
 }
 
 .standout-button[disabled] {
-    background-color: #aaaaaa;
-    color: #dddddd;
     cursor: not-allowed;
+    background-color: var(--primary3);
 }
 
 /* || Main */
@@ -89,14 +92,11 @@ main > * > h2 span:first-child {
     font-weight: var(--bold);
 }
 
-.inactive-pane-header {
-    color: rgba(0, 0, 0, 0.5);
-}
-
 /* || Steps */
 
 .step {
-    border: 1px solid var(--muted-primary-color);
+    background-color: var(--primary1);
+    border: 1px solid var(--primary3);
     margin: var(--minor-spacing) 0;
     padding: var(--minor-spacing);
     border-radius: 5px;
@@ -110,7 +110,7 @@ main > * > h2 span:first-child {
     font-size: 1.1em;
 
     background-color: transparent;
-    border: 1px dashed var(--muted-primary-color);
+    border: 1px dashed var(--primary3);
     border-radius: 5px;
 
     margin-bottom: var(--major-spacing);
@@ -120,12 +120,12 @@ main > * > h2 span:first-child {
 }
 
 .step-add:hover {
-    background-color: var(--hover-color);
+    background-color: var(--hover);
 }
 
 .step label {
     display: inline-block;
-    background-color: var(--primary-color);
+    background-color: var(--primary1);
     position: relative;
     z-index: 1;
     bottom: -6px;
@@ -137,14 +137,14 @@ main > * > h2 span:first-child {
     display: block;
     width: 100%;
     background-color: transparent;
-    border: 1px dotted var(--muted-primary-color);
+    border: 1px dotted var(--primary3);
     border-radius: 5px;
     padding: 11px;
     outline: none;
 }
 
 .step input:focus {
-    background-color: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--primary3);
 }
 
 .step-title {
@@ -179,7 +179,7 @@ main > * > h2 span:first-child {
 }
 
 .step-delete:hover {
-    background-color: var(--hover-color);
+    background-color: var(--hover);
     border-radius: 5px;
 }
 
@@ -192,17 +192,18 @@ main > * > h2 span:first-child {
     bottom: 0;
     left: 50%;
     z-index: 1;
-    background-color: rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .pbn-inactive div {
     position: relative;
     padding: var(--major-spacing);
-    border: 1px solid var(--muted-primary-color);
+    border: 1px solid var(--primary3);
     border-radius: 5px;
+    pointer-events: all;
 }
 
 .pbn-inactive div p + p {
