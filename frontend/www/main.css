@@ -163,9 +163,8 @@ main > * > h2 span:first-child {
 }
 
 .suggestion-tip::before {
-    content: "[Tip] ";
-    vertical-align: super;
-    font-size: 0.7em;
+    content: "Tip! ";
+    font-weight: var(--bold);
 }
 
 .step-delete {
