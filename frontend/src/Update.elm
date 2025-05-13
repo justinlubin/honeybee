@@ -69,6 +69,7 @@ setArgument model si param v =
                                 }
                 )
                 model.workflow
+        , pbnStatus = Nothing
     }
 
 
@@ -130,6 +131,7 @@ update msg model =
                         (List.length (steps model.workflow))
                         SHole
                         model.workflow
+                , pbnStatus = Nothing
               }
             , Cmd.none
             )
@@ -147,6 +149,7 @@ update msg model =
                                     Core.setStep si
                                         (freshStep name sig)
                                         model.workflow
+                                , pbnStatus = Nothing
                             }
             in
             syncGoalSuggestions ( newModel, Cmd.none )
@@ -154,14 +157,20 @@ update msg model =
         ClearStep si ->
             let
                 newModel =
-                    { model | workflow = Core.setStep si SHole model.workflow }
+                    { model
+                        | workflow = Core.setStep si SHole model.workflow
+                        , pbnStatus = Nothing
+                    }
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
         RemoveStep i ->
             let
                 newModel =
-                    { model | workflow = Core.removeStep i model.workflow }
+                    { model
+                        | workflow = Core.removeStep i model.workflow
+                        , pbnStatus = Nothing
+                    }
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
@@ -179,7 +188,10 @@ update msg model =
 
         StartNavigating x ->
             ( model
-            , Port.sendPbnInit x
+            , Cmd.batch
+                [ Port.scrollTo { x = 0, y = 0 }
+                , Port.sendPbnInit x
+                ]
             )
 
         MakePbnChoice i ->

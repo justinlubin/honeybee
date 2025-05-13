@@ -83,7 +83,15 @@ compile :
     -> Core.Workflow
     -> Maybe String
 compile { allowGoalHoles } w =
-    Maybe.map (String.join "\n\n") <|
-        Util.sequence <|
-            List.map prop (Core.steps w)
-                ++ [ goal allowGoalHoles (Core.goal w) ]
+    let
+        steps =
+            Core.steps w
+    in
+    if List.isEmpty steps then
+        Nothing
+
+    else
+        Maybe.map (String.join "\n\n") <|
+            Util.sequence <|
+                List.map prop steps
+                    ++ [ goal allowGoalHoles (Core.goal w) ]

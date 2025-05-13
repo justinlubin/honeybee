@@ -1,46 +1,34 @@
+/* || General styles */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #c5d0d2;
+    --muted-primary-color: #829599;
+    --secondary-color: #17170f;
+    --accent-color: #b5661b;
+    --hover-color: rgba(0, 0, 0, 0.05);
+
+    --major-spacing: 30px;
+    --minor-spacing: 10px;
+
+    --bold: 600;
+}
+
 body {
-    margin: 20px;
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    font-family: "Spline Sans", sans-serif;
 }
 
-ol {
-    list-style-type: decimal;
-    margin-left: 20px;
-}
-
-b {
-    font-weight: bold
-}
-
-h2 {
-    font-weight: bold;
-    font-size: 1.4em;
-    margin: 15px 0 10px 0;
-}
-
-.workflow > * {
-    margin-bottom: 10px;
-}
-
-li {
-    margin-bottom: 5px;
-}
-
-select {
-    width: 200px;
-}
-
-.delete-button {
-    display: inline-block;
-    margin-right: 5px;
-}
-
-.argument-name {
+h3 {
+    font-size: 1.1em;
+    font-weight: var(--bold);
+    margin-top: var(--major-spacing);
+    margin-bottom: var(--minor-spacing);
     margin-left: 10px;
-}
-
-.argument-input {
-    display: inline-block;
-    width: 100px;
 }
 
 pre {
@@ -48,6 +36,197 @@ pre {
 }
 
 code {
-    font-family: monospace;
+    font-family: "Inconsolata", monospace;
+}
+
+.standout-button {
+    display: block;
+    width: 100%;
+    padding: 30px;
+    font-size: 1.1em;
+    border-radius: 5px;
+    background-color: var(--accent-color);
+    color: white;
+    cursor: pointer;
+    outline: 0;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
+.standout-button:not([disabled]):active {
+    top: 1px;
+    left: 1px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.standout-button[disabled] {
+    background-color: #aaaaaa;
+    color: #dddddd;
+    cursor: not-allowed;
+}
+
+/* || Main */
+
+main {
+    display: flex;
+    margin: var(--major-spacing);
+    column-gap: var(--major-spacing);
+}
+
+main > * {
+    flex: 1;
+}
+
+main > * > h2 {
+    margin-bottom: var(--major-spacing);
+    font-size: 1.4em;
+}
+
+main > * > h2 span:first-child {
+    font-weight: var(--bold);
+}
+
+.inactive-pane-header {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+/* || Steps */
+
+.step {
+    border: 1px solid var(--muted-primary-color);
+    margin: var(--minor-spacing) 0;
+    padding: var(--minor-spacing);
+    border-radius: 5px;
+    /*box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);*/
+}
+
+.step-add {
+    display: block;
+    width: 100%;
+
+    font-size: 1.1em;
+
+    background-color: transparent;
+    border: 1px dashed var(--muted-primary-color);
+    border-radius: 5px;
+
+    margin-bottom: var(--major-spacing);
+    padding: 30px;
+
+    cursor: pointer;
+}
+
+.step-add:hover {
+    background-color: var(--hover-color);
+}
+
+.step label {
     display: inline-block;
+    background-color: var(--primary-color);
+    position: relative;
+    z-index: 1;
+    bottom: -6px;
+    left: 10px;
+    padding: 0 3px;
+}
+
+.step input {
+    display: block;
+    width: 100%;
+    background-color: transparent;
+    border: 1px dotted var(--muted-primary-color);
+    border-radius: 5px;
+    padding: 11px;
+    outline: none;
+}
+
+.step input:focus {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.step-title {
+    width: 75%;
+    font-size: 1em;
+    margin-bottom: var(--minor-spacing);
+}
+
+.step-arg {
+    margin-bottom: var(--minor-spacing);
+}
+
+.suggestion-tip {
+    margin-top: 5px;
+    margin-left: 10px;
+}
+
+.suggestion-tip::before {
+    content: "[Tip] ";
+    vertical-align: super;
+    font-size: 0.7em;
+}
+
+.step-delete {
+    display: inline-block;
+    float: right;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: var(--bold);
+    padding: 5px;
+}
+
+.step-delete:hover {
+    background-color: var(--hover-color);
+    border-radius: 5px;
+}
+
+/* || Programming by Navigation */
+
+.pbn-inactive {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 50%;
+    z-index: 1;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbn-inactive div {
+    position: relative;
+    padding: var(--major-spacing);
+    border: 1px solid var(--muted-primary-color);
+    border-radius: 5px;
+}
+
+.pbn-inactive div p + p {
+    margin-top: var(--minor-spacing);
+}
+
+.pbn-impossible p {
+    font-size: 1.1em;
+    line-height: 1.4;
+    margin-bottom: var(--minor-spacing);
+}
+
+.pbn-impossible p:first-child {
+    font-weight: var(--bold);
+}
+
+.direct-manipulation-pbn {
+    margin-left: 10px;
+}
+
+.code-line code {
+    display: inline-block;
+}
+
+.pbn-completed h3 {
+    margin-bottom: var(--minor-spacing);
 }

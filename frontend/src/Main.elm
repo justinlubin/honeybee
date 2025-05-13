@@ -1,7 +1,6 @@
 module Main exposing (..)
 
 import Browser
-import Compile
 import Decode
 import Json.Decode
 import Model

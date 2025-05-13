@@ -25,8 +25,4 @@ init library =
             emptyWorkflow
     , pbnStatus = Nothing
     , goalSuggestions = []
-
-    -- [ ( "sample1", [ VStr "pepita", VStr "moko" ] )
-    -- , ( "sample2", [ VStr "pepita" ] )
-    -- ]
     }

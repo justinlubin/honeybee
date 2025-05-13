@@ -47,20 +47,33 @@ arg si argName ( v, suggestions ) =
                 ++ "-argument-"
                 ++ argName
     in
-    span []
-        [ b [ A.class "argument-name" ] [ text (argName ++ ": ") ]
+    div
+        [ A.class "step-arg"
+        ]
+        [ label
+            [ A.for id
+            ]
+            [ text <|
+                argName
+                    ++ (if False && Config.debug then
+                            " (" ++ stringFromValue v ++ ")"
+
+                        else
+                            ""
+                       )
+            ]
         , input
             [ E.onInput (Update.SetArgumentByString (valueType v) si argName)
-            , A.class "argument-input"
             , A.id id
+            , A.placeholder "Enter value here…"
             ]
             []
         , if List.isEmpty suggestions then
             text ""
 
           else
-            span [] <|
-                text " [Tip: Try "
+            div [ A.class "suggestion-tip" ] <|
+                text "Try one of the following: "
                     :: List.intersperse
                         (text ", ")
                         (List.filterMap
@@ -84,13 +97,6 @@ arg si argName ( v, suggestions ) =
                             )
                             suggestions
                         )
-                    ++ [ text "]" ]
-        , text <|
-            if Config.debug then
-                " (" ++ stringFromValue v ++ ")"
-
-            else
-                ""
         ]
 
 
@@ -107,14 +113,17 @@ step :
     -> Html Msg
 step library goalSuggestions si s =
     let
+        blankName =
+            "Choose a step…"
+
         deleteButton =
             case si of
                 Step i ->
                     button
-                        [ A.class "delete-button"
+                        [ A.class "step-delete"
                         , E.onClick (Update.RemoveStep i)
                         ]
-                        [ text "X" ]
+                        [ text "×" ]
 
                 Goal ->
                     text ""
@@ -122,7 +131,7 @@ step library goalSuggestions si s =
         inputEvent =
             E.onInput <|
                 \k ->
-                    if k == "<blank>" then
+                    if k == blankName then
                         Update.ClearStep si
 
                     else
@@ -131,7 +140,7 @@ step library goalSuggestions si s =
         ( name, extras ) =
             case s of
                 SHole ->
-                    ( "<blank>", [] )
+                    ( blankName, [] )
 
                 SConcrete st ->
                     ( st.name
@@ -141,17 +150,21 @@ step library goalSuggestions si s =
                     )
 
         options =
-            "<blank>" :: Assoc.mapCollapse (\k _ -> k) library
+            blankName :: Assoc.mapCollapse (\k _ -> k) library
 
         dropdown =
             select
-                [ inputEvent ]
+                [ A.class "step-title"
+                , inputEvent
+                ]
                 (List.map
                     (\k -> option [ A.selected (k == name) ] [ text k ])
                     options
                 )
     in
-    div [] (deleteButton :: dropdown :: extras)
+    div
+        [ A.class "step" ]
+        (deleteButton :: dropdown :: extras)
 
 
 workflow :
@@ -160,16 +173,18 @@ workflow :
     -> Html Msg
 workflow ctx w =
     div [ A.class "workflow" ]
-        [ h2 [] [ text "Experimental Workflow" ]
-        , button
-            [ E.onClick Update.AddBlankStep ]
-            [ text "Add step" ]
-        , ol []
+        [ h3 [] [ text "Experimental workflow" ]
+        , ol [ A.class "steps" ]
             (List.indexedMap
                 (\i s -> li [] [ step (props ctx.library) ctx.goalSuggestions (Step i) s ])
                 (steps w)
             )
-        , h2 [] [ text "Goal of Experiment" ]
+        , button
+            [ A.class "step-add"
+            , E.onClick Update.AddBlankStep
+            ]
+            [ text "Add step" ]
+        , h3 [] [ text "Goal of experiment" ]
         , step (types ctx.library) ctx.goalSuggestions Goal (goal w)
         ]
 
@@ -205,66 +220,100 @@ directManipulationPbn { workingExpression, choices } =
                             _ ->
                                 ( line, Nothing )
                     )
+
+        impossible =
+            List.isEmpty collectedChoices
+                && List.all (\( line, _ ) -> String.isEmpty line) codeLines
     in
-    div [] <|
-        List.map
-            (\( line, maybeHole ) ->
-                div
-                    []
-                    [ code [] [ pre [] [ text line ] ]
-                    , case maybeHole of
-                        Just h ->
-                            case Assoc.get h collectedChoices of
-                                Just hChoices ->
-                                    select
-                                        [ A.class "h-choices"
-                                        , E.onInput <|
-                                            \s ->
-                                                case String.toInt s of
-                                                    Just i ->
-                                                        Update.MakePbnChoice i
+    if impossible then
+        div [ A.class "pbn-impossible" ]
+            [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
+            , p [] [ text "There might be missing steps (or typos) in your experiment or the Honeybee library might not include the computational steps you need." ]
+            ]
 
-                                                    Nothing ->
-                                                        Update.Nop
-                                        ]
-                                        (option
-                                            [ A.value "" ]
-                                            [ text "Choose a step…" ]
-                                            :: List.map
-                                                (\( f, i ) ->
-                                                    option
-                                                        [ A.value (String.fromInt i) ]
-                                                        [ text f ]
-                                                )
-                                                hChoices
-                                        )
+    else
+        div [ A.class "direct-manipulation-pbn" ] <|
+            List.map
+                (\( line, maybeHole ) ->
+                    div
+                        [ A.class "code-line" ]
+                        [ code [] [ pre [] [ text line ] ]
+                        , case maybeHole of
+                            Just h ->
+                                case Assoc.get h collectedChoices of
+                                    Just hChoices ->
+                                        select
+                                            [ A.class "h-choices"
+                                            , E.onInput <|
+                                                \s ->
+                                                    case String.toInt s of
+                                                        Just i ->
+                                                            Update.MakePbnChoice i
 
-                                Nothing ->
-                                    text ""
+                                                        Nothing ->
+                                                            Update.Nop
+                                            ]
+                                            (option
+                                                [ A.value "" ]
+                                                [ text "Choose a step…" ]
+                                                :: List.map
+                                                    (\( f, i ) ->
+                                                        option
+                                                            [ A.value (String.fromInt i) ]
+                                                            [ text f ]
+                                                    )
+                                                    hChoices
+                                            )
 
-                        Nothing ->
-                            text ""
-                    ]
-            )
-            codeLines
+                                    Nothing ->
+                                        text ""
+
+                            Nothing ->
+                                text ""
+                        ]
+                )
+                codeLines
+
+
+startNavigation : Workflow -> Html Msg
+startNavigation w =
+    button
+        [ A.class "start-navigation"
+        , A.class "standout-button"
+        , case Compile.compile { allowGoalHoles = False } w of
+            Nothing ->
+                A.disabled True
+
+            Just programSource ->
+                E.onClick <|
+                    Update.StartNavigating { programSource = programSource }
+        ]
+        [ text "Start navigating"
+        ]
 
 
 pbnStatus : Maybe Port.PbnStatusMessage -> Html Msg
 pbnStatus ms =
     case ms of
         Nothing ->
-            text ""
+            div
+                [ A.class "pbn-inactive" ]
+                [ div []
+                    [ p [] [ text "Please complete your experimental workflow." ]
+                    , p [] [ text "Then, click the \"Start navigating\" button." ]
+                    ]
+                ]
 
         Just msg ->
             div
-                []
-                [ h2 [] [ text "Interactively create a Python script to analyze this experiment!" ]
-                , directManipulationPbn msg
+                [ A.class "pbn" ]
+                [ directManipulationPbn msg
                 , if msg.valid then
-                    div []
-                        [ h2 [] [ text "All done!" ]
+                    div [ A.class "pbn-completed" ]
+                        [ h3 [] [ text "All done!" ]
                         , button
-                            [ E.onClick
+                            [ A.class "standout-button"
+                            , E.onClick
                                 (Update.Download
                                     { filename = "analysis.py"
                                     , text = msg.workingExpression
@@ -281,19 +330,30 @@ pbnStatus ms =
 
 view : Model -> Html Msg
 view model =
-    div
+    main_
         []
-        [ workflow model model.workflow
-        , button
-            [ case Compile.compile { allowGoalHoles = False } model.workflow of
-                Nothing ->
-                    A.disabled True
-
-                Just programSource ->
-                    E.onClick <|
-                        Update.StartNavigating
-                            { programSource = programSource }
+        [ div [ A.class "specification-pane" ]
+            [ h2 []
+                [ span [] [ text "Step 1: " ]
+                , span [] [ text "Write down your experimental workflow" ]
+                ]
+            , workflow model model.workflow
+            , startNavigation model.workflow
             ]
-            [ text "Start navigating" ]
-        , pbnStatus model.pbnStatus
+        , div [ A.class "navigation-pane" ]
+            [ h2
+                [ A.class <|
+                    if model.pbnStatus == Nothing then
+                        "inactive-pane-header"
+
+                    else
+                        ""
+                ]
+                [ span [] [ text "Step 2: " ]
+                , span [] [ text "Create an analysis script for this experiment" ]
+                ]
+            , pbnStatus model.pbnStatus
+
+            -- , pbnInactiveOverlay model.pbnStatus
+            ]
         ]

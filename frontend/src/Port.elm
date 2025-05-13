@@ -9,6 +9,15 @@ import Json.Decode as D
 -- Outgoing messages
 
 
+type alias ScrollToMessage =
+    { x : Int
+    , y : Int
+    }
+
+
+port scrollTo : ScrollToMessage -> Cmd msg
+
+
 type alias SetTextFieldMessage =
     { id : String
     , text : String
