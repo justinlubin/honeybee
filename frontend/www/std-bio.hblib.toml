@@ -1,26 +1,73 @@
-[Prop.RNAseq]
-params.sample = "Str"
-params.path = "Str"
-info.overview = "RNA-sequencing data"
-info.params.sample = "A label for the sample (you can choose anything you'd like)"
-info.params.path = "The path to the folder containing the raw FASTQ files for the sample"
+[Prop.RNASeq]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.overview = "RNA-seq"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
 
-[Type.LoadedRNAseq]
-params.sample = "Str"
+[Type.RNASeqDataset]
+params.label = "Str"
+params.sample_sheet = "Str"
 params.path = "Str"
-info.overview = "Loaded RNA-sequencing data"
-info.suggested_variable_name = "rnaseq_data"
+params.qc = "Bool"
+info.overview = "Quality-checked RNA-seq data"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.path = "Path to data ('^' represents output)"
+info.params.qc = "Whether or not quality checks have been run"
+info.suggested_variable_name = "rna_seq_data"
 
-[Type.ReadCountVector]
-params.sample = "Str"
-info.overview = "A vector of read counts"
+[Function.load_rna_seq]
+ret = "RNASeqDataset"
+condition = [
+    "RNASeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.path }",
+    "ret.qc = False",
+]
+info.overview = "Load RNA-seq dataset"
+
+[Type.TranscriptMatrices]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.path = "Str"
+info.overview = "Transcript-by-sample matrices of counts and abundance (TPM)"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.path = "Path to data ('^' represents output)"
 info.suggested_variable_name = "read_counts"
 
-[Function.kallisto]
-params.data = "LoadedRNAseq"
-ret = "ReadCountVector"
+[Function.fastqc]
+params.data = "RNASeqDataset"
+ret = "RNASeqDataset"
 condition = [
-    "ret.sample = data.sample",
+    "data.qc = False",
+    "ret.label = data.label",
+    "ret.sample_sheet = data.sample_sheet",
+    "ret.path = data.path",
+    "ret.qc = True",
 ]
-info.overview = "The kallisto RNAseq quantifier"
+info.overview = "Quality-check RNA-seq data (FastQC)"
+
+[Function.cutadapt_illumina]
+params.data = "RNASeqDataset"
+ret = "RNASeqDataset"
+condition = [
+    "data.qc = True",
+    "ret.label = data.label",
+    "ret.sample_sheet = data.sample_sheet",
+    "ret.path = "^trimmed"",
+    "ret.qc = False",
+]
+info.overview = "Remove Illumina universal adaptor and poly-A tails (cutadapt)"
+
+[Function.kallisto]
+params.data = "RNASeqDataset"
+ret = "TranscriptMatrices"
+condition = [
+    "ret.label = data.label",
+    "ret.sample_sheet = data.sample_sheet",
+    "ret.path = "^quant"",
+]
+info.overview = "Quantify transcript abundances (kallisto)"
 

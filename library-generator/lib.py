@@ -1,4 +1,5 @@
 import ast
+import dataclasses
 import inspect
 
 
@@ -57,13 +58,15 @@ def _emit_fact(fact_kind, cls, kwargs):
 def _emit_function(f, condition, kwargs):
     print(f"[Function.{f.__name__}]")
     params = f.__annotations__
+    if len(params) == 0 or list(params)[-1] != "ret":
+        raise ValueError("Need 'ret' as final param in function '{f.__name__}'")
     for p in params:
         cls = params[p]
         if not hasattr(cls, "__honeybee_object") or cls.__honeybee_object != "Type":
             raise ValueError(
                 f"Cannot use non-Honeybee type '{cls.__name__}' in function '{f.__name__}'"
             )
-        if p == "return":
+        if p == "ret":
             print(f'ret = "{cls.__name__}"')
         else:
             print(f'params.{p} = "{cls.__name__}"')
@@ -83,7 +86,7 @@ def Prop(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Prop", cls, kwargs)
         cls.__honeybee_object = "Prop"
-        return cls
+        return dataclasses.dataclass(cls)
 
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         return wrap(args[0])
@@ -96,7 +99,7 @@ def Type(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Type", cls, kwargs)
         cls.__honeybee_object = "Type"
-        return cls
+        return dataclasses.dataclass(cls)
 
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         return wrap(args[0])
