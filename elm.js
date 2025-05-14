@@ -5160,7 +5160,7 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Config$debug = false;
+var $author$project$Config$debug = true;
 var $author$project$Core$SHole = {$: 'SHole'};
 var $author$project$Core$W = function (a) {
 	return {$: 'W', a: a};
@@ -5736,7 +5736,6 @@ var $author$project$Core$removeStep = F2(
 						w.steps)
 				}));
 	});
-var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -5750,21 +5749,18 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
-var $author$project$Port$scrollTo = _Platform_outgoingPort(
-	'scrollTo',
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Port$scrollIntoView = _Platform_outgoingPort(
+	'scrollIntoView',
 	function ($) {
 		return $elm$json$Json$Encode$object(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'x',
-					$elm$json$Json$Encode$int($.x)),
-					_Utils_Tuple2(
-					'y',
-					$elm$json$Json$Encode$int($.y))
+					'selector',
+					$elm$json$Json$Encode$string($.selector))
 				]));
 	});
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Port$sendDownload = _Platform_outgoingPort(
 	'sendDownload',
 	function ($) {
@@ -5779,6 +5775,7 @@ var $author$project$Port$sendDownload = _Platform_outgoingPort(
 					$elm$json$Json$Encode$string($.text))
 				]));
 	});
+var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Port$sendPbnChoice = _Platform_outgoingPort(
 	'sendPbnChoice',
 	function ($) {
@@ -6188,8 +6185,8 @@ var $author$project$Update$update = F2(
 					$elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
-								$author$project$Port$scrollTo(
-								{x: 0, y: 0}),
+								$author$project$Port$scrollIntoView(
+								{selector: '.navigation-pane'}),
 								$author$project$Port$sendPbnInit(x)
 							])));
 			case 'MakePbnChoice':
@@ -6240,8 +6237,13 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$header = _VirtualDom_node('header');
+var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$html$Html$main_ = _VirtualDom_node('main');
+var $elm$html$Html$ol = _VirtualDom_node('ol');
+var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$Update$Download = function (a) {
 	return {$: 'Download', a: a};
 };
@@ -6325,7 +6327,6 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$option = _VirtualDom_node('option');
-var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$pre = _VirtualDom_node('pre');
 var $elm$html$Html$select = _VirtualDom_node('select');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
@@ -6550,35 +6551,7 @@ var $elm$html$Html$Events$onClick = function (msg) {
 };
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('pbn-inactive')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$p,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Please complete your experimental workflow.')
-								])),
-							A2(
-							$elm$html$Html$p,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Then, click the \"Start navigating\" button.')
-								]))
-						]))
-				]));
+		return $elm$html$Html$text('');
 	} else {
 		var msg = ms.a;
 		return A2(
@@ -6616,7 +6589,7 @@ var $author$project$View$pbnStatus = function (ms) {
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Download script')
+									$elm$html$Html$text('Download analysis script')
 								]))
 						])) : $elm$html$Html$text('')
 				]));
@@ -6636,39 +6609,63 @@ var $elm$html$Html$Attributes$boolProperty = F2(
 	});
 var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
 var $author$project$View$startNavigation = function (w) {
+	var _v0 = function () {
+		var _v1 = A2(
+			$author$project$Compile$compile,
+			{allowGoalHoles: false},
+			w);
+		if (_v1.$ === 'Nothing') {
+			return _Utils_Tuple2(
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$disabled(true)
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('subtitle')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('(Not available yet)')
+							]))
+					]));
+		} else {
+			var programSource = _v1.a;
+			return _Utils_Tuple2(
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick(
+						$author$project$Update$StartNavigating(
+							{programSource: programSource}))
+					]),
+				_List_Nil);
+		}
+	}();
+	var attrs = _v0.a;
+	var extras = _v0.b;
 	return A2(
 		$elm$html$Html$button,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('start-navigation'),
-				$elm$html$Html$Attributes$class('standout-button'),
-				function () {
-				var _v0 = A2(
-					$author$project$Compile$compile,
-					{allowGoalHoles: false},
-					w);
-				if (_v0.$ === 'Nothing') {
-					return $elm$html$Html$Attributes$disabled(true);
-				} else {
-					var programSource = _v0.a;
-					return $elm$html$Html$Events$onClick(
-						$author$project$Update$StartNavigating(
-							{programSource: programSource}));
-				}
-			}()
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('Start navigating')
-			]));
+		_Utils_ap(
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('start-navigation'),
+					$elm$html$Html$Attributes$class('standout-button')
+				]),
+			attrs),
+		A2(
+			$elm$core$List$cons,
+			$elm$html$Html$text('Start navigating'),
+			extras));
 };
 var $author$project$Update$AddBlankStep = {$: 'AddBlankStep'};
 var $author$project$Core$Goal = {$: 'Goal'};
 var $author$project$Core$Step = function (a) {
 	return {$: 'Step', a: a};
 };
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $elm$html$Html$ol = _VirtualDom_node('ol');
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -7023,6 +7020,80 @@ var $author$project$View$view = function (model) {
 		_List_fromArray(
 			[
 				A2(
+				$elm$html$Html$header,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h1,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('pbn')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Programming by Navigation')
+									])),
+								$elm$html$Html$text(' with '),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('honeybee')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Honeybee')
+									]))
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Honeybee is a tool you can use to write code to analyze experimental data.')
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('It works in two steps:')
+							])),
+						A2(
+						$elm$html$Html$ol,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$li,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('First, you write down your experimental workflow.')
+									])),
+								A2(
+								$elm$html$Html$li,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Then, Honeybee helps you navigate among all possible programs to analyze the experiment you wrote down.')
+									]))
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Using your biology expertise, you can navigate to the program that fits your need!')
+							]))
+					])),
+				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
@@ -7066,7 +7137,7 @@ var $author$project$View$view = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$Attributes$class(
-								_Utils_eq(model.pbnStatus, $elm$core$Maybe$Nothing) ? 'inactive-pane-header' : '')
+								_Utils_eq(model.pbnStatus, $elm$core$Maybe$Nothing) ? 'inactive-pane-header' : 'active-pane-header')
 							]),
 						_List_fromArray(
 							[

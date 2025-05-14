@@ -1,0 +1,26 @@
+[Prop.RNAseq]
+params.sample = "Str"
+params.path = "Str"
+info.overview = "RNA-sequencing data"
+info.params.sample = "A label for the sample (you can choose anything you'd like)"
+info.params.path = "The path to the folder containing the raw FASTQ files for the sample"
+
+[Type.LoadedRNAseq]
+params.sample = "Str"
+params.path = "Str"
+info.overview = "Loaded RNA-sequencing data"
+info.suggested_variable_name = "rnaseq_data"
+
+[Type.ReadCountVector]
+params.sample = "Str"
+info.overview = "A vector of read counts"
+info.suggested_variable_name = "read_counts"
+
+[Function.kallisto]
+params.data = "LoadedRNAseq"
+ret = "ReadCountVector"
+condition = [
+    "ret.sample = data.sample",
+]
+info.overview = "The kallisto RNAseq quantifier"
+
