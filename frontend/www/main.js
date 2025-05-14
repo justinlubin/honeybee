@@ -9,6 +9,12 @@ const library = Honeybee.parse_library(librarySource);
 const flags = { props: {}, types: {} };
 
 function loadFact(kvs) {
+    let overview = kvs.info.get("overview");
+
+    if (overview === undefined) {
+        overview = null;
+    }
+
     let paramLabels = kvs.info.get("params");
     if (paramLabels) {
         paramLabels = Object.fromEntries(paramLabels);
@@ -18,7 +24,7 @@ function loadFact(kvs) {
 
     return {
         params: Object.fromEntries(kvs.params),
-        overview: kvs.info.get("overview"),
+        overview: overview,
         paramLabels: paramLabels,
     };
 }

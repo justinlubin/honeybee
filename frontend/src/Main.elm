@@ -15,6 +15,7 @@ main =
             \v ->
                 ( v
                     |> Json.Decode.decodeValue Decode.library
+                    |> Result.mapError (Debug.log "error")
                     |> Result.withDefault []
                     |> Model.init
                 , Cmd.none

@@ -32,12 +32,12 @@ stepSignature kind =
             { params = p
             , kind = kind
             , paramLabels = Dict.fromList pl
-            , overview = o
+            , overview = Debug.log "Ever????" o
             }
         )
-        (field "params" (keyValuePairs valueType))
-        (field "paramLabels" (keyValuePairs string))
-        (nullable (field "overview" string))
+        (field "params" <| keyValuePairs valueType)
+        (field "paramLabels" <| keyValuePairs string)
+        (field "overview" <| nullable string)
 
 
 library : Decoder Library

@@ -6,7 +6,7 @@ import inspect
 # Based on https://stackoverflow.com/a/77628177
 def _attribute_info(cls):
     src = inspect.getsource(cls)
-    tree = ast.parse(src)
+    tree = ast.parse(src.strip())
     for t in ast.walk(tree):
         if isinstance(t, ast.ClassDef):
             class_def = t
@@ -40,9 +40,9 @@ def _python_to_honeybee(type_name: str) -> str:
         raise ValueError("Unable to convert to Honeybee type: " + type_name)
 
 
-def _emit_fact(fact_kind, cls, kwargs):
+def _emit_fact(fact_kind, cls, name, kwargs):
     types, docs = _attribute_info(cls)
-    print(f"[{fact_kind}.{cls.__name__}]")
+    print(f"[{fact_kind}.{name}]")
     if len(types) == 0:
         print("params = {}")
     for p in types:
@@ -60,19 +60,25 @@ def _emit_fact(fact_kind, cls, kwargs):
 def _emit_function(f, condition, kwargs):
     print(f"[Function.{f.__name__}]")
     params = f.__annotations__
+    return_cls = params.pop("return")
+    if return_cls.__name__ != "D" or not hasattr(return_cls, "__honeybee_parent"):
+        raise ValueError(
+            f"Must return dynamic Honeybee type in function '{f.__name__}'"
+        )
+    return_name = return_cls.__honeybee_parent.__name__
     if len(params) == 0 or list(params)[-1] != "ret":
-        raise ValueError("Need 'ret' as final param in function '{f.__name__}'")
+        raise ValueError(f"Need 'ret' as final param in function '{f.__name__}'")
     if len(params) == 1:
         print("params = {}")
     for p in params:
         cls = params[p]
-        if not hasattr(cls, "__honeybee_object") or cls.__honeybee_object != "Type":
-            raise ValueError(
-                f"Cannot use non-Honeybee type '{cls.__name__}' in function '{f.__name__}'"
-            )
         if p == "ret":
-            print(f'ret = "{cls.__name__}"')
+            print(f'ret = "{return_name}"')
         else:
+            if not hasattr(cls, "__honeybee_object") or cls.__honeybee_object != "Type":
+                raise ValueError(
+                    f"Cannot use non-Honeybee type '{cls.__name__}' in function '{f.__name__}'"
+                )
             print(f'params.{p} = "{cls.__name__}"')
     print("condition = [")
     for c in condition:
@@ -89,7 +95,7 @@ def _emit_function(f, condition, kwargs):
 # Based on https://stackoverflow.com/a/14412901
 def Prop(*args, **kwargs):
     def wrap(cls):
-        _emit_fact("Prop", cls, kwargs)
+        _emit_fact("Prop", cls, cls.__name__, kwargs)
         cls.__honeybee_object = "Prop"
         return dataclasses.dataclass(cls)
 
@@ -102,7 +108,9 @@ def Prop(*args, **kwargs):
 # Based on https://stackoverflow.com/a/14412901
 def Type(*args, **kwargs):
     def wrap(cls):
-        _emit_fact("Type", cls, kwargs)
+        _emit_fact("Type", cls.S, cls.__name__, kwargs)
+        cls.S.__honeybee_parent = cls
+        cls.D.__honeybee_parent = cls
         cls.__honeybee_object = "Type"
         return dataclasses.dataclass(cls)
 

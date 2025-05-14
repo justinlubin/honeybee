@@ -1,4 +1,4 @@
-[Prop.RNASeq]
+[Prop.RNASeqProp]
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
@@ -7,68 +7,66 @@ info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
 
-[Type.RNASeqDataset]
+[Type.RNASeq]
 params.label = "Str"
 params.sample_sheet = "Str"
-params.path = "Str"
-params.qc = "Bool"
-info.overview = "Quality-checked RNA-seq data"
+params.raw_data = "Str"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
-info.params.path = "Path to data ('^' represents output)"
-info.params.qc = "Whether or not quality checks have been run"
-info.suggested_variable_name = "rna_seq_data"
+info.params.raw_data = "Path to raw FASTQ files"
 
-[Function.load_rna_seq]
+[Function.reify_rna_seq]
 params = {}
-ret = "RNASeqDataset"
+ret = "RNASeq"
 condition = [
-    "RNASeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.path }",
+    "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+]
+
+[Type.RNASeqData]
+params.label = "Str"
+params.qc = "Bool"
+info.params.label = "Label for data"
+info.params.qc = "Whether or not quality checks have been run"
+
+[Function.load_rna_seq_data]
+params.rna_seq = "RNASeq"
+ret = "RNASeqData"
+condition = [
+    "ret.label = rna_seq.label",
     "ret.qc = false",
 ]
 info.overview = "Load RNA-seq dataset"
 
 [Type.TranscriptMatrices]
 params.label = "Str"
-params.sample_sheet = "Str"
-params.path = "Str"
-info.overview = "Transcript-by-sample matrices of counts and abundance (TPM)"
-info.params.label = "Label for data"
-info.params.sample_sheet = "Path to sample sheet CSV"
-info.params.path = "Path to data ('^' represents output)"
-info.suggested_variable_name = "read_counts"
+info.params.label = "Label for RNA-seq data to analyze"
 
 [Function.fastqc]
-params.data = "RNASeqDataset"
-ret = "RNASeqDataset"
+params.data = "RNASeqData"
+ret = "RNASeqData"
 condition = [
     "data.qc = false",
     "ret.label = data.label",
-    "ret.sample_sheet = data.sample_sheet",
-    "ret.path = data.path",
     "ret.qc = true",
 ]
 info.overview = "Quality-check RNA-seq data (FastQC)"
 
 [Function.cutadapt_illumina]
-params.data = "RNASeqDataset"
-ret = "RNASeqDataset"
+params.data = "RNASeqData"
+ret = "RNASeqData"
 condition = [
     "data.qc = true",
     "ret.label = data.label",
-    "ret.sample_sheet = data.sample_sheet",
-    "ret.path = \"^trimmed\"",
     "ret.qc = false",
 ]
 info.overview = "Remove Illumina universal adaptor and poly-A tails (cutadapt)"
 
 [Function.kallisto]
-params.data = "RNASeqDataset"
+params.data = "RNASeqData"
 ret = "TranscriptMatrices"
 condition = [
+    "data.qc = true",
     "ret.label = data.label",
-    "ret.sample_sheet = data.sample_sheet",
-    "ret.path = \"^quant\"",
 ]
 info.overview = "Quantify transcript abundances (kallisto)"
 
