@@ -20,10 +20,11 @@ info.params.qc = "Whether or not quality checks have been run"
 info.suggested_variable_name = "rna_seq_data"
 
 [Function.load_rna_seq]
+params = {}
 ret = "RNASeqDataset"
 condition = [
     "RNASeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.path }",
-    "ret.qc = False",
+    "ret.qc = false",
 ]
 info.overview = "Load RNA-seq dataset"
 
@@ -41,11 +42,11 @@ info.suggested_variable_name = "read_counts"
 params.data = "RNASeqDataset"
 ret = "RNASeqDataset"
 condition = [
-    "data.qc = False",
+    "data.qc = false",
     "ret.label = data.label",
     "ret.sample_sheet = data.sample_sheet",
     "ret.path = data.path",
-    "ret.qc = True",
+    "ret.qc = true",
 ]
 info.overview = "Quality-check RNA-seq data (FastQC)"
 
@@ -53,11 +54,11 @@ info.overview = "Quality-check RNA-seq data (FastQC)"
 params.data = "RNASeqDataset"
 ret = "RNASeqDataset"
 condition = [
-    "data.qc = True",
+    "data.qc = true",
     "ret.label = data.label",
     "ret.sample_sheet = data.sample_sheet",
-    "ret.path = "^trimmed"",
-    "ret.qc = False",
+    "ret.path = \"^trimmed\"",
+    "ret.qc = false",
 ]
 info.overview = "Remove Illumina universal adaptor and poly-A tails (cutadapt)"
 
@@ -67,7 +68,7 @@ ret = "TranscriptMatrices"
 condition = [
     "ret.label = data.label",
     "ret.sample_sheet = data.sample_sheet",
-    "ret.path = "^quant"",
+    "ret.path = \"^quant\"",
 ]
 info.overview = "Quantify transcript abundances (kallisto)"
 

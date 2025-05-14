@@ -25,6 +25,7 @@ module Core exposing
     )
 
 import Assoc exposing (Assoc)
+import Dict exposing (Dict)
 import Util
 
 
@@ -106,15 +107,22 @@ type StepKind
 type alias StepSignature =
     { params : Assoc String ValueType
     , kind : StepKind
+    , paramLabels : Dict String String
+    , overview : Maybe String
+    }
+
+
+type alias SConcreteData =
+    { name : String
+    , args : Assoc String Value
+    , argLabels : Dict String String
+    , overview : Maybe String
     }
 
 
 type Step
     = SHole
-    | SConcrete
-        { name : String
-        , args : Assoc String Value
-        }
+    | SConcrete SConcreteData
 
 
 freshStep : String -> StepSignature -> Step
@@ -122,6 +130,8 @@ freshStep name sig =
     SConcrete
         { name = name
         , args = List.map (\( k, vt ) -> ( k, VHole vt )) sig.params
+        , argLabels = sig.paramLabels
+        , overview = sig.overview
         }
 
 
@@ -179,6 +189,8 @@ exampleWorkflow =
                     [ ( "sample", VStr "1" )
                     , ( "path", VStr "raw_data/rnaseq/control/" )
                     ]
+                , argLabels = Dict.empty
+                , overview = Nothing
                 }
             , SConcrete
                 { name = "RNAseq"
@@ -186,6 +198,8 @@ exampleWorkflow =
                     [ ( "sample", VStr "2" )
                     , ( "path", VStr "raw_data/rnaseq/experimental/" )
                     ]
+                , argLabels = Dict.empty
+                , overview = Nothing
                 }
             ]
         , goal =
@@ -195,6 +209,8 @@ exampleWorkflow =
                     [ ( "sample1", VStr "1" )
                     , ( "sample2", VStr "2" )
                     ]
+                , argLabels = Dict.empty
+                , overview = Nothing
                 }
         }
 

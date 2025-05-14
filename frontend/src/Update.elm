@@ -62,11 +62,9 @@ setArgument model si param v =
                         SHole ->
                             SHole
 
-                        SConcrete { name, args } ->
+                        SConcrete scd ->
                             SConcrete
-                                { name = name
-                                , args = args |> Assoc.set param v
-                                }
+                                { scd | args = Assoc.set param v scd.args }
                 )
                 model.workflow
         , pbnStatus = Nothing

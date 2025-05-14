@@ -43,6 +43,8 @@ def _python_to_honeybee(type_name: str) -> str:
 def _emit_fact(fact_kind, cls, kwargs):
     types, docs = _attribute_info(cls)
     print(f"[{fact_kind}.{cls.__name__}]")
+    if len(types) == 0:
+        print("params = {}")
     for p in types:
         hb_type = _python_to_honeybee(types[p])
         print(f"params.{p} = {hb_type}")
@@ -60,6 +62,8 @@ def _emit_function(f, condition, kwargs):
     params = f.__annotations__
     if len(params) == 0 or list(params)[-1] != "ret":
         raise ValueError("Need 'ret' as final param in function '{f.__name__}'")
+    if len(params) == 1:
+        print("params = {}")
     for p in params:
         cls = params[p]
         if not hasattr(cls, "__honeybee_object") or cls.__honeybee_object != "Type":
@@ -72,6 +76,7 @@ def _emit_function(f, condition, kwargs):
             print(f'params.{p} = "{cls.__name__}"')
     print("condition = [")
     for c in condition:
+        c = c.replace('"', '\\"')
         print(f'    "{c}",')
     print("]")
     if f.__doc__ is not None:

@@ -2,20 +2,36 @@ import init, * as Honeybee from "./pkg/honeybee.js";
 
 await init();
 
-const libraryResponse = await fetch("bio.hblib.toml");
+const libraryResponse = await fetch("std-bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
-window._lib = library;
 
 const flags = { props: {}, types: {} };
 
-for (const [name, { params }] of library.Prop) {
-    flags.props[name] = { params: Object.fromEntries(params) };
+function loadFact(kvs) {
+    let paramLabels = kvs.info.get("params");
+    if (paramLabels) {
+        paramLabels = Object.fromEntries(paramLabels);
+    } else {
+        paramLabels = {};
+    }
+
+    return {
+        params: Object.fromEntries(kvs.params),
+        overview: kvs.info.get("overview"),
+        paramLabels: paramLabels,
+    };
 }
 
-for (const [name, { params }] of library.Type) {
-    flags.types[name] = { params: Object.fromEntries(params) };
+for (const [name, kvs] of library.Prop) {
+    flags.props[name] = loadFact(kvs);
 }
+
+for (const [name, kvs] of library.Type) {
+    flags.types[name] = loadFact(kvs);
+}
+
+console.log(flags);
 
 const app = Elm.Main.init({
     node: document.getElementById("app"),

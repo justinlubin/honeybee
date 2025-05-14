@@ -4,6 +4,7 @@ import Assoc exposing (Assoc)
 import Compile
 import Config
 import Core exposing (..)
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
@@ -32,8 +33,8 @@ stringFromValue v =
             "?"
 
 
-arg : StepIndex -> String -> ( Value, List Value ) -> Html Msg
-arg si argName ( v, suggestions ) =
+arg : StepIndex -> Dict String String -> String -> ( Value, List Value ) -> Html Msg
+arg si argLabels argName ( v, suggestions ) =
     let
         id =
             "step-"
@@ -46,6 +47,13 @@ arg si argName ( v, suggestions ) =
                    )
                 ++ "-argument-"
                 ++ argName
+
+        debugSuffix =
+            if False && Config.debug then
+                " (" ++ stringFromValue v ++ ")"
+
+            else
+                ""
     in
     div
         [ A.class "step-arg"
@@ -53,14 +61,11 @@ arg si argName ( v, suggestions ) =
         [ label
             [ A.for id
             ]
-            [ text <|
-                argName
-                    ++ (if False && Config.debug then
-                            " (" ++ stringFromValue v ++ ")"
-
-                        else
-                            ""
-                       )
+            [ argLabels
+                |> Dict.get argName
+                |> Maybe.withDefault argName
+                |> (\x -> x ++ debugSuffix)
+                |> text
             ]
         , input
             [ E.onInput (Update.SetArgumentByString (valueType v) si argName)
@@ -100,9 +105,9 @@ arg si argName ( v, suggestions ) =
         ]
 
 
-args : StepIndex -> Assoc String ( Value, List Value ) -> List (Html Msg)
-args si a =
-    Assoc.mapCollapse (arg si) a
+args : StepIndex -> Dict String String -> Assoc String ( Value, List Value ) -> List (Html Msg)
+args si argLabels a =
+    Assoc.mapCollapse (arg si argLabels) a
 
 
 step :
@@ -111,7 +116,7 @@ step :
     -> StepIndex
     -> Step
     -> Html Msg
-step library goalSuggestions si s =
+step library suggestions si s =
     let
         blankName =
             "Choose a step…"
@@ -137,20 +142,24 @@ step library goalSuggestions si s =
                     else
                         Update.SetStep si k
 
-        ( name, extras ) =
+        ( selectedName, extras ) =
             case s of
                 SHole ->
                     ( blankName, [] )
 
-                SConcrete st ->
-                    ( st.name
+                SConcrete scd ->
+                    ( scd.name
                     , args
                         si
-                        (Assoc.leftMerge [] st.args goalSuggestions)
+                        scd.argLabels
+                        (Assoc.leftMerge [] scd.args suggestions)
                     )
 
         options =
-            blankName :: Assoc.mapCollapse (\k _ -> k) library
+            ( blankName, blankName )
+                :: Assoc.mapCollapse
+                    (\k sig -> ( k, Maybe.withDefault k sig.overview ))
+                    library
 
         dropdown =
             select
@@ -158,13 +167,19 @@ step library goalSuggestions si s =
                 , inputEvent
                 ]
                 (List.map
-                    (\k -> option [ A.selected (k == name) ] [ text k ])
+                    (\( name, displayName ) ->
+                        option
+                            [ A.selected (name == selectedName)
+                            , A.value name
+                            ]
+                            [ text displayName ]
+                    )
                     options
                 )
     in
     div
         [ A.class "step" ]
-        (deleteButton :: dropdown :: extras)
+        (dropdown :: deleteButton :: extras)
 
 
 workflow :
@@ -176,7 +191,7 @@ workflow ctx w =
         [ h3 [] [ text "Experimental workflow" ]
         , ol [ A.class "steps" ]
             (List.indexedMap
-                (\i s -> li [] [ step (props ctx.library) ctx.goalSuggestions (Step i) s ])
+                (\i s -> li [] [ step (props ctx.library) [] (Step i) s ])
                 (steps w)
             )
         , button
@@ -283,7 +298,7 @@ startNavigation w =
                 Nothing ->
                     ( [ A.disabled True ]
                     , [ div [ A.class "subtitle" ]
-                            [ text "(Not available yet)" ]
+                            [ text "(Complete experimental workflow first)" ]
                       ]
                     )
 

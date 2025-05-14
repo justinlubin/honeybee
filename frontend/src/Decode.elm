@@ -1,6 +1,7 @@
 module Decode exposing (library)
 
 import Core exposing (..)
+import Dict
 import Json.Decode exposing (..)
 
 
@@ -26,8 +27,17 @@ valueType =
 
 stepSignature : StepKind -> Decoder StepSignature
 stepSignature kind =
-    map (\p -> { params = p, kind = kind })
-        (field "params" <| keyValuePairs valueType)
+    map3
+        (\p pl o ->
+            { params = p
+            , kind = kind
+            , paramLabels = Dict.fromList pl
+            , overview = o
+            }
+        )
+        (field "params" (keyValuePairs valueType))
+        (field "paramLabels" (keyValuePairs string))
+        (nullable (field "overview" string))
 
 
 library : Decoder Library

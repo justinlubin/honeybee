@@ -53,7 +53,7 @@ class RNASeqDataset:
 
 @Function(
     "RNASeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.path }",
-    "ret.qc = False",
+    "ret.qc = false",
 )
 def load_rna_seq(ret: RNASeqDataset):
     """Load RNA-seq dataset"""
@@ -74,11 +74,11 @@ class TranscriptMatrices:
 
 
 @Function(
-    "data.qc = False",
+    "data.qc = false",
     "ret.label = data.label",
     "ret.sample_sheet = data.sample_sheet",
     "ret.path = data.path",
-    "ret.qc = True",
+    "ret.qc = true",
 )
 def fastqc(data: RNASeqDataset, ret: RNASeqDataset):
     """Quality-check RNA-seq data (FastQC)"""
@@ -93,11 +93,11 @@ def fastqc(data: RNASeqDataset, ret: RNASeqDataset):
 
 
 @Function(
-    "data.qc = True",
+    "data.qc = true",
     "ret.label = data.label",
     "ret.sample_sheet = data.sample_sheet",
     'ret.path = "^trimmed"',
-    "ret.qc = False",
+    "ret.qc = false",
 )
 def cutadapt_illumina(data: RNASeqDataset, ret: RNASeqDataset):
     """Remove Illumina universal adaptor and poly-A tails (cutadapt)"""
