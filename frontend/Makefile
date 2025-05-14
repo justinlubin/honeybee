@@ -2,7 +2,10 @@ OPTIMIZE_ELM = false
 OUT_DIR = www
 
 .PHONY: all
-all: $(OUT_DIR)/elm.js $(OUT_DIR)/pkg/honeybee.js
+all: \
+	$(OUT_DIR)/elm.js \
+	$(OUT_DIR)/pkg/honeybee.js \
+	$(OUT_DIR)/std-bio.hblib.toml
 
 $(OUT_DIR)/elm.js: $(wildcard src/*.elm)
 ifeq ($(OPTIMIZE_ELM),true)
@@ -16,3 +19,9 @@ endif
 $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 	cd ../backend/ && \
 	wasm-pack build --target web --out-dir ../frontend/www/pkg
+
+$(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
+	uv run \
+		--project ../library-generator/ \
+		../library-generator/std-bio.py \
+		> $(OUT_DIR)/std-bio.hblib.toml
