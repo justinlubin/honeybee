@@ -1,24 +1,49 @@
-[Prop.RNAseq]
-params.sample = "Str"
-params.path = "Str"
-info.overview = "RNA-sequencing data"
-info.params.sample = "A label for the sample (you can choose anything you'd like)"
-info.params.path = "The path to the folder containing the raw FASTQ files for the sample"
+[Prop.RNASeq]
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.overview = "RNA-seq"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
 
-[Type.LoadedRNAseq]
-params.sample = "Str"
-params.path = "Str"
-info.overview = "Loaded RNA-sequencing data"
-info.suggested_variable_name = "rnaseq_data"
+[Type.RNASeqDataset]
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+params.qc = "Bool"
+info.overview = "Quality-checked RNA-seq data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
+info.params.qc = "Whether or not quality checks have been run"
+info.suggested_variable_name = "rna_seq_data"
 
-[Type.ReadCountVector]
-params.sample = "Str"
-info.overview = "A vector of read counts"
+[Type.TranscriptMatrices]
+params.sample_sheet = "Str"
+info.overview = "Transcript-by-sample matrices of counts and abundance (TPM)"
+info.params.sample_sheet = "Path to sample sheet CSV"
 info.suggested_variable_name = "read_counts"
 
+[Function.fastqc]
+params.data = "RNASeqDataset"
+ret = "RNASeqDataset"
+condition = [
+    "data.qc = False",
+    "ret.sample_sheet = data.sample_sheet",
+    "ret.raw_data = data.raw_data",
+    "ret.qc = True",
+]
+
+[Function.cutadapt_illumina]
+params.data = "RNASeqDataset"
+ret = "RNASeqDataset"
+condition = [
+    "data.qc = True",
+    "ret.sample_sheet = data.sample_sheet",
+    "ret.raw_data = data.raw_data",
+    "ret.qc = False",
+]
+
 [Function.kallisto]
-params.data = "LoadedRNAseq"
-ret = "ReadCountVector"
+params.data = "RNASeqDataset"
+ret = "TranscriptMatrices"
 condition = [
     "ret.sample = data.sample",
 ]
