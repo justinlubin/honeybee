@@ -128,3 +128,42 @@ pub fn python_single(e: &Exp) -> String {
         }
     }
 }
+
+/// Translate an expression into a Python expression using the new format
+pub fn python(lib: &Library, e: &Exp, indent: usize) -> String {
+    match e {
+        top_down::Sketch::Hole(h) => top_down::plain_hole_string(*h),
+        top_down::Sketch::App(f, args) => {
+            let f_sig = lib.functions.get(&f.name).unwrap();
+            let metadata = format!(
+                "{}.S({})",
+                f_sig.ret.0,
+                f.metadata
+                    .iter()
+                    .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            format!(
+                "{}(\n{}static={},\n{}dynamic={}({}\n{}ret={}\n{}))",
+                f_sig.ret.0,
+                "    ".repeat(indent + 1),
+                metadata,
+                "    ".repeat(indent + 1),
+                f.name.0,
+                args.iter()
+                    .map(|(fp, arg)| format!(
+                        "\n{}{}={},",
+                        "    ".repeat(indent + 2),
+                        fp.0,
+                        python(lib, arg, indent + 2)
+                    ))
+                    .collect::<Vec<_>>()
+                    .join(""),
+                "    ".repeat(indent + 1),
+                metadata,
+                "    ".repeat(indent),
+            )
+        }
+    }
+}

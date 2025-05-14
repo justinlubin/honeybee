@@ -75,6 +75,7 @@ pub fn interact(
     }
 
     let problem = load_problem(library, program)?;
+    let lib = problem.library.clone();
 
     let timer = util::Timer::infinite();
     let mut controller = algorithm.controller(timer, problem);
@@ -175,9 +176,9 @@ pub fn interact(
         );
     } else {
         println!(
-            "\n{}\n\n  {}",
+            "\n{}\n\n{}",
             Green.bold().paint("Final expression:"),
-            codegen::python_multi(&controller.working_expression(), 1, true),
+            codegen::python(&lib, &controller.working_expression(), 0,),
         );
     }
 
