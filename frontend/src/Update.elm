@@ -189,7 +189,7 @@ update msg model =
         StartNavigating x ->
             ( model
             , Cmd.batch
-                [ Port.scrollTo { x = 0, y = 0 }
+                [ Port.scrollIntoView { selector = ".navigation-pane" }
                 , Port.sendPbnInit x
                 ]
             )

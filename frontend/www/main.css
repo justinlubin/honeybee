@@ -55,7 +55,7 @@ code {
     padding: 30px;
     font-size: 1.2em;
     border-radius: 5px;
-    background-color: var(--accent2);
+    background-color: var(--primary5);
     color: var(--primary1);
     cursor: pointer;
     outline: 0;
@@ -63,33 +63,80 @@ code {
 }
 
 .standout-button:not([disabled]):hover {
-    background-color: var(--accent1);
+    background-color: var(--primary4);
 }
 
 .standout-button[disabled] {
     cursor: not-allowed;
     background-color: var(--primary3);
+    color: var(--primary4);
+}
+
+.standout-button .subtitle {
+    display: block;
+    font-size: 0.7em;
 }
 
 /* || Main */
 
 main {
-    display: flex;
+    /*display: flex;
     margin: var(--major-spacing);
-    column-gap: var(--major-spacing);
+    column-gap: var(--major-spacing);*/
+
+    max-width: 800px;
+    margin: auto;
+    padding: 0 var(--major-spacing);
 }
 
 main > * {
-    flex: 1;
+    padding-top: var(--major-spacing);
 }
 
-main > * > h2 {
-    margin-bottom: var(--major-spacing);
+main > *:last-child {
+    padding-bottom: var(--major-spacing);
+}
+
+main h2 {
     font-size: 1.4em;
+    margin-bottom: var(--major-spacing);
 }
 
 main > * > h2 span:first-child {
     font-weight: var(--bold);
+}
+
+/* || Header */
+
+header {
+    background-color: var(--primary1);
+    margin-top: var(--major-spacing);
+    padding: var(--major-spacing);
+    padding-bottom: var(--minor-spacing);
+    border: 1px solid var(--primary3);
+    border-radius: 5px;
+}
+
+header h1 {
+    font-size: 1.6em;
+    text-align: center;
+    margin-bottom: var(--major-spacing);
+}
+
+header h1 span {
+    font-weight: var(--bold);
+}
+
+header p,
+header li {
+    font-size: 1.1em;
+    line-height: 1.4;
+    margin-bottom: var(--minor-spacing);
+}
+
+header ol {
+    list-style-type: decimal;
+    margin-left: 40px;
 }
 
 /* || Steps */
@@ -183,6 +230,18 @@ main > * > h2 span:first-child {
 }
 
 /* || Programming by Navigation */
+
+.inactive-pane-header {
+    opacity: 0;
+}
+
+.active-pane-header {
+    opacity: 1;
+}
+
+.navigation-pane {
+    min-height: 100vh;
+}
 
 .pbn-inactive {
     position: fixed;

@@ -9,13 +9,22 @@ import Json.Decode as D
 -- Outgoing messages
 
 
-type alias ScrollToMessage =
-    { x : Int
-    , y : Int
+type alias ScrollIntoViewMessage =
+    { selector : String
     }
 
 
-port scrollTo : ScrollToMessage -> Cmd msg
+port scrollIntoView : ScrollIntoViewMessage -> Cmd msg
+
+
+
+-- type alias ScrollToMessage =
+--     { x : Int
+--     , y : Int
+--     }
+--
+--
+-- port scrollTo : ScrollToMessage -> Cmd msg
 
 
 type alias SetTextFieldMessage =

@@ -277,32 +277,33 @@ directManipulationPbn { workingExpression, choices } =
 
 startNavigation : Workflow -> Html Msg
 startNavigation w =
-    button
-        [ A.class "start-navigation"
-        , A.class "standout-button"
-        , case Compile.compile { allowGoalHoles = False } w of
-            Nothing ->
-                A.disabled True
+    let
+        ( attrs, extras ) =
+            case Compile.compile { allowGoalHoles = False } w of
+                Nothing ->
+                    ( [ A.disabled True ]
+                    , [ div [ A.class "subtitle" ]
+                            [ text "(Not available yet)" ]
+                      ]
+                    )
 
-            Just programSource ->
-                E.onClick <|
-                    Update.StartNavigating { programSource = programSource }
-        ]
-        [ text "Start navigating"
-        ]
+                Just programSource ->
+                    ( [ E.onClick <|
+                            Update.StartNavigating { programSource = programSource }
+                      ]
+                    , []
+                    )
+    in
+    button
+        ([ A.class "start-navigation", A.class "standout-button" ] ++ attrs)
+        (text "Start navigating" :: extras)
 
 
 pbnStatus : Maybe Port.PbnStatusMessage -> Html Msg
 pbnStatus ms =
     case ms of
         Nothing ->
-            div
-                [ A.class "pbn-inactive" ]
-                [ div []
-                    [ p [] [ text "Please complete your experimental workflow." ]
-                    , p [] [ text "Then, click the \"Start navigating\" button." ]
-                    ]
-                ]
+            text ""
 
         Just msg ->
             div
@@ -320,7 +321,7 @@ pbnStatus ms =
                                     }
                                 )
                             ]
-                            [ text "Download script" ]
+                            [ text "Download analysis script" ]
                         ]
 
                   else
@@ -332,7 +333,21 @@ view : Model -> Html Msg
 view model =
     main_
         []
-        [ div [ A.class "specification-pane" ]
+        [ header []
+            [ h1 []
+                [ span [ A.class "pbn" ] [ text "Programming by Navigation" ]
+                , text " with "
+                , span [ A.class "honeybee" ] [ text "Honeybee" ]
+                ]
+            , p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
+            , p [] [ text "It works in two steps:" ]
+            , ol []
+                [ li [] [ text "First, you write down your experimental workflow." ]
+                , li [] [ text "Then, Honeybee helps you navigate among all possible programs to analyze the experiment you wrote down." ]
+                ]
+            , p [] [ text "Using your biology expertise, you can navigate to the program that fits your need!" ]
+            ]
+        , div [ A.class "specification-pane" ]
             [ h2 []
                 [ span [] [ text "Step 1: " ]
                 , span [] [ text "Write down your experimental workflow" ]
@@ -347,13 +362,11 @@ view model =
                         "inactive-pane-header"
 
                     else
-                        ""
+                        "active-pane-header"
                 ]
                 [ span [] [ text "Step 2: " ]
                 , span [] [ text "Create an analysis script for this experiment" ]
                 ]
             , pbnStatus model.pbnStatus
-
-            -- , pbnInactiveOverlay model.pbnStatus
             ]
         ]
