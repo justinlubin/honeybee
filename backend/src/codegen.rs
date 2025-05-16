@@ -53,7 +53,7 @@ impl<'a> FullContext<'a> {
         args: &Vec<(String, String)>,
     ) {
         let mut s = "".to_owned();
-        s += &format!("{} = {}(\n", var_name, type_name);
+        s += &format!("# %%\n{} = {}(\n", var_name, type_name);
         s += &format!("    static={}.S(", type_name);
         s += &metadata_args
             .into_iter()
@@ -66,7 +66,7 @@ impl<'a> FullContext<'a> {
             .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
             .collect::<Vec<_>>()
             .join(", ");
-        s += "),\n)";
+        s += &format!("),\n)\n{}", var_name);
         self.cells.push(s);
     }
 
@@ -74,9 +74,10 @@ impl<'a> FullContext<'a> {
         match e {
             top_down::Sketch::Hole(h) => {
                 self.cells.push(format!(
-                    "{} = {}",
+                    "# %%\n{} = {}\n{}",
                     var_name,
-                    top_down::plain_hole_string(*h)
+                    top_down::plain_hole_string(*h),
+                    var_name,
                 ));
             }
             top_down::Sketch::App(f, args) => {

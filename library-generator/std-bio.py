@@ -113,7 +113,7 @@ def fastqc(data: RNASeqData, ret: RNASeqData.S) -> RNASeqData.D:
     RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
     RUN(f"multiqc --filename output/{label}/multiqc.html output/{label}/fastqc")
 
-    return data.d
+    return data.dynamic
 
 
 @Function(
