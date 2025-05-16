@@ -83,14 +83,7 @@ pub fn interact(
 
     let lib = problem.library.clone();
 
-    let gen = codegen::Simple {
-        indent: 1,
-        color: true,
-    };
-
-    let gen = codegen::Full { library: &lib };
-
-    match implementation {
+    let gen: Box<dyn Codegen> = match implementation {
         Some(imp) => {
             let imp_filename = imp.display().to_string();
             let imp_string = std::fs::read_to_string(imp).map_err(|e| {
@@ -104,8 +97,12 @@ pub fn interact(
                 &imp_filename,
             );
             println!("{:?}", ast);
+            Box::new(codegen::Full { library: &lib })
         }
-        None => (),
+        None => Box::new(codegen::Simple {
+            indent: 1,
+            color: true,
+        }),
     };
 
     let timer = util::Timer::infinite();
