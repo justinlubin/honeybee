@@ -9,7 +9,7 @@ struct Compiler {
     content: String,
     tentative: String,
     ruleset: String,
-    fresh_counter: u16,
+    fresh_counter: u32,
 }
 
 impl Compiler {

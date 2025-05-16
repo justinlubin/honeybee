@@ -60,7 +60,7 @@ pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
         res = res.substitute(lhs, &rhs);
     }
 
-    Ok(codegen::python_multi(&res, 0, false))
+    Ok(codegen::simple_multi(&res, 0, false))
 }
 
 #[allow(non_snake_case)]
@@ -145,7 +145,7 @@ fn send_message() -> Result<JsValue, String> {
     }
 
     let msg = PbnStatusMessage {
-        workingExpression: codegen::python_multi(
+        workingExpression: codegen::simple_multi(
             &controller.working_expression(),
             0,
             false,

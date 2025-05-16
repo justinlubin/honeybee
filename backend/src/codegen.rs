@@ -6,6 +6,8 @@
 use crate::core::*;
 use crate::top_down;
 
+// Helpers
+
 fn python_value(v: &Value) -> String {
     match v {
         Value::Bool(true) => "True".to_owned(),
@@ -15,63 +17,10 @@ fn python_value(v: &Value) -> String {
     }
 }
 
-/// Translate an expression into a list of Python "cells" (prep for ipynb)
-#[allow(dead_code)]
-pub fn python_list_multi_wrapper(e: &Exp) -> String {
-    // Eventually use the ipynb crate here
-    let (_final_var_name, cells) = python_list_multi(e, Vec::new());
-    cells.join("\n\n")
-}
+// Simple Python format (helpful for quickly debugging or getting an overview)
 
-/// Generate a variable name based on the number of cells so far
-fn gen_var_name(cells: &[String]) -> String {
-    format!("var{}", cells.len()) // assume 1 assignment per cell
-}
-
-fn python_list_multi(e: &Exp, mut cells: Vec<String>) -> (String, Vec<String>) {
-    match e {
-        top_down::Sketch::Hole(h) => {
-            let var_name = gen_var_name(&cells);
-            cells.push(format!(
-                "{} = {}",
-                var_name,
-                top_down::pretty_hole_string(*h)
-            ));
-            (var_name, cells)
-        }
-        top_down::Sketch::App(f, args) => {
-            let mut arg_var_names = Vec::with_capacity(args.len());
-            for (_fp, arg) in args.iter() {
-                let (name, new_cells) = python_list_multi(arg, cells);
-                arg_var_names.push(name);
-                cells = new_cells
-            }
-            // cells length may have changed, so must gen var_name here
-            let var_name = gen_var_name(&cells);
-            let args_str = args
-                .iter()
-                .enumerate()
-                .map(|(i, (fp, _arg))| {
-                    format!("{}={}, ", fp.0, arg_var_names[i])
-                })
-                .collect::<String>();
-            let metadata_str = f
-                .metadata
-                .iter()
-                .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
-                .collect::<Vec<_>>()
-                .join(", ");
-            cells.push(format!(
-                "{} = {}({}_metadata={{{}}})",
-                var_name, f.name.0, args_str, metadata_str
-            ));
-            (var_name, cells)
-        }
-    }
-}
-
-/// Translate an expression into a multi-line Python expression
-pub fn python_multi(e: &Exp, current_indent: usize, color: bool) -> String {
+/// Translate an expression into a multi-line Python expression (simple style)
+pub fn simple_multi(e: &Exp, current_indent: usize, color: bool) -> String {
     match e {
         top_down::Sketch::Hole(h) => {
             if color {
@@ -90,7 +39,7 @@ pub fn python_multi(e: &Exp, current_indent: usize, color: bool) -> String {
                         "\n{}{}={},",
                         "  ".repeat(new_indent),
                         fp.0,
-                        python_multi(arg, new_indent, color)
+                        simple_multi(arg, new_indent, color)
                     ))
                     .collect::<Vec<_>>()
                     .join(""),
@@ -106,8 +55,8 @@ pub fn python_multi(e: &Exp, current_indent: usize, color: bool) -> String {
     }
 }
 
-/// Translate an expression into a single-line Python expression
-pub fn python_single(e: &Exp) -> String {
+/// Translate an expression into a single-line Python expression (simple style)
+pub fn simple_single(e: &Exp) -> String {
     match e {
         top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
         top_down::Sketch::App(f, args) => {
@@ -115,7 +64,7 @@ pub fn python_single(e: &Exp) -> String {
                 "{}({}{}_metadata={{{}}})",
                 f.name.0,
                 args.iter()
-                    .map(|(fp, arg)| format!("{}={}", fp.0, python_single(arg)))
+                    .map(|(fp, arg)| format!("{}={}", fp.0, simple_single(arg)))
                     .collect::<Vec<_>>()
                     .join(", "),
                 if args.is_empty() { "" } else { ", " },
@@ -129,41 +78,87 @@ pub fn python_single(e: &Exp) -> String {
     }
 }
 
-/// Translate an expression into a Python expression using the new format
-pub fn python(lib: &Library, e: &Exp, indent: usize) -> String {
-    match e {
-        top_down::Sketch::Hole(h) => top_down::plain_hole_string(*h),
-        top_down::Sketch::App(f, args) => {
-            let f_sig = lib.functions.get(&f.name).unwrap();
-            let metadata = format!(
-                "{}.S({})",
-                f_sig.ret.0,
-                f.metadata
-                    .iter()
-                    .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            );
-            format!(
-                "{}(\n{}static={},\n{}dynamic={}({}\n{}ret={}\n{}))",
-                f_sig.ret.0,
-                "    ".repeat(indent + 1),
-                metadata,
-                "    ".repeat(indent + 1),
-                f.name.0,
-                args.iter()
-                    .map(|(fp, arg)| format!(
-                        "\n{}{}={},",
-                        "    ".repeat(indent + 2),
-                        fp.0,
-                        python(lib, arg, indent + 2)
-                    ))
-                    .collect::<Vec<_>>()
-                    .join(""),
-                "    ".repeat(indent + 1),
-                metadata,
-                "    ".repeat(indent),
-            )
+// Full Python format
+
+struct Context<'a> {
+    library: &'a Library,
+    cells: Vec<String>,
+    fresh_counter: u32,
+}
+
+impl<'a> Context<'a> {
+    fn fresh_var(&mut self) -> String {
+        let s = format!("__x{}", self.fresh_counter);
+        self.fresh_counter += 1;
+        s
+    }
+
+    fn cell(
+        &mut self,
+        var_name: &str,
+        type_name: &str,
+        function_name: &str,
+        metadata_args: &Vec<(String, String)>,
+        args: &Vec<(String, String)>,
+    ) {
+        let mut s = "".to_owned();
+        s += &format!("{} = {}(\n", var_name, type_name);
+        s += &format!("    static={}.S(", type_name);
+        s += &metadata_args
+            .into_iter()
+            .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
+            .collect::<Vec<_>>()
+            .join(", ");
+        s += &format!("),\n    dynamic={}(", function_name);
+        s += &args
+            .into_iter()
+            .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
+            .collect::<Vec<_>>()
+            .join(", ");
+        s += "),\n)";
+        self.cells.push(s);
+    }
+
+    fn exp(&mut self, var_name: &str, e: &Exp) {
+        match e {
+            top_down::Sketch::Hole(h) => {
+                self.cells.push(format!(
+                    "{} = {}",
+                    var_name,
+                    top_down::plain_hole_string(*h)
+                ));
+            }
+            top_down::Sketch::App(f, args) => {
+                let f_sig = self.library.functions.get(&f.name).unwrap();
+                let mut arg_strings = vec![];
+                for (fp, arg) in args {
+                    let arg_var = self.fresh_var();
+                    self.exp(&arg_var, arg);
+                    arg_strings.push((fp.0.clone(), arg_var));
+                }
+                self.cell(
+                    var_name,
+                    &f_sig.ret.0,
+                    &f.name.0,
+                    &f.metadata
+                        .iter()
+                        .map(|(mp, v)| (mp.0.clone(), python_value(v)))
+                        .collect(),
+                    &arg_strings,
+                )
+            }
         }
     }
+}
+
+/// Translate an expression into a Python expression using the full format;
+/// returns a list of cells
+pub fn python(lib: &Library, e: &Exp) -> Vec<String> {
+    let mut ctx = Context {
+        library: lib,
+        cells: vec![],
+        fresh_counter: 0,
+    };
+    ctx.exp("goal", e);
+    ctx.cells
 }
