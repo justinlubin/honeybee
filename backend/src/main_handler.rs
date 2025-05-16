@@ -5,7 +5,9 @@
 use crate::*;
 
 use ansi_term::Color::*;
+use codegen::Codegen;
 use instant::Duration;
+use rustpython_parser::Parse;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -21,10 +23,12 @@ fn load_problem(
     library: PathBuf,
     program: PathBuf,
 ) -> Result<core::Problem, String> {
-    let lib_string =
-        std::fs::read_to_string(library).map_err(|e| e.to_string())?;
-    let prog_string =
-        std::fs::read_to_string(program).map_err(|e| e.to_string())?;
+    let lib_string = std::fs::read_to_string(library).map_err(|e| {
+        format!("error while reading library file: {}", e.to_string())
+    })?;
+    let prog_string = std::fs::read_to_string(program).map_err(|e| {
+        format!("error while reading program file: {}", e.to_string())
+    })?;
 
     let library = parse::library(&lib_string).map_err(|e| {
         format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
@@ -56,6 +60,7 @@ fn load_problem(
 pub fn interact(
     library: PathBuf,
     program: PathBuf,
+    implementation: Option<PathBuf>,
     quiet: bool,
     json: Option<PathBuf>,
     algorithm: menu::Algorithm,
@@ -75,7 +80,33 @@ pub fn interact(
     }
 
     let problem = load_problem(library, program)?;
+
     let lib = problem.library.clone();
+
+    let gen = codegen::Simple {
+        indent: 1,
+        color: true,
+    };
+
+    let gen = codegen::Full { library: &lib };
+
+    match implementation {
+        Some(imp) => {
+            let imp_filename = imp.display().to_string();
+            let imp_string = std::fs::read_to_string(imp).map_err(|e| {
+                format!(
+                    "error while reading implementation file: {}",
+                    e.to_string()
+                )
+            })?;
+            let ast = rustpython_parser::ast::Suite::parse(
+                &imp_string,
+                &imp_filename,
+            );
+            println!("{:?}", ast);
+        }
+        None => (),
+    };
 
     let timer = util::Timer::infinite();
     let mut controller = algorithm.controller(timer, problem);
@@ -95,18 +126,14 @@ pub fn interact(
 
         if !quiet {
             println!(
-                "{}\n\n{}\n\n  {}\n\n{}\n",
+                "{}\n\n{}\n\n{}\n\n{}\n",
                 Fixed(8).paint(format!(
                     "══ Round {} {}",
                     round,
                     "═".repeat(40)
                 )),
                 Cyan.bold().paint("Working expression:"),
-                codegen::simple_multi(
-                    &controller.working_expression(),
-                    1,
-                    true
-                ),
+                gen.exp(&controller.working_expression())?,
                 Cyan.bold().paint("Possible next steps:"),
             );
         }
@@ -170,16 +197,12 @@ pub fn interact(
     }
 
     if quiet {
-        println!(
-            "output: {}",
-            codegen::simple_multi(&controller.working_expression(), 1, true),
-        );
+        println!("output: {}", gen.exp(&controller.working_expression())?);
     } else {
         println!(
             "\n{}\n\n{}",
             Green.bold().paint("Final expression:"),
-            codegen::python(&lib, &controller.working_expression())
-                .join("\n\n"),
+            gen.exp(&controller.working_expression())?
         );
     }
 
@@ -214,7 +237,11 @@ pub fn translate(path: PathBuf, print_size: bool) -> Result<(), String> {
     let exp_string =
         std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let exp = parse::exp(&exp_string)?;
-    println!("{}", codegen::simple_multi(&exp, 0, false));
+    let gen = codegen::Simple {
+        indent: 0,
+        color: false,
+    };
+    println!("{}", gen.exp(&exp)?);
     if print_size {
         println!("# size: {}", exp.size());
     }

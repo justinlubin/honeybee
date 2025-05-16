@@ -6,7 +6,16 @@
 use crate::core::*;
 use crate::top_down;
 
-// Helpers
+////////////////////////////////////////////////////////////////////////////////
+// Core types
+
+/// Code generators
+pub trait Codegen {
+    fn exp(&self, e: &Exp) -> Result<String, String>;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Basic helpers
 
 fn python_value(v: &Value) -> String {
     match v {
@@ -17,76 +26,18 @@ fn python_value(v: &Value) -> String {
     }
 }
 
-// Simple Python format (helpful for quickly debugging or getting an overview)
+////////////////////////////////////////////////////////////////////////////////
+// Full Python style
 
-/// Translate an expression into a multi-line Python expression (simple style)
-pub fn simple_multi(e: &Exp, current_indent: usize, color: bool) -> String {
-    match e {
-        top_down::Sketch::Hole(h) => {
-            if color {
-                top_down::pretty_hole_string(*h)
-            } else {
-                top_down::plain_hole_string(*h)
-            }
-        }
-        top_down::Sketch::App(f, args) => {
-            let new_indent = current_indent + 1;
-            format!(
-                "{}({}\n{}_metadata={{{}}}\n{})",
-                f.name.0,
-                args.iter()
-                    .map(|(fp, arg)| format!(
-                        "\n{}{}={},",
-                        "  ".repeat(new_indent),
-                        fp.0,
-                        simple_multi(arg, new_indent, color)
-                    ))
-                    .collect::<Vec<_>>()
-                    .join(""),
-                "  ".repeat(new_indent),
-                f.metadata
-                    .iter()
-                    .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                "  ".repeat(current_indent)
-            )
-        }
-    }
-}
-
-/// Translate an expression into a single-line Python expression (simple style)
-pub fn simple_single(e: &Exp) -> String {
-    match e {
-        top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
-        top_down::Sketch::App(f, args) => {
-            format!(
-                "{}({}{}_metadata={{{}}})",
-                f.name.0,
-                args.iter()
-                    .map(|(fp, arg)| format!("{}={}", fp.0, simple_single(arg)))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                if args.is_empty() { "" } else { ", " },
-                f.metadata
-                    .iter()
-                    .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        }
-    }
-}
-
-// Full Python format
-
-struct Context<'a> {
+/// Struct for translating an expression into a Python expression using the
+/// full format; returns a list of cells
+struct FullContext<'a> {
     library: &'a Library,
     cells: Vec<String>,
     fresh_counter: u32,
 }
 
-impl<'a> Context<'a> {
+impl<'a> FullContext<'a> {
     fn fresh_var(&mut self) -> String {
         let s = format!("__x{}", self.fresh_counter);
         self.fresh_counter += 1;
@@ -151,14 +102,95 @@ impl<'a> Context<'a> {
     }
 }
 
-/// Translate an expression into a Python expression using the full format;
-/// returns a list of cells
-pub fn python(lib: &Library, e: &Exp) -> Vec<String> {
-    let mut ctx = Context {
-        library: lib,
-        cells: vec![],
-        fresh_counter: 0,
-    };
-    ctx.exp("goal", e);
-    ctx.cells
+pub struct Full<'a> {
+    pub library: &'a Library,
+}
+
+impl<'a> Codegen for Full<'a> {
+    fn exp(&self, e: &Exp) -> Result<String, String> {
+        let mut ctx = FullContext {
+            library: self.library,
+            cells: vec![],
+            fresh_counter: 0,
+        };
+        ctx.exp("goal", e);
+        Ok(ctx.cells.join("\n\n"))
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Simple Python style
+
+/// Translate an expression into a multi-line Python expression (simple style).
+/// This is helpful for quickly getting an overview or debugging.
+pub struct Simple {
+    pub indent: usize,
+    pub color: bool,
+}
+
+impl Simple {
+    fn exp_helper(&self, e: &Exp, indent_offset: usize) -> String {
+        match e {
+            top_down::Sketch::Hole(h) => {
+                if self.color {
+                    top_down::pretty_hole_string(*h)
+                } else {
+                    top_down::plain_hole_string(*h)
+                }
+            }
+            top_down::Sketch::App(f, args) => {
+                format!(
+                    "{}({}\n{}_metadata={{{}}}\n{})",
+                    f.name.0,
+                    args.iter()
+                        .map(|(fp, arg)| format!(
+                            "\n{}{}={},",
+                            "  ".repeat(self.indent + indent_offset + 1),
+                            fp.0,
+                            self.exp_helper(arg, indent_offset + 1)
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(""),
+                    "  ".repeat(self.indent + indent_offset + 1),
+                    f.metadata
+                        .iter()
+                        .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    "  ".repeat(self.indent + indent_offset)
+                )
+            }
+        }
+    }
+}
+
+impl Codegen for Simple {
+    fn exp(&self, e: &Exp) -> Result<String, String> {
+        Ok("  ".repeat(self.indent) + &self.exp_helper(e, 0))
+    }
+}
+
+/// Translate an expression into a single-line Python expression (simple style).
+/// This is an extra goody mostly for CLI purposes (should probably be
+/// deprecated and replaced with a better way to display options).
+pub fn simple_single(e: &Exp) -> String {
+    match e {
+        top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
+        top_down::Sketch::App(f, args) => {
+            format!(
+                "{}({}{}_metadata={{{}}})",
+                f.name.0,
+                args.iter()
+                    .map(|(fp, arg)| format!("{}={}", fp.0, simple_single(arg)))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                if args.is_empty() { "" } else { ", " },
+                f.metadata
+                    .iter()
+                    .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
+    }
 }

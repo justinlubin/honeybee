@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use honeybee::main_handler;
 
 use ansi_term::Color::*;
@@ -79,6 +77,10 @@ enum Command {
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
 
+        /// The implementation file to use (.py)
+        #[arg(short, long, value_name = "FILE")]
+        implementation: Option<PathBuf>,
+
         /// Whether or not to use "quiet" mode
         #[arg(short, long, action)]
         quiet: bool,
@@ -157,12 +159,14 @@ impl Command {
             Self::Interact {
                 library,
                 program,
+                implementation,
                 quiet,
                 json,
                 algorithm,
             } => main_handler::interact(
                 library,
                 program,
+                implementation,
                 quiet,
                 custom_parse::at_most_one_path(&json),
                 algorithm,

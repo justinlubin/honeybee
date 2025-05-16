@@ -17,6 +17,7 @@ mod typecheck;
 mod unparse;
 mod util;
 
+use codegen::Codegen;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -60,7 +61,11 @@ pub fn autopilot(lib_src: &str, prog_src: &str) -> Result<String, String> {
         res = res.substitute(lhs, &rhs);
     }
 
-    Ok(codegen::simple_multi(&res, 0, false))
+    let gen = codegen::Simple {
+        indent: 0,
+        color: false,
+    };
+    gen.exp(&res)
 }
 
 #[allow(non_snake_case)]
@@ -144,12 +149,13 @@ fn send_message() -> Result<JsValue, String> {
         }
     }
 
+    let gen = codegen::Simple {
+        indent: 0,
+        color: false,
+    };
+
     let msg = PbnStatusMessage {
-        workingExpression: codegen::simple_multi(
-            &controller.working_expression(),
-            0,
-            false,
-        ),
+        workingExpression: gen.exp(&controller.working_expression())?,
         choices,
         valid: controller.valid(),
     };
