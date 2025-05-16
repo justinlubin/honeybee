@@ -95,9 +95,11 @@ pub fn interact(
             let ast = rustpython_parser::ast::Suite::parse(
                 &imp_string,
                 &imp_filename,
-            );
-            println!("{:?}", ast);
-            Box::new(codegen::Full { library: &lib })
+            )
+            .map_err(|e| {
+                format!("Python parse error in implementation file: {}", e)
+            })?;
+            Box::new(codegen::Full::new(&lib, ast)?)
         }
         None => Box::new(codegen::Simple {
             indent: 1,
