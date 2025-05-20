@@ -103,73 +103,71 @@ impl<'a> FullContext<'a> {
     }
 }
 
-fn find_decorator(
-    decorator_list: &Vec<rustpython_ast::Expr>,
-    name: &str,
-) -> Option<usize> {
-    let id = rustpython_ast::Identifier::new(name);
-    for (i, e) in decorator_list.iter().enumerate() {
-        let name = match e {
-            rustpython_ast::Expr::Call(c) => match &*c.func {
-                rustpython_ast::Expr::Name(n) => n,
-                _ => continue,
-            },
-            rustpython_ast::Expr::Name(n) => n,
-            _ => continue,
-        };
-        if name.id == id {
-            return Some(i);
-        }
-    }
-    None
-}
+// fn find_decorator(
+//     decorator_list: &Vec<rustpython_ast::Expr>,
+//     name: &str,
+// ) -> Option<usize> {
+//     let id = rustpython_ast::Identifier::new(name);
+//     for (i, e) in decorator_list.iter().enumerate() {
+//         let name = match e {
+//             rustpython_ast::Expr::Call(c) => match &*c.func {
+//                 rustpython_ast::Expr::Name(n) => n,
+//                 _ => continue,
+//             },
+//             rustpython_ast::Expr::Name(n) => n,
+//             _ => continue,
+//         };
+//         if name.id == id {
+//             return Some(i);
+//         }
+//     }
+//     None
+// }
 
 pub struct Full<'a> {
     library: &'a Library,
 }
 
 impl<'a> Full<'a> {
-    pub fn new(
-        library: &'a Library,
-        imp_ast: rustpython_ast::Suite,
-    ) -> Result<Self, String> {
-        use rustpython_ast as ast;
+    pub fn new(library: &'a Library) -> Result<Self, String> {
+        // use rustpython_ast as ast;
 
-        let mut preamble = vec![];
-        for stmt in imp_ast {
-            match stmt {
-                ast::Stmt::ImportFrom(if_) => {
-                    if if_.module == Some("lib".into()) {
-                        continue;
-                    } else {
-                        preamble.push(ast::Stmt::ImportFrom(if_))
-                    }
-                }
-                ast::Stmt::ClassDef(mut cd) => {
-                    if let Some(i) = find_decorator(&cd.decorator_list, "Prop")
-                    {
-                        cd.decorator_list.remove(i);
-                        println!("special prop: {:?}", cd.name);
-                    } else if let Some(i) =
-                        find_decorator(&cd.decorator_list, "Type")
-                    {
-                        cd.decorator_list.remove(i);
-                        println!("special type: {:?}", cd.name);
-                    }
-                    preamble.push(ast::Stmt::ClassDef(cd))
-                }
-                ast::Stmt::FunctionDef(mut fd) => {
-                    if let Some(i) =
-                        find_decorator(&fd.decorator_list, "Function")
-                    {
-                        fd.decorator_list.remove(i);
-                        println!("special function: {:?}", fd.name);
-                    }
-                    preamble.push(ast::Stmt::FunctionDef(fd))
-                }
-                _ => preamble.push(stmt),
-            }
-        }
+        // let mut preamble = vec![];
+        // for stmt in imp_ast {
+        //     match stmt {
+        //         ast::Stmt::ImportFrom(if_) => {
+        //             if if_.module == Some("lib".into()) {
+        //                 continue;
+        //             } else {
+        //                 preamble.push(ast::Stmt::ImportFrom(if_))
+        //             }
+        //         }
+        //         ast::Stmt::ClassDef(mut cd) => {
+        //             if let Some(i) = find_decorator(&cd.decorator_list, "Prop")
+        //             {
+        //                 cd.decorator_list.remove(i);
+        //                 println!("special prop: {:?}", cd.name.as_str());
+        //             } else if let Some(i) =
+        //                 find_decorator(&cd.decorator_list, "Type")
+        //             {
+        //                 cd.decorator_list.remove(i);
+        //                 println!("special type: {:?}", cd.name);
+        //             }
+        //             preamble.push(ast::Stmt::ClassDef(cd))
+        //         }
+        //         ast::Stmt::FunctionDef(mut fd) => {
+        //             if let Some(i) =
+        //                 find_decorator(&fd.decorator_list, "Function")
+        //             {
+        //                 fd.decorator_list.remove(i);
+        //                 println!("special function: {:?}", fd.name);
+        //             }
+        //             preamble.push(ast::Stmt::FunctionDef(fd))
+        //         }
+        //         _ => preamble.push(stmt),
+        //     }
+        // }
+
         Ok(Full { library })
     }
 }

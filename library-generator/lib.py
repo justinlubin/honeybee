@@ -40,9 +40,9 @@ def _python_to_honeybee(type_name: str) -> str:
         raise ValueError("Unable to convert to Honeybee type: " + type_name)
 
 
-def _emit_fact(fact_kind, cls, name, kwargs):
+def _emit_fact(fact_kind, cls, parent_cls, kwargs):
     types, docs = _attribute_info(cls)
-    print(f"[{fact_kind}.{name}]")
+    print(f"[{fact_kind}.{parent_cls.__name__}]")
     if len(types) == 0:
         print("params = {}")
     for p in types:
@@ -54,6 +54,13 @@ def _emit_fact(fact_kind, cls, name, kwargs):
         print(f'info.params.{p} = "{docs[p]}"')
     for k in kwargs:
         print(f'info.{k} = "{kwargs[k]}"')
+    code = inspect.getsource(parent_cls)
+    new_code = ""
+    for line in code.splitlines():
+        if line.startswith("@Type") or line.startswith("@Prop"):
+            continue
+        new_code += line + "\n"
+    print(f"info.code = '''{new_code.strip()}'''")
     print()
 
 
@@ -89,13 +96,23 @@ def _emit_function(f, condition, kwargs):
         print(f'info.overview = "{f.__doc__}"')
     for k in kwargs:
         print(f'info.{k} = "{kwargs[k]}"')
+    code = inspect.getsource(f)
+    new_code = ""
+    found_def = False
+    for line in code.splitlines():
+        if line.startswith("def"):
+            found_def = True
+        if not found_def:
+            continue
+        new_code += line + "\n"
+    print(f"info.code = '''{new_code.strip()}'''")
     print()
 
 
 # Based on https://stackoverflow.com/a/14412901
 def Prop(*args, **kwargs):
     def wrap(cls):
-        _emit_fact("Prop", cls, cls.__name__, kwargs)
+        _emit_fact("Prop", cls, cls, kwargs)
         cls.__honeybee_object = "Prop"
         return dataclasses.dataclass(cls)
 
@@ -108,7 +125,7 @@ def Prop(*args, **kwargs):
 # Based on https://stackoverflow.com/a/14412901
 def Type(*args, **kwargs):
     def wrap(cls):
-        _emit_fact("Type", cls.S, cls.__name__, kwargs)
+        _emit_fact("Type", cls.S, cls, kwargs)
         cls.S.__honeybee_parent = cls
         cls.D.__honeybee_parent = cls
         cls.__honeybee_object = "Type"

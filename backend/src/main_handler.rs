@@ -7,7 +7,6 @@ use crate::*;
 use ansi_term::Color::*;
 use codegen::Codegen;
 use instant::Duration;
-use rustpython_parser::Parse;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -60,7 +59,6 @@ fn load_problem(
 pub fn interact(
     library: PathBuf,
     program: PathBuf,
-    implementation: Option<PathBuf>,
     quiet: bool,
     json: Option<PathBuf>,
     algorithm: menu::Algorithm,
@@ -83,28 +81,13 @@ pub fn interact(
 
     let lib = problem.library.clone();
 
-    let gen: Box<dyn Codegen> = match implementation {
-        Some(imp) => {
-            let imp_filename = imp.display().to_string();
-            let imp_string = std::fs::read_to_string(imp).map_err(|e| {
-                format!(
-                    "error while reading implementation file: {}",
-                    e.to_string()
-                )
-            })?;
-            let ast = rustpython_parser::ast::Suite::parse(
-                &imp_string,
-                &imp_filename,
-            )
-            .map_err(|e| {
-                format!("Python parse error in implementation file: {}", e)
-            })?;
-            Box::new(codegen::Full::new(&lib, ast)?)
-        }
-        None => Box::new(codegen::Simple {
+    let gen: Box<dyn Codegen> = if true {
+        Box::new(codegen::Full::new(&lib)?)
+    } else {
+        Box::new(codegen::Simple {
             indent: 1,
             color: true,
-        }),
+        })
     };
 
     let timer = util::Timer::infinite();
