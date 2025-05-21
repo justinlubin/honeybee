@@ -279,13 +279,33 @@ header ol {
 }
 
 .direct-manipulation-pbn {
-    margin-left: 10px;
+    background-color: var(--primary1);
+    border: 1px solid var(--primary3);
+    margin: var(--minor-spacing) 0;
+    padding: var(--minor-spacing);
+    border-radius: 5px;
+    overflow-x: scroll;
+}
+
+.code-line pre {
+    display: inline-block;
 }
 
 .code-line code {
     display: inline-block;
+    font-size: 0.9em;
 }
 
 .pbn-completed h3 {
     margin-bottom: var(--minor-spacing);
+}
+
+/* || Custom Prism styles */
+
+.token.operator {
+    background: none;
+}
+
+code[class*="language-"] {
+    text-shadow: none;
 }

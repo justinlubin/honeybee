@@ -3,4 +3,4 @@ module Config exposing (..)
 
 debug : Bool
 debug =
-    False
+    True

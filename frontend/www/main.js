@@ -1,3 +1,6 @@
+////////////////////////////////////////////////////////////////////////////////
+// Honeybee loading
+
 import init, * as Honeybee from "./pkg/honeybee.js";
 
 await init();
@@ -39,10 +42,53 @@ for (const [name, kvs] of library.Type) {
 
 console.log(flags);
 
+////////////////////////////////////////////////////////////////////////////////
+// Custom elements
+
+customElements.define(
+    "fancy-code",
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this._code = null;
+        }
+
+        set code(value) {
+            this._code = value;
+
+            const preElement = document.createElement("pre");
+            const codeElement = document.createElement("code");
+
+            const language = this.getAttribute("language");
+            if (language) {
+                codeElement.className = "language-" + language;
+            }
+
+            codeElement.innerText = this._code;
+
+            Prism.highlightElement(codeElement);
+
+            this.textContent = "";
+            preElement.appendChild(codeElement);
+            this.appendChild(preElement);
+        }
+
+        get code() {
+            return this._code;
+        }
+    },
+);
+
+////////////////////////////////////////////////////////////////////////////////
+// Elm initialization
+
 const app = Elm.Main.init({
     node: document.getElementById("app"),
     flags: flags,
 });
+
+////////////////////////////////////////////////////////////////////////////////
+// Elm ports
 
 app.ports.scrollIntoView.subscribe((msg) => {
     document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });

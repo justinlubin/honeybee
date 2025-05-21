@@ -8,6 +8,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
+import Json.Encode
 import Model exposing (Model)
 import Port
 import Update exposing (Msg)
@@ -221,10 +222,8 @@ directManipulationPbn { workingExpression, choices } =
                             [ left, right ] ->
                                 case
                                     right
-                                        |> String.split ","
-                                        |> List.head
-                                        |> Maybe.map Util.unSubscriptNumbers
-                                        |> Maybe.andThen String.toInt
+                                        |> Util.unSubscriptNumbers
+                                        |> String.toInt
                                 of
                                     Just h ->
                                         ( left, Just h )
@@ -252,7 +251,11 @@ directManipulationPbn { workingExpression, choices } =
                 (\( line, maybeHole ) ->
                     div
                         [ A.class "code-line" ]
-                        [ code [] [ pre [] [ text line ] ]
+                        [ node "fancy-code"
+                            [ A.attribute "language" "python"
+                            , A.property "code" (Json.Encode.string line)
+                            ]
+                            []
                         , case maybeHole of
                             Just h ->
                                 case Assoc.get h collectedChoices of

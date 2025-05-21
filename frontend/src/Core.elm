@@ -184,19 +184,11 @@ exampleWorkflow =
     W
         { steps =
             [ SConcrete
-                { name = "RNAseq"
+                { name = "RNASeqProp"
                 , args =
-                    [ ( "sample", VStr "1" )
-                    , ( "path", VStr "raw_data/rnaseq/control/" )
-                    ]
-                , argLabels = Dict.empty
-                , overview = Nothing
-                }
-            , SConcrete
-                { name = "RNAseq"
-                , args =
-                    [ ( "sample", VStr "2" )
-                    , ( "path", VStr "raw_data/rnaseq/experimental/" )
+                    [ ( "label", VStr "main" )
+                    , ( "sample_sheet", VStr "metadata/samples.csv" )
+                    , ( "raw_data", VStr "raw-data" )
                     ]
                 , argLabels = Dict.empty
                 , overview = Nothing
@@ -204,10 +196,9 @@ exampleWorkflow =
             ]
         , goal =
             SConcrete
-                { name = "DifferentialGeneExpression"
+                { name = "TranscriptMatrices"
                 , args =
-                    [ ( "sample1", VStr "1" )
-                    , ( "sample2", VStr "2" )
+                    [ ( "label", VStr "main" )
                     ]
                 , argLabels = Dict.empty
                 , overview = Nothing
