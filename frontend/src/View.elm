@@ -38,7 +38,7 @@ arg : StepIndex -> Dict String String -> String -> ( Value, List Value ) -> Html
 arg si argLabels argName ( v, suggestions ) =
     let
         id =
-            "step-"
+            "step-argument"
                 ++ (case si of
                         Goal ->
                             "GOAL"
@@ -46,7 +46,6 @@ arg si argLabels argName ( v, suggestions ) =
                         Step i ->
                             String.fromInt i
                    )
-                ++ "-argument-"
                 ++ argName
 
         debugSuffix =
@@ -369,6 +368,9 @@ view model =
             [ h2 []
                 [ span [] [ text "Step 1: " ]
                 , span [] [ text "Write down your experimental workflow" ]
+                , button
+                    [ E.onClick Update.LoadExample ]
+                    [ text "Try an example!" ]
                 ]
             , workflow model model.workflow
             , startNavigation model.workflow

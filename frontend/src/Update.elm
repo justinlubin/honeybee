@@ -22,6 +22,7 @@ type Msg
     | ReceivePbnStatus Port.PbnStatusMessage
     | Download Port.DownloadMessage
     | ReceiveValidGoalMetadata Port.ValidGoalMetadataMessage
+    | LoadExample
 
 
 valueFromString : ValueType -> String -> Value
@@ -223,6 +224,11 @@ update msg model =
                           }
                         , Cmd.none
                         )
+
+        LoadExample ->
+            ( { model | workflow = Core.exampleWorkflow }
+            , Cmd.none
+            )
 
 
 subscriptions : Model -> Sub Msg
