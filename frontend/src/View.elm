@@ -368,9 +368,6 @@ view model =
             [ h2 []
                 [ span [] [ text "Step 1: " ]
                 , span [] [ text "Write down your experimental workflow" ]
-                , button
-                    [ E.onClick Update.LoadExample ]
-                    [ text "Try an example!" ]
                 ]
             , workflow model model.workflow
             , startNavigation model.workflow
@@ -389,4 +386,9 @@ view model =
                 ]
             , pbnStatus model.pbnStatus
             ]
+        , button
+            [ A.id "devmode"
+            , E.onClick Update.LoadExample
+            ]
+            [ text "devmode" ]
         ]
