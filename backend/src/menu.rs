@@ -1,4 +1,4 @@
-//! # A menu of possible synthesizers
+//! # A menu of possible synthesizers and code generators
 //!
 //! This module hooks together all the components (ingredients) of this project
 //! into a set of items on a menu of possible choices. To the extent possible,
@@ -8,6 +8,9 @@
 use crate::*;
 
 use serde::{Deserialize, Serialize};
+
+////////////////////////////////////////////////////////////////////////////////
+// Synthesizers
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Algorithm {
@@ -19,7 +22,7 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    /// A list of all the possible synthesizers
+    /// The list of all the possible synthesizers
     pub fn all() -> Vec<Self> {
         vec![
             Self::PBNHoneybee,
@@ -154,6 +157,44 @@ impl Algorithm {
 }
 
 impl std::str::FromStr for Algorithm {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(&format!("\"{}\"", s))
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Code generators
+//
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum CodegenStyle {
+    Simple,
+    Full,
+}
+
+impl CodegenStyle {
+    /// The list of all the possible code generators
+    pub fn all() -> Vec<Self> {
+        vec![Self::Simple, Self::Full]
+    }
+
+    /// Returns a code generator for the given style
+    pub fn codegen(
+        &self,
+        library: core::Library,
+    ) -> Result<Box<dyn Codegen>, String> {
+        match self {
+            Self::Simple => Ok(Box::new(codegen::Simple {
+                indent: 1,
+                color: true,
+            })),
+            Self::Full => Ok(Box::new(codegen::Full::new(library)?)),
+        }
+    }
+}
+
+impl std::str::FromStr for CodegenStyle {
     type Err = serde_json::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

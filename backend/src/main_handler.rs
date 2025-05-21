@@ -59,6 +59,7 @@ fn load_problem(
 pub fn interact(
     library: PathBuf,
     program: PathBuf,
+    style: menu::CodegenStyle,
     quiet: bool,
     json: Option<PathBuf>,
     algorithm: menu::Algorithm,
@@ -78,17 +79,7 @@ pub fn interact(
     }
 
     let problem = load_problem(library, program)?;
-
-    let lib = problem.library.clone();
-
-    let gen: Box<dyn Codegen> = if true {
-        Box::new(codegen::Full::new(&lib)?)
-    } else {
-        Box::new(codegen::Simple {
-            indent: 1,
-            color: true,
-        })
-    };
+    let gen = style.codegen(problem.library.clone())?;
 
     let timer = util::Timer::infinite();
     let mut controller = algorithm.controller(timer, problem);

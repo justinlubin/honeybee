@@ -55,6 +55,19 @@ pub struct MetSignature {
     pub info: Option<toml::Table>,
 }
 
+impl MetSignature {
+    /// Retrieve info string
+    pub fn info_string(&self, key: &str) -> Option<String> {
+        match &self.info {
+            Some(inf) => match inf.get(key) {
+                Some(toml::Value::String(s)) => Some(s.clone()),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+}
+
 /// Libraries of metadata-indexed tuples.
 pub type MetLibrary = IndexMap<MetName, MetSignature>;
 
@@ -186,6 +199,17 @@ impl FunctionSignature {
     /// Returns the set of values in a function signature.
     pub fn vals(&self) -> IndexSet<Value> {
         self.condition.vals()
+    }
+
+    /// Retrieve info string
+    pub fn info_string(&self, key: &str) -> Option<String> {
+        match &self.info {
+            Some(inf) => match inf.get(key) {
+                Some(toml::Value::String(s)) => Some(s.clone()),
+                _ => None,
+            },
+            None => None,
+        }
     }
 }
 

@@ -77,6 +77,10 @@ enum Command {
         #[arg(short, long, value_name = "FILE")]
         program: PathBuf,
 
+        /// The codegen style to use
+        #[arg(short, long, value_name = "STYLE", default_value = "Full")]
+        style: honeybee::menu::CodegenStyle,
+
         /// Whether or not to use "quiet" mode
         #[arg(short, long, action)]
         quiet: bool,
@@ -155,12 +159,14 @@ impl Command {
             Self::Interact {
                 library,
                 program,
+                style,
                 quiet,
                 json,
                 algorithm,
             } => main_handler::interact(
                 library,
                 program,
+                style,
                 quiet,
                 custom_parse::at_most_one_path(&json),
                 algorithm,

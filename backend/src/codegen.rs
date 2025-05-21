@@ -5,6 +5,8 @@
 
 use crate::core::*;
 use crate::top_down;
+use indexmap::IndexSet;
+use std::collections::HashMap;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Core types
@@ -34,13 +36,23 @@ fn python_value(v: &Value) -> String {
 struct FullContext<'a> {
     library: &'a Library,
     cells: Vec<String>,
-    fresh_counter: u32,
+    fresh_counter: HashMap<String, usize>,
+    used_types: IndexSet<MetName>,
 }
 
 impl<'a> FullContext<'a> {
-    fn fresh_var(&mut self) -> String {
-        let s = format!("__x{}", self.fresh_counter);
-        self.fresh_counter += 1;
+    fn fresh_var(&mut self, prefix: &str) -> String {
+        let c = self.fresh_counter.entry(prefix.to_owned()).or_insert(1);
+        let s = format!(
+            "{}{}",
+            prefix,
+            if *c > 1 {
+                format!("{}", *c)
+            } else {
+                "".to_owned()
+            }
+        );
+        *c += 1;
         s
     }
 
@@ -51,9 +63,22 @@ impl<'a> FullContext<'a> {
         function_name: &str,
         metadata_args: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
+        title: Option<String>,
+        code: Option<String>,
     ) {
         let mut s = "".to_owned();
-        s += &format!("# %%\n{} = {}(\n", var_name, type_name);
+        s += &format!(
+            "# %%{}\n\n",
+            match title {
+                Some(t) => format!(" {}", t),
+                None => "".to_owned(),
+            }
+        );
+        match code {
+            Some(code) => s += &format!("{}\n\n", code),
+            None => (),
+        };
+        s += &format!("{} = {}(\n", var_name, type_name);
         s += &format!("    static={}.S(", type_name);
         s += &metadata_args
             .into_iter()
@@ -74,7 +99,7 @@ impl<'a> FullContext<'a> {
         match e {
             top_down::Sketch::Hole(h) => {
                 self.cells.push(format!(
-                    "# %%\n{} = {}\n{}",
+                    "# %%\n\n{} = {}\n{}",
                     var_name,
                     top_down::plain_hole_string(*h),
                     var_name,
@@ -82,12 +107,21 @@ impl<'a> FullContext<'a> {
             }
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
+                self.used_types.insert(f_sig.ret.clone());
+
                 let mut arg_strings = vec![];
                 for (fp, arg) in args {
-                    let arg_var = self.fresh_var();
+                    let mn = f_sig.params.get(fp).unwrap().clone();
+                    let arg_sig = self.library.types.get(&mn).unwrap();
+                    let arg_var = self.fresh_var(
+                        &arg_sig
+                            .info_string("var_name")
+                            .unwrap_or(mn.0.to_uppercase().to_owned()),
+                    );
                     self.exp(&arg_var, arg);
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
+
                 self.cell(
                     var_name,
                     &f_sig.ret.0,
@@ -97,90 +131,45 @@ impl<'a> FullContext<'a> {
                         .map(|(mp, v)| (mp.0.clone(), python_value(v)))
                         .collect(),
                     &arg_strings,
+                    f_sig.info_string("overview"),
+                    f_sig.info_string("code"),
                 )
             }
         }
     }
 }
 
-// fn find_decorator(
-//     decorator_list: &Vec<rustpython_ast::Expr>,
-//     name: &str,
-// ) -> Option<usize> {
-//     let id = rustpython_ast::Identifier::new(name);
-//     for (i, e) in decorator_list.iter().enumerate() {
-//         let name = match e {
-//             rustpython_ast::Expr::Call(c) => match &*c.func {
-//                 rustpython_ast::Expr::Name(n) => n,
-//                 _ => continue,
-//             },
-//             rustpython_ast::Expr::Name(n) => n,
-//             _ => continue,
-//         };
-//         if name.id == id {
-//             return Some(i);
-//         }
-//     }
-//     None
-// }
-
-pub struct Full<'a> {
-    library: &'a Library,
+pub struct Full {
+    library: Library,
 }
 
-impl<'a> Full<'a> {
-    pub fn new(library: &'a Library) -> Result<Self, String> {
-        // use rustpython_ast as ast;
-
-        // let mut preamble = vec![];
-        // for stmt in imp_ast {
-        //     match stmt {
-        //         ast::Stmt::ImportFrom(if_) => {
-        //             if if_.module == Some("lib".into()) {
-        //                 continue;
-        //             } else {
-        //                 preamble.push(ast::Stmt::ImportFrom(if_))
-        //             }
-        //         }
-        //         ast::Stmt::ClassDef(mut cd) => {
-        //             if let Some(i) = find_decorator(&cd.decorator_list, "Prop")
-        //             {
-        //                 cd.decorator_list.remove(i);
-        //                 println!("special prop: {:?}", cd.name.as_str());
-        //             } else if let Some(i) =
-        //                 find_decorator(&cd.decorator_list, "Type")
-        //             {
-        //                 cd.decorator_list.remove(i);
-        //                 println!("special type: {:?}", cd.name);
-        //             }
-        //             preamble.push(ast::Stmt::ClassDef(cd))
-        //         }
-        //         ast::Stmt::FunctionDef(mut fd) => {
-        //             if let Some(i) =
-        //                 find_decorator(&fd.decorator_list, "Function")
-        //             {
-        //                 fd.decorator_list.remove(i);
-        //                 println!("special function: {:?}", fd.name);
-        //             }
-        //             preamble.push(ast::Stmt::FunctionDef(fd))
-        //         }
-        //         _ => preamble.push(stmt),
-        //     }
-        // }
-
+impl Full {
+    pub fn new(library: Library) -> Result<Self, String> {
         Ok(Full { library })
     }
 }
 
-impl<'a> Codegen for Full<'a> {
+impl Codegen for Full {
     fn exp(&self, e: &Exp) -> Result<String, String> {
         let mut ctx = FullContext {
-            library: self.library,
+            library: &self.library,
             cells: vec![],
-            fresh_counter: 0,
+            fresh_counter: HashMap::new(),
+            used_types: IndexSet::new(),
         };
-        ctx.exp("goal", e);
-        Ok(ctx.cells.join("\n\n"))
+        ctx.exp("GOAL", e);
+        let mut s = "".to_owned();
+        for t in &ctx.used_types {
+            if s.is_empty() {
+                s += "# %% Types\n\n";
+            }
+            match self.library.types.get(t).unwrap().info_string("code") {
+                Some(code) => s += &format!("{}\n\n", code),
+                None => (),
+            }
+        }
+        s += &ctx.cells.join("\n\n");
+        Ok(s)
     }
 }
 

@@ -1,0 +1,9 @@
+[[Prop]]
+name = "RNASeqProp"
+args.label = "main"
+args.sample_sheet = "samples/"
+args.raw_data = "raw-data/"
+
+[Goal]
+name = "TranscriptMatrices"
+args.label = "main"

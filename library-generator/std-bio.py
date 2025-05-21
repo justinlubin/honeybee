@@ -17,7 +17,7 @@ def sample_names(filename):
     return sn
 
 
-# TODO auto-generate
+# TODO auto-generate?
 @Prop
 class RNASeqProp:
     "RNA-seq"
@@ -32,9 +32,9 @@ class RNASeqProp:
     "Path to raw FASTQ files"
 
 
-@Type
-class RNASeq:
-    "RNA-seq"
+@Type(var_name="RNA_SAMPLES")
+class RNASeqSamples:
+    "RNA-seq samples"
 
     class S:
         label: str
@@ -50,17 +50,17 @@ class RNASeq:
         pass
 
 
-# TODO auto-generate
+# TODO auto-generate?
 @Function(
     "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }"
 )
-def reify_rna_seq(ret: RNASeq) -> RNASeq.D:
-    return RNASeq.D()
+def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
+    return RNASeqSamples.D()
 
 
 @Type
-class RNASeqData:
-    "Quality-checked RNA-seq data"
+class RNASeq:
+    "RNA-seq data"
 
     class S:
         label: str
@@ -75,12 +75,15 @@ class RNASeqData:
 
 
 @Function(
-    "ret.label = rna_seq.label",
+    "ret.label = samples.label",
     "ret.qc = false",
 )
-def load_rna_seq_data(rna_seq: RNASeq, ret: RNASeqData.S) -> RNASeqData.D:
+def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
     """Load RNA-seq dataset"""
-    return rna_seq.dynamic
+    return RNASeq.D(
+        sample_sheet=samples.static.sample_sheet,
+        path=samples.static.raw_data,
+    )
 
 
 @Type
@@ -101,7 +104,7 @@ class TranscriptMatrices:
     "ret.label = data.label",
     "ret.qc = true",
 )
-def fastqc(data: RNASeqData, ret: RNASeqData.S) -> RNASeqData.D:
+def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check RNA-seq data (FastQC)"""
 
     print("Running fastqc...")
@@ -121,11 +124,11 @@ def fastqc(data: RNASeqData, ret: RNASeqData.S) -> RNASeqData.D:
     "ret.label = data.label",
     "ret.qc = false",
 )
-def cutadapt_illumina(data: RNASeqData, ret: RNASeqData.S) -> RNASeqData.D:
+def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Remove Illumina universal adaptor and poly-A tails (cutadapt)"""
 
     in_path = data.dynamic.path
-    ret_path = "output/{ret.label}/cutadapt_trimmed"
+    ret_path = f"output/{ret.label}/cutadapt_trimmed"
 
     RUN(f"mkdir -p {ret_path}")
     for name in sample_names(data.sample_sheet):
@@ -141,7 +144,7 @@ def cutadapt_illumina(data: RNASeqData, ret: RNASeqData.S) -> RNASeqData.D:
                     {in_path}/{name}_R1_001.fastq.gz \\
                     {in_path}/{name}_R2_001.fastq.gz""")
 
-    return RNASeqData.D(
+    return RNASeq.D(
         sample_sheet=data.dynamic.sample_sheet,
         path=ret_path,
     )
@@ -151,11 +154,11 @@ def cutadapt_illumina(data: RNASeqData, ret: RNASeqData.S) -> RNASeqData.D:
     "data.qc = true",
     "ret.label = data.label",
 )
-def kallisto(data: RNASeqData, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Quantify transcript abundances (kallisto)"""
 
     in_path = data.dynamic.path
-    ret_path = "output/{ret.label}/kallisto_quant"
+    ret_path = f"output/{ret.label}/kallisto_quant"
 
     RUN(f"mkdir {ret_path}")
     for name in sample_names(data.sample_sheet):
