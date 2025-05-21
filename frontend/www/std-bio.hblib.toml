@@ -1,3 +1,17 @@
+[[Preamble]]
+content='''def RUN(command):
+    return subprocess.run(
+        command,
+        shell=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()'''
+
+[[Preamble]]
+content='''def sample_names(filename):
+    sn = RUN(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
+    return sn'''
+
 [Prop.RNASeqProp]
 params.label = "Str"
 params.sample_sheet = "Str"

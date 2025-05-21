@@ -157,18 +157,39 @@ impl Codegen for Full {
             fresh_counter: HashMap::new(),
             used_types: IndexSet::new(),
         };
+
         ctx.exp("GOAL", e);
-        let mut s = "".to_owned();
-        for t in &ctx.used_types {
-            if s.is_empty() {
-                s += "# %% Types\n\n";
+
+        let mut s = "#".repeat(80);
+        s += "\n# %% Helpers\n\n";
+
+        match &self.library.preamble {
+            Some(pre) => {
+                for p in pre {
+                    let content = match p.get("content") {
+                        Some(c) => c,
+                        None => continue,
+                    };
+                    s += &format!("{}\n\n", content)
+                }
             }
+            None => (),
+        }
+
+        s += &"#".repeat(80);
+        s += "\n# %% Types\n\n";
+
+        for t in &ctx.used_types {
             match self.library.types.get(t).unwrap().info_string("code") {
                 Some(code) => s += &format!("{}\n\n", code),
                 None => (),
             }
         }
+
+        s += &"#".repeat(80);
+        s += "\n# %% Main script\n\n";
         s += &ctx.cells.join("\n\n");
+
         Ok(s)
     }
 }

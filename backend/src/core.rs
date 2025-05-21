@@ -238,6 +238,8 @@ pub struct Library {
     pub types: MetLibrary,
     #[serde(rename = "Function")]
     pub functions: FunctionLibrary,
+    #[serde(rename = "Preamble")]
+    pub preamble: Option<Vec<IndexMap<String, String>>>,
 }
 
 /// The type of Honeybee programs.

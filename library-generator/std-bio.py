@@ -1,10 +1,11 @@
 import subprocess
 
-from lib import Function, Prop, Type
+from lib import Function, Helper, Prop, Type
 
 
+@Helper
 def RUN(command):
-    subprocess.run(
+    return subprocess.run(
         command,
         shell=True,
         capture_output=True,
@@ -12,6 +13,7 @@ def RUN(command):
     ).stdout.split()
 
 
+@Helper
 def sample_names(filename):
     sn = RUN(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
     return sn

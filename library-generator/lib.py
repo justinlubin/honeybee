@@ -144,3 +144,16 @@ def Function(*condition, **kwargs):
         return f
 
     return wrap
+
+
+def Helper(f):
+    code = inspect.getsource(f)
+    new_code = ""
+    found_def = False
+    for line in code.splitlines():
+        if line.startswith("def"):
+            found_def = True
+        if not found_def:
+            continue
+        new_code += line + "\n"
+    print(f"[[Preamble]]\ncontent='''{new_code.strip()}'''\n")
