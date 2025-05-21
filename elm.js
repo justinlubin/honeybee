@@ -5173,48 +5173,41 @@ var $author$project$Core$SConcrete = function (a) {
 var $author$project$Core$VStr = function (a) {
 	return {$: 'VStr', a: a};
 };
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $author$project$Core$exampleWorkflow = $author$project$Core$W(
 	{
 		goal: $author$project$Core$SConcrete(
 			{
+				argLabels: $elm$core$Dict$empty,
 				args: _List_fromArray(
 					[
 						_Utils_Tuple2(
-						'sample1',
-						$author$project$Core$VStr('1')),
-						_Utils_Tuple2(
-						'sample2',
-						$author$project$Core$VStr('2'))
+						'label',
+						$author$project$Core$VStr('main'))
 					]),
-				name: 'DifferentialGeneExpression'
+				name: 'TranscriptMatrices',
+				overview: $elm$core$Maybe$Nothing
 			}),
 		steps: _List_fromArray(
 			[
 				$author$project$Core$SConcrete(
 				{
+					argLabels: $elm$core$Dict$empty,
 					args: _List_fromArray(
 						[
 							_Utils_Tuple2(
-							'sample',
-							$author$project$Core$VStr('1')),
+							'label',
+							$author$project$Core$VStr('main')),
 							_Utils_Tuple2(
-							'path',
-							$author$project$Core$VStr('raw_data/rnaseq/control/'))
+							'sample_sheet',
+							$author$project$Core$VStr('metadata/samples.csv')),
+							_Utils_Tuple2(
+							'raw_data',
+							$author$project$Core$VStr('raw-data'))
 						]),
-					name: 'RNAseq'
-				}),
-				$author$project$Core$SConcrete(
-				{
-					args: _List_fromArray(
-						[
-							_Utils_Tuple2(
-							'sample',
-							$author$project$Core$VStr('2')),
-							_Utils_Tuple2(
-							'path',
-							$author$project$Core$VStr('raw_data/rnaseq/experimental/'))
-						]),
-					name: 'RNAseq'
+					name: 'RNASeqProp',
+					overview: $elm$core$Maybe$Nothing
 				})
 			])
 	});
@@ -5230,12 +5223,145 @@ var $author$project$Core$Prop = {$: 'Prop'};
 var $author$project$Core$Type = {$: 'Type'};
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
+var $elm$core$Dict$Black = {$: 'Black'};
+var $elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var $elm$core$Dict$Red = {$: 'Red'};
+var $elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _v1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _v3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					key,
+					value,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _v5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _v6 = left.d;
+				var _v7 = _v6.a;
+				var llK = _v6.b;
+				var llV = _v6.c;
+				var llLeft = _v6.d;
+				var llRight = _v6.e;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					lK,
+					lV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _v1 = A2($elm$core$Basics$compare, key, nKey);
+			switch (_v1.$) {
+				case 'LT':
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3($elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3($elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var $elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
+		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $elm$core$Debug$log = _Debug_log;
+var $elm$json$Json$Decode$map3 = _Json_map3;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
+var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Core$VTBool = {$: 'VTBool'};
 var $author$project$Core$VTInt = {$: 'VTInt'};
 var $author$project$Core$VTStr = {$: 'VTStr'};
 var $elm$json$Json$Decode$andThen = _Json_andThen;
 var $elm$json$Json$Decode$fail = _Json_fail;
-var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Decode$valueType = A2(
 	$elm$json$Json$Decode$andThen,
 	function (s) {
@@ -5252,15 +5378,29 @@ var $author$project$Decode$valueType = A2(
 	},
 	$elm$json$Json$Decode$string);
 var $author$project$Decode$stepSignature = function (kind) {
-	return A2(
-		$elm$json$Json$Decode$map,
-		function (p) {
-			return {kind: kind, params: p};
-		},
+	return A4(
+		$elm$json$Json$Decode$map3,
+		F3(
+			function (p, pl, o) {
+				return {
+					kind: kind,
+					overview: A2($elm$core$Debug$log, 'Ever????', o),
+					paramLabels: $elm$core$Dict$fromList(pl),
+					params: p
+				};
+			}),
 		A2(
 			$elm$json$Json$Decode$field,
 			'params',
-			$elm$json$Json$Decode$keyValuePairs($author$project$Decode$valueType)));
+			$elm$json$Json$Decode$keyValuePairs($author$project$Decode$valueType)),
+		A2(
+			$elm$json$Json$Decode$field,
+			'paramLabels',
+			$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string)),
+		A2(
+			$elm$json$Json$Decode$field,
+			'overview',
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)));
 };
 var $author$project$Decode$library = A3(
 	$elm$json$Json$Decode$map2,
@@ -5278,6 +5418,17 @@ var $author$project$Decode$library = A3(
 		'types',
 		$elm$json$Json$Decode$keyValuePairs(
 			$author$project$Decode$stepSignature($author$project$Core$Type))));
+var $elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return $elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return $elm$core$Result$Err(
+				f(e));
+		}
+	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Update$ReceivePbnStatus = function (a) {
@@ -5299,7 +5450,6 @@ var $author$project$Core$VInt = function (a) {
 };
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $author$project$Port$decodeValue = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[
@@ -5317,7 +5467,6 @@ var $author$project$Port$decodeValidGoalMetadata = A3(
 		'choices',
 		$elm$json$Json$Decode$list(
 			$elm$json$Json$Decode$keyValuePairs($author$project$Port$decodeValue))));
-var $elm$core$Debug$log = _Debug_log;
 var $elm$json$Json$Decode$index = _Json_decodeIndex;
 var $author$project$Port$receivePbnStatus = _Platform_incomingPort(
 	'receivePbnStatus',
@@ -5646,6 +5795,7 @@ var $author$project$Core$freshStep = F2(
 	function (name, sig) {
 		return $author$project$Core$SConcrete(
 			{
+				argLabels: sig.paramLabels,
 				args: A2(
 					$elm$core$List$map,
 					function (_v0) {
@@ -5656,7 +5806,8 @@ var $author$project$Core$freshStep = F2(
 							$author$project$Core$VHole(vt));
 					},
 					sig.params),
-				name: name
+				name: name,
+				overview: sig.overview
 			});
 	});
 var $author$project$Core$goal = function (_v0) {
@@ -5870,13 +6021,13 @@ var $author$project$Update$setArgument = F4(
 						if (s.$ === 'SHole') {
 							return $author$project$Core$SHole;
 						} else {
-							var name = s.a.name;
-							var args = s.a.args;
+							var scd = s.a;
 							return $author$project$Core$SConcrete(
-								{
-									args: A3($author$project$Assoc$set, param, v, args),
-									name: name
-								});
+								_Utils_update(
+									scd,
+									{
+										args: A3($author$project$Assoc$set, param, v, scd.args)
+									}));
 						}
 					},
 					model.workflow)
@@ -6252,16 +6403,14 @@ var $author$project$Update$MakePbnChoice = function (a) {
 	return {$: 'MakePbnChoice', a: a};
 };
 var $author$project$Update$Nop = {$: 'Nop'};
-var $elm$core$Maybe$andThen = F2(
-	function (callback, maybeValue) {
-		if (maybeValue.$ === 'Just') {
-			var value = maybeValue.a;
-			return callback(value);
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
-var $elm$html$Html$code = _VirtualDom_node('code');
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $author$project$Assoc$collect = function (xys) {
 	if (!xys.b) {
 		return _List_Nil;
@@ -6284,16 +6433,12 @@ var $author$project$Assoc$collect = function (xys) {
 			collect_tl);
 	}
 };
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
 var $elm$core$String$lines = _String_lines;
+var $elm$virtual_dom$VirtualDom$node = function (tag) {
+	return _VirtualDom_node(
+		_VirtualDom_noScript(tag));
+};
+var $elm$html$Html$node = $elm$virtual_dom$VirtualDom$node;
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
@@ -6327,7 +6472,14 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$option = _VirtualDom_node('option');
-var $elm$html$Html$pre = _VirtualDom_node('pre');
+var $elm$virtual_dom$VirtualDom$property = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_property,
+			_VirtualDom_noInnerHtmlOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlJson(value));
+	});
+var $elm$html$Html$Attributes$property = $elm$virtual_dom$VirtualDom$property;
 var $elm$html$Html$select = _VirtualDom_node('select');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
@@ -6387,14 +6539,8 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 				var left = _v7.a;
 				var _v8 = _v7.b;
 				var right = _v8.a;
-				var _v9 = A2(
-					$elm$core$Maybe$andThen,
-					$elm$core$String$toInt,
-					A2(
-						$elm$core$Maybe$map,
-						$author$project$Util$unSubscriptNumbers,
-						$elm$core$List$head(
-							A2($elm$core$String$split, ',', right))));
+				var _v9 = $elm$core$String$toInt(
+					$author$project$Util$unSubscriptNumbers(right));
 				if (_v9.$ === 'Just') {
 					var h = _v9.a;
 					return _Utils_Tuple2(
@@ -6456,19 +6602,18 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 						]),
 					_List_fromArray(
 						[
-							A2(
-							$elm$html$Html$code,
-							_List_Nil,
+							A3(
+							$elm$html$Html$node,
+							'fancy-code',
 							_List_fromArray(
 								[
+									A2($elm$html$Html$Attributes$attribute, 'language', 'python'),
 									A2(
-									$elm$html$Html$pre,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text(line)
-										]))
-								])),
+									$elm$html$Html$Attributes$property,
+									'code',
+									$elm$json$Json$Encode$string(line))
+								]),
+							_List_Nil),
 							function () {
 							if (maybeHole.$ === 'Just') {
 								var h = maybeHole.a;
@@ -6630,7 +6775,7 @@ var $author$project$View$startNavigation = function (w) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('(Not available yet)')
+								$elm$html$Html$text('(Complete experimental workflow first)')
 							]))
 					]));
 		} else {
@@ -6701,6 +6846,37 @@ var $author$project$Update$SetArgumentTextField = F4(
 		return {$: 'SetArgumentTextField', a: a, b: b, c: c, d: d};
 	});
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$List$intersperse = F2(
@@ -6741,8 +6917,8 @@ var $author$project$View$stringFromValue = function (v) {
 			return '?';
 	}
 };
-var $author$project$View$arg = F3(
-	function (si, argName, _v0) {
+var $author$project$View$arg = F4(
+	function (si, argLabels, argName, _v0) {
 		var v = _v0.a;
 		var suggestions = _v0.b;
 		var id = 'step-' + (function () {
@@ -6753,6 +6929,7 @@ var $author$project$View$arg = F3(
 				return $elm$core$String$fromInt(i);
 			}
 		}() + ('-argument-' + argName));
+		var debugSuffix = (false && $author$project$Config$debug) ? (' (' + ($author$project$View$stringFromValue(v) + ')')) : '';
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -6770,9 +6947,13 @@ var $author$project$View$arg = F3(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							_Utils_ap(
-								argName,
-								(false && $author$project$Config$debug) ? (' (' + ($author$project$View$stringFromValue(v) + ')')) : ''))
+							function (x) {
+								return _Utils_ap(x, debugSuffix);
+							}(
+								A2(
+									$elm$core$Maybe$withDefault,
+									argName,
+									A2($elm$core$Dict$get, argName, argLabels))))
 						])),
 					A2(
 					$elm$html$Html$input,
@@ -6828,11 +7009,11 @@ var $author$project$View$arg = F3(
 								suggestions))))
 				]));
 	});
-var $author$project$View$args = F2(
-	function (si, a) {
+var $author$project$View$args = F3(
+	function (si, argLabels, a) {
 		return A2(
 			$author$project$Assoc$mapCollapse,
-			$author$project$View$arg(si),
+			A2($author$project$View$arg, si, argLabels),
 			a);
 	});
 var $author$project$Assoc$leftMerge = F3(
@@ -6857,7 +7038,7 @@ var $author$project$Assoc$leftMerge = F3(
 	});
 var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
 var $author$project$View$step = F4(
-	function (library, goalSuggestions, si, s) {
+	function (library, suggestions, si, s) {
 		var deleteButton = function () {
 			if (si.$ === 'Step') {
 				var i = si.a;
@@ -6884,28 +7065,31 @@ var $author$project$View$step = F4(
 			});
 		var options = A2(
 			$elm$core$List$cons,
-			blankName,
+			_Utils_Tuple2(blankName, blankName),
 			A2(
 				$author$project$Assoc$mapCollapse,
 				F2(
-					function (k, _v2) {
-						return k;
+					function (k, sig) {
+						return _Utils_Tuple2(
+							k,
+							A2($elm$core$Maybe$withDefault, k, sig.overview));
 					}),
 				library));
 		var _v0 = function () {
 			if (s.$ === 'SHole') {
 				return _Utils_Tuple2(blankName, _List_Nil);
 			} else {
-				var st = s.a;
+				var scd = s.a;
 				return _Utils_Tuple2(
-					st.name,
-					A2(
+					scd.name,
+					A3(
 						$author$project$View$args,
 						si,
-						A3($author$project$Assoc$leftMerge, _List_Nil, st.args, goalSuggestions)));
+						scd.argLabels,
+						A3($author$project$Assoc$leftMerge, _List_Nil, scd.args, suggestions)));
 			}
 		}();
-		var name = _v0.a;
+		var selectedName = _v0.a;
 		var extras = _v0.b;
 		var dropdown = A2(
 			$elm$html$Html$select,
@@ -6916,17 +7100,20 @@ var $author$project$View$step = F4(
 				]),
 			A2(
 				$elm$core$List$map,
-				function (k) {
+				function (_v2) {
+					var name = _v2.a;
+					var displayName = _v2.b;
 					return A2(
 						$elm$html$Html$option,
 						_List_fromArray(
 							[
 								$elm$html$Html$Attributes$selected(
-								_Utils_eq(k, name))
+								_Utils_eq(name, selectedName)),
+								$elm$html$Html$Attributes$value(name)
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(k)
+								$elm$html$Html$text(displayName)
 							]));
 				},
 				options));
@@ -6938,8 +7125,8 @@ var $author$project$View$step = F4(
 				]),
 			A2(
 				$elm$core$List$cons,
-				deleteButton,
-				A2($elm$core$List$cons, dropdown, extras)));
+				dropdown,
+				A2($elm$core$List$cons, deleteButton, extras)));
 	});
 var $author$project$Core$types = $elm$core$List$filter(
 	function (_v0) {
@@ -6981,7 +7168,7 @@ var $author$project$View$workflow = F2(
 											A4(
 											$author$project$View$step,
 											$author$project$Core$props(ctx.library),
-											ctx.goalSuggestions,
+											_List_Nil,
 											$author$project$Core$Step(i),
 											s)
 										]));
@@ -7177,7 +7364,10 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 					A2(
 						$elm$core$Result$withDefault,
 						_List_Nil,
-						A2($elm$json$Json$Decode$decodeValue, $author$project$Decode$library, v))),
+						A2(
+							$elm$core$Result$mapError,
+							$elm$core$Debug$log('error'),
+							A2($elm$json$Json$Decode$decodeValue, $author$project$Decode$library, v)))),
 				$elm$core$Platform$Cmd$none);
 		},
 		subscriptions: $author$project$Update$subscriptions,

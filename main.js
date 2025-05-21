@@ -1,26 +1,94 @@
+////////////////////////////////////////////////////////////////////////////////
+// Honeybee loading
+
 import init, * as Honeybee from "./pkg/honeybee.js";
 
 await init();
 
-const libraryResponse = await fetch("bio.hblib.toml");
+const libraryResponse = await fetch("std-bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
-window._lib = library;
 
 const flags = { props: {}, types: {} };
 
-for (const [name, { params }] of library.Prop) {
-    flags.props[name] = { params: Object.fromEntries(params) };
+function loadFact(kvs) {
+    let overview = kvs.info.get("overview");
+
+    if (overview === undefined) {
+        overview = null;
+    }
+
+    let paramLabels = kvs.info.get("params");
+    if (paramLabels) {
+        paramLabels = Object.fromEntries(paramLabels);
+    } else {
+        paramLabels = {};
+    }
+
+    return {
+        params: Object.fromEntries(kvs.params),
+        overview: overview,
+        paramLabels: paramLabels,
+    };
 }
 
-for (const [name, { params }] of library.Type) {
-    flags.types[name] = { params: Object.fromEntries(params) };
+for (const [name, kvs] of library.Prop) {
+    flags.props[name] = loadFact(kvs);
 }
+
+for (const [name, kvs] of library.Type) {
+    flags.types[name] = loadFact(kvs);
+}
+
+console.log(flags);
+
+////////////////////////////////////////////////////////////////////////////////
+// Custom elements
+
+customElements.define(
+    "fancy-code",
+    class extends HTMLElement {
+        constructor() {
+            super();
+            this._code = null;
+        }
+
+        set code(value) {
+            this._code = value;
+
+            const preElement = document.createElement("pre");
+            const codeElement = document.createElement("code");
+
+            const language = this.getAttribute("language");
+            if (language) {
+                codeElement.className = "language-" + language;
+            }
+
+            codeElement.innerText = this._code;
+
+            Prism.highlightElement(codeElement);
+
+            this.textContent = "";
+            preElement.appendChild(codeElement);
+            this.appendChild(preElement);
+        }
+
+        get code() {
+            return this._code;
+        }
+    },
+);
+
+////////////////////////////////////////////////////////////////////////////////
+// Elm initialization
 
 const app = Elm.Main.init({
     node: document.getElementById("app"),
     flags: flags,
 });
+
+////////////////////////////////////////////////////////////////////////////////
+// Elm ports
 
 app.ports.scrollIntoView.subscribe((msg) => {
     document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
