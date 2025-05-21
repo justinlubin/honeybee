@@ -105,9 +105,27 @@ pub fn valid_goal_metadata(
 ////////////////////////////////////////////////////////////////////////////////
 // PBN Interaction
 
-static mut STATE: Option<
-    pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
-> = None;
+struct State {
+    controller:
+        pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
+    codegen: codegen::Full,
+}
+
+static mut STATE: Option<State> = None;
+
+#[allow(static_mut_refs)]
+fn get_state() -> Result<&'static mut State, String> {
+    match unsafe { STATE.as_mut() } {
+        Some(c) => Ok(c),
+        None => Err("must call pbn_init first".to_owned()),
+    }
+}
+
+fn set_state(state: State) {
+    unsafe {
+        STATE = Some(state);
+    }
+}
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize)]
@@ -117,23 +135,10 @@ struct PbnStatusMessage {
     valid: bool,
 }
 
-#[allow(static_mut_refs)]
-fn get_controller() -> Result<
-    &'static mut pbn::Controller<
-        top_down::TopDownStep<core::ParameterizedFunction>,
-    >,
-    String,
-> {
-    match unsafe { STATE.as_mut() } {
-        Some(c) => Ok(c),
-        None => Err("must call pbn_init first".to_owned()),
-    }
-}
-
 fn send_message() -> Result<JsValue, String> {
-    let controller = get_controller()?;
+    let state = get_state()?;
 
-    let options = controller.provide().map_err(|e| format!("{:?}", e))?;
+    let options = state.controller.provide().map_err(|e| format!("{:?}", e))?;
 
     // TODO: Need to handle metadata values
     let mut choices = vec![];
@@ -149,15 +154,12 @@ fn send_message() -> Result<JsValue, String> {
         }
     }
 
-    let gen = codegen::Simple {
-        indent: 0,
-        color: false,
-    };
-
     let msg = PbnStatusMessage {
-        workingExpression: gen.exp(&controller.working_expression())?,
+        workingExpression: state
+            .codegen
+            .exp(&state.controller.working_expression())?,
         choices,
-        valid: controller.valid(),
+        valid: state.controller.valid(),
     };
 
     serde_wasm_bindgen::to_value(&msg)
@@ -170,17 +172,19 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
     let timer = util::Timer::infinite();
     let algorithm = menu::Algorithm::PBNHoneybee;
 
-    unsafe {
-        STATE = Some(algorithm.controller(timer, problem));
-    }
+    set_state(State {
+        codegen: codegen::Full::new(problem.library.clone())?,
+        controller: algorithm.controller(timer, problem),
+    });
 
     send_message()
 }
 
 #[wasm_bindgen]
 pub fn pbn_choose(choice: usize) -> Result<JsValue, String> {
-    let controller = get_controller()?;
-    let mut options = controller.provide().map_err(|e| format!("{:?}", e))?;
-    controller.decide(options.swap_remove(choice));
+    let state = get_state()?;
+    let mut options =
+        state.controller.provide().map_err(|e| format!("{:?}", e))?;
+    state.controller.decide(options.swap_remove(choice));
     send_message()
 }

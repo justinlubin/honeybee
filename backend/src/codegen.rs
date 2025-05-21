@@ -91,7 +91,7 @@ impl<'a> FullContext<'a> {
             .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
             .collect::<Vec<_>>()
             .join(", ");
-        s += &format!("),\n)\n{}", var_name);
+        s += &format!("),\n)\n\n{}", var_name);
         self.cells.push(s);
     }
 
