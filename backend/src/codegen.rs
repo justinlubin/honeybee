@@ -78,19 +78,24 @@ impl<'a> FullContext<'a> {
             Some(code) => s += &format!("{}\n\n", code),
             None => (),
         };
-        s += &format!("{} = {}(\n", var_name, type_name);
-        s += &format!("    static={}.S(", type_name);
-        s += &metadata_args
+
+        let mut static_val = format!("{}.S(", type_name);
+        static_val += &metadata_args
             .into_iter()
             .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
             .collect::<Vec<_>>()
             .join(", ");
-        s += &format!("),\n    dynamic={}(", function_name);
+        static_val += ")";
+
+        s += &format!("{} = {}(\n    static=", var_name, type_name);
+        s += &static_val;
+        s += &format!(",\n    dynamic={}(", function_name);
         s += &args
             .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
+            .map(|(lhs, rhs)| format!("{}={}, ", lhs, rhs))
             .collect::<Vec<_>>()
-            .join(", ");
+            .join("");
+        s += &format!("ret={}", static_val);
         s += &format!("),\n)\n\n{}", var_name);
         self.cells.push(s);
     }
