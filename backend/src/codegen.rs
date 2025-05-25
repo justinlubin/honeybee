@@ -184,7 +184,7 @@ impl Codegen for Full {
         s += &"#".repeat(80);
         s += "\n# %% Types\n\n";
 
-        for t in &ctx.used_types {
+        for t in ctx.used_types.iter().rev() {
             match self.library.types.get(t).unwrap().info_string("code") {
                 Some(code) => s += &format!("{}\n\n", code),
                 None => (),
