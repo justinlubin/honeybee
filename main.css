@@ -309,3 +309,13 @@ header ol {
 code[class*="language-"] {
     text-shadow: none;
 }
+
+/* || Dev mode */
+
+#devmode {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    padding: 2px;
+    opacity: 0.1;
+}

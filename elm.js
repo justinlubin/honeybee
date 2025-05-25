@@ -6360,7 +6360,7 @@ var $author$project$Update$update = F2(
 				return _Utils_Tuple2(
 					model,
 					$author$project$Port$sendDownload(x));
-			default:
+			case 'ReceiveValidGoalMetadata':
 				var goalName = msg.a.goalName;
 				var choices = msg.a.choices;
 				var _v2 = $author$project$Core$goal(model.workflow);
@@ -6377,8 +6377,16 @@ var $author$project$Update$update = F2(
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{workflow: $author$project$Core$exampleWorkflow}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Update$LoadExample = {$: 'LoadExample'};
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6391,14 +6399,31 @@ var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$header = _VirtualDom_node('header');
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $elm$html$Html$ol = _VirtualDom_node('ol');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$Update$Download = function (a) {
 	return {$: 'Download', a: a};
 };
-var $elm$html$Html$button = _VirtualDom_node('button');
 var $author$project$Update$MakePbnChoice = function (a) {
 	return {$: 'MakePbnChoice', a: a};
 };
@@ -6445,7 +6470,6 @@ var $elm$html$Html$Events$alwaysStop = function (x) {
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -6678,22 +6702,6 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 			codeLines));
 };
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
 		return $elm$html$Html$text('');
@@ -6877,7 +6885,6 @@ var $elm$core$Dict$get = F2(
 			}
 		}
 	});
-var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$List$intersperse = F2(
 	function (sep, xs) {
@@ -6921,14 +6928,14 @@ var $author$project$View$arg = F4(
 	function (si, argLabels, argName, _v0) {
 		var v = _v0.a;
 		var suggestions = _v0.b;
-		var id = 'step-' + (function () {
+		var id = 'step-argument' + (function () {
 			if (si.$ === 'Goal') {
 				return 'GOAL';
 			} else {
 				var i = si.a;
 				return $elm$core$String$fromInt(i);
 			}
-		}() + ('-argument-' + argName));
+		}() + argName);
 		var debugSuffix = (false && $author$project$Config$debug) ? (' (' + ($author$project$View$stringFromValue(v) + ')')) : '';
 		return A2(
 			$elm$html$Html$div,
@@ -7344,6 +7351,17 @@ var $author$project$View$view = function (model) {
 									]))
 							])),
 						$author$project$View$pbnStatus(model.pbnStatus)
+					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$id('devmode'),
+						$elm$html$Html$Events$onClick($author$project$Update$LoadExample)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('devmode')
 					]))
 			]));
 };
