@@ -1,13 +1,13 @@
 module Model exposing (Model, init)
 
 import Assoc exposing (Assoc)
-import Core exposing (..)
+import Core exposing (Library, Value, WorkingProgram)
 import Port
 
 
 type alias Model =
     { library : Library
-    , workflow : Workflow
+    , program : WorkingProgram
     , pbnStatus : Maybe Port.PbnStatusMessage
     , goalSuggestions : Assoc String (List Value)
     }
@@ -16,7 +16,7 @@ type alias Model =
 init : Library -> Model
 init library =
     { library = library
-    , workflow = emptyWorkflow
+    , program = Core.empty
     , pbnStatus = Nothing
     , goalSuggestions = []
     }

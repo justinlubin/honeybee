@@ -1,32 +1,37 @@
 module Core exposing
-    ( Library
-    , Step(..)
-    , StepIndex(..)
-    , StepKind(..)
-    , StepSignature
+    ( CompleteProgram
+    , Fact
+    , FactLibrary
+    , FactSignature
+    , Library
+    , Program
+    , ProgramIndex(..)
     , Value(..)
+    , ValueParseResult(..)
     , ValueType(..)
-    , Workflow
-    , argsConsistent
+    , WorkingProgram
     , consistent
-    , emptyWorkflow
-    , exampleWorkflow
-    , freshStep
-    , goal
-    , insertStep
-    , modifyStep
-    , props
-    , removeStep
-    , setStep
-    , steps
-    , types
-    , unparseValue
+    , empty
+    , example
+    , fresh
+    , getSigFor
+    , insert
+    , modify
+    , parse
+    , remove
+    , set
+    , unparse
     , valueType
     )
 
 import Assoc exposing (Assoc)
 import Dict exposing (Dict)
 import Util
+
+
+
+--------------------------------------------------------------------------------
+-- Values
 
 
 type ValueType
@@ -39,7 +44,6 @@ type Value
     = VBool Bool
     | VInt Int
     | VStr String
-    | VHole ValueType
 
 
 valueType : Value -> ValueType
@@ -54,225 +58,252 @@ valueType v =
         VStr _ ->
             VTStr
 
-        VHole vt ->
-            vt
 
-
-consistent : Value -> Value -> Bool
-consistent v1 v2 =
-    case ( v1, v2 ) of
-        ( VInt n1, VInt n2 ) ->
-            n1 == n2
-
-        ( VBool b1, VBool b2 ) ->
-            b1 == b2
-
-        ( VStr s1, VStr s2 ) ->
-            s1 == s2
-
-        ( VHole vt1, _ ) ->
-            vt1 == valueType v2
-
-        ( _, VHole vt2 ) ->
-            valueType v1 == vt2
-
-        _ ->
-            False
-
-
-unparseValue : Value -> Maybe String
-unparseValue v =
+unparse : Value -> String
+unparse v =
     case v of
         VBool True ->
-            Just "true"
+            "true"
 
         VBool False ->
-            Just "false"
+            "false"
 
         VInt n ->
-            Just (String.fromInt n)
+            String.fromInt n
 
         VStr s ->
-            Just s
-
-        VHole _ ->
-            Nothing
+            s
 
 
-type StepKind
-    = Prop
-    | Type
+type ValueParseResult
+    = ParseFail
+    | Blank
+    | ParseSuccess Value
 
 
-type alias StepSignature =
+parse : ValueType -> String -> ValueParseResult
+parse vt str =
+    if String.isEmpty (String.trim str) then
+        Blank
+
+    else
+        case vt of
+            VTInt ->
+                str
+                    |> String.toInt
+                    |> Maybe.map (VInt >> ParseSuccess)
+                    |> Maybe.withDefault ParseFail
+
+            VTBool ->
+                case String.toLower str of
+                    "true" ->
+                        ParseSuccess (VBool True)
+
+                    "false" ->
+                        ParseSuccess (VBool False)
+
+                    _ ->
+                        ParseFail
+
+            VTStr ->
+                ParseSuccess (VStr str)
+
+
+
+--------------------------------------------------------------------------------
+-- Facts
+
+
+type alias FactSignature =
     { params : Assoc String ValueType
-    , kind : StepKind
     , paramLabels : Dict String String
     , overview : Maybe String
     }
 
 
-type alias SConcreteData =
-    { name : String
-    , args : Assoc String Value
-    , argLabels : Dict String String
-    , overview : Maybe String
-    }
-
-
-type Step
-    = SHole
-    | SConcrete SConcreteData
-
-
-freshStep : String -> StepSignature -> Step
-freshStep name sig =
-    SConcrete
-        { name = name
-        , args = List.map (\( k, vt ) -> ( k, VHole vt )) sig.params
-        , argLabels = sig.paramLabels
-        , overview = sig.overview
-        }
-
-
-argsConsistent : Assoc String Value -> Assoc String Value -> Bool
-argsConsistent args1 args2 =
-    if List.length args1 /= List.length args2 then
-        False
-
-    else
-        List.all
-            (\( k1, v1 ) ->
-                case Assoc.get k1 args2 of
-                    Nothing ->
-                        False
-
-                    Just v2 ->
-                        consistent v1 v2
-            )
-            args1
+type alias FactLibrary =
+    Assoc String FactSignature
 
 
 type alias Library =
-    Assoc String StepSignature
+    { props : FactLibrary, types : FactLibrary }
 
 
-props : Library -> Library
-props =
-    List.filter (\( _, s ) -> s.kind == Prop)
+type alias Fact v =
+    { name : String
+    , args : Assoc String ( v, ValueType )
+    , sig : FactSignature
+    }
 
 
-types : Library -> Library
-types =
-    List.filter (\( _, s ) -> s.kind == Type)
+fresh : String -> FactSignature -> Fact String
+fresh name sig =
+    { name = name
+    , args = Assoc.map (\_ vt -> ( "", vt )) sig.params
+    , sig = sig
+    }
 
 
-type Workflow
-    = W
-        { steps : List Step
-        , goal : Step
-        }
+consistent :
+    Fact String
+    -> Assoc String Value
+    -> Bool
+consistent fact args =
+    Assoc.all
+        (\k ( s1, vt ) ->
+            case Assoc.get k args of
+                Just v2 ->
+                    case parse vt s1 of
+                        ParseFail ->
+                            False
+
+                        Blank ->
+                            True
+
+                        ParseSuccess v1 ->
+                            v1 == v2
+
+                Nothing ->
+                    False
+        )
+        fact.args
 
 
-emptyWorkflow : Workflow
-emptyWorkflow =
-    W { steps = [], goal = SHole }
+
+--------------------------------------------------------------------------------
+-- Programs
 
 
-exampleWorkflow : Workflow
-exampleWorkflow =
-    W
-        { steps =
-            [ SConcrete
-                { name = "RNASeqProp"
-                , args =
-                    [ ( "label", VStr "main" )
-                    , ( "sample_sheet", VStr "metadata/samples.csv" )
-                    , ( "raw_data", VStr "raw-data" )
-                    ]
-                , argLabels = Dict.empty
-                , overview = Nothing
-                }
-            ]
-        , goal =
-            SConcrete
-                { name = "TranscriptMatrices"
-                , args =
-                    [ ( "label", VStr "main" )
-                    ]
-                , argLabels = Dict.empty
-                , overview = Nothing
-                }
-        }
+type alias Program v =
+    { props : List v
+    , goal : v
+    }
 
 
-type StepIndex
+type alias WorkingProgram =
+    Program (Maybe (Fact String))
+
+
+type alias CompleteProgram =
+    Program (Fact Value)
+
+
+type ProgramIndex
     = Goal
-    | Step Int
+    | Prop Int
 
 
-steps : Workflow -> List Step
-steps (W w) =
-    w.steps
+getSigFor : ProgramIndex -> String -> Library -> Maybe FactSignature
+getSigFor pi name lib =
+    let
+        relevantLibrary =
+            case pi of
+                Goal ->
+                    lib.types
+
+                Prop _ ->
+                    lib.props
+    in
+    Assoc.get name relevantLibrary
 
 
-goal : Workflow -> Step
-goal (W w) =
-    w.goal
+set : ProgramIndex -> v -> Program v -> Program v
+set pi x prog =
+    modify pi (\_ -> x) prog
 
 
-setStep : StepIndex -> Step -> Workflow -> Workflow
-setStep si step w =
-    modifyStep si (\_ -> step) w
-
-
-modifyStep : StepIndex -> (Step -> Step) -> Workflow -> Workflow
-modifyStep si modify (W w) =
-    case si of
+modify : ProgramIndex -> (v -> v) -> Program v -> Program v
+modify pi func prog =
+    case pi of
         Goal ->
-            W { w | goal = modify w.goal }
+            { prog | goal = func prog.goal }
 
-        Step i ->
-            W
-                { w
-                    | steps =
-                        w.steps
-                            |> List.indexedMap
-                                (\j s ->
-                                    if i == j then
-                                        modify s
-
-                                    else
-                                        s
-                                )
-                }
-
-
-insertStep : Int -> Step -> Workflow -> Workflow
-insertStep i step (W w) =
-    if i == List.length w.steps then
-        W { w | steps = w.steps ++ [ step ] }
-
-    else
-        W
-            { w
-                | steps =
-                    w.steps
+        Prop i ->
+            let
+                newProps =
+                    prog.props
                         |> List.indexedMap
-                            (\j s ->
+                            (\j x ->
                                 if i == j then
-                                    [ step, s ]
+                                    func x
 
                                 else
-                                    [ s ]
+                                    x
                             )
-                        |> List.concat
+            in
+            { prog | props = newProps }
+
+
+insert : Int -> v -> Program v -> Program v
+insert i x prog =
+    if i == List.length prog.props then
+        { prog | props = prog.props ++ [ x ] }
+
+    else
+        let
+            newProps =
+                prog.props
+                    |> List.indexedMap
+                        (\j y ->
+                            if i == j then
+                                [ x, y ]
+
+                            else
+                                [ y ]
+                        )
+                    |> List.concat
+        in
+        { prog | props = newProps }
+
+
+remove : Int -> Program v -> Program v
+remove i prog =
+    let
+        newProps =
+            prog.props
+                |> Util.indexedFilter (\j _ -> i /= j)
+    in
+    { prog | props = newProps }
+
+
+empty : Program (Maybe (Fact v))
+empty =
+    { props = [], goal = Nothing }
+
+
+example : WorkingProgram
+example =
+    { props =
+        [ Just
+            { name = "RNASeqProp"
+            , args =
+                [ ( "label", ( "main", VTStr ) )
+                , ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
+                , ( "raw_data", ( "raw-data", VTStr ) )
+                ]
+            , sig =
+                { params =
+                    [ ( "label", VTStr )
+                    , ( "sample_sheet", VTStr )
+                    , ( "raw_data", VTStr )
+                    ]
+                , paramLabels = Dict.empty
+                , overview = Nothing
+                }
             }
-
-
-removeStep : Int -> Workflow -> Workflow
-removeStep i (W w) =
-    W
-        { w
-            | steps = w.steps |> Util.indexedFilter (\j _ -> i /= j)
-        }
+        ]
+    , goal =
+        Just
+            { name = "TranscriptMatrices"
+            , args =
+                [ ( "label", ( "main", VTStr ) )
+                ]
+            , sig =
+                { params =
+                    [ ( "label", VTStr )
+                    ]
+                , paramLabels = Dict.empty
+                , overview = Nothing
+                }
+            }
+    }

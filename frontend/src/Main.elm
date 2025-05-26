@@ -16,7 +16,7 @@ main =
                 ( v
                     |> Json.Decode.decodeValue Decode.library
                     |> Result.mapError (Debug.log "error")
-                    |> Result.withDefault []
+                    |> Result.withDefault { props = [], types = [] }
                     |> Model.init
                 , Cmd.none
                 )

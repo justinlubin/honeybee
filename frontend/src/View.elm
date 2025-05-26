@@ -2,6 +2,7 @@ module View exposing (view)
 
 import Assoc exposing (Assoc)
 import Compile
+import Complete
 import Core exposing (..)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -14,35 +15,21 @@ import Update exposing (Msg)
 import Util
 
 
-stringFromValue : Value -> String
-stringFromValue v =
-    case v of
-        VBool True ->
-            "True"
-
-        VBool False ->
-            "False"
-
-        VInt n ->
-            String.fromInt n
-
-        VStr s ->
-            "\"" ++ s ++ "\""
-
-        VHole _ ->
-            "?"
-
-
-arg : StepIndex -> Dict String String -> String -> ( Value, List Value ) -> Html Msg
-arg si argLabels argName ( v, suggestions ) =
+arg :
+    ProgramIndex
+    -> Dict String String
+    -> String
+    -> ( ( String, ValueType ), List Value )
+    -> Html Msg
+arg pi argLabels argName ( ( valueStr, valueType ), suggestions ) =
     let
         id =
             "step-argument"
-                ++ (case si of
+                ++ (case pi of
                         Goal ->
                             "GOAL"
 
-                        Step i ->
+                        Prop i ->
                             String.fromInt i
                    )
                 ++ argName
@@ -59,7 +46,7 @@ arg si argLabels argName ( v, suggestions ) =
                 |> text
             ]
         , input
-            [ E.onInput (Update.SetArgumentByString (valueType v) si argName)
+            [ E.onInput (Update.SetArgumentByString pi argName)
             , A.id id
             , A.placeholder "Enter value here…"
             ]
@@ -72,49 +59,53 @@ arg si argLabels argName ( v, suggestions ) =
                 text "Try one of the following: "
                     :: List.intersperse
                         (text ", ")
-                        (List.filterMap
+                        (List.map
                             (\sug ->
-                                Maybe.map
-                                    (\s ->
-                                        button
-                                            [ E.onClick
-                                                (Update.SetArgumentTextField
-                                                    { id = id
-                                                    , text = s
-                                                    }
-                                                    si
-                                                    argName
-                                                    sug
-                                                )
-                                            ]
-                                            [ text s ]
-                                    )
-                                    (Core.unparseValue sug)
+                                let
+                                    s =
+                                        Core.unparse sug
+                                in
+                                button
+                                    [ E.onClick
+                                        (Update.SetArgumentTextField
+                                            { id = id
+                                            , text = s
+                                            }
+                                            pi
+                                            argName
+                                            s
+                                        )
+                                    ]
+                                    [ text s ]
                             )
                             suggestions
                         )
         ]
 
 
-args : StepIndex -> Dict String String -> Assoc String ( Value, List Value ) -> List (Html Msg)
-args si argLabels a =
-    Assoc.mapCollapse (arg si argLabels) a
+args :
+    ProgramIndex
+    -> Dict String String
+    -> Assoc String ( ( String, ValueType ), List Value )
+    -> List (Html Msg)
+args pi argLabels a =
+    Assoc.mapCollapse (arg pi argLabels) a
 
 
 step :
-    Library
+    FactLibrary
     -> Assoc String (List Value)
-    -> StepIndex
-    -> Step
+    -> ProgramIndex
+    -> Maybe (Fact String)
     -> Html Msg
-step library suggestions si s =
+step library suggestions pi s =
     let
         blankName =
             "Choose a step…"
 
         deleteButton =
-            case si of
-                Step i ->
+            case pi of
+                Prop i ->
                     button
                         [ A.class "step-delete"
                         , E.onClick (Update.RemoveStep i)
@@ -128,22 +119,22 @@ step library suggestions si s =
             E.onInput <|
                 \k ->
                     if k == blankName then
-                        Update.ClearStep si
+                        Update.ClearStep pi
 
                     else
-                        Update.SetStep si k
+                        Update.SetStep pi k
 
         ( selectedName, extras ) =
             case s of
-                SHole ->
+                Nothing ->
                     ( blankName, [] )
 
-                SConcrete scd ->
-                    ( scd.name
+                Just f ->
+                    ( f.name
                     , args
-                        si
-                        scd.argLabels
-                        (Assoc.leftMerge [] scd.args suggestions)
+                        pi
+                        f.sig.paramLabels
+                        (Assoc.leftMergeWith [] f.args suggestions)
                     )
 
         options =
@@ -173,17 +164,17 @@ step library suggestions si s =
         (dropdown :: deleteButton :: extras)
 
 
-workflow :
+program :
     { m | library : Library, goalSuggestions : Assoc String (List Value) }
-    -> Workflow
+    -> WorkingProgram
     -> Html Msg
-workflow ctx w =
+program ctx prog =
     div [ A.class "workflow" ]
         [ h3 [] [ text "Experimental workflow" ]
         , ol [ A.class "steps" ]
             (List.indexedMap
-                (\i s -> li [] [ step (props ctx.library) [] (Step i) s ])
-                (steps w)
+                (\i s -> li [] [ step ctx.library.props [] (Prop i) s ])
+                prog.props
             )
         , button
             [ A.class "step-add"
@@ -191,7 +182,7 @@ workflow ctx w =
             ]
             [ text "Add step" ]
         , h3 [] [ text "Goal of experiment" ]
-        , step (types ctx.library) ctx.goalSuggestions Goal (goal w)
+        , step ctx.library.types ctx.goalSuggestions Goal prog.goal
         ]
 
 
@@ -283,11 +274,15 @@ directManipulationPbn { workingExpression, choices } =
                 codeLines
 
 
-startNavigation : Workflow -> Html Msg
-startNavigation w =
+startNavigation : WorkingProgram -> Html Msg
+startNavigation prog =
     let
         ( attrs, extras ) =
-            case Compile.compile { allowGoalHoles = False } w of
+            case
+                prog
+                    |> Complete.complete { allowGoalHoles = False }
+                    |> Maybe.map Compile.compile
+            of
                 Nothing ->
                     ( [ A.disabled True ]
                     , [ div [ A.class "subtitle" ]
@@ -360,8 +355,8 @@ view model =
                 [ span [] [ text "Step 1: " ]
                 , span [] [ text "Write down your experimental workflow" ]
                 ]
-            , workflow model model.workflow
-            , startNavigation model.workflow
+            , program model model.program
+            , startNavigation model.program
             ]
         , div [ A.class "navigation-pane" ]
             [ h2

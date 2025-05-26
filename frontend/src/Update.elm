@@ -2,6 +2,7 @@ module Update exposing (Msg(..), subscriptions, update)
 
 import Assoc exposing (Assoc)
 import Compile
+import Complete
 import Core exposing (..)
 import Json.Decode as D
 import Model exposing (Model)
@@ -12,11 +13,11 @@ import Util
 type Msg
     = Nop
     | AddBlankStep
-    | SetStep StepIndex String
-    | ClearStep StepIndex
+    | SetStep ProgramIndex String
+    | ClearStep ProgramIndex
     | RemoveStep Int
-    | SetArgumentByString ValueType StepIndex String String
-    | SetArgumentTextField Port.SetTextFieldMessage StepIndex String Value
+    | SetArgumentByString ProgramIndex String String
+    | SetArgumentTextField Port.SetTextFieldMessage ProgramIndex String String
     | StartNavigating { programSource : String }
     | MakePbnChoice Int
     | ReceivePbnStatus Port.PbnStatusMessage
@@ -25,56 +26,34 @@ type Msg
     | LoadExample
 
 
-valueFromString : ValueType -> String -> Value
-valueFromString vt str =
-    if String.isEmpty str then
-        VHole vt
-
-    else
-        case vt of
-            VTInt ->
-                str
-                    |> String.toInt
-                    |> Maybe.map VInt
-                    |> Maybe.withDefault (VHole VTInt)
-
-            VTBool ->
-                case String.toLower str of
-                    "true" ->
-                        VBool True
-
-                    "false" ->
-                        VBool False
-
-                    _ ->
-                        VHole VTBool
-
-            VTStr ->
-                VStr str
-
-
-setArgument : Model -> StepIndex -> String -> Value -> Model
-setArgument model si param v =
+setArgument : Model -> ProgramIndex -> String -> String -> Model
+setArgument model pi param s =
     { model
-        | workflow =
-            Core.modifyStep si
-                (\s ->
-                    case s of
-                        SHole ->
-                            SHole
-
-                        SConcrete scd ->
-                            SConcrete
-                                { scd | args = Assoc.set param v scd.args }
+        | program =
+            Core.modify pi
+                (Maybe.map
+                    (\f ->
+                        { f
+                            | args =
+                                Assoc.modify
+                                    param
+                                    (\( _, vt ) -> ( s, vt ))
+                                    f.args
+                        }
+                    )
                 )
-                model.workflow
+                model.program
         , pbnStatus = Nothing
     }
 
 
 syncGoalSuggestions : ( Model, Cmd msg ) -> ( Model, Cmd msg )
 syncGoalSuggestions ( model, cmd ) =
-    case Compile.compile { allowGoalHoles = True } model.workflow of
+    case
+        model.program
+            |> Complete.complete { allowGoalHoles = True }
+            |> Maybe.map Compile.compile
+    of
         Just programSource ->
             ( model
             , Cmd.batch
@@ -88,33 +67,33 @@ syncGoalSuggestions ( model, cmd ) =
 
 
 consistentSuggestions :
-    Assoc String Value
+    Fact String
     -> List (Assoc String Value)
     -> Assoc String (List Value)
-consistentSuggestions args choices =
+consistentSuggestions goalFact choices =
     Assoc.map
-        (\argName argValue ->
-            case argValue of
-                VHole _ ->
+        (\argName ( argStr, argType ) ->
+            case Core.parse argType argStr of
+                ParseFail ->
+                    []
+
+                ParseSuccess _ ->
+                    []
+
+                Blank ->
                     choices
                         |> List.filterMap
                             (\choice ->
-                                if Core.argsConsistent args choice then
+                                if Core.consistent goalFact choice then
                                     Assoc.get argName choice
 
                                 else
                                     Nothing
                             )
                         |> Util.unique
-                        |> List.sortBy
-                            (Core.unparseValue
-                                >> Maybe.withDefault ""
-                            )
-
-                _ ->
-                    []
+                        |> List.sortBy Core.unparse
         )
-        args
+        goalFact.args
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -125,39 +104,39 @@ update msg model =
 
         AddBlankStep ->
             ( { model
-                | workflow =
-                    Core.insertStep
-                        (List.length (steps model.workflow))
-                        SHole
-                        model.workflow
+                | program =
+                    Core.insert
+                        (List.length model.program.props)
+                        Nothing
+                        model.program
                 , pbnStatus = Nothing
               }
             , Cmd.none
             )
 
-        SetStep si name ->
+        SetStep pi name ->
             let
                 newModel =
-                    case Assoc.get name model.library of
+                    case Core.getSigFor pi name model.library of
                         Nothing ->
                             model
 
                         Just sig ->
                             { model
-                                | workflow =
-                                    Core.setStep si
-                                        (freshStep name sig)
-                                        model.workflow
+                                | program =
+                                    Core.set pi
+                                        (Just (Core.fresh name sig))
+                                        model.program
                                 , pbnStatus = Nothing
                             }
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
-        ClearStep si ->
+        ClearStep pi ->
             let
                 newModel =
                     { model
-                        | workflow = Core.setStep si SHole model.workflow
+                        | program = Core.set pi Nothing model.program
                         , pbnStatus = Nothing
                     }
             in
@@ -167,21 +146,21 @@ update msg model =
             let
                 newModel =
                     { model
-                        | workflow = Core.removeStep i model.workflow
+                        | program = Core.remove i model.program
                         , pbnStatus = Nothing
                     }
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
-        SetArgumentByString vt si param str ->
+        SetArgumentByString pi param str ->
             syncGoalSuggestions
-                ( setArgument model si param (valueFromString vt str)
+                ( setArgument model pi param str
                 , Cmd.none
                 )
 
-        SetArgumentTextField x si param v ->
+        SetArgumentTextField x si param s ->
             syncGoalSuggestions
-                ( setArgument model si param v
+                ( setArgument model si param s
                 , Port.sendSetTextField x
                 )
 
@@ -209,24 +188,24 @@ update msg model =
             )
 
         ReceiveValidGoalMetadata { goalName, choices } ->
-            case goal model.workflow of
-                SHole ->
+            case model.program.goal of
+                Nothing ->
                     ( model, Cmd.none )
 
-                SConcrete { name, args } ->
-                    if name /= goalName then
+                Just goalFact ->
+                    if goalFact.name /= goalName then
                         ( model, Cmd.none )
 
                     else
                         ( { model
                             | goalSuggestions =
-                                consistentSuggestions args choices
+                                consistentSuggestions goalFact choices
                           }
                         , Cmd.none
                         )
 
         LoadExample ->
-            ( { model | workflow = Core.exampleWorkflow }
+            ( { model | program = Core.example }
             , Cmd.none
             )
 
