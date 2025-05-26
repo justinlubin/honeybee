@@ -1,15 +1,14 @@
 module Model exposing (Model, init)
 
 import Assoc exposing (Assoc)
-import Config
-import Core exposing (..)
-import Port
+import Core exposing (Library, Value, WorkingProgram)
+import Incoming
 
 
 type alias Model =
     { library : Library
-    , workflow : Workflow
-    , pbnStatus : Maybe Port.PbnStatusMessage
+    , program : WorkingProgram
+    , pbnStatus : Maybe Incoming.PbnStatusMessage
     , goalSuggestions : Assoc String (List Value)
     }
 
@@ -17,12 +16,7 @@ type alias Model =
 init : Library -> Model
 init library =
     { library = library
-    , workflow =
-        if Config.debug then
-            exampleWorkflow
-
-        else
-            emptyWorkflow
+    , program = Core.empty
     , pbnStatus = Nothing
     , goalSuggestions = []
     }

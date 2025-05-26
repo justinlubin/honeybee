@@ -25,14 +25,13 @@ valueType =
             )
 
 
-stepSignature : StepKind -> Decoder StepSignature
-stepSignature kind =
+factSignature : Decoder FactSignature
+factSignature =
     map3
         (\p pl o ->
             { params = p
-            , kind = kind
             , paramLabels = Dict.fromList pl
-            , overview = Debug.log "Ever????" o
+            , overview = o
             }
         )
         (field "params" <| keyValuePairs valueType)
@@ -40,8 +39,13 @@ stepSignature kind =
         (field "overview" <| nullable string)
 
 
+factLibrary : Decoder FactLibrary
+factLibrary =
+    keyValuePairs factSignature
+
+
 library : Decoder Library
 library =
-    map2 (\props types -> props ++ types)
-        (field "props" <| keyValuePairs (stepSignature Prop))
-        (field "types" <| keyValuePairs (stepSignature Type))
+    map2 (\p t -> { props = p, types = t })
+        (field "props" factLibrary)
+        (field "types" factLibrary)

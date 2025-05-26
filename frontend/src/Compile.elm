@@ -2,96 +2,53 @@ module Compile exposing (compile)
 
 import Assoc exposing (Assoc)
 import Core exposing (..)
-import Util
 
 
-value : Bool -> Value -> Maybe String
-value fillHoles v =
+value : Value -> String
+value v =
     case v of
         VInt n ->
-            Just (String.fromInt n)
+            String.fromInt n
 
         VBool True ->
-            Just "true"
+            "true"
 
         VBool False ->
-            Just "false"
+            "false"
 
         VStr s ->
-            Just ("\"" ++ s ++ "\"")
-
-        VHole vt ->
-            if fillHoles then
-                case vt of
-                    VTInt ->
-                        Just "0"
-
-                    VTBool ->
-                        Just "false"
-
-                    VTStr ->
-                        Just "\"\""
-
-            else
-                Nothing
+            "\"" ++ s ++ "\""
 
 
-arg : Bool -> String -> Value -> Maybe String
-arg fillHoles argName v =
-    v
-        |> value fillHoles
-        |> Maybe.map (\s -> "args." ++ argName ++ " = " ++ s)
+arg : String -> ( Value, ValueType ) -> String
+arg argName ( v, _ ) =
+    "args." ++ argName ++ " = " ++ value v
 
 
-stepBody : Bool -> String -> Assoc String Core.Value -> Maybe String
-stepBody fillHoles name args =
-    args
-        |> Assoc.mapCollapse (arg fillHoles)
-        |> Util.sequence
-        |> Maybe.map
-            (\argStrings ->
-                "name = \""
-                    ++ name
-                    ++ "\"\n"
-                    ++ String.join "\n" argStrings
-            )
+factBody : String -> Assoc String ( Value, ValueType ) -> String
+factBody name args =
+    "name = \""
+        ++ name
+        ++ "\"\n"
+        ++ String.join "\n" (Assoc.mapCollapse arg args)
 
 
-step : Bool -> String -> Core.Step -> Maybe String
-step fillHoles prefix s =
-    case s of
-        Core.SHole ->
-            Nothing
-
-        Core.SConcrete { name, args } ->
-            stepBody fillHoles name args
-                |> Maybe.map (\body -> prefix ++ body)
+fact : String -> Fact Value -> String
+fact prefix f =
+    prefix ++ factBody f.name f.args
 
 
-prop : Core.Step -> Maybe String
-prop s =
-    step False "[[Prop]]\n" s
+prop : Fact Value -> String
+prop f =
+    fact "[[Prop]]\n" f
 
 
-goal : Bool -> Core.Step -> Maybe String
-goal fillHoles s =
-    step fillHoles "[Goal]\n" s
+goal : Fact Value -> String
+goal f =
+    fact "[Goal]\n" f
 
 
-compile :
-    { allowGoalHoles : Bool }
-    -> Core.Workflow
-    -> Maybe String
-compile { allowGoalHoles } w =
-    let
-        steps =
-            Core.steps w
-    in
-    if List.isEmpty steps then
-        Nothing
-
-    else
-        Maybe.map (String.join "\n\n") <|
-            Util.sequence <|
-                List.map prop steps
-                    ++ [ goal allowGoalHoles (Core.goal w) ]
+compile : CompleteProgram -> String
+compile prog =
+    String.join "\n\n"
+        (List.map prop prog.props ++ [ goal prog.goal ])

@@ -43,6 +43,26 @@ for (const [name, kvs] of library.Type) {
 console.log(flags);
 
 ////////////////////////////////////////////////////////////////////////////////
+// Helpers
+
+// https://stackoverflow.com/a/18197341
+function download(filename, text) {
+    const element = document.createElement("a");
+    element.setAttribute(
+        "href",
+        "data:text/plain;charset=utf-8," + encodeURIComponent(text),
+    );
+    element.setAttribute("download", filename);
+
+    element.style.display = "none";
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Custom elements
 
 customElements.define(
@@ -90,19 +110,11 @@ const app = Elm.Main.init({
 ////////////////////////////////////////////////////////////////////////////////
 // Elm ports
 
-app.ports.scrollIntoView.subscribe((msg) => {
+app.ports.oScrollIntoView.subscribe((msg) => {
     document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
 });
 
-// app.ports.scrollTo.subscribe((msg) => {
-//     window.scrollTo({ left: msg.x, top: msg.y, behavior: "smooth" });
-// });
-
-app.ports.sendSetTextField.subscribe((msg) => {
-    document.getElementById(msg.id).value = msg.text;
-});
-
-app.ports.sendPbnCheck.subscribe((msg) => {
+app.ports.oPbnCheck.subscribe((msg) => {
     try {
         const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
             librarySource,
@@ -111,51 +123,33 @@ app.ports.sendPbnCheck.subscribe((msg) => {
         validGoalMetadataMessage.choices = validGoalMetadataMessage.choices.map(
             (m) => Object.fromEntries(m),
         );
-        console.log(validGoalMetadataMessage);
-        app.ports.receiveValidGoalMetadata.send(validGoalMetadataMessage);
+        app.ports.iValidGoalMetadata_.send(validGoalMetadataMessage);
     } catch (e) {
         console.error(e);
     }
 });
 
-app.ports.sendPbnInit.subscribe((msg) => {
+app.ports.oPbnInit.subscribe((msg) => {
     try {
         const pbnStatusMessage = Honeybee.pbn_init(
             librarySource,
             msg.programSource,
         );
-        app.ports.receivePbnStatus.send(pbnStatusMessage);
+        app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);
     }
 });
 
-app.ports.sendPbnChoice.subscribe((msg) => {
+app.ports.oPbnChoose.subscribe((msg) => {
     try {
         const pbnStatusMessage = Honeybee.pbn_choose(msg.choice);
-        app.ports.receivePbnStatus.send(pbnStatusMessage);
+        app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);
     }
 });
 
-// https://stackoverflow.com/a/18197341
-function download(filename, text) {
-    const element = document.createElement("a");
-    element.setAttribute(
-        "href",
-        "data:text/plain;charset=utf-8," + encodeURIComponent(text),
-    );
-    element.setAttribute("download", filename);
-
-    element.style.display = "none";
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-}
-
-app.ports.sendDownload.subscribe((msg) => {
+app.ports.oDownload.subscribe((msg) => {
     download(msg.filename, msg.text);
 });

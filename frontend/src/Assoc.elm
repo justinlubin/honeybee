@@ -1,8 +1,20 @@
 module Assoc exposing (..)
 
+import Util
+
 
 type alias Assoc k v =
     List ( k, v )
+
+
+length : Assoc k v -> Int
+length a =
+    List.length a
+
+
+all : (k -> v -> Bool) -> Assoc k v -> Bool
+all p a =
+    List.all (\( x, y ) -> p x y) a
 
 
 map : (k -> a -> b) -> Assoc k a -> Assoc k b
@@ -13,6 +25,13 @@ map f =
 mapCollapse : (k -> v -> b) -> Assoc k v -> List b
 mapCollapse f =
     List.map (\( x, y ) -> f x y)
+
+
+sequence : Assoc k (Maybe v) -> Maybe (Assoc k v)
+sequence a =
+    a
+        |> mapCollapse (\k mv -> Maybe.map (\v -> ( k, v )) mv)
+        |> Util.sequence
 
 
 get : k -> Assoc k v -> Maybe v
@@ -46,8 +65,21 @@ set k v a =
         ( k, v ) :: a
 
 
-leftMerge : b -> Assoc k a -> Assoc k b -> Assoc k ( a, b )
-leftMerge missing left right =
+modify : k -> (v -> v) -> Assoc k v -> Assoc k v
+modify k f a =
+    map
+        (\k2 v ->
+            if k2 == k then
+                f v
+
+            else
+                v
+        )
+        a
+
+
+leftMergeWith : b -> Assoc k a -> Assoc k b -> Assoc k ( a, b )
+leftMergeWith missing left right =
     map
         (\k v1 ->
             ( v1
@@ -60,6 +92,18 @@ leftMerge missing left right =
             )
         )
         left
+
+
+leftMerge : Assoc k a -> Assoc k b -> Assoc k ( a, Maybe b )
+leftMerge left right =
+    leftMergeWith Nothing left (map (\_ v -> Just v) right)
+
+
+merge : Assoc k a -> Assoc k b -> Maybe (Assoc k ( a, b ))
+merge left right =
+    leftMerge left right
+        |> map (\_ ( x, my ) -> Maybe.map (\y -> ( x, y )) my)
+        |> sequence
 
 
 getAll : a -> List (Assoc a b) -> List b
