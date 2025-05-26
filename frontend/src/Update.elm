@@ -10,23 +10,13 @@ import Outgoing
 import Util
 
 
-type Msg
-    = Nop
-    | AddBlankStep
-    | SetStep ProgramIndex String
-    | ClearStep ProgramIndex
-    | RemoveStep Int
-    | SetArgumentByString ProgramIndex String String
-    | StartNavigating { programSource : String }
-    | MakePbnChoice Int
-    | ReceivePbnStatus Incoming.PbnStatusMessage
-    | Download Outgoing.DownloadMessage
-    | ReceiveValidGoalMetadata Incoming.ValidGoalMetadataMessage
-    | LoadExample
+
+--------------------------------------------------------------------------------
+-- Model helpers
 
 
-setArgument : Model -> ProgramIndex -> String -> String -> Model
-setArgument model pi param s =
+setArgument : ProgramIndex -> String -> String -> Model -> Model
+setArgument pi param s model =
     { model
         | program =
             Core.modify pi
@@ -44,6 +34,11 @@ setArgument model pi param s =
                 model.program
         , pbnStatus = Nothing
     }
+
+
+
+--------------------------------------------------------------------------------
+-- Suggestion helpers
 
 
 syncGoalSuggestions : ( Model, Cmd msg ) -> ( Model, Cmd msg )
@@ -95,13 +90,37 @@ consistentSuggestions goalFact choices =
         goalFact.args
 
 
+
+--------------------------------------------------------------------------------
+-- Main update
+
+
+type
+    Msg
+    -- No-op
+    = Nop
+      -- User actions
+    | UserAddedBlankStep
+    | UserSetStep ProgramIndex String
+    | UserClearedStep ProgramIndex
+    | UserRemovedStep Int
+    | UserSetArgument ProgramIndex String String
+    | UserStartedNavigation { programSource : String }
+    | UserMadePbnChoice Int
+    | UserRequestedDownload Outgoing.DownloadMessage
+    | UserClickedDevMode
+      -- Backend actions
+    | BackendSentPbnStatus Incoming.PbnStatusMessage
+    | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Nop ->
             ( model, Cmd.none )
 
-        AddBlankStep ->
+        UserAddedBlankStep ->
             ( { model
                 | program =
                     Core.insert
@@ -113,7 +132,7 @@ update msg model =
             , Cmd.none
             )
 
-        SetStep pi name ->
+        UserSetStep pi name ->
             let
                 newModel =
                     case Core.getSigFor pi name model.library of
@@ -131,7 +150,7 @@ update msg model =
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
-        ClearStep pi ->
+        UserClearedStep pi ->
             let
                 newModel =
                     { model
@@ -141,7 +160,7 @@ update msg model =
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
-        RemoveStep i ->
+        UserRemovedStep i ->
             let
                 newModel =
                     { model
@@ -151,13 +170,13 @@ update msg model =
             in
             syncGoalSuggestions ( newModel, Cmd.none )
 
-        SetArgumentByString pi param str ->
+        UserSetArgument pi param str ->
             syncGoalSuggestions
-                ( setArgument model pi param str
+                ( setArgument pi param str model
                 , Cmd.none
                 )
 
-        StartNavigating x ->
+        UserStartedNavigation x ->
             ( model
             , Cmd.batch
                 [ Outgoing.oScrollIntoView { selector = ".navigation-pane" }
@@ -165,22 +184,27 @@ update msg model =
                 ]
             )
 
-        MakePbnChoice i ->
+        UserMadePbnChoice choice ->
             ( model
-            , Outgoing.oPbnChoose { choice = i }
+            , Outgoing.oPbnChoose { choice = choice }
             )
 
-        ReceivePbnStatus status ->
-            ( { model | pbnStatus = Just status }
-            , Cmd.none
-            )
-
-        Download x ->
+        UserRequestedDownload x ->
             ( model
             , Outgoing.oDownload x
             )
 
-        ReceiveValidGoalMetadata { goalName, choices } ->
+        UserClickedDevMode ->
+            ( { model | program = Core.example }
+            , Cmd.none
+            )
+
+        BackendSentPbnStatus status ->
+            ( { model | pbnStatus = Just status }
+            , Cmd.none
+            )
+
+        BackendSentValidGoalMetadata { goalName, choices } ->
             case model.program.goal of
                 Nothing ->
                     ( model, Cmd.none )
@@ -197,22 +221,23 @@ update msg model =
                         , Cmd.none
                         )
 
-        LoadExample ->
-            ( { model | program = Core.example }
-            , Cmd.none
-            )
+
+
+--------------------------------------------------------------------------------
+-- Subscriptions
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Incoming.iPbnStatus ReceivePbnStatus
+        [ Incoming.iPbnStatus BackendSentPbnStatus
         , Incoming.iValidGoalMetadata <|
             \vgmResult ->
                 case vgmResult of
                     Ok vgm ->
-                        ReceiveValidGoalMetadata vgm
+                        BackendSentValidGoalMetadata vgm
 
                     Err _ ->
-                        ReceiveValidGoalMetadata { goalName = "", choices = [] }
+                        BackendSentValidGoalMetadata
+                            { goalName = "", choices = [] }
         ]

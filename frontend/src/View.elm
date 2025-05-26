@@ -11,7 +11,7 @@ import Html.Events as E
 import Incoming
 import Json.Encode
 import Model exposing (Model)
-import Update exposing (Msg)
+import Update exposing (Msg(..))
 import Util
 
 
@@ -46,7 +46,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
                 |> text
             ]
         , input
-            [ E.onInput (Update.SetArgumentByString pi argName)
+            [ E.onInput (UserSetArgument pi argName)
             , A.id id
             , A.placeholder "Enter value here…"
             , A.value valueStr
@@ -67,13 +67,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
                                         Core.unparse sug
                                 in
                                 button
-                                    [ E.onClick
-                                        (Update.SetArgumentByString
-                                            pi
-                                            argName
-                                            s
-                                        )
-                                    ]
+                                    [ E.onClick (UserSetArgument pi argName s) ]
                                     [ text s ]
                             )
                             suggestions
@@ -106,7 +100,7 @@ step library suggestions pi s =
                 Prop i ->
                     button
                         [ A.class "step-delete"
-                        , E.onClick (Update.RemoveStep i)
+                        , E.onClick (UserRemovedStep i)
                         ]
                         [ text "×" ]
 
@@ -117,10 +111,10 @@ step library suggestions pi s =
             E.onInput <|
                 \k ->
                     if k == blankName then
-                        Update.ClearStep pi
+                        UserClearedStep pi
 
                     else
-                        Update.SetStep pi k
+                        UserSetStep pi k
 
         ( selectedName, extras ) =
             case s of
@@ -176,7 +170,7 @@ program ctx prog =
             )
         , button
             [ A.class "step-add"
-            , E.onClick Update.AddBlankStep
+            , E.onClick UserAddedBlankStep
             ]
             [ text "Add step" ]
         , h3 [] [ text "Goal of experiment" ]
@@ -245,7 +239,7 @@ directManipulationPbn { workingExpression, choices } =
                                                 \s ->
                                                     case String.toInt s of
                                                         Just i ->
-                                                            Update.MakePbnChoice i
+                                                            UserMadePbnChoice i
 
                                                         Nothing ->
                                                             Update.Nop
@@ -290,7 +284,7 @@ startNavigation prog =
 
                 Just programSource ->
                     ( [ E.onClick <|
-                            Update.StartNavigating { programSource = programSource }
+                            UserStartedNavigation { programSource = programSource }
                       ]
                     , []
                     )
@@ -316,7 +310,7 @@ pbnStatus ms =
                         , button
                             [ A.class "standout-button"
                             , E.onClick
-                                (Update.Download
+                                (UserRequestedDownload
                                     { filename = "analysis.py"
                                     , text = msg.workingExpression
                                     }
@@ -372,7 +366,7 @@ view model =
             ]
         , button
             [ A.id "devmode"
-            , E.onClick Update.LoadExample
+            , E.onClick UserClickedDevMode
             ]
             [ text "devmode" ]
         ]
