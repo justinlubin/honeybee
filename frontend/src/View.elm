@@ -243,7 +243,7 @@ directManipulationPbn { workingExpression, choices } =
                                                             UserMadePbnChoice i
 
                                                         Nothing ->
-                                                            Update.Nop
+                                                            Nop
                                             ]
                                             (option
                                                 [ A.value "" ]
