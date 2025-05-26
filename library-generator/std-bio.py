@@ -1,10 +1,12 @@
-import subprocess
+from dataclasses import dataclass
 
 from lib import Function, Helper, Prop, Type
 
 
 @Helper
 def RUN(command):
+    import subprocess
+
     return subprocess.run(
         command,
         shell=True,
@@ -38,6 +40,7 @@ class RNASeqProp:
 class RNASeqSamples:
     "RNA-seq samples"
 
+    @dataclass
     class S:
         label: str
         "Label for data"
@@ -48,6 +51,7 @@ class RNASeqSamples:
         raw_data: str
         "Path to raw FASTQ files"
 
+    @dataclass
     class D:
         pass
 
@@ -64,6 +68,7 @@ def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
 class RNASeq:
     "RNA-seq data"
 
+    @dataclass
     class S:
         label: str
         "Label for data"
@@ -71,6 +76,7 @@ class RNASeq:
         qc: bool
         "Whether or not quality checks have been run"
 
+    @dataclass
     class D:
         sample_sheet: str
         path: str
@@ -92,10 +98,12 @@ def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
 class TranscriptMatrices:
     "Transcript-by-sample matrices of counts and abundance (TPM)"
 
+    @dataclass
     class S:
         label: str
         "Label for RNA-seq data to analyze"
 
+    @dataclass
     class D:
         sample_sheet: str
         path: str

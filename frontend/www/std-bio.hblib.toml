@@ -1,5 +1,10 @@
 [[Preamble]]
+content = 'from dataclasses import dataclass'
+
+[[Preamble]]
 content='''def RUN(command):
+    import subprocess
+
     return subprocess.run(
         command,
         shell=True,
@@ -36,6 +41,7 @@ info.code = '''class RNASeqProp:
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
+info.overview = "RNA-seq samples"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
@@ -43,6 +49,7 @@ info.var_name = "RNA_SAMPLES"
 info.code = '''class RNASeqSamples:
     "RNA-seq samples"
 
+    @dataclass
     class S:
         label: str
         "Label for data"
@@ -53,6 +60,7 @@ info.code = '''class RNASeqSamples:
         raw_data: str
         "Path to raw FASTQ files"
 
+    @dataclass
     class D:
         pass'''
 
@@ -68,11 +76,13 @@ info.code = '''def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
 [Type.RNASeq]
 params.label = "Str"
 params.qc = "Bool"
+info.overview = "RNA-seq data"
 info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
 info.code = '''class RNASeq:
     "RNA-seq data"
 
+    @dataclass
     class S:
         label: str
         "Label for data"
@@ -80,6 +90,7 @@ info.code = '''class RNASeq:
         qc: bool
         "Whether or not quality checks have been run"
 
+    @dataclass
     class D:
         sample_sheet: str
         path: str'''
@@ -101,14 +112,17 @@ info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq
 
 [Type.TranscriptMatrices]
 params.label = "Str"
+info.overview = "Transcript-by-sample matrices of counts and abundance (TPM)"
 info.params.label = "Label for RNA-seq data to analyze"
 info.code = '''class TranscriptMatrices:
     "Transcript-by-sample matrices of counts and abundance (TPM)"
 
+    @dataclass
     class S:
         label: str
         "Label for RNA-seq data to analyze"
 
+    @dataclass
     class D:
         sample_sheet: str
         path: str'''

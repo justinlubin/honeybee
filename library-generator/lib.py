@@ -1,11 +1,19 @@
 import ast
-import dataclasses
 import inspect
+
+
+def deindent(s):
+    # https://stackoverflow.com/a/2378988
+    initial_indent = len(s) - len(s.lstrip())
+    ret = ""
+    for line in s.splitlines():
+        ret += line[initial_indent:] + "\n"
+    return ret
 
 
 # Based on https://stackoverflow.com/a/77628177
 def _attribute_info(cls):
-    src = inspect.getsource(cls)
+    src = deindent(inspect.getsource(cls))
     tree = ast.parse(src.strip())
     for t in ast.walk(tree):
         if isinstance(t, ast.ClassDef):
@@ -48,8 +56,8 @@ def _emit_fact(fact_kind, cls, parent_cls, kwargs):
     for p in types:
         hb_type = _python_to_honeybee(types[p])
         print(f"params.{p} = {hb_type}")
-    if cls.__doc__ is not None:
-        print(f'info.overview = "{cls.__doc__}"')
+    if parent_cls.__doc__ is not None:
+        print(f'info.overview = "{parent_cls.__doc__}"')
     for p in docs:
         print(f'info.params.{p} = "{docs[p]}"')
     for k in kwargs:
@@ -114,7 +122,7 @@ def Prop(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Prop", cls, cls, kwargs)
         cls.__honeybee_object = "Prop"
-        return dataclasses.dataclass(cls)
+        return cls
 
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         return wrap(args[0])
@@ -129,7 +137,7 @@ def Type(*args, **kwargs):
         cls.S.__honeybee_parent = cls
         cls.D.__honeybee_parent = cls
         cls.__honeybee_object = "Type"
-        return dataclasses.dataclass(cls)
+        return cls
 
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         return wrap(args[0])
@@ -146,7 +154,15 @@ def Function(*condition, **kwargs):
     return wrap
 
 
+helper_ran = False
+
+
 def Helper(f):
+    global helper_ran
+    if not helper_ran:
+        print("[[Preamble]]\ncontent = 'from dataclasses import dataclass'\n")
+        helper_ran = True
+
     code = inspect.getsource(f)
     new_code = ""
     found_def = False
