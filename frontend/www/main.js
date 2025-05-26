@@ -94,14 +94,6 @@ app.ports.scrollIntoView.subscribe((msg) => {
     document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
 });
 
-// app.ports.scrollTo.subscribe((msg) => {
-//     window.scrollTo({ left: msg.x, top: msg.y, behavior: "smooth" });
-// });
-
-app.ports.sendSetTextField.subscribe((msg) => {
-    document.getElementById(msg.id).value = msg.text;
-});
-
 app.ports.sendPbnCheck.subscribe((msg) => {
     try {
         const validGoalMetadataMessage = Honeybee.valid_goal_metadata(

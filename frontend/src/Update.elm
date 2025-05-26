@@ -17,7 +17,6 @@ type Msg
     | ClearStep ProgramIndex
     | RemoveStep Int
     | SetArgumentByString ProgramIndex String String
-    | SetArgumentTextField Port.SetTextFieldMessage ProgramIndex String String
     | StartNavigating { programSource : String }
     | MakePbnChoice Int
     | ReceivePbnStatus Port.PbnStatusMessage
@@ -156,12 +155,6 @@ update msg model =
             syncGoalSuggestions
                 ( setArgument model pi param str
                 , Cmd.none
-                )
-
-        SetArgumentTextField x si param s ->
-            syncGoalSuggestions
-                ( setArgument model si param s
-                , Port.sendSetTextField x
                 )
 
         StartNavigating x ->

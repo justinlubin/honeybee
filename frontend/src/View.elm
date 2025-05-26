@@ -21,7 +21,7 @@ arg :
     -> String
     -> ( ( String, ValueType ), List Value )
     -> Html Msg
-arg pi argLabels argName ( ( valueStr, valueType ), suggestions ) =
+arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
     let
         id =
             "step-argument"
@@ -49,6 +49,7 @@ arg pi argLabels argName ( ( valueStr, valueType ), suggestions ) =
             [ E.onInput (Update.SetArgumentByString pi argName)
             , A.id id
             , A.placeholder "Enter value here…"
+            , A.value valueStr
             ]
             []
         , if List.isEmpty suggestions then
@@ -67,10 +68,7 @@ arg pi argLabels argName ( ( valueStr, valueType ), suggestions ) =
                                 in
                                 button
                                     [ E.onClick
-                                        (Update.SetArgumentTextField
-                                            { id = id
-                                            , text = s
-                                            }
+                                        (Update.SetArgumentByString
                                             pi
                                             argName
                                             s
