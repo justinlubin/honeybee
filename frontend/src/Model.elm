@@ -1,7 +1,6 @@
 module Model exposing (Model, init)
 
 import Assoc exposing (Assoc)
-import Config
 import Core exposing (..)
 import Port
 
@@ -17,12 +16,7 @@ type alias Model =
 init : Library -> Model
 init library =
     { library = library
-    , workflow =
-        if Config.debug then
-            exampleWorkflow
-
-        else
-            emptyWorkflow
+    , workflow = emptyWorkflow
     , pbnStatus = Nothing
     , goalSuggestions = []
     }

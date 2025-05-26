@@ -2,7 +2,6 @@ module View exposing (view)
 
 import Assoc exposing (Assoc)
 import Compile
-import Config
 import Core exposing (..)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -47,13 +46,6 @@ arg si argLabels argName ( v, suggestions ) =
                             String.fromInt i
                    )
                 ++ argName
-
-        debugSuffix =
-            if False && Config.debug then
-                " (" ++ stringFromValue v ++ ")"
-
-            else
-                ""
     in
     div
         [ A.class "step-arg"
@@ -64,7 +56,6 @@ arg si argLabels argName ( v, suggestions ) =
             [ argLabels
                 |> Dict.get argName
                 |> Maybe.withDefault argName
-                |> (\x -> x ++ debugSuffix)
                 |> text
             ]
         , input
