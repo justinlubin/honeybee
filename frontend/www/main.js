@@ -43,6 +43,26 @@ for (const [name, kvs] of library.Type) {
 console.log(flags);
 
 ////////////////////////////////////////////////////////////////////////////////
+// Helpers
+
+// https://stackoverflow.com/a/18197341
+function download(filename, text) {
+    const element = document.createElement("a");
+    element.setAttribute(
+        "href",
+        "data:text/plain;charset=utf-8," + encodeURIComponent(text),
+    );
+    element.setAttribute("download", filename);
+
+    element.style.display = "none";
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Custom elements
 
 customElements.define(
@@ -129,23 +149,6 @@ app.ports.oPbnChoose.subscribe((msg) => {
         console.error(e);
     }
 });
-
-// https://stackoverflow.com/a/18197341
-function download(filename, text) {
-    const element = document.createElement("a");
-    element.setAttribute(
-        "href",
-        "data:text/plain;charset=utf-8," + encodeURIComponent(text),
-    );
-    element.setAttribute("download", filename);
-
-    element.style.display = "none";
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-}
 
 app.ports.oDownload.subscribe((msg) => {
     download(msg.filename, msg.text);
