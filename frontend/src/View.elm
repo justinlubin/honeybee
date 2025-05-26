@@ -8,9 +8,9 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
+import Incoming
 import Json.Encode
 import Model exposing (Model)
-import Port
 import Update exposing (Msg)
 import Util
 
@@ -184,7 +184,7 @@ program ctx prog =
         ]
 
 
-directManipulationPbn : Port.PbnStatusMessage -> Html Msg
+directManipulationPbn : Incoming.PbnStatusMessage -> Html Msg
 directManipulationPbn { workingExpression, choices } =
     let
         collectedChoices =
@@ -300,7 +300,7 @@ startNavigation prog =
         (text "Start navigating" :: extras)
 
 
-pbnStatus : Maybe Port.PbnStatusMessage -> Html Msg
+pbnStatus : Maybe Incoming.PbnStatusMessage -> Html Msg
 pbnStatus ms =
     case ms of
         Nothing ->

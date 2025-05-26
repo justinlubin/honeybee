@@ -4,9 +4,9 @@ import Assoc exposing (Assoc)
 import Compile
 import Complete
 import Core exposing (..)
-import Json.Decode as D
+import Incoming
 import Model exposing (Model)
-import Port
+import Outgoing
 import Util
 
 
@@ -19,9 +19,9 @@ type Msg
     | SetArgumentByString ProgramIndex String String
     | StartNavigating { programSource : String }
     | MakePbnChoice Int
-    | ReceivePbnStatus Port.PbnStatusMessage
-    | Download Port.DownloadMessage
-    | ReceiveValidGoalMetadata Port.ValidGoalMetadataMessage
+    | ReceivePbnStatus Incoming.PbnStatusMessage
+    | Download Outgoing.DownloadMessage
+    | ReceiveValidGoalMetadata Incoming.ValidGoalMetadataMessage
     | LoadExample
 
 
@@ -57,7 +57,7 @@ syncGoalSuggestions ( model, cmd ) =
             ( model
             , Cmd.batch
                 [ cmd
-                , Port.sendPbnCheck { programSource = programSource }
+                , Outgoing.oPbnCheck { programSource = programSource }
                 ]
             )
 
@@ -160,14 +160,14 @@ update msg model =
         StartNavigating x ->
             ( model
             , Cmd.batch
-                [ Port.scrollIntoView { selector = ".navigation-pane" }
-                , Port.sendPbnInit x
+                [ Outgoing.oScrollIntoView { selector = ".navigation-pane" }
+                , Outgoing.oPbnInit x
                 ]
             )
 
         MakePbnChoice i ->
             ( model
-            , Port.sendPbnChoice { choice = i }
+            , Outgoing.oPbnChoose { choice = i }
             )
 
         ReceivePbnStatus status ->
@@ -177,7 +177,7 @@ update msg model =
 
         Download x ->
             ( model
-            , Port.sendDownload x
+            , Outgoing.oDownload x
             )
 
         ReceiveValidGoalMetadata { goalName, choices } ->
@@ -206,12 +206,12 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Port.receivePbnStatus ReceivePbnStatus
-        , Port.receiveValidGoalMetadata <|
-            \val ->
-                case D.decodeValue Port.decodeValidGoalMetadata val of
+        [ Incoming.iPbnStatus ReceivePbnStatus
+        , Incoming.iValidGoalMetadata <|
+            \vgmResult ->
+                case vgmResult of
                     Ok vgm ->
-                        Debug.log "Msg" <| ReceiveValidGoalMetadata vgm
+                        ReceiveValidGoalMetadata vgm
 
                     Err _ ->
                         ReceiveValidGoalMetadata { goalName = "", choices = [] }

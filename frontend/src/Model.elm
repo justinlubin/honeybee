@@ -2,13 +2,13 @@ module Model exposing (Model, init)
 
 import Assoc exposing (Assoc)
 import Core exposing (Library, Value, WorkingProgram)
-import Port
+import Incoming
 
 
 type alias Model =
     { library : Library
     , program : WorkingProgram
-    , pbnStatus : Maybe Port.PbnStatusMessage
+    , pbnStatus : Maybe Incoming.PbnStatusMessage
     , goalSuggestions : Assoc String (List Value)
     }
 
