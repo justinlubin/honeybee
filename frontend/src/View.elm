@@ -235,6 +235,7 @@ directManipulationPbn { workingExpression, choices } =
                                     Just hChoices ->
                                         select
                                             [ A.class "h-choices"
+                                            , A.value ""
                                             , E.onInput <|
                                                 \s ->
                                                     case String.toInt s of
