@@ -5160,69 +5160,13 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Config$debug = false;
-var $author$project$Core$SHole = {$: 'SHole'};
-var $author$project$Core$W = function (a) {
-	return {$: 'W', a: a};
+var $author$project$Core$empty = {goal: $elm$core$Maybe$Nothing, props: _List_Nil};
+var $author$project$Model$init = function (library) {
+	return {goalSuggestions: _List_Nil, library: library, pbnStatus: $elm$core$Maybe$Nothing, program: $author$project$Core$empty};
 };
-var $author$project$Core$emptyWorkflow = $author$project$Core$W(
-	{goal: $author$project$Core$SHole, steps: _List_Nil});
-var $author$project$Core$SConcrete = function (a) {
-	return {$: 'SConcrete', a: a};
-};
-var $author$project$Core$VStr = function (a) {
-	return {$: 'VStr', a: a};
-};
+var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $author$project$Core$exampleWorkflow = $author$project$Core$W(
-	{
-		goal: $author$project$Core$SConcrete(
-			{
-				argLabels: $elm$core$Dict$empty,
-				args: _List_fromArray(
-					[
-						_Utils_Tuple2(
-						'label',
-						$author$project$Core$VStr('main'))
-					]),
-				name: 'TranscriptMatrices',
-				overview: $elm$core$Maybe$Nothing
-			}),
-		steps: _List_fromArray(
-			[
-				$author$project$Core$SConcrete(
-				{
-					argLabels: $elm$core$Dict$empty,
-					args: _List_fromArray(
-						[
-							_Utils_Tuple2(
-							'label',
-							$author$project$Core$VStr('main')),
-							_Utils_Tuple2(
-							'sample_sheet',
-							$author$project$Core$VStr('metadata/samples.csv')),
-							_Utils_Tuple2(
-							'raw_data',
-							$author$project$Core$VStr('raw-data'))
-						]),
-					name: 'RNASeqProp',
-					overview: $elm$core$Maybe$Nothing
-				})
-			])
-	});
-var $author$project$Model$init = function (library) {
-	return {
-		goalSuggestions: _List_Nil,
-		library: library,
-		pbnStatus: $elm$core$Maybe$Nothing,
-		workflow: $author$project$Config$debug ? $author$project$Core$exampleWorkflow : $author$project$Core$emptyWorkflow
-	};
-};
-var $author$project$Core$Prop = {$: 'Prop'};
-var $author$project$Core$Type = {$: 'Type'};
-var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
@@ -5344,7 +5288,7 @@ var $elm$core$Dict$fromList = function (assocs) {
 		$elm$core$Dict$empty,
 		assocs);
 };
-var $elm$core$Debug$log = _Debug_log;
+var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
 var $elm$json$Json$Decode$map3 = _Json_map3;
 var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
@@ -5377,47 +5321,38 @@ var $author$project$Decode$valueType = A2(
 		}
 	},
 	$elm$json$Json$Decode$string);
-var $author$project$Decode$stepSignature = function (kind) {
-	return A4(
-		$elm$json$Json$Decode$map3,
-		F3(
-			function (p, pl, o) {
-				return {
-					kind: kind,
-					overview: A2($elm$core$Debug$log, 'Ever????', o),
-					paramLabels: $elm$core$Dict$fromList(pl),
-					params: p
-				};
-			}),
-		A2(
-			$elm$json$Json$Decode$field,
-			'params',
-			$elm$json$Json$Decode$keyValuePairs($author$project$Decode$valueType)),
-		A2(
-			$elm$json$Json$Decode$field,
-			'paramLabels',
-			$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string)),
-		A2(
-			$elm$json$Json$Decode$field,
-			'overview',
-			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)));
-};
-var $author$project$Decode$library = A3(
-	$elm$json$Json$Decode$map2,
-	F2(
-		function (props, types) {
-			return _Utils_ap(props, types);
+var $author$project$Decode$factSignature = A4(
+	$elm$json$Json$Decode$map3,
+	F3(
+		function (p, pl, o) {
+			return {
+				overview: o,
+				paramLabels: $elm$core$Dict$fromList(pl),
+				params: p
+			};
 		}),
 	A2(
 		$elm$json$Json$Decode$field,
-		'props',
-		$elm$json$Json$Decode$keyValuePairs(
-			$author$project$Decode$stepSignature($author$project$Core$Prop))),
+		'params',
+		$elm$json$Json$Decode$keyValuePairs($author$project$Decode$valueType)),
 	A2(
 		$elm$json$Json$Decode$field,
-		'types',
-		$elm$json$Json$Decode$keyValuePairs(
-			$author$project$Decode$stepSignature($author$project$Core$Type))));
+		'paramLabels',
+		$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'overview',
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)));
+var $author$project$Decode$factLibrary = $elm$json$Json$Decode$keyValuePairs($author$project$Decode$factSignature);
+var $author$project$Decode$library = A3(
+	$elm$json$Json$Decode$map2,
+	F2(
+		function (p, t) {
+			return {props: p, types: t};
+		}),
+	A2($elm$json$Json$Decode$field, 'props', $author$project$Decode$factLibrary),
+	A2($elm$json$Json$Decode$field, 'types', $author$project$Decode$factLibrary));
+var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Result$mapError = F2(
 	function (f, result) {
 		if (result.$ === 'Ok') {
@@ -5431,45 +5366,19 @@ var $elm$core$Result$mapError = F2(
 	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Update$ReceivePbnStatus = function (a) {
-	return {$: 'ReceivePbnStatus', a: a};
+var $author$project$Update$BackendSentPbnStatus = function (a) {
+	return {$: 'BackendSentPbnStatus', a: a};
 };
-var $author$project$Update$ReceiveValidGoalMetadata = function (a) {
-	return {$: 'ReceiveValidGoalMetadata', a: a};
+var $author$project$Update$BackendSentValidGoalMetadata = function (a) {
+	return {$: 'BackendSentValidGoalMetadata', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $author$project$Port$ValidGoalMetadataMessage = F2(
-	function (goalName, choices) {
-		return {choices: choices, goalName: goalName};
-	});
-var $author$project$Core$VBool = function (a) {
-	return {$: 'VBool', a: a};
-};
-var $author$project$Core$VInt = function (a) {
-	return {$: 'VInt', a: a};
-};
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
-var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $author$project$Port$decodeValue = $elm$json$Json$Decode$oneOf(
-	_List_fromArray(
-		[
-			A2($elm$json$Json$Decode$map, $author$project$Core$VInt, $elm$json$Json$Decode$int),
-			A2($elm$json$Json$Decode$map, $author$project$Core$VBool, $elm$json$Json$Decode$bool),
-			A2($elm$json$Json$Decode$map, $author$project$Core$VStr, $elm$json$Json$Decode$string)
-		]));
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $author$project$Port$decodeValidGoalMetadata = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Port$ValidGoalMetadataMessage,
-	A2($elm$json$Json$Decode$field, 'goalName', $elm$json$Json$Decode$string),
-	A2(
-		$elm$json$Json$Decode$field,
-		'choices',
-		$elm$json$Json$Decode$list(
-			$elm$json$Json$Decode$keyValuePairs($author$project$Port$decodeValue))));
 var $elm$json$Json$Decode$index = _Json_decodeIndex;
-var $author$project$Port$receivePbnStatus = _Platform_incomingPort(
-	'receivePbnStatus',
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $author$project$Incoming$iPbnStatus_ = _Platform_incomingPort(
+	'iPbnStatus_',
 	A2(
 		$elm$json$Json$Decode$andThen,
 		function (workingExpression) {
@@ -5502,24 +5411,64 @@ var $author$project$Port$receivePbnStatus = _Platform_incomingPort(
 				A2($elm$json$Json$Decode$field, 'valid', $elm$json$Json$Decode$bool));
 		},
 		A2($elm$json$Json$Decode$field, 'workingExpression', $elm$json$Json$Decode$string)));
+var $author$project$Incoming$iPbnStatus = function (f) {
+	return $author$project$Incoming$iPbnStatus_(f);
+};
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $author$project$Incoming$ValidGoalMetadataMessage = F2(
+	function (goalName, choices) {
+		return {choices: choices, goalName: goalName};
+	});
+var $author$project$Core$VBool = function (a) {
+	return {$: 'VBool', a: a};
+};
+var $author$project$Core$VInt = function (a) {
+	return {$: 'VInt', a: a};
+};
+var $author$project$Core$VStr = function (a) {
+	return {$: 'VStr', a: a};
+};
+var $author$project$Incoming$decodeValue = $elm$json$Json$Decode$oneOf(
+	_List_fromArray(
+		[
+			A2($elm$json$Json$Decode$map, $author$project$Core$VInt, $elm$json$Json$Decode$int),
+			A2($elm$json$Json$Decode$map, $author$project$Core$VBool, $elm$json$Json$Decode$bool),
+			A2($elm$json$Json$Decode$map, $author$project$Core$VStr, $elm$json$Json$Decode$string)
+		]));
+var $author$project$Incoming$decodeValidGoalMetadata = A3(
+	$elm$json$Json$Decode$map2,
+	$author$project$Incoming$ValidGoalMetadataMessage,
+	A2($elm$json$Json$Decode$field, 'goalName', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'choices',
+		$elm$json$Json$Decode$list(
+			$elm$json$Json$Decode$keyValuePairs($author$project$Incoming$decodeValue))));
 var $elm$json$Json$Decode$value = _Json_decodeValue;
-var $author$project$Port$receiveValidGoalMetadata = _Platform_incomingPort('receiveValidGoalMetadata', $elm$json$Json$Decode$value);
+var $author$project$Incoming$iValidGoalMetadata_ = _Platform_incomingPort('iValidGoalMetadata_', $elm$json$Json$Decode$value);
+var $author$project$Incoming$iValidGoalMetadata = function (f) {
+	return $author$project$Incoming$iValidGoalMetadata_(
+		A2(
+			$elm$core$Basics$composeR,
+			$elm$json$Json$Decode$decodeValue($author$project$Incoming$decodeValidGoalMetadata),
+			f));
+};
 var $author$project$Update$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				$author$project$Port$receivePbnStatus($author$project$Update$ReceivePbnStatus),
-				$author$project$Port$receiveValidGoalMetadata(
-				function (val) {
-					var _v1 = A2($elm$json$Json$Decode$decodeValue, $author$project$Port$decodeValidGoalMetadata, val);
-					if (_v1.$ === 'Ok') {
-						var vgm = _v1.a;
-						return A2(
-							$elm$core$Debug$log,
-							'Msg',
-							$author$project$Update$ReceiveValidGoalMetadata(vgm));
+				$author$project$Incoming$iPbnStatus($author$project$Update$BackendSentPbnStatus),
+				$author$project$Incoming$iValidGoalMetadata(
+				function (vgmResult) {
+					if (vgmResult.$ === 'Ok') {
+						var vgm = vgmResult.a;
+						return $author$project$Update$BackendSentValidGoalMetadata(vgm);
 					} else {
-						return $author$project$Update$ReceiveValidGoalMetadata(
+						return $author$project$Update$BackendSentValidGoalMetadata(
 							{choices: _List_Nil, goalName: ''});
 					}
 				})
@@ -5559,73 +5508,16 @@ var $elm$core$List$all = F2(
 			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
 			list);
 	});
-var $author$project$Core$valueType = function (v) {
-	switch (v.$) {
-		case 'VBool':
-			return $author$project$Core$VTBool;
-		case 'VInt':
-			return $author$project$Core$VTInt;
-		case 'VStr':
-			return $author$project$Core$VTStr;
-		default:
-			var vt = v.a;
-			return vt;
-	}
-};
-var $author$project$Core$consistent = F2(
-	function (v1, v2) {
-		var _v0 = _Utils_Tuple2(v1, v2);
-		_v0$4:
-		while (true) {
-			_v0$5:
-			while (true) {
-				switch (_v0.a.$) {
-					case 'VInt':
-						switch (_v0.b.$) {
-							case 'VInt':
-								var n1 = _v0.a.a;
-								var n2 = _v0.b.a;
-								return _Utils_eq(n1, n2);
-							case 'VHole':
-								break _v0$4;
-							default:
-								break _v0$5;
-						}
-					case 'VBool':
-						switch (_v0.b.$) {
-							case 'VBool':
-								var b1 = _v0.a.a;
-								var b2 = _v0.b.a;
-								return _Utils_eq(b1, b2);
-							case 'VHole':
-								break _v0$4;
-							default:
-								break _v0$5;
-						}
-					case 'VStr':
-						switch (_v0.b.$) {
-							case 'VStr':
-								var s1 = _v0.a.a;
-								var s2 = _v0.b.a;
-								return _Utils_eq(s1, s2);
-							case 'VHole':
-								break _v0$4;
-							default:
-								break _v0$5;
-						}
-					default:
-						var vt1 = _v0.a.a;
-						return _Utils_eq(
-							vt1,
-							$author$project$Core$valueType(v2));
-				}
-			}
-			return false;
-		}
-		var vt2 = _v0.b.a;
-		return _Utils_eq(
-			$author$project$Core$valueType(v1),
-			vt2);
+var $author$project$Assoc$all = F2(
+	function (p, a) {
+		return A2(
+			$elm$core$List$all,
+			function (_v0) {
+				var x = _v0.a;
+				var y = _v0.b;
+				return A2(p, x, y);
+			},
+			a);
 	});
 var $author$project$Assoc$get = F2(
 	function (k, a) {
@@ -5650,30 +5542,91 @@ var $author$project$Assoc$get = F2(
 			}
 		}
 	});
-var $elm$core$Basics$neq = _Utils_notEqual;
-var $author$project$Core$argsConsistent = F2(
-	function (args1, args2) {
-		return (!_Utils_eq(
-			$elm$core$List$length(args1),
-			$elm$core$List$length(args2))) ? false : A2(
-			$elm$core$List$all,
-			function (_v0) {
-				var k1 = _v0.a;
-				var v1 = _v0.b;
-				var _v1 = A2($author$project$Assoc$get, k1, args2);
-				if (_v1.$ === 'Nothing') {
-					return false;
-				} else {
-					var v2 = _v1.a;
-					return A2($author$project$Core$consistent, v1, v2);
-				}
-			},
-			args1);
+var $author$project$Core$Blank = {$: 'Blank'};
+var $author$project$Core$ParseFail = {$: 'ParseFail'};
+var $author$project$Core$ParseSuccess = function (a) {
+	return {$: 'ParseSuccess', a: a};
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
 	});
-var $elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
+var $elm$core$String$toLower = _String_toLower;
+var $elm$core$String$trim = _String_trim;
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Core$parse = F2(
+	function (vt, str) {
+		if ($elm$core$String$isEmpty(
+			$elm$core$String$trim(str))) {
+			return $author$project$Core$Blank;
+		} else {
+			switch (vt.$) {
+				case 'VTInt':
+					return A2(
+						$elm$core$Maybe$withDefault,
+						$author$project$Core$ParseFail,
+						A2(
+							$elm$core$Maybe$map,
+							A2($elm$core$Basics$composeR, $author$project$Core$VInt, $author$project$Core$ParseSuccess),
+							$elm$core$String$toInt(str)));
+				case 'VTBool':
+					var _v1 = $elm$core$String$toLower(str);
+					switch (_v1) {
+						case 'true':
+							return $author$project$Core$ParseSuccess(
+								$author$project$Core$VBool(true));
+						case 'false':
+							return $author$project$Core$ParseSuccess(
+								$author$project$Core$VBool(false));
+						default:
+							return $author$project$Core$ParseFail;
+					}
+				default:
+					return $author$project$Core$ParseSuccess(
+						$author$project$Core$VStr(str));
+			}
+		}
+	});
+var $author$project$Core$consistent = F2(
+	function (fact, args) {
+		return A2(
+			$author$project$Assoc$all,
+			F2(
+				function (k, _v0) {
+					var s1 = _v0.a;
+					var vt = _v0.b;
+					var _v1 = A2($author$project$Assoc$get, k, args);
+					if (_v1.$ === 'Just') {
+						var v2 = _v1.a;
+						var _v2 = A2($author$project$Core$parse, vt, s1);
+						switch (_v2.$) {
+							case 'ParseFail':
+								return false;
+							case 'Blank':
+								return true;
+							default:
+								var v1 = _v2.a;
+								return _Utils_eq(v1, v2);
+						}
+					} else {
+						return false;
+					}
+				}),
+			fact.args);
 	});
 var $elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
@@ -5734,86 +5687,125 @@ var $author$project$Util$unique = function (xs) {
 		}
 	}
 };
-var $author$project$Core$unparseValue = function (v) {
+var $author$project$Core$unparse = function (v) {
 	switch (v.$) {
 		case 'VBool':
 			if (v.a) {
-				return $elm$core$Maybe$Just('true');
+				return 'true';
 			} else {
-				return $elm$core$Maybe$Just('false');
+				return 'false';
 			}
 		case 'VInt':
 			var n = v.a;
-			return $elm$core$Maybe$Just(
-				$elm$core$String$fromInt(n));
-		case 'VStr':
-			var s = v.a;
-			return $elm$core$Maybe$Just(s);
+			return $elm$core$String$fromInt(n);
 		default:
-			return $elm$core$Maybe$Nothing;
+			var s = v.a;
+			return s;
 	}
 };
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var $author$project$Update$consistentSuggestions = F2(
-	function (args, choices) {
+	function (goalFact, choices) {
 		return A2(
 			$author$project$Assoc$map,
 			F2(
-				function (argName, argValue) {
-					if (argValue.$ === 'VHole') {
-						return A2(
-							$elm$core$List$sortBy,
-							A2(
-								$elm$core$Basics$composeR,
-								$author$project$Core$unparseValue,
-								$elm$core$Maybe$withDefault('')),
-							$author$project$Util$unique(
-								A2(
-									$elm$core$List$filterMap,
-									function (choice) {
-										return A2($author$project$Core$argsConsistent, args, choice) ? A2($author$project$Assoc$get, argName, choice) : $elm$core$Maybe$Nothing;
-									},
-									choices)));
-					} else {
-						return _List_Nil;
+				function (argName, _v0) {
+					var argStr = _v0.a;
+					var argType = _v0.b;
+					var _v1 = A2($author$project$Core$parse, argType, argStr);
+					switch (_v1.$) {
+						case 'ParseFail':
+							return _List_Nil;
+						case 'ParseSuccess':
+							return _List_Nil;
+						default:
+							return A2(
+								$elm$core$List$sortBy,
+								$author$project$Core$unparse,
+								$author$project$Util$unique(
+									A2(
+										$elm$core$List$filterMap,
+										function (choice) {
+											return A2($author$project$Core$consistent, goalFact, choice) ? A2($author$project$Assoc$get, argName, choice) : $elm$core$Maybe$Nothing;
+										},
+										choices)));
 					}
 				}),
-			args);
+			goalFact.args);
 	});
-var $author$project$Core$VHole = function (a) {
-	return {$: 'VHole', a: a};
-};
-var $author$project$Core$freshStep = F2(
-	function (name, sig) {
-		return $author$project$Core$SConcrete(
+var $author$project$Core$example = {
+	goal: $elm$core$Maybe$Just(
+		{
+			args: _List_fromArray(
+				[
+					_Utils_Tuple2(
+					'label',
+					_Utils_Tuple2('main', $author$project$Core$VTStr))
+				]),
+			name: 'TranscriptMatrices',
+			sig: {
+				overview: $elm$core$Maybe$Nothing,
+				paramLabels: $elm$core$Dict$empty,
+				params: _List_fromArray(
+					[
+						_Utils_Tuple2('label', $author$project$Core$VTStr)
+					])
+			}
+		}),
+	props: _List_fromArray(
+		[
+			$elm$core$Maybe$Just(
 			{
-				argLabels: sig.paramLabels,
-				args: A2(
-					$elm$core$List$map,
-					function (_v0) {
-						var k = _v0.a;
-						var vt = _v0.b;
-						return _Utils_Tuple2(
-							k,
-							$author$project$Core$VHole(vt));
-					},
-					sig.params),
-				name: name,
-				overview: sig.overview
-			});
-	});
-var $author$project$Core$goal = function (_v0) {
-	var w = _v0.a;
-	return w.goal;
+				args: _List_fromArray(
+					[
+						_Utils_Tuple2(
+						'label',
+						_Utils_Tuple2('main', $author$project$Core$VTStr)),
+						_Utils_Tuple2(
+						'sample_sheet',
+						_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr)),
+						_Utils_Tuple2(
+						'raw_data',
+						_Utils_Tuple2('raw-data', $author$project$Core$VTStr))
+					]),
+				name: 'RNASeqProp',
+				sig: {
+					overview: $elm$core$Maybe$Nothing,
+					paramLabels: $elm$core$Dict$empty,
+					params: _List_fromArray(
+						[
+							_Utils_Tuple2('label', $author$project$Core$VTStr),
+							_Utils_Tuple2('sample_sheet', $author$project$Core$VTStr),
+							_Utils_Tuple2('raw_data', $author$project$Core$VTStr)
+						])
+				}
+			})
+		])
 };
+var $author$project$Core$fresh = F2(
+	function (name, sig) {
+		return {
+			args: A2(
+				$author$project$Assoc$map,
+				F2(
+					function (_v0, vt) {
+						return _Utils_Tuple2('', vt);
+					}),
+				sig.params),
+			name: name,
+			sig: sig
+		};
+	});
+var $author$project$Core$getSigFor = F3(
+	function (pi, name, lib) {
+		var relevantLibrary = function () {
+			if (pi.$ === 'Goal') {
+				return lib.types;
+			} else {
+				return lib.props;
+			}
+		}();
+		return A2($author$project$Assoc$get, name, relevantLibrary);
+	});
 var $elm$core$List$append = F2(
 	function (xs, ys) {
 		if (!ys.b) {
@@ -5825,34 +5817,97 @@ var $elm$core$List$append = F2(
 var $elm$core$List$concat = function (lists) {
 	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
 };
-var $author$project$Core$insertStep = F3(
-	function (i, step, _v0) {
-		var w = _v0.a;
-		return _Utils_eq(
+var $author$project$Core$insert = F3(
+	function (i, x, prog) {
+		if (_Utils_eq(
 			i,
-			$elm$core$List$length(w.steps)) ? $author$project$Core$W(
-			_Utils_update(
-				w,
+			$elm$core$List$length(prog.props))) {
+			return _Utils_update(
+				prog,
 				{
-					steps: _Utils_ap(
-						w.steps,
+					props: _Utils_ap(
+						prog.props,
 						_List_fromArray(
-							[step]))
-				})) : $author$project$Core$W(
-			_Utils_update(
-				w,
-				{
-					steps: $elm$core$List$concat(
-						A2(
-							$elm$core$List$indexedMap,
-							F2(
-								function (j, s) {
-									return _Utils_eq(i, j) ? _List_fromArray(
-										[step, s]) : _List_fromArray(
-										[s]);
-								}),
-							w.steps))
-				}));
+							[x]))
+				});
+		} else {
+			var newProps = $elm$core$List$concat(
+				A2(
+					$elm$core$List$indexedMap,
+					F2(
+						function (j, y) {
+							return _Utils_eq(i, j) ? _List_fromArray(
+								[x, y]) : _List_fromArray(
+								[y]);
+						}),
+					prog.props));
+			return _Utils_update(
+				prog,
+				{props: newProps});
+		}
+	});
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Outgoing$oDownload = _Platform_outgoingPort(
+	'oDownload',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'filename',
+					$elm$json$Json$Encode$string($.filename)),
+					_Utils_Tuple2(
+					'text',
+					$elm$json$Json$Encode$string($.text))
+				]));
+	});
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $author$project$Outgoing$oPbnChoose = _Platform_outgoingPort(
+	'oPbnChoose',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'choice',
+					$elm$json$Json$Encode$int($.choice))
+				]));
+	});
+var $author$project$Outgoing$oPbnInit = _Platform_outgoingPort(
+	'oPbnInit',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'programSource',
+					$elm$json$Json$Encode$string($.programSource))
+				]));
+	});
+var $author$project$Outgoing$oScrollIntoView = _Platform_outgoingPort(
+	'oScrollIntoView',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'selector',
+					$elm$json$Json$Encode$string($.selector))
+				]));
 	});
 var $author$project$Util$indexedFilter = F2(
 	function (pred, xs) {
@@ -5871,232 +5926,108 @@ var $author$project$Util$indexedFilter = F2(
 					}),
 				xs));
 	});
-var $author$project$Core$removeStep = F2(
-	function (i, _v0) {
-		var w = _v0.a;
-		return $author$project$Core$W(
-			_Utils_update(
-				w,
-				{
-					steps: A2(
-						$author$project$Util$indexedFilter,
-						F2(
-							function (j, _v1) {
-								return !_Utils_eq(i, j);
-							}),
-						w.steps)
-				}));
-	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
+var $author$project$Core$remove = F2(
+	function (i, prog) {
+		var newProps = A2(
+			$author$project$Util$indexedFilter,
 			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
+				function (j, _v0) {
+					return !_Utils_eq(i, j);
 				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Port$scrollIntoView = _Platform_outgoingPort(
-	'scrollIntoView',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'selector',
-					$elm$json$Json$Encode$string($.selector))
-				]));
+			prog.props);
+		return _Utils_update(
+			prog,
+			{props: newProps});
 	});
-var $author$project$Port$sendDownload = _Platform_outgoingPort(
-	'sendDownload',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'filename',
-					$elm$json$Json$Encode$string($.filename)),
-					_Utils_Tuple2(
-					'text',
-					$elm$json$Json$Encode$string($.text))
-				]));
-	});
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $author$project$Port$sendPbnChoice = _Platform_outgoingPort(
-	'sendPbnChoice',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'choice',
-					$elm$json$Json$Encode$int($.choice))
-				]));
-	});
-var $author$project$Port$sendPbnInit = _Platform_outgoingPort(
-	'sendPbnInit',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'programSource',
-					$elm$json$Json$Encode$string($.programSource))
-				]));
-	});
-var $author$project$Port$sendSetTextField = _Platform_outgoingPort(
-	'sendSetTextField',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'id',
-					$elm$json$Json$Encode$string($.id)),
-					_Utils_Tuple2(
-					'text',
-					$elm$json$Json$Encode$string($.text))
-				]));
-	});
-var $author$project$Core$modifyStep = F3(
-	function (si, modify, _v0) {
-		var w = _v0.a;
-		if (si.$ === 'Goal') {
-			return $author$project$Core$W(
-				_Utils_update(
-					w,
-					{
-						goal: modify(w.goal)
-					}));
+var $author$project$Core$modify = F3(
+	function (pi, func, prog) {
+		if (pi.$ === 'Goal') {
+			return _Utils_update(
+				prog,
+				{
+					goal: func(prog.goal)
+				});
 		} else {
-			var i = si.a;
-			return $author$project$Core$W(
-				_Utils_update(
-					w,
-					{
-						steps: A2(
-							$elm$core$List$indexedMap,
-							F2(
-								function (j, s) {
-									return _Utils_eq(i, j) ? modify(s) : s;
-								}),
-							w.steps)
-					}));
+			var i = pi.a;
+			var newProps = A2(
+				$elm$core$List$indexedMap,
+				F2(
+					function (j, x) {
+						return _Utils_eq(i, j) ? func(x) : x;
+					}),
+				prog.props);
+			return _Utils_update(
+				prog,
+				{props: newProps});
 		}
 	});
-var $author$project$Assoc$set = F3(
-	function (k, v, a) {
-		return A2(
-			$elm$core$List$any,
+var $author$project$Core$set = F3(
+	function (pi, x, prog) {
+		return A3(
+			$author$project$Core$modify,
+			pi,
 			function (_v0) {
-				var k2 = _v0.a;
-				return _Utils_eq(k2, k);
+				return x;
 			},
-			a) ? A2(
+			prog);
+	});
+var $author$project$Assoc$modify = F3(
+	function (k, f, a) {
+		return A2(
 			$author$project$Assoc$map,
 			F2(
-				function (k2, v2) {
-					return _Utils_eq(k2, k) ? v : v2;
+				function (k2, v) {
+					return _Utils_eq(k2, k) ? f(v) : v;
 				}),
-			a) : A2(
-			$elm$core$List$cons,
-			_Utils_Tuple2(k, v),
 			a);
 	});
 var $author$project$Update$setArgument = F4(
-	function (model, si, param, v) {
+	function (pi, param, s, model) {
 		return _Utils_update(
 			model,
 			{
 				pbnStatus: $elm$core$Maybe$Nothing,
-				workflow: A3(
-					$author$project$Core$modifyStep,
-					si,
-					function (s) {
-						if (s.$ === 'SHole') {
-							return $author$project$Core$SHole;
-						} else {
-							var scd = s.a;
-							return $author$project$Core$SConcrete(
-								_Utils_update(
-									scd,
-									{
-										args: A3($author$project$Assoc$set, param, v, scd.args)
-									}));
-						}
-					},
-					model.workflow)
+				program: A3(
+					$author$project$Core$modify,
+					pi,
+					$elm$core$Maybe$map(
+						function (f) {
+							return _Utils_update(
+								f,
+								{
+									args: A3(
+										$author$project$Assoc$modify,
+										param,
+										function (_v0) {
+											var vt = _v0.b;
+											return _Utils_Tuple2(s, vt);
+										},
+										f.args)
+								});
+						}),
+					model.program)
 			});
 	});
-var $author$project$Core$setStep = F3(
-	function (si, step, w) {
-		return A3(
-			$author$project$Core$modifyStep,
-			si,
-			function (_v0) {
-				return step;
-			},
-			w);
-	});
-var $author$project$Core$steps = function (_v0) {
-	var w = _v0.a;
-	return w.steps;
+var $author$project$Compile$value = function (v) {
+	switch (v.$) {
+		case 'VInt':
+			var n = v.a;
+			return $elm$core$String$fromInt(n);
+		case 'VBool':
+			if (v.a) {
+				return 'true';
+			} else {
+				return 'false';
+			}
+		default:
+			var s = v.a;
+			return '\"' + (s + '\"');
+	}
 };
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $author$project$Compile$value = F2(
-	function (fillHoles, v) {
-		switch (v.$) {
-			case 'VInt':
-				var n = v.a;
-				return $elm$core$Maybe$Just(
-					$elm$core$String$fromInt(n));
-			case 'VBool':
-				if (v.a) {
-					return $elm$core$Maybe$Just('true');
-				} else {
-					return $elm$core$Maybe$Just('false');
-				}
-			case 'VStr':
-				var s = v.a;
-				return $elm$core$Maybe$Just('\"' + (s + '\"'));
-			default:
-				var vt = v.a;
-				if (fillHoles) {
-					switch (vt.$) {
-						case 'VTInt':
-							return $elm$core$Maybe$Just('0');
-						case 'VTBool':
-							return $elm$core$Maybe$Just('false');
-						default:
-							return $elm$core$Maybe$Just('\"\"');
-					}
-				} else {
-					return $elm$core$Maybe$Nothing;
-				}
-		}
-	});
-var $author$project$Compile$arg = F3(
-	function (fillHoles, argName, v) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (s) {
-				return 'args.' + (argName + (' = ' + s));
-			},
-			A2($author$project$Compile$value, fillHoles, v));
+var $author$project$Compile$arg = F2(
+	function (argName, _v0) {
+		var v = _v0.a;
+		return 'args.' + (argName + (' = ' + $author$project$Compile$value(v)));
 	});
 var $author$project$Assoc$mapCollapse = function (f) {
 	return $elm$core$List$map(
@@ -6106,6 +6037,45 @@ var $author$project$Assoc$mapCollapse = function (f) {
 			return A2(f, x, y);
 		});
 };
+var $author$project$Compile$factBody = F2(
+	function (name, args) {
+		return 'name = \"' + (name + ('\"\n' + A2(
+			$elm$core$String$join,
+			'\n',
+			A2($author$project$Assoc$mapCollapse, $author$project$Compile$arg, args))));
+	});
+var $author$project$Compile$fact = F2(
+	function (prefix, f) {
+		return _Utils_ap(
+			prefix,
+			A2($author$project$Compile$factBody, f.name, f.args));
+	});
+var $author$project$Compile$goal = function (f) {
+	return A2($author$project$Compile$fact, '[Goal]\n', f);
+};
+var $author$project$Compile$prop = function (f) {
+	return A2($author$project$Compile$fact, '[[Prop]]\n', f);
+};
+var $author$project$Compile$compile = function (prog) {
+	return A2(
+		$elm$core$String$join,
+		'\n\n',
+		_Utils_ap(
+			A2($elm$core$List$map, $author$project$Compile$prop, prog.props),
+			_List_fromArray(
+				[
+					$author$project$Compile$goal(prog.goal)
+				])));
+};
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
 var $author$project$Util$sequence = function (xs) {
 	var result = A2(
 		$elm$core$List$filterMap,
@@ -6117,68 +6087,102 @@ var $author$project$Util$sequence = function (xs) {
 		$elm$core$List$length(xs),
 		$elm$core$List$length(result)) ? $elm$core$Maybe$Just(result) : $elm$core$Maybe$Nothing;
 };
-var $author$project$Compile$stepBody = F3(
-	function (fillHoles, name, args) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (argStrings) {
-				return 'name = \"' + (name + ('\"\n' + A2($elm$core$String$join, '\n', argStrings)));
-			},
-			$author$project$Util$sequence(
-				A2(
-					$author$project$Assoc$mapCollapse,
-					$author$project$Compile$arg(fillHoles),
-					args)));
-	});
-var $author$project$Compile$step = F3(
-	function (fillHoles, prefix, s) {
-		if (s.$ === 'SHole') {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			var name = s.a.name;
-			var args = s.a.args;
-			return A2(
-				$elm$core$Maybe$map,
-				function (body) {
-					return _Utils_ap(prefix, body);
-				},
-				A3($author$project$Compile$stepBody, fillHoles, name, args));
-		}
-	});
-var $author$project$Compile$goal = F2(
-	function (fillHoles, s) {
-		return A3($author$project$Compile$step, fillHoles, '[Goal]\n', s);
-	});
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
+var $author$project$Assoc$sequence = function (a) {
+	return $author$project$Util$sequence(
+		A2(
+			$author$project$Assoc$mapCollapse,
+			F2(
+				function (k, mv) {
+					return A2(
+						$elm$core$Maybe$map,
+						function (v) {
+							return _Utils_Tuple2(k, v);
+						},
+						mv);
+				}),
+			a));
+};
+var $author$project$Complete$fillHole = function (vt) {
+	switch (vt.$) {
+		case 'VTInt':
+			return $author$project$Core$VInt(0);
+		case 'VTBool':
+			return $author$project$Core$VBool(false);
+		default:
+			return $author$project$Core$VStr('');
 	}
 };
-var $author$project$Compile$prop = function (s) {
-	return A3($author$project$Compile$step, false, '[[Prop]]\n', s);
-};
-var $author$project$Compile$compile = F2(
-	function (_v0, w) {
-		var allowGoalHoles = _v0.allowGoalHoles;
-		var steps = $author$project$Core$steps(w);
-		return $elm$core$List$isEmpty(steps) ? $elm$core$Maybe$Nothing : A2(
-			$elm$core$Maybe$map,
-			$elm$core$String$join('\n\n'),
-			$author$project$Util$sequence(
-				_Utils_ap(
-					A2($elm$core$List$map, $author$project$Compile$prop, steps),
-					_List_fromArray(
-						[
-							A2(
-							$author$project$Compile$goal,
-							allowGoalHoles,
-							$author$project$Core$goal(w))
-						]))));
+var $author$project$Complete$value = F3(
+	function (allowHoles, vt, str) {
+		var _v0 = A2($author$project$Core$parse, vt, str);
+		if (_v0.$ === 'ParseSuccess') {
+			var v = _v0.a;
+			return $elm$core$Maybe$Just(v);
+		} else {
+			return allowHoles ? $elm$core$Maybe$Just(
+				$author$project$Complete$fillHole(vt)) : $elm$core$Maybe$Nothing;
+		}
 	});
-var $author$project$Port$sendPbnCheck = _Platform_outgoingPort(
-	'sendPbnCheck',
+var $author$project$Complete$fact = F2(
+	function (allowHoles, f) {
+		return A2(
+			$elm$core$Maybe$map,
+			function (args) {
+				return {args: args, name: f.name, sig: f.sig};
+			},
+			$author$project$Assoc$sequence(
+				A2(
+					$author$project$Assoc$map,
+					F2(
+						function (_v0, _v1) {
+							var a = _v1.a;
+							var vt = _v1.b;
+							return A2(
+								$elm$core$Maybe$map,
+								function (v) {
+									return _Utils_Tuple2(v, vt);
+								},
+								A3($author$project$Complete$value, allowHoles, vt, a));
+						}),
+					f.args)));
+	});
+var $elm$core$Maybe$map2 = F3(
+	function (func, ma, mb) {
+		if (ma.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 'Nothing') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				return $elm$core$Maybe$Just(
+					A2(func, a, b));
+			}
+		}
+	});
+var $author$project$Complete$complete = F2(
+	function (_v0, prog) {
+		var allowGoalHoles = _v0.allowGoalHoles;
+		return A3(
+			$elm$core$Maybe$map2,
+			F2(
+				function (p, g) {
+					return {goal: g, props: p};
+				}),
+			$author$project$Util$sequence(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Maybe$andThen(
+						$author$project$Complete$fact(false)),
+					prog.props)),
+			A2(
+				$elm$core$Maybe$andThen,
+				$author$project$Complete$fact(allowGoalHoles),
+				prog.goal));
+	});
+var $author$project$Outgoing$oPbnCheck = _Platform_outgoingPort(
+	'oPbnCheck',
 	function ($) {
 		return $elm$json$Json$Encode$object(
 			_List_fromArray(
@@ -6192,9 +6196,12 @@ var $author$project$Update$syncGoalSuggestions = function (_v0) {
 	var model = _v0.a;
 	var cmd = _v0.b;
 	var _v1 = A2(
+		$elm$core$Maybe$map,
 		$author$project$Compile$compile,
-		{allowGoalHoles: true},
-		model.workflow);
+		A2(
+			$author$project$Complete$complete,
+			{allowGoalHoles: true},
+			model.program));
 	if (_v1.$ === 'Just') {
 		var programSource = _v1.a;
 		return _Utils_Tuple2(
@@ -6203,7 +6210,7 @@ var $author$project$Update$syncGoalSuggestions = function (_v0) {
 				_List_fromArray(
 					[
 						cmd,
-						$author$project$Port$sendPbnCheck(
+						$author$project$Outgoing$oPbnCheck(
 						{programSource: programSource})
 					])));
 	} else {
@@ -6214,60 +6221,29 @@ var $author$project$Update$syncGoalSuggestions = function (_v0) {
 			cmd);
 	}
 };
-var $elm$core$String$toLower = _String_toLower;
-var $author$project$Update$valueFromString = F2(
-	function (vt, str) {
-		if ($elm$core$String$isEmpty(str)) {
-			return $author$project$Core$VHole(vt);
-		} else {
-			switch (vt.$) {
-				case 'VTInt':
-					return A2(
-						$elm$core$Maybe$withDefault,
-						$author$project$Core$VHole($author$project$Core$VTInt),
-						A2(
-							$elm$core$Maybe$map,
-							$author$project$Core$VInt,
-							$elm$core$String$toInt(str)));
-				case 'VTBool':
-					var _v1 = $elm$core$String$toLower(str);
-					switch (_v1) {
-						case 'true':
-							return $author$project$Core$VBool(true);
-						case 'false':
-							return $author$project$Core$VBool(false);
-						default:
-							return $author$project$Core$VHole($author$project$Core$VTBool);
-					}
-				default:
-					return $author$project$Core$VStr(str);
-			}
-		}
-	});
 var $author$project$Update$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'Nop':
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			case 'AddBlankStep':
+			case 'UserAddedBlankStep':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
 							pbnStatus: $elm$core$Maybe$Nothing,
-							workflow: A3(
-								$author$project$Core$insertStep,
-								$elm$core$List$length(
-									$author$project$Core$steps(model.workflow)),
-								$author$project$Core$SHole,
-								model.workflow)
+							program: A3(
+								$author$project$Core$insert,
+								$elm$core$List$length(model.program.props),
+								$elm$core$Maybe$Nothing,
+								model.program)
 						}),
 					$elm$core$Platform$Cmd$none);
-			case 'SetStep':
-				var si = msg.a;
+			case 'UserSetStep':
+				var pi = msg.a;
 				var name = msg.b;
 				var newModel = function () {
-					var _v1 = A2($author$project$Assoc$get, name, model.library);
+					var _v1 = A3($author$project$Core$getSigFor, pi, name, model.library);
 					if (_v1.$ === 'Nothing') {
 						return model;
 					} else {
@@ -6276,77 +6252,74 @@ var $author$project$Update$update = F2(
 							model,
 							{
 								pbnStatus: $elm$core$Maybe$Nothing,
-								workflow: A3(
-									$author$project$Core$setStep,
-									si,
-									A2($author$project$Core$freshStep, name, sig),
-									model.workflow)
+								program: A3(
+									$author$project$Core$set,
+									pi,
+									$elm$core$Maybe$Just(
+										A2($author$project$Core$fresh, name, sig)),
+									model.program)
 							});
 					}
 				}();
 				return $author$project$Update$syncGoalSuggestions(
 					_Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
-			case 'ClearStep':
-				var si = msg.a;
+			case 'UserClearedStep':
+				var pi = msg.a;
 				var newModel = _Utils_update(
 					model,
 					{
 						pbnStatus: $elm$core$Maybe$Nothing,
-						workflow: A3($author$project$Core$setStep, si, $author$project$Core$SHole, model.workflow)
+						program: A3($author$project$Core$set, pi, $elm$core$Maybe$Nothing, model.program)
 					});
 				return $author$project$Update$syncGoalSuggestions(
 					_Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
-			case 'RemoveStep':
+			case 'UserRemovedStep':
 				var i = msg.a;
 				var newModel = _Utils_update(
 					model,
 					{
 						pbnStatus: $elm$core$Maybe$Nothing,
-						workflow: A2($author$project$Core$removeStep, i, model.workflow)
+						program: A2($author$project$Core$remove, i, model.program)
 					});
 				return $author$project$Update$syncGoalSuggestions(
 					_Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
-			case 'SetArgumentByString':
-				var vt = msg.a;
-				var si = msg.b;
-				var param = msg.c;
-				var str = msg.d;
+			case 'UserSetArgument':
+				var pi = msg.a;
+				var param = msg.b;
+				var str = msg.c;
 				return $author$project$Update$syncGoalSuggestions(
 					_Utils_Tuple2(
-						A4(
-							$author$project$Update$setArgument,
-							model,
-							si,
-							param,
-							A2($author$project$Update$valueFromString, vt, str)),
+						A4($author$project$Update$setArgument, pi, param, str, model),
 						$elm$core$Platform$Cmd$none));
-			case 'SetArgumentTextField':
-				var x = msg.a;
-				var si = msg.b;
-				var param = msg.c;
-				var v = msg.d;
-				return $author$project$Update$syncGoalSuggestions(
-					_Utils_Tuple2(
-						A4($author$project$Update$setArgument, model, si, param, v),
-						$author$project$Port$sendSetTextField(x)));
-			case 'StartNavigating':
+			case 'UserStartedNavigation':
 				var x = msg.a;
 				return _Utils_Tuple2(
 					model,
 					$elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
-								$author$project$Port$scrollIntoView(
+								$author$project$Outgoing$oScrollIntoView(
 								{selector: '.navigation-pane'}),
-								$author$project$Port$sendPbnInit(x)
+								$author$project$Outgoing$oPbnInit(x)
 							])));
-			case 'MakePbnChoice':
-				var i = msg.a;
+			case 'UserMadePbnChoice':
+				var choice = msg.a;
 				return _Utils_Tuple2(
 					model,
-					$author$project$Port$sendPbnChoice(
-						{choice: i}));
-			case 'ReceivePbnStatus':
+					$author$project$Outgoing$oPbnChoose(
+						{choice: choice}));
+			case 'UserRequestedDownload':
+				var x = msg.a;
+				return _Utils_Tuple2(
+					model,
+					$author$project$Outgoing$oDownload(x));
+			case 'UserClickedDevMode':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{program: $author$project$Core$example}),
+					$elm$core$Platform$Cmd$none);
+			case 'BackendSentPbnStatus':
 				var status = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6355,37 +6328,25 @@ var $author$project$Update$update = F2(
 							pbnStatus: $elm$core$Maybe$Just(status)
 						}),
 					$elm$core$Platform$Cmd$none);
-			case 'Download':
-				var x = msg.a;
-				return _Utils_Tuple2(
-					model,
-					$author$project$Port$sendDownload(x));
-			case 'ReceiveValidGoalMetadata':
+			default:
 				var goalName = msg.a.goalName;
 				var choices = msg.a.choices;
-				var _v2 = $author$project$Core$goal(model.workflow);
-				if (_v2.$ === 'SHole') {
+				var _v2 = model.program.goal;
+				if (_v2.$ === 'Nothing') {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				} else {
-					var name = _v2.a.name;
-					var args = _v2.a.args;
-					return (!_Utils_eq(name, goalName)) ? _Utils_Tuple2(model, $elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					var goalFact = _v2.a;
+					return (!_Utils_eq(goalFact.name, goalName)) ? _Utils_Tuple2(model, $elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								goalSuggestions: A2($author$project$Update$consistentSuggestions, args, choices)
+								goalSuggestions: A2($author$project$Update$consistentSuggestions, goalFact, choices)
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
-			default:
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{workflow: $author$project$Core$exampleWorkflow}),
-					$elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Update$LoadExample = {$: 'LoadExample'};
+var $author$project$Update$UserClickedDevMode = {$: 'UserClickedDevMode'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -6421,13 +6382,13 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		$elm$json$Json$Decode$succeed(msg));
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
-var $author$project$Update$Download = function (a) {
-	return {$: 'Download', a: a};
-};
-var $author$project$Update$MakePbnChoice = function (a) {
-	return {$: 'MakePbnChoice', a: a};
+var $author$project$Update$UserRequestedDownload = function (a) {
+	return {$: 'UserRequestedDownload', a: a};
 };
 var $author$project$Update$Nop = {$: 'Nop'};
+var $author$project$Update$UserMadePbnChoice = function (a) {
+	return {$: 'UserMadePbnChoice', a: a};
+};
 var $elm$virtual_dom$VirtualDom$attribute = F2(
 	function (key, value) {
 		return A2(
@@ -6436,6 +6397,25 @@ var $elm$virtual_dom$VirtualDom$attribute = F2(
 			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
 var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $author$project$Assoc$set = F3(
+	function (k, v, a) {
+		return A2(
+			$elm$core$List$any,
+			function (_v0) {
+				var k2 = _v0.a;
+				return _Utils_eq(k2, k);
+			},
+			a) ? A2(
+			$author$project$Assoc$map,
+			F2(
+				function (k2, v2) {
+					return _Utils_eq(k2, k) ? v : v2;
+				}),
+			a) : A2(
+			$elm$core$List$cons,
+			_Utils_Tuple2(k, v),
+			a);
+	});
 var $author$project$Assoc$collect = function (xys) {
 	if (!xys.b) {
 		return _List_Nil;
@@ -6456,6 +6436,13 @@ var $author$project$Assoc$collect = function (xys) {
 					_List_Nil,
 					A2($author$project$Assoc$get, x, collect_tl))),
 			collect_tl);
+	}
+};
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
 	}
 };
 var $elm$core$String$lines = _String_lines;
@@ -6649,12 +6636,13 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 										_List_fromArray(
 											[
 												$elm$html$Html$Attributes$class('h-choices'),
+												$elm$html$Html$Attributes$value(''),
 												$elm$html$Html$Events$onInput(
 												function (s) {
 													var _v4 = $elm$core$String$toInt(s);
 													if (_v4.$ === 'Just') {
 														var i = _v4.a;
-														return $author$project$Update$MakePbnChoice(i);
+														return $author$project$Update$UserMadePbnChoice(i);
 													} else {
 														return $author$project$Update$Nop;
 													}
@@ -6737,7 +6725,7 @@ var $author$project$View$pbnStatus = function (ms) {
 								[
 									$elm$html$Html$Attributes$class('standout-button'),
 									$elm$html$Html$Events$onClick(
-									$author$project$Update$Download(
+									$author$project$Update$UserRequestedDownload(
 										{filename: 'analysis.py', text: msg.workingExpression}))
 								]),
 							_List_fromArray(
@@ -6748,110 +6736,24 @@ var $author$project$View$pbnStatus = function (ms) {
 				]));
 	}
 };
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $author$project$Update$StartNavigating = function (a) {
-	return {$: 'StartNavigating', a: a};
-};
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$bool(bool));
-	});
-var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
-var $author$project$View$startNavigation = function (w) {
-	var _v0 = function () {
-		var _v1 = A2(
-			$author$project$Compile$compile,
-			{allowGoalHoles: false},
-			w);
-		if (_v1.$ === 'Nothing') {
-			return _Utils_Tuple2(
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$disabled(true)
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('subtitle')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('(Complete experimental workflow first)')
-							]))
-					]));
-		} else {
-			var programSource = _v1.a;
-			return _Utils_Tuple2(
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick(
-						$author$project$Update$StartNavigating(
-							{programSource: programSource}))
-					]),
-				_List_Nil);
-		}
-	}();
-	var attrs = _v0.a;
-	var extras = _v0.b;
-	return A2(
-		$elm$html$Html$button,
-		_Utils_ap(
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('start-navigation'),
-					$elm$html$Html$Attributes$class('standout-button')
-				]),
-			attrs),
-		A2(
-			$elm$core$List$cons,
-			$elm$html$Html$text('Start navigating'),
-			extras));
-};
-var $author$project$Update$AddBlankStep = {$: 'AddBlankStep'};
 var $author$project$Core$Goal = {$: 'Goal'};
-var $author$project$Core$Step = function (a) {
-	return {$: 'Step', a: a};
+var $author$project$Core$Prop = function (a) {
+	return {$: 'Prop', a: a};
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var $author$project$Core$props = $elm$core$List$filter(
-	function (_v0) {
-		var s = _v0.b;
-		return _Utils_eq(s.kind, $author$project$Core$Prop);
-	});
-var $author$project$Update$ClearStep = function (a) {
-	return {$: 'ClearStep', a: a};
+var $author$project$Update$UserAddedBlankStep = {$: 'UserAddedBlankStep'};
+var $author$project$Update$UserClearedStep = function (a) {
+	return {$: 'UserClearedStep', a: a};
 };
-var $author$project$Update$RemoveStep = function (a) {
-	return {$: 'RemoveStep', a: a};
+var $author$project$Update$UserRemovedStep = function (a) {
+	return {$: 'UserRemovedStep', a: a};
 };
-var $author$project$Update$SetStep = F2(
+var $author$project$Update$UserSetStep = F2(
 	function (a, b) {
-		return {$: 'SetStep', a: a, b: b};
+		return {$: 'UserSetStep', a: a, b: b};
 	});
-var $author$project$Update$SetArgumentByString = F4(
-	function (a, b, c, d) {
-		return {$: 'SetArgumentByString', a: a, b: b, c: c, d: d};
-	});
-var $author$project$Update$SetArgumentTextField = F4(
-	function (a, b, c, d) {
-		return {$: 'SetArgumentTextField', a: a, b: b, c: c, d: d};
+var $author$project$Update$UserSetArgument = F3(
+	function (a, b, c) {
+		return {$: 'UserSetArgument', a: a, b: b, c: c};
 	});
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$core$Dict$get = F2(
@@ -6906,37 +6808,19 @@ var $elm$core$List$intersperse = F2(
 	});
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $author$project$View$stringFromValue = function (v) {
-	switch (v.$) {
-		case 'VBool':
-			if (v.a) {
-				return 'True';
-			} else {
-				return 'False';
-			}
-		case 'VInt':
-			var n = v.a;
-			return $elm$core$String$fromInt(n);
-		case 'VStr':
-			var s = v.a;
-			return '\"' + (s + '\"');
-		default:
-			return '?';
-	}
-};
 var $author$project$View$arg = F4(
-	function (si, argLabels, argName, _v0) {
-		var v = _v0.a;
+	function (pi, argLabels, argName, _v0) {
+		var _v1 = _v0.a;
+		var valueStr = _v1.a;
 		var suggestions = _v0.b;
 		var id = 'step-argument' + (function () {
-			if (si.$ === 'Goal') {
+			if (pi.$ === 'Goal') {
 				return 'GOAL';
 			} else {
-				var i = si.a;
+				var i = pi.a;
 				return $elm$core$String$fromInt(i);
 			}
 		}() + argName);
-		var debugSuffix = (false && $author$project$Config$debug) ? (' (' + ($author$project$View$stringFromValue(v) + ')')) : '';
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -6954,26 +6838,20 @@ var $author$project$View$arg = F4(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							function (x) {
-								return _Utils_ap(x, debugSuffix);
-							}(
-								A2(
-									$elm$core$Maybe$withDefault,
-									argName,
-									A2($elm$core$Dict$get, argName, argLabels))))
+							A2(
+								$elm$core$Maybe$withDefault,
+								argName,
+								A2($elm$core$Dict$get, argName, argLabels)))
 						])),
 					A2(
 					$elm$html$Html$input,
 					_List_fromArray(
 						[
 							$elm$html$Html$Events$onInput(
-							A3(
-								$author$project$Update$SetArgumentByString,
-								$author$project$Core$valueType(v),
-								si,
-								argName)),
+							A2($author$project$Update$UserSetArgument, pi, argName)),
 							$elm$html$Html$Attributes$id(id),
-							$elm$html$Html$Attributes$placeholder('Enter value here…')
+							$elm$html$Html$Attributes$placeholder('Enter value here…'),
+							$elm$html$Html$Attributes$value(valueStr)
 						]),
 					_List_Nil),
 					$elm$core$List$isEmpty(suggestions) ? $elm$html$Html$text('') : A2(
@@ -6989,41 +6867,32 @@ var $author$project$View$arg = F4(
 							$elm$core$List$intersperse,
 							$elm$html$Html$text(', '),
 							A2(
-								$elm$core$List$filterMap,
+								$elm$core$List$map,
 								function (sug) {
+									var s = $author$project$Core$unparse(sug);
 									return A2(
-										$elm$core$Maybe$map,
-										function (s) {
-											return A2(
-												$elm$html$Html$button,
-												_List_fromArray(
-													[
-														$elm$html$Html$Events$onClick(
-														A4(
-															$author$project$Update$SetArgumentTextField,
-															{id: id, text: s},
-															si,
-															argName,
-															sug))
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text(s)
-													]));
-										},
-										$author$project$Core$unparseValue(sug));
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												A3($author$project$Update$UserSetArgument, pi, argName, s))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(s)
+											]));
 								},
 								suggestions))))
 				]));
 	});
 var $author$project$View$args = F3(
-	function (si, argLabels, a) {
+	function (pi, argLabels, a) {
 		return A2(
 			$author$project$Assoc$mapCollapse,
-			A2($author$project$View$arg, si, argLabels),
+			A2($author$project$View$arg, pi, argLabels),
 			a);
 	});
-var $author$project$Assoc$leftMerge = F3(
+var $author$project$Assoc$leftMergeWith = F3(
 	function (missing, left, right) {
 		return A2(
 			$author$project$Assoc$map,
@@ -7043,19 +6912,27 @@ var $author$project$Assoc$leftMerge = F3(
 				}),
 			left);
 	});
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
 var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
 var $author$project$View$step = F4(
-	function (library, suggestions, si, s) {
+	function (library, suggestions, pi, s) {
 		var deleteButton = function () {
-			if (si.$ === 'Step') {
-				var i = si.a;
+			if (pi.$ === 'Prop') {
+				var i = pi.a;
 				return A2(
 					$elm$html$Html$button,
 					_List_fromArray(
 						[
 							$elm$html$Html$Attributes$class('step-delete'),
 							$elm$html$Html$Events$onClick(
-							$author$project$Update$RemoveStep(i))
+							$author$project$Update$UserRemovedStep(i))
 						]),
 					_List_fromArray(
 						[
@@ -7068,7 +6945,7 @@ var $author$project$View$step = F4(
 		var blankName = 'Choose a step…';
 		var inputEvent = $elm$html$Html$Events$onInput(
 			function (k) {
-				return _Utils_eq(k, blankName) ? $author$project$Update$ClearStep(si) : A2($author$project$Update$SetStep, si, k);
+				return _Utils_eq(k, blankName) ? $author$project$Update$UserClearedStep(pi) : A2($author$project$Update$UserSetStep, pi, k);
 			});
 		var options = A2(
 			$elm$core$List$cons,
@@ -7083,17 +6960,17 @@ var $author$project$View$step = F4(
 					}),
 				library));
 		var _v0 = function () {
-			if (s.$ === 'SHole') {
+			if (s.$ === 'Nothing') {
 				return _Utils_Tuple2(blankName, _List_Nil);
 			} else {
-				var scd = s.a;
+				var f = s.a;
 				return _Utils_Tuple2(
-					scd.name,
+					f.name,
 					A3(
 						$author$project$View$args,
-						si,
-						scd.argLabels,
-						A3($author$project$Assoc$leftMerge, _List_Nil, scd.args, suggestions)));
+						pi,
+						f.sig.paramLabels,
+						A3($author$project$Assoc$leftMergeWith, _List_Nil, f.args, suggestions)));
 			}
 		}();
 		var selectedName = _v0.a;
@@ -7135,13 +7012,8 @@ var $author$project$View$step = F4(
 				dropdown,
 				A2($elm$core$List$cons, deleteButton, extras)));
 	});
-var $author$project$Core$types = $elm$core$List$filter(
-	function (_v0) {
-		var s = _v0.b;
-		return _Utils_eq(s.kind, $author$project$Core$Type);
-	});
-var $author$project$View$workflow = F2(
-	function (ctx, w) {
+var $author$project$View$program = F2(
+	function (ctx, prog) {
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -7174,19 +7046,19 @@ var $author$project$View$workflow = F2(
 										[
 											A4(
 											$author$project$View$step,
-											$author$project$Core$props(ctx.library),
+											ctx.library.props,
 											_List_Nil,
-											$author$project$Core$Step(i),
+											$author$project$Core$Prop(i),
 											s)
 										]));
 							}),
-						$author$project$Core$steps(w))),
+						prog.props)),
 					A2(
 					$elm$html$Html$button,
 					_List_fromArray(
 						[
 							$elm$html$Html$Attributes$class('step-add'),
-							$elm$html$Html$Events$onClick($author$project$Update$AddBlankStep)
+							$elm$html$Html$Events$onClick($author$project$Update$UserAddedBlankStep)
 						]),
 					_List_fromArray(
 						[
@@ -7199,14 +7071,70 @@ var $author$project$View$workflow = F2(
 						[
 							$elm$html$Html$text('Goal of experiment')
 						])),
-					A4(
-					$author$project$View$step,
-					$author$project$Core$types(ctx.library),
-					ctx.goalSuggestions,
-					$author$project$Core$Goal,
-					$author$project$Core$goal(w))
+					A4($author$project$View$step, ctx.library.types, ctx.goalSuggestions, $author$project$Core$Goal, prog.goal)
 				]));
 	});
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Update$UserStartedNavigation = function (a) {
+	return {$: 'UserStartedNavigation', a: a};
+};
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $author$project$View$startNavigation = function (prog) {
+	var _v0 = function () {
+		var _v1 = A2(
+			$elm$core$Maybe$map,
+			$author$project$Compile$compile,
+			A2(
+				$author$project$Complete$complete,
+				{allowGoalHoles: false},
+				prog));
+		if (_v1.$ === 'Nothing') {
+			return _Utils_Tuple2(
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$disabled(true)
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('subtitle')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('(Complete experimental workflow first)')
+							]))
+					]));
+		} else {
+			var programSource = _v1.a;
+			return _Utils_Tuple2(
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick(
+						$author$project$Update$UserStartedNavigation(
+							{programSource: programSource}))
+					]),
+				_List_Nil);
+		}
+	}();
+	var attrs = _v0.a;
+	var extras = _v0.b;
+	return A2(
+		$elm$html$Html$button,
+		_Utils_ap(
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('start-navigation'),
+					$elm$html$Html$Attributes$class('standout-button')
+				]),
+			attrs),
+		A2(
+			$elm$core$List$cons,
+			$elm$html$Html$text('Start navigating'),
+			extras));
+};
 var $author$project$View$view = function (model) {
 	return A2(
 		$elm$html$Html$main_,
@@ -7315,8 +7243,8 @@ var $author$project$View$view = function (model) {
 										$elm$html$Html$text('Write down your experimental workflow')
 									]))
 							])),
-						A2($author$project$View$workflow, model, model.workflow),
-						$author$project$View$startNavigation(model.workflow)
+						A2($author$project$View$program, model, model.program),
+						$author$project$View$startNavigation(model.program)
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7357,7 +7285,7 @@ var $author$project$View$view = function (model) {
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$id('devmode'),
-						$elm$html$Html$Events$onClick($author$project$Update$LoadExample)
+						$elm$html$Html$Events$onClick($author$project$Update$UserClickedDevMode)
 					]),
 				_List_fromArray(
 					[
@@ -7381,7 +7309,7 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 				$author$project$Model$init(
 					A2(
 						$elm$core$Result$withDefault,
-						_List_Nil,
+						{props: _List_Nil, types: _List_Nil},
 						A2(
 							$elm$core$Result$mapError,
 							$elm$core$Debug$log('error'),
