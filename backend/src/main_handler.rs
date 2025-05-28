@@ -123,9 +123,9 @@ pub fn interact(
                             Yellow.paint(format!(
                                 "{} ↦ {}",
                                 top_down::pretty_hole_string(h),
-                                codegen::simple_single(&top_down::Sketch::App(
-                                    f, args
-                                ),),
+                                codegen::Simple::single(
+                                    &top_down::Sketch::App(f, args),
+                                ),
                             ))
                         )
                     }

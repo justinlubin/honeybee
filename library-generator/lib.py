@@ -57,7 +57,7 @@ def _emit_fact(fact_kind, cls, parent_cls, kwargs):
         hb_type = _python_to_honeybee(types[p])
         print(f"params.{p} = {hb_type}")
     if parent_cls.__doc__ is not None:
-        print(f'info.overview = "{parent_cls.__doc__}"')
+        print(f'info.title = "{parent_cls.__doc__}"')
     for p in docs:
         print(f'info.params.{p} = "{docs[p]}"')
     for k in kwargs:
@@ -101,7 +101,7 @@ def _emit_function(f, condition, kwargs):
         print(f'    "{c}",')
     print("]")
     if f.__doc__ is not None:
-        print(f'info.overview = "{f.__doc__}"')
+        print(f'info.title = "{f.__doc__}"')
     for k in kwargs:
         print(f'info.{k} = "{kwargs[k]}"')
     code = inspect.getsource(f)

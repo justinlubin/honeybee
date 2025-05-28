@@ -2,6 +2,7 @@ pub mod main_handler;
 pub mod menu;
 
 mod benchmark;
+mod cellgen;
 mod codegen;
 mod core;
 mod datalog;
@@ -108,7 +109,7 @@ pub fn valid_goal_metadata(
 struct State {
     controller:
         pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
-    codegen: codegen::Full,
+    codegen: codegen::PlainTextNotebook,
 }
 
 static mut STATE: Option<State> = None;
@@ -173,7 +174,7 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
     let algorithm = menu::Algorithm::PBNHoneybee;
 
     set_state(State {
-        codegen: codegen::Full::new(problem.library.clone())?,
+        codegen: codegen::PlainTextNotebook::new(problem.library.clone()),
         controller: algorithm.controller(timer, problem),
     });
 

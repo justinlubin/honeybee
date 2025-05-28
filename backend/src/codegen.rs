@@ -3,10 +3,9 @@
 //! This is the backend of the backend! After Programming By Navigation is
 //! performed, this module can be used to generate actual code (e.g., Python).
 
+use crate::cellgen;
 use crate::core::*;
 use crate::top_down;
-use indexmap::IndexSet;
-use std::collections::HashMap;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Core types
@@ -17,193 +16,64 @@ pub trait Codegen {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Basic helpers
+// Plain-text notebook style
 
-fn python_value(v: &Value) -> String {
-    match v {
-        Value::Bool(true) => "True".to_owned(),
-        Value::Bool(false) => "False".to_owned(),
-        Value::Int(i) => i.to_string(),
-        Value::Str(s) => format!("\"{}\"", s).to_owned(),
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Full Python style
-
-/// Struct for translating an expression into a Python expression using the
-/// full format; returns a list of cells
-struct FullContext<'a> {
-    library: &'a Library,
-    cells: Vec<String>,
-    fresh_counter: HashMap<String, usize>,
-    used_types: IndexSet<MetName>,
-}
-
-impl<'a> FullContext<'a> {
-    fn fresh_var(&mut self, prefix: &str) -> String {
-        let c = self.fresh_counter.entry(prefix.to_owned()).or_insert(1);
-        let s = format!(
-            "{}{}",
-            prefix,
-            if *c > 1 {
-                format!("{}", *c)
-            } else {
-                "".to_owned()
-            }
-        );
-        *c += 1;
-        s
-    }
-
-    fn cell(
-        &mut self,
-        var_name: &str,
-        type_name: &str,
-        function_name: &str,
-        metadata_args: &Vec<(String, String)>,
-        args: &Vec<(String, String)>,
-        title: Option<String>,
-        code: Option<String>,
-    ) {
-        let mut s = "".to_owned();
-        s += &format!(
-            "# %%{}\n\n",
-            match title {
-                Some(t) => format!(" {}", t),
-                None => "".to_owned(),
-            }
-        );
-        match code {
-            Some(code) => s += &format!("{}\n\n", code),
-            None => (),
-        };
-
-        let mut static_val = format!("{}.S(", type_name);
-        static_val += &metadata_args
-            .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
-            .collect::<Vec<_>>()
-            .join(", ");
-        static_val += ")";
-
-        s += &format!("{} = {}(\n    static=", var_name, type_name);
-        s += &static_val;
-        s += &format!(",\n    dynamic={}(", function_name);
-        s += &args
-            .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}, ", lhs, rhs))
-            .collect::<Vec<_>>()
-            .join("");
-        s += &format!("ret={}", static_val);
-        s += &format!("),\n)\n\n{}", var_name);
-        self.cells.push(s);
-    }
-
-    fn exp(&mut self, var_name: &str, e: &Exp) {
-        match e {
-            top_down::Sketch::Hole(h) => {
-                self.cells.push(format!(
-                    "# %%\n\n{} = {}\n{}",
-                    var_name,
-                    top_down::plain_hole_string(*h),
-                    var_name,
-                ));
-            }
-            top_down::Sketch::App(f, args) => {
-                let f_sig = self.library.functions.get(&f.name).unwrap();
-                self.used_types.insert(f_sig.ret.clone());
-
-                let mut arg_strings = vec![];
-                for (fp, arg) in args {
-                    let mn = f_sig.params.get(fp).unwrap().clone();
-                    let arg_sig = self.library.types.get(&mn).unwrap();
-                    let arg_var = self.fresh_var(
-                        &arg_sig
-                            .info_string("var_name")
-                            .unwrap_or(mn.0.to_uppercase().to_owned()),
-                    );
-                    self.exp(&arg_var, arg);
-                    arg_strings.push((fp.0.clone(), arg_var));
-                }
-
-                self.cell(
-                    var_name,
-                    &f_sig.ret.0,
-                    &f.name.0,
-                    &f.metadata
-                        .iter()
-                        .map(|(mp, v)| (mp.0.clone(), python_value(v)))
-                        .collect(),
-                    &arg_strings,
-                    f_sig.info_string("overview"),
-                    f_sig.info_string("code"),
-                )
-            }
-        }
-    }
-}
-
-pub struct Full {
+/// Translate an expression into a straight-line list of plain-text cells
+pub struct PlainTextNotebook {
     library: Library,
 }
 
-impl Full {
-    pub fn new(library: Library) -> Result<Self, String> {
-        Ok(Full { library })
+impl PlainTextNotebook {
+    pub fn new(library: Library) -> Self {
+        PlainTextNotebook { library }
     }
 }
 
-impl Codegen for Full {
+impl Codegen for PlainTextNotebook {
     fn exp(&self, e: &Exp) -> Result<String, String> {
-        let mut ctx = FullContext {
-            library: &self.library,
-            cells: vec![],
-            fresh_counter: HashMap::new(),
-            used_types: IndexSet::new(),
-        };
+        let mut ret = "".to_owned();
 
-        ctx.exp("GOAL", e);
+        let cells = cellgen::exp(&self.library, e);
 
-        let mut s = "#".repeat(80);
-        s += "\n# %% Helpers\n\n";
-
-        match &self.library.preamble {
-            Some(pre) => {
-                for p in pre {
-                    let content = match p.get("content") {
-                        Some(c) => c,
-                        None => continue,
-                    };
-                    s += &format!("{}\n\n", content)
+        for cell in cells {
+            ret += &match cell {
+                cellgen::Cell::Code {
+                    title,
+                    type_title,
+                    code,
+                    ..
+                } => format!(
+                    "# %%{}\n\n{}",
+                    title
+                        .or(type_title)
+                        .map(|t| format!(" {}", t))
+                        .unwrap_or("".to_owned()),
+                    code,
+                ),
+                cellgen::Cell::Hole {
+                    var_name,
+                    hole_name,
+                } => format!(
+                    "# %%\n\n{} = ?{}\n{}",
+                    var_name, hole_name, var_name,
+                ),
+                cellgen::Cell::Choice { var_name, .. } => {
+                    format!("# %%\n\n{} = <choice>\n{}", var_name, var_name,)
                 }
-            }
-            None => (),
+            };
+
+            ret += "\n\n";
         }
 
-        s += &"#".repeat(80);
-        s += "\n# %% Types\n\n";
-
-        for t in ctx.used_types.iter().rev() {
-            match self.library.types.get(t).unwrap().info_string("code") {
-                Some(code) => s += &format!("{}\n\n", code),
-                None => (),
-            }
-        }
-
-        s += &"#".repeat(80);
-        s += "\n# %% Main script\n\n";
-        s += &ctx.cells.join("\n\n");
-
-        Ok(s)
+        Ok(ret.trim().to_owned())
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Simple Python style
+// Simple style
 
-/// Translate an expression into a multi-line Python expression (simple style).
-/// This is helpful for quickly getting an overview or debugging.
+/// Translate an expression into a (nested) multi-line Python expression (simple
+/// style). This is helpful for quickly getting an overview or debugging.
 pub struct Simple {
     pub indent: usize,
     pub color: bool,
@@ -235,10 +105,47 @@ impl Simple {
                     "  ".repeat(self.indent + indent_offset + 1),
                     f.metadata
                         .iter()
-                        .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
+                        .map(|(mp, v)| format!(
+                            "{}={}",
+                            mp.0,
+                            cellgen::python_value(v)
+                        ))
                         .collect::<Vec<_>>()
                         .join(", "),
                     "  ".repeat(self.indent + indent_offset)
+                )
+            }
+        }
+    }
+
+    /// Translate an expression into a single-line Python expression (simple
+    /// style). This is an extra goody mostly for CLI purposes (should probably
+    /// be deprecated and replaced with a better way to display options).
+    pub fn single(e: &Exp) -> String {
+        match e {
+            top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
+            top_down::Sketch::App(f, args) => {
+                format!(
+                    "{}({}{}_metadata={{{}}})",
+                    f.name.0,
+                    args.iter()
+                        .map(|(fp, arg)| format!(
+                            "{}={}",
+                            fp.0,
+                            Self::single(arg)
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    if args.is_empty() { "" } else { ", " },
+                    f.metadata
+                        .iter()
+                        .map(|(mp, v)| format!(
+                            "{}={}",
+                            mp.0,
+                            cellgen::python_value(v)
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )
             }
         }
@@ -248,30 +155,5 @@ impl Simple {
 impl Codegen for Simple {
     fn exp(&self, e: &Exp) -> Result<String, String> {
         Ok("  ".repeat(self.indent) + &self.exp_helper(e, 0))
-    }
-}
-
-/// Translate an expression into a single-line Python expression (simple style).
-/// This is an extra goody mostly for CLI purposes (should probably be
-/// deprecated and replaced with a better way to display options).
-pub fn simple_single(e: &Exp) -> String {
-    match e {
-        top_down::Sketch::Hole(h) => top_down::pretty_hole_string(*h),
-        top_down::Sketch::App(f, args) => {
-            format!(
-                "{}({}{}_metadata={{{}}})",
-                f.name.0,
-                args.iter()
-                    .map(|(fp, arg)| format!("{}={}", fp.0, simple_single(arg)))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                if args.is_empty() { "" } else { ", " },
-                f.metadata
-                    .iter()
-                    .map(|(mp, v)| format!("{}={}", mp.0, python_value(v)))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        }
     }
 }

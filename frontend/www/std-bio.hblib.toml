@@ -21,7 +21,7 @@ content='''def sample_names(filename):
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
-info.overview = "RNA-seq"
+info.title = "RNA-seq"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
@@ -41,7 +41,7 @@ info.code = '''class RNASeqProp:
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
-info.overview = "RNA-seq samples"
+info.title = "RNA-seq samples"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
@@ -76,7 +76,7 @@ info.code = '''def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
 [Type.RNASeq]
 params.label = "Str"
 params.qc = "Bool"
-info.overview = "RNA-seq data"
+info.title = "RNA-seq data"
 info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
 info.code = '''class RNASeq:
@@ -102,7 +102,7 @@ condition = [
     "ret.label = samples.label",
     "ret.qc = false",
 ]
-info.overview = "Load RNA-seq dataset"
+info.title = "Load RNA-seq dataset"
 info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
     """Load RNA-seq dataset"""
     return RNASeq.D(
@@ -112,7 +112,7 @@ info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq
 
 [Type.TranscriptMatrices]
 params.label = "Str"
-info.overview = "Transcript-by-sample matrices of counts and abundance (TPM)"
+info.title = "Transcript-by-sample matrices of counts and abundance (TPM)"
 info.params.label = "Label for RNA-seq data to analyze"
 info.code = '''class TranscriptMatrices:
     "Transcript-by-sample matrices of counts and abundance (TPM)"
@@ -135,7 +135,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = true",
 ]
-info.overview = "Quality-check RNA-seq data (FastQC)"
+info.title = "Quality-check RNA-seq data (FastQC)"
 info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check RNA-seq data (FastQC)"""
 
@@ -158,7 +158,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = false",
 ]
-info.overview = "Remove Illumina universal adaptor and poly-A tails (cutadapt)"
+info.title = "Remove Illumina universal adaptor and poly-A tails (cutadapt)"
 info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Remove Illumina universal adaptor and poly-A tails (cutadapt)"""
 
@@ -191,7 +191,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.overview = "Quantify transcript abundances (kallisto)"
+info.title = "Quantify transcript abundances (kallisto)"
 info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Quantify transcript abundances (kallisto)"""
 
