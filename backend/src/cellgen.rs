@@ -15,12 +15,16 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////
 // Core types
 
-pub struct Choice {
-    pub id: usize,
+pub struct MetadataChoice {
+    pub metadata: IndexMap<String, String>,
+    pub choice_index: usize,
+}
+
+pub struct FunctionChoice {
     pub function_title: String,
-    pub function_description: String,
-    pub code: String,
-    pub metadata_choices: Vec<IndexMap<String, String>>,
+    pub function_description: Option<String>,
+    pub code: Option<String>,
+    pub metadata_choices: Vec<MetadataChoice>,
 }
 
 pub enum Cell {
@@ -35,13 +39,13 @@ pub enum Cell {
     },
     Hole {
         var_name: String,
-        hole_name: String,
+        hole_name: top_down::HoleName,
     },
     Choice {
         var_name: String,
-        type_name: String,
+        type_title: String,
         type_description: Option<String>,
-        choices: Vec<Choice>,
+        function_choices: Vec<FunctionChoice>,
     },
 }
 
@@ -126,7 +130,7 @@ impl<'a> Context<'a> {
             top_down::Sketch::Hole(h) => {
                 self.cells.push(Cell::Hole {
                     var_name: var_name.to_owned(),
-                    hole_name: h.to_string(),
+                    hole_name: *h,
                 });
             }
             top_down::Sketch::App(f, args) => {
@@ -227,4 +231,103 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
     ctx.preamble();
 
     ctx.cells
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Cell filling
+
+fn collate_choices(
+    lib: &Library,
+    choices: &Vec<top_down::TopDownStep<ParameterizedFunction>>,
+) -> Result<
+    HashMap<top_down::HoleName, (String, Option<String>, Vec<FunctionChoice>)>,
+    String,
+> {
+    let mut ret: HashMap<
+        top_down::HoleName,
+        (String, Option<String>, HashMap<String, FunctionChoice>),
+    > = HashMap::new();
+
+    for (choice_index, choice) in choices.iter().enumerate() {
+        match choice {
+            top_down::TopDownStep::Extend(h, f, _args) => {
+                let f_sig = lib.functions.get(&f.name).unwrap();
+
+                let function_title =
+                    f_sig.info_string("title").unwrap_or(f.name.0.clone());
+                let function_description = f_sig.info_string("description");
+
+                let (_, _, fc_map) = ret.entry(*h).or_insert_with(|| {
+                    (
+                        function_title.clone(),
+                        function_description.clone(),
+                        HashMap::new(),
+                    )
+                });
+
+                let fc = fc_map.entry(f.name.0.clone()).or_insert_with(|| {
+                    FunctionChoice {
+                        function_title,
+                        function_description,
+                        code: f_sig.info_string("code"),
+                        metadata_choices: vec![],
+                    }
+                });
+
+                fc.metadata_choices.push(MetadataChoice {
+                    metadata: f
+                        .metadata
+                        .iter()
+                        .map(|(mp, v)| (mp.0.clone(), python_value(v)))
+                        .collect(),
+                    choice_index,
+                });
+            }
+            top_down::TopDownStep::Seq(..) => {
+                return Err("Sequenced steps unsupported".to_owned())
+            }
+        }
+    }
+
+    Ok(ret
+        .into_iter()
+        .map(|(h, (t, d, fmap))| {
+            (h, (t, d, fmap.into_values().collect::<Vec<_>>()))
+        })
+        .collect::<HashMap<_, _>>())
+}
+
+pub fn fill(
+    lib: &Library,
+    choices: &Vec<top_down::TopDownStep<ParameterizedFunction>>,
+    mut cells: Vec<Cell>,
+) -> Result<Vec<Cell>, String> {
+    let mut collated_choices = collate_choices(lib, choices)?;
+    for cell in &mut cells {
+        match cell {
+            Cell::Hole {
+                var_name,
+                hole_name,
+            } => {
+                let (type_title, type_description, function_choices) =
+                    collated_choices.remove(hole_name).ok_or(
+                        format!("No choices for hole {}", hole_name).to_owned(),
+                    )?;
+
+                *cell = Cell::Choice {
+                    var_name: std::mem::take(var_name),
+                    type_title,
+                    type_description,
+                    function_choices,
+                }
+            }
+            Cell::Choice { .. } => {
+                return Err(
+                    "Cannot fill cells that already have choices".to_owned()
+                )
+            }
+            Cell::Code { .. } => (),
+        }
+    }
+    Ok(cells)
 }
