@@ -10,16 +10,19 @@ use crate::core::*;
 use crate::top_down;
 
 use indexmap::{IndexMap, IndexSet};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Core types
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataChoice {
     pub metadata: IndexMap<String, String>,
     pub choice_index: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionChoice {
     pub function_title: String,
     pub function_description: Option<String>,
@@ -27,6 +30,7 @@ pub struct FunctionChoice {
     pub metadata_choices: Vec<MetadataChoice>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Cell {
     Code {
         var_name: Option<String>,

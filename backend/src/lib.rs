@@ -110,6 +110,7 @@ struct State {
     controller:
         pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
     codegen: codegen::PlainTextNotebook,
+    library: core::Library,
 }
 
 static mut STATE: Option<State> = None;
@@ -134,12 +135,21 @@ struct PbnStatusMessage {
     workingExpression: String,
     choices: Vec<(usize, String)>,
     valid: bool,
+    cells: Vec<cellgen::Cell>,
 }
 
 fn send_message() -> Result<JsValue, String> {
     let state = get_state()?;
 
     let options = state.controller.provide().map_err(|e| format!("{:?}", e))?;
+
+    let e = state.controller.working_expression();
+
+    let cells = cellgen::fill(
+        &state.library,
+        &options,
+        cellgen::exp(&state.library, &e),
+    )?;
 
     // TODO: Need to handle metadata values
     let mut choices = vec![];
@@ -156,11 +166,10 @@ fn send_message() -> Result<JsValue, String> {
     }
 
     let msg = PbnStatusMessage {
-        workingExpression: state
-            .codegen
-            .exp(&state.controller.working_expression())?,
+        workingExpression: state.codegen.exp(&e)?,
         choices,
         valid: state.controller.valid(),
+        cells,
     };
 
     serde_wasm_bindgen::to_value(&msg)
@@ -175,6 +184,7 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
 
     set_state(State {
         codegen: codegen::PlainTextNotebook::new(problem.library.clone()),
+        library: problem.library.clone(),
         controller: algorithm.controller(timer, problem),
     });
 

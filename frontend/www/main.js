@@ -135,6 +135,7 @@ app.ports.oPbnInit.subscribe((msg) => {
             librarySource,
             msg.programSource,
         );
+        console.log(pbnStatusMessage);
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);
@@ -144,6 +145,7 @@ app.ports.oPbnInit.subscribe((msg) => {
 app.ports.oPbnChoose.subscribe((msg) => {
     try {
         const pbnStatusMessage = Honeybee.pbn_choose(msg.choice);
+        console.log(pbnStatusMessage);
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);
