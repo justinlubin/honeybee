@@ -63,20 +63,22 @@ decodeMetadataChoice =
 
 decodeFunctionChoice : D.Decoder FunctionChoice
 decodeFunctionChoice =
-    D.map4 FunctionChoice
+    D.map5 FunctionChoice
         (D.field "function_title" D.string)
         (D.field "function_description" <| D.nullable D.string)
         (D.field "code" <| D.nullable D.string)
         (D.field "metadata_choices" <| D.list decodeMetadataChoice)
+        (D.succeed Nothing)
 
 
 decodeChoiceCell : D.Decoder ChoiceCell
 decodeChoiceCell =
-    D.map4 ChoiceCell
+    D.map5 ChoiceCell
         (D.field "var_name" D.string)
         (D.field "type_title" D.string)
         (D.field "type_description" <| D.nullable D.string)
         (D.field "function_choices" <| D.list decodeFunctionChoice)
+        (D.succeed Nothing)
 
 
 decodeCell : D.Decoder Cell

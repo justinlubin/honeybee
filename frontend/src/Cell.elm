@@ -15,6 +15,7 @@ type alias FunctionChoice =
     , functionDescription : Maybe String
     , code : Maybe String
     , metadataChoices : List MetadataChoice
+    , selectedMetadataChoice : Maybe Int
     }
 
 
@@ -29,6 +30,7 @@ type alias ChoiceCell =
     , typeTitle : String
     , typeDescription : Maybe String
     , functionChoices : List FunctionChoice
+    , selectedFunctionChoice : Maybe Int
     }
 
 

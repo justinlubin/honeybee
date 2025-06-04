@@ -178,55 +178,62 @@ program ctx prog =
         ]
 
 
+functionChoices :
+    { cellIndex : Int, selectedFunctionChoice : Maybe Int }
+    -> List Cell.FunctionChoice
+    -> Html Msg
+functionChoices ctx fcs =
+    div
+        []
+        (List.map (\x -> button [] [ text x.functionTitle ]) fcs)
+
+
+cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
+cell ctx c =
+    case c of
+        Cell.Code { title, code } ->
+            div
+                [ A.class "cell-code" ]
+                [ case title of
+                    Just t ->
+                        h3 [] [ text t ]
+
+                    Nothing ->
+                        text ""
+                , node "fancy-code"
+                    [ A.attribute "language" "python"
+                    , A.property "code" (Json.Encode.string code)
+                    ]
+                    []
+                ]
+
+        Cell.Choice x ->
+            div
+                [ A.class "cell-choice" ]
+                [ span [] [ text x.varName ]
+                , h3 [] [ text x.typeTitle ]
+                , case x.typeDescription of
+                    Nothing ->
+                        text ""
+
+                    Just t ->
+                        p [] [ text t ]
+                , functionChoices
+                    { cellIndex = ctx.cellIndex
+                    , selectedFunctionChoice = x.selectedFunctionChoice
+                    }
+                    x.functionChoices
+                ]
+
+
 directManipulationPbn : List Cell.Cell -> Html Msg
 directManipulationPbn cells =
-    text "Possible!"
-
-
-
--- div [ A.class "direct-manipulation-pbn" ] <|
---     List.map
---         (\( line, maybeHole ) ->
---             div
---                 [ A.class "code-line" ]
---                 [ node "fancy-code"
---                     [ A.attribute "language" "python"
---                     , A.property "code" (Json.Encode.string line)
---                     ]
---                     []
---                 , case maybeHole of
---                     Just h ->
---                         case Assoc.get h collectedChoices of
---                             Just hChoices ->
---                                 select
---                                     [ A.class "h-choices"
---                                     , A.value ""
---                                     , E.onInput <|
---                                         \s ->
---                                             case String.toInt s of
---                                                 Just i ->
---                                                     UserMadePbnChoice i
---                                                 Nothing ->
---                                                     Nop
---                                     ]
---                                     (option
---                                         [ A.value "" ]
---                                         [ text "Choose a step…" ]
---                                         :: List.map
---                                             (\( f, i ) ->
---                                                 option
---                                                     [ A.value (String.fromInt i) ]
---                                                     [ text f ]
---                                             )
---                                             hChoices
---                                     )
---                             Nothing ->
---                                 text ""
---                     Nothing ->
---                         text ""
---                 ]
---         )
---         codeLines
+    div
+        [ A.class "direct-manipulation-pbn" ]
+        (List.indexedMap
+            (\i c -> cell { cellIndex = i } c)
+            cells
+        )
 
 
 startNavigation : WorkingProgram -> Html Msg
@@ -269,13 +276,13 @@ pbnStatus ms =
                     case output of
                         Nothing ->
                             ( List.all
-                                (\cell ->
-                                    case cell of
+                                (\c ->
+                                    case c of
                                         Cell.Code _ ->
                                             True
 
-                                        Cell.Choice c ->
-                                            List.isEmpty c.functionChoices
+                                        Cell.Choice x ->
+                                            List.isEmpty x.functionChoices
                                 )
                                 cells
                             , text ""
