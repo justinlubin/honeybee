@@ -84,7 +84,7 @@ customElements.define(
                 codeElement.className = "language-" + language;
             }
 
-            codeElement.innerText = this._code;
+            codeElement.textContent = this._code;
 
             Prism.highlightElement(codeElement);
 
