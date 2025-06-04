@@ -117,7 +117,7 @@ parse vt str =
 type alias FactSignature =
     { params : Assoc String ValueType
     , paramLabels : Dict String String
-    , overview : Maybe String
+    , title : Maybe String
     }
 
 
@@ -288,7 +288,7 @@ example =
                     , ( "raw_data", VTStr )
                     ]
                 , paramLabels = Dict.empty
-                , overview = Nothing
+                , title = Nothing
                 }
             }
         ]
@@ -303,7 +303,7 @@ example =
                     [ ( "label", VTStr )
                     ]
                 , paramLabels = Dict.empty
-                , overview = Nothing
+                , title = Nothing
                 }
             }
     }

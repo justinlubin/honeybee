@@ -19,6 +19,43 @@ pub trait Codegen {
 // Plain-text notebook style
 
 /// Translate an expression into a straight-line list of plain-text cells
+pub fn plain_text_notebook(lib: &Library, e: &Exp) -> String {
+    let mut ret = "".to_owned();
+
+    let cells = cellgen::exp(lib, e);
+
+    for cell in cells {
+        ret += &match cell {
+            cellgen::Cell::Code {
+                title,
+                type_title,
+                code,
+                ..
+            } => format!(
+                "# %%{}\n\n{}",
+                title
+                    .or(type_title)
+                    .map(|t| format!(" {}", t))
+                    .unwrap_or("".to_owned()),
+                code,
+            ),
+            cellgen::Cell::Hole {
+                var_name,
+                hole_name,
+            } => {
+                format!("# %%\n\n{} = ?{}\n{}", var_name, hole_name, var_name)
+            }
+            cellgen::Cell::Choice { var_name, .. } => {
+                format!("# %%\n\n{} = <choice>\n{}", var_name, var_name)
+            }
+        };
+
+        ret += "\n\n";
+    }
+
+    ret.trim().to_owned()
+}
+
 pub struct PlainTextNotebook {
     library: Library,
 }
@@ -31,41 +68,7 @@ impl PlainTextNotebook {
 
 impl Codegen for PlainTextNotebook {
     fn exp(&self, e: &Exp) -> Result<String, String> {
-        let mut ret = "".to_owned();
-
-        let cells = cellgen::exp(&self.library, e);
-
-        for cell in cells {
-            ret += &match cell {
-                cellgen::Cell::Code {
-                    title,
-                    type_title,
-                    code,
-                    ..
-                } => format!(
-                    "# %%{}\n\n{}",
-                    title
-                        .or(type_title)
-                        .map(|t| format!(" {}", t))
-                        .unwrap_or("".to_owned()),
-                    code,
-                ),
-                cellgen::Cell::Hole {
-                    var_name,
-                    hole_name,
-                } => format!(
-                    "# %%\n\n{} = ?{}\n{}",
-                    var_name, hole_name, var_name,
-                ),
-                cellgen::Cell::Choice { var_name, .. } => {
-                    format!("# %%\n\n{} = <choice>\n{}", var_name, var_name,)
-                }
-            };
-
-            ret += "\n\n";
-        }
-
-        Ok(ret.trim().to_owned())
+        Ok(plain_text_notebook(&self.library, &e))
     }
 }
 

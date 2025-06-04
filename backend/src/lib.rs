@@ -109,7 +109,6 @@ pub fn valid_goal_metadata(
 struct State {
     controller:
         pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
-    codegen: codegen::PlainTextNotebook,
     library: core::Library,
 }
 
@@ -132,10 +131,8 @@ fn set_state(state: State) {
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize)]
 struct PbnStatusMessage {
-    workingExpression: String,
-    choices: Vec<(usize, String)>,
-    valid: bool,
     cells: Vec<cellgen::Cell>,
+    output: Option<String>,
 }
 
 fn send_message() -> Result<JsValue, String> {
@@ -143,33 +140,19 @@ fn send_message() -> Result<JsValue, String> {
 
     let options = state.controller.provide().map_err(|e| format!("{:?}", e))?;
 
-    let e = state.controller.working_expression();
-
-    let cells = cellgen::fill(
-        &state.library,
-        &options,
-        cellgen::exp(&state.library, &e),
-    )?;
-
-    // TODO: Need to handle metadata values
-    let mut choices = vec![];
-
-    for opt in options {
-        match opt {
-            top_down::TopDownStep::Extend(h, f, _) => {
-                choices.push((h, f.name.0))
-            }
-            top_down::TopDownStep::Seq(..) => {
-                return Err("sequenced steps unsupported".to_owned())
-            }
-        }
-    }
+    let work_exp = state.controller.working_expression();
 
     let msg = PbnStatusMessage {
-        workingExpression: state.codegen.exp(&e)?,
-        choices,
-        valid: state.controller.valid(),
-        cells,
+        cells: cellgen::fill(
+            &state.library,
+            &options,
+            cellgen::exp(&state.library, &work_exp),
+        )?,
+        output: if state.controller.valid() {
+            Some(codegen::plain_text_notebook(&state.library, &work_exp))
+        } else {
+            None
+        },
     };
 
     serde_wasm_bindgen::to_value(&msg)
@@ -183,7 +166,6 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
     let algorithm = menu::Algorithm::PBNHoneybee;
 
     set_state(State {
-        codegen: codegen::PlainTextNotebook::new(problem.library.clone()),
         library: problem.library.clone(),
         controller: algorithm.controller(timer, problem),
     });
@@ -192,10 +174,10 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
 }
 
 #[wasm_bindgen]
-pub fn pbn_choose(choice: usize) -> Result<JsValue, String> {
+pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
     let state = get_state()?;
     let mut options =
         state.controller.provide().map_err(|e| format!("{:?}", e))?;
-    state.controller.decide(options.swap_remove(choice));
+    state.controller.decide(options.swap_remove(choice_index));
     send_message()
 }

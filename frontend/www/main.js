@@ -1,48 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Honeybee loading
-
-import init, * as Honeybee from "./pkg/honeybee.js";
-
-await init();
-
-const libraryResponse = await fetch("std-bio.hblib.toml");
-const librarySource = await libraryResponse.text();
-const library = Honeybee.parse_library(librarySource);
-
-const flags = { props: {}, types: {} };
-
-function loadFact(kvs) {
-    let overview = kvs.info.get("overview");
-
-    if (overview === undefined) {
-        overview = null;
-    }
-
-    let paramLabels = kvs.info.get("params");
-    if (paramLabels) {
-        paramLabels = Object.fromEntries(paramLabels);
-    } else {
-        paramLabels = {};
-    }
-
-    return {
-        params: Object.fromEntries(kvs.params),
-        overview: overview,
-        paramLabels: paramLabels,
-    };
-}
-
-for (const [name, kvs] of library.Prop) {
-    flags.props[name] = loadFact(kvs);
-}
-
-for (const [name, kvs] of library.Type) {
-    flags.types[name] = loadFact(kvs);
-}
-
-console.log(flags);
-
-////////////////////////////////////////////////////////////////////////////////
 // Helpers
 
 // https://stackoverflow.com/a/18197341
@@ -61,6 +17,50 @@ function download(filename, text) {
 
     document.body.removeChild(element);
 }
+
+function elmify(m) {
+    if (m === undefined) {
+        return null;
+    } else if (m instanceof Map) {
+        const obj = {};
+        for (const [k, v] of m) {
+            obj[k] = elmify(v);
+        }
+        return obj;
+    } else if (Array.isArray(m)) {
+        const arr = [];
+        for (const v of m) {
+            arr.push(elmify(v));
+        }
+        return arr;
+    } else if (m instanceof Object) {
+        const obj = {};
+        for (const [k, v] of Object.entries(m)) {
+            obj[k] = elmify(v);
+        }
+        return obj;
+    } else {
+        return m;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Honeybee loading
+
+import init, * as Honeybee from "./pkg/honeybee.js";
+
+await init();
+
+const libraryResponse = await fetch("std-bio.hblib.toml");
+const librarySource = await libraryResponse.text();
+const library = Honeybee.parse_library(librarySource);
+
+const flags = {
+    props: elmify(library.Prop),
+    types: elmify(library.Type),
+};
+
+console.log(flags);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Custom elements
@@ -114,6 +114,8 @@ app.ports.oScrollIntoView.subscribe((msg) => {
     document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
 });
 
+// PBN
+
 app.ports.oPbnCheck.subscribe((msg) => {
     try {
         const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
@@ -131,9 +133,8 @@ app.ports.oPbnCheck.subscribe((msg) => {
 
 app.ports.oPbnInit.subscribe((msg) => {
     try {
-        const pbnStatusMessage = Honeybee.pbn_init(
-            librarySource,
-            msg.programSource,
+        const pbnStatusMessage = elmify(
+            Honeybee.pbn_init(librarySource, msg.programSource),
         );
         console.log(pbnStatusMessage);
         app.ports.iPbnStatus_.send(pbnStatusMessage);
@@ -144,8 +145,7 @@ app.ports.oPbnInit.subscribe((msg) => {
 
 app.ports.oPbnChoose.subscribe((msg) => {
     try {
-        const pbnStatusMessage = Honeybee.pbn_choose(msg.choice);
-        console.log(pbnStatusMessage);
+        const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);

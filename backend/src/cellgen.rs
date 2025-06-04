@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataChoice {
-    pub metadata: IndexMap<String, String>,
+    pub metadata: IndexMap<String, Value>,
     pub choice_index: usize,
 }
 
@@ -282,7 +282,7 @@ fn collate_choices(
                     metadata: f
                         .metadata
                         .iter()
-                        .map(|(mp, v)| (mp.0.clone(), python_value(v)))
+                        .map(|(mp, v)| (mp.0.clone(), v.clone()))
                         .collect(),
                     choice_index,
                 });

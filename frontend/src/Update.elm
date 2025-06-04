@@ -230,7 +230,18 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Incoming.iPbnStatus BackendSentPbnStatus
+        [ Incoming.iPbnStatus <|
+            \psResult ->
+                case psResult of
+                    Ok ps ->
+                        BackendSentPbnStatus ps
+
+                    Err e ->
+                        let
+                            _ =
+                                Debug.log "error" e
+                        in
+                        BackendSentPbnStatus { cells = [], output = Nothing }
         , Incoming.iValidGoalMetadata <|
             \vgmResult ->
                 case vgmResult of

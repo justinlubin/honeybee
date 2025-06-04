@@ -28,15 +28,15 @@ valueType =
 factSignature : Decoder FactSignature
 factSignature =
     map3
-        (\p pl o ->
+        (\p pl t ->
             { params = p
             , paramLabels = Dict.fromList pl
-            , overview = o
+            , title = t
             }
         )
         (field "params" <| keyValuePairs valueType)
-        (field "paramLabels" <| keyValuePairs string)
-        (field "overview" <| nullable string)
+        (at [ "info", "params" ] <| keyValuePairs string)
+        (at [ "info", "title" ] <| nullable string)
 
 
 factLibrary : Decoder FactLibrary

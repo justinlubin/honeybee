@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Assoc exposing (Assoc)
+import Cell
 import Compile
 import Complete
 import Core exposing (..)
@@ -12,7 +13,6 @@ import Incoming
 import Json.Encode
 import Model exposing (Model)
 import Update exposing (Msg(..))
-import Util
 
 
 arg :
@@ -132,7 +132,7 @@ step library suggestions pi s =
         options =
             ( blankName, blankName )
                 :: Assoc.mapCollapse
-                    (\k sig -> ( k, Maybe.withDefault k sig.overview ))
+                    (\k sig -> ( k, Maybe.withDefault k sig.title ))
                     library
 
         dropdown =
@@ -178,93 +178,55 @@ program ctx prog =
         ]
 
 
-directManipulationPbn : Incoming.PbnStatusMessage -> Html Msg
-directManipulationPbn { workingExpression, choices } =
-    let
-        collectedChoices =
-            choices
-                |> List.indexedMap (\i ( h, f ) -> ( h, ( f, i ) ))
-                |> Assoc.collect
+directManipulationPbn : List Cell.Cell -> Html Msg
+directManipulationPbn cells =
+    text "Possible!"
 
-        codeLines =
-            workingExpression
-                |> String.lines
-                |> List.map
-                    (\line ->
-                        case String.split "?" line of
-                            [ left, right ] ->
-                                case
-                                    right
-                                        |> Util.unSubscriptNumbers
-                                        |> String.toInt
-                                of
-                                    Just h ->
-                                        ( left, Just h )
 
-                                    Nothing ->
-                                        ( line, Nothing )
 
-                            _ ->
-                                ( line, Nothing )
-                    )
-
-        impossible =
-            List.isEmpty collectedChoices
-                && List.all (\( line, _ ) -> String.isEmpty line) codeLines
-    in
-    if impossible then
-        div [ A.class "pbn-impossible" ]
-            [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
-            , p [] [ text "There might be missing steps (or typos) in your experiment or the Honeybee library might not include the computational steps you need." ]
-            ]
-
-    else
-        div [ A.class "direct-manipulation-pbn" ] <|
-            List.map
-                (\( line, maybeHole ) ->
-                    div
-                        [ A.class "code-line" ]
-                        [ node "fancy-code"
-                            [ A.attribute "language" "python"
-                            , A.property "code" (Json.Encode.string line)
-                            ]
-                            []
-                        , case maybeHole of
-                            Just h ->
-                                case Assoc.get h collectedChoices of
-                                    Just hChoices ->
-                                        select
-                                            [ A.class "h-choices"
-                                            , A.value ""
-                                            , E.onInput <|
-                                                \s ->
-                                                    case String.toInt s of
-                                                        Just i ->
-                                                            UserMadePbnChoice i
-
-                                                        Nothing ->
-                                                            Nop
-                                            ]
-                                            (option
-                                                [ A.value "" ]
-                                                [ text "Choose a step…" ]
-                                                :: List.map
-                                                    (\( f, i ) ->
-                                                        option
-                                                            [ A.value (String.fromInt i) ]
-                                                            [ text f ]
-                                                    )
-                                                    hChoices
-                                            )
-
-                                    Nothing ->
-                                        text ""
-
-                            Nothing ->
-                                text ""
-                        ]
-                )
-                codeLines
+-- div [ A.class "direct-manipulation-pbn" ] <|
+--     List.map
+--         (\( line, maybeHole ) ->
+--             div
+--                 [ A.class "code-line" ]
+--                 [ node "fancy-code"
+--                     [ A.attribute "language" "python"
+--                     , A.property "code" (Json.Encode.string line)
+--                     ]
+--                     []
+--                 , case maybeHole of
+--                     Just h ->
+--                         case Assoc.get h collectedChoices of
+--                             Just hChoices ->
+--                                 select
+--                                     [ A.class "h-choices"
+--                                     , A.value ""
+--                                     , E.onInput <|
+--                                         \s ->
+--                                             case String.toInt s of
+--                                                 Just i ->
+--                                                     UserMadePbnChoice i
+--                                                 Nothing ->
+--                                                     Nop
+--                                     ]
+--                                     (option
+--                                         [ A.value "" ]
+--                                         [ text "Choose a step…" ]
+--                                         :: List.map
+--                                             (\( f, i ) ->
+--                                                 option
+--                                                     [ A.value (String.fromInt i) ]
+--                                                     [ text f ]
+--                                             )
+--                                             hChoices
+--                                     )
+--                             Nothing ->
+--                                 text ""
+--                     Nothing ->
+--                         text ""
+--                 ]
+--         )
+--         codeLines
 
 
 startNavigation : WorkingProgram -> Html Msg
@@ -301,27 +263,52 @@ pbnStatus ms =
         Nothing ->
             text ""
 
-        Just msg ->
+        Just { cells, output } ->
+            let
+                ( impossible, downloadButton ) =
+                    case output of
+                        Nothing ->
+                            ( List.all
+                                (\cell ->
+                                    case cell of
+                                        Cell.Code _ ->
+                                            True
+
+                                        Cell.Choice c ->
+                                            List.isEmpty c.functionChoices
+                                )
+                                cells
+                            , text ""
+                            )
+
+                        Just solutionString ->
+                            ( False
+                            , div [ A.class "pbn-completed" ]
+                                [ h3 [] [ text "All done!" ]
+                                , button
+                                    [ A.class "standout-button"
+                                    , E.onClick
+                                        (UserRequestedDownload
+                                            { filename = "analysis.py"
+                                            , text = solutionString
+                                            }
+                                        )
+                                    ]
+                                    [ text "Download analysis script" ]
+                                ]
+                            )
+            in
             div
                 [ A.class "pbn" ]
-                [ directManipulationPbn msg
-                , if msg.valid then
-                    div [ A.class "pbn-completed" ]
-                        [ h3 [] [ text "All done!" ]
-                        , button
-                            [ A.class "standout-button"
-                            , E.onClick
-                                (UserRequestedDownload
-                                    { filename = "analysis.py"
-                                    , text = msg.workingExpression
-                                    }
-                                )
-                            ]
-                            [ text "Download analysis script" ]
+                [ if impossible then
+                    div [ A.class "pbn-impossible" ]
+                        [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
+                        , p [] [ text "There might be missing steps (or typos) in your experiment or the Honeybee library might not include the computational steps you need." ]
                         ]
 
                   else
-                    text ""
+                    directManipulationPbn cells
+                , downloadButton
                 ]
 
 
