@@ -256,17 +256,18 @@ fn collate_choices(
         match choice {
             top_down::TopDownStep::Extend(h, f, _args) => {
                 let f_sig = lib.functions.get(&f.name).unwrap();
+                let ret_sig = lib.types.get(&f_sig.ret).unwrap();
+
+                let type_title =
+                    ret_sig.info_string("title").unwrap_or(f_sig.ret.0.clone());
+                let type_description = ret_sig.info_string("description");
 
                 let function_title =
                     f_sig.info_string("title").unwrap_or(f.name.0.clone());
                 let function_description = f_sig.info_string("description");
 
                 let (_, _, fc_map) = ret.entry(*h).or_insert_with(|| {
-                    (
-                        function_title.clone(),
-                        function_description.clone(),
-                        HashMap::new(),
-                    )
+                    (type_title, type_description, HashMap::new())
                 });
 
                 let fc = fc_map.entry(f.name.0.clone()).or_insert_with(|| {
