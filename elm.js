@@ -6636,7 +6636,7 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 										_List_fromArray(
 											[
 												$elm$html$Html$Attributes$class('h-choices'),
-												$elm$html$Html$Attributes$value(''),
+												$elm$html$Html$Attributes$value('Choose a step…'),
 												$elm$html$Html$Events$onInput(
 												function (s) {
 													var _v4 = $elm$core$String$toInt(s);
@@ -6654,7 +6654,7 @@ var $author$project$View$directManipulationPbn = function (_v0) {
 												$elm$html$Html$option,
 												_List_fromArray(
 													[
-														$elm$html$Html$Attributes$value('')
+														$elm$html$Html$Attributes$value('Choose a step…')
 													]),
 												_List_fromArray(
 													[
