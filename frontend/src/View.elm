@@ -235,7 +235,7 @@ directManipulationPbn { workingExpression, choices } =
                                     Just hChoices ->
                                         select
                                             [ A.class "h-choices"
-                                            , A.value ""
+                                            , A.value "Choose a step…"
                                             , E.onInput <|
                                                 \s ->
                                                     case String.toInt s of
@@ -246,7 +246,7 @@ directManipulationPbn { workingExpression, choices } =
                                                             Nop
                                             ]
                                             (option
-                                                [ A.value "" ]
+                                                [ A.value "Choose a step…" ]
                                                 [ text "Choose a step…" ]
                                                 :: List.map
                                                     (\( f, i ) ->

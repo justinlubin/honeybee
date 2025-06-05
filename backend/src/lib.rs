@@ -109,6 +109,7 @@ struct State {
     controller:
         pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
     codegen: codegen::Full,
+    library: core::Library,
 }
 
 static mut STATE: Option<State> = None;
@@ -146,7 +147,9 @@ fn send_message() -> Result<JsValue, String> {
     for opt in options {
         match opt {
             top_down::TopDownStep::Extend(h, f, _) => {
-                choices.push((h, f.name.0))
+                let f_sig = state.library.functions.get(&f.name).unwrap();
+                let title = f_sig.info_string("overview").unwrap_or(f.name.0);
+                choices.push((h, title))
             }
             top_down::TopDownStep::Seq(..) => {
                 return Err("sequenced steps unsupported".to_owned())
@@ -174,6 +177,7 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
 
     set_state(State {
         codegen: codegen::Full::new(problem.library.clone())?,
+        library: problem.library.clone(),
         controller: algorithm.controller(timer, problem),
     });
 
