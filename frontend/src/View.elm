@@ -193,7 +193,7 @@ cell ctx c =
     case c of
         Cell.Code { title, code } ->
             div
-                [ A.class "cell-code" ]
+                [ A.class "cell", A.class "cell-code" ]
                 [ case title of
                     Just t ->
                         h3 [] [ text t ]
@@ -209,7 +209,7 @@ cell ctx c =
 
         Cell.Choice x ->
             div
-                [ A.class "cell-choice" ]
+                [ A.class "cell", A.class "cell-choice" ]
                 [ span [] [ text x.varName ]
                 , h3 [] [ text x.typeTitle ]
                 , case x.typeDescription of

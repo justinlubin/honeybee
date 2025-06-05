@@ -278,26 +278,35 @@ header ol {
     font-weight: var(--bold);
 }
 
+.pbn-completed h3 {
+    margin-bottom: var(--minor-spacing);
+}
+
+/* || Programming by Navigation - Cells */
+
 .direct-manipulation-pbn {
     background-color: var(--primary1);
+    padding: var(--minor-spacing);
+    border-radius: 5px;
+}
+
+.cell {
+    background-color: rgba(255, 255, 255, 0.2);
     border: 1px solid var(--primary3);
     margin: var(--minor-spacing) 0;
-    padding: var(--minor-spacing);
     border-radius: 5px;
     overflow-x: scroll;
 }
 
-.code-line pre {
-    display: inline-block;
+.cell h3 {
+    margin: 0;
+    border-bottom: 1px dashed var(--primary3);
+    padding: var(--minor-spacing);
 }
 
-.code-line code {
-    display: inline-block;
-    font-size: 0.9em;
-}
-
-.pbn-completed h3 {
-    margin-bottom: var(--minor-spacing);
+.cell fancy-code {
+    display: block;
+    padding: var(--minor-spacing);
 }
 
 /* || Custom Prism styles */
