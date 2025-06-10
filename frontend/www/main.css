@@ -60,6 +60,7 @@ code {
     cursor: pointer;
     outline: 0;
     border: none;
+    margin-bottom: var(--major-spacing);
 }
 
 .standout-button:not([disabled]):hover {
