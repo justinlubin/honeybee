@@ -20,6 +20,11 @@ import Update exposing (Msg(..))
 -- Generic
 
 
+circled : Attribute msg
+circled =
+    A.class "circled"
+
+
 menuBar : List (Attribute msg) -> List (Html msg) -> List (Html msg) -> List (Html msg) -> Html msg
 menuBar attrs left middle right =
     div
@@ -184,10 +189,11 @@ step library suggestions pi s =
         blankName =
             "Choose a step…"
 
-        ( prefix, deleteButton ) =
+        ( prefix, class, deleteButton ) =
             case pi of
                 Prop i ->
                     ( "Step"
+                    , "step"
                     , button
                         [ A.class "step-delete"
                         , E.onClick (UserRemovedStep i)
@@ -197,7 +203,7 @@ step library suggestions pi s =
                     )
 
                 Goal ->
-                    ( "Goal", text "" )
+                    ( "Goal", "goal", text "" )
 
         inputEvent =
             E.onInput <|
@@ -244,7 +250,7 @@ step library suggestions pi s =
                 )
     in
     card
-        []
+        [ A.class class ]
         (cardHeading [] [ text prefix ] [ dropdown ] [ deleteButton ])
         extras
 
@@ -291,7 +297,7 @@ cell ctx c =
     case c of
         Cell.Code { title, code } ->
             card
-                []
+                [ A.class "cell-code" ]
                 (cardHeading []
                     [ text "Code" ]
                     (case title of
@@ -308,7 +314,7 @@ cell ctx c =
 
         Cell.Choice x ->
             card
-                []
+                [ A.class "cell-choice" ]
                 (cardHeading []
                     [ span []
                         [ text "Choice"
@@ -459,7 +465,7 @@ view model =
             ]
         , pane
             []
-            (paneHeading [] [ text "Getting Started" ])
+            (paneHeading [] [ i [ circled ] [ text "i" ], text "Getting Started" ])
             [ p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
             , p [] [ text "It works in two steps:" ]
             , ol []
@@ -471,7 +477,7 @@ view model =
         , pane
             []
             (paneHeading []
-                [ b [] [ text "Step 1: " ]
+                [ span [ circled ] [ text "1" ]
                 , span [] [ text "Experimental Workflow" ]
                 ]
             )
@@ -484,7 +490,7 @@ view model =
             ]
             (paneHeading
                 []
-                [ b [] [ text "Step 2: " ]
+                [ span [ circled ] [ text "2" ]
                 , span [] [ text "Navigation" ]
                 ]
             )
