@@ -191,6 +191,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
         ]
         [ label
             [ A.for id
+            , A.class "card-inner-heading"
             ]
             [ argLabels
                 |> Dict.get argName
@@ -348,19 +349,29 @@ functionChoice ctx fc =
     { heading = text fc.functionTitle
     , body =
         div [] <|
-            (fc.functionDescription
-                |> Maybe.withDefault "<no description>"
-                |> text
-            )
-                :: (case fc.code of
+            [ p
+                [ A.class "tabbed-menu-body-heading" ]
+                [ text (Maybe.withDefault "" fc.functionDescription) ]
+            , p
+                [ A.class "tabbed-menu-body-label" ]
+                [ text "Select additional information…" ]
+            , select [ A.class "tabbed-menu-body-dropdown" ] <|
+                List.map
+                    (\mc -> option [] [ text <| String.fromInt mc.choiceIndex ])
+                    fc.metadataChoices
+            ]
+                ++ (case fc.code of
                         Nothing ->
                             []
 
                         Just c ->
-                            [ fancyCode
-                                []
-                                { language = "python", code = c }
-                            , select [] [ option [] [ text "Metadata" ] ]
+                            [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
+                            , div
+                                [ A.class "code-preview" ]
+                                [ fancyCode
+                                    []
+                                    { language = "python", code = c }
+                                ]
                             ]
                    )
     }
@@ -427,7 +438,7 @@ cell ctx c =
 
                     Just t ->
                         p [] [ text t ]
-                , cardInnerHeading [] [ text "Notes" ]
+                , cardInnerHeading [] [ text "Notes (⚠️ WARNING: Currently doesn't save anywhere!)" ]
                 , textarea [] []
                 , cardInnerHeading [] [ text "Choices" ]
                 , functionChoices

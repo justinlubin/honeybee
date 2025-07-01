@@ -112,6 +112,28 @@ i {
     display: block;
 }
 
+.tabbed-menu-body-heading {
+    font-weight: var(--bold);
+    font-size: 1.1em;
+}
+
+.tabbed-menu-body-label {
+    font-style: italic;
+    margin-bottom: 0px;
+}
+
+.tabbed-menu-body-dropdown {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.tabbed-menu .code-preview {
+    background-color: #eee;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: var(--rounding);
+}
+
 /* || Menu bar */
 
 .menu-bar {
@@ -254,24 +276,17 @@ i {
     padding: 0;
 }
 
-.card-body label {
-    display: block;
-    margin-bottom: 5px;
-}
-
 .card-body input {
     width: 100%;
     margin-bottom: 10px;
 }
 
 .card-inner-heading {
+    display: block;
     font-size: 1.1em;
-    margin-top: 10px;
-    margin-bottom: 3px;
-}
-
-.card-inner-heading:first-child {
-    margin-top: 0;
+    margin-top: 8px;
+    margin-bottom: 5px;
+    margin-left: 5px;
 }
 
 /* Specific cards */
