@@ -41,13 +41,13 @@ info.code = '''class RNASeqProp:
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
-info.title = "RNA-seq samples"
+info.title = "Loaded RNA-seq sample metadata"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
 info.var_name = "RNA_SAMPLES"
 info.code = '''class RNASeqSamples:
-    "RNA-seq samples"
+    "Loaded RNA-seq sample metadata"
 
     @dataclass
     class S:
@@ -70,17 +70,19 @@ ret = "RNASeqSamples"
 condition = [
     "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 ]
+info.title = "Load RNA-seq sample sheet"
 info.code = '''def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
+    """Load RNA-seq sample sheet"""
     return RNASeqSamples.D()'''
 
 [Type.RNASeq]
 params.label = "Str"
 params.qc = "Bool"
-info.title = "RNA-seq data"
+info.title = "Loaded RNA-seq data"
 info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
 info.code = '''class RNASeq:
-    "RNA-seq data"
+    "Loaded RNA-seq data"
 
     @dataclass
     class S:
@@ -102,9 +104,9 @@ condition = [
     "ret.label = samples.label",
     "ret.qc = false",
 ]
-info.title = "Load RNA-seq dataset"
+info.title = "Directly load RNA-seq dataset"
 info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
-    """Load RNA-seq dataset"""
+    """Directly load RNA-seq dataset"""
     return RNASeq.D(
         sample_sheet=samples.static.sample_sheet,
         path=samples.static.raw_data,
@@ -112,10 +114,10 @@ info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq
 
 [Type.TranscriptMatrices]
 params.label = "Str"
-info.title = "Transcript-by-sample matrices of counts and abundance (TPM)"
+info.title = "Read count (and TPM abundance) matrix for samples"
 info.params.label = "Label for RNA-seq data to analyze"
 info.code = '''class TranscriptMatrices:
-    "Transcript-by-sample matrices of counts and abundance (TPM)"
+    "Read count (and TPM abundance) matrix for samples"
 
     @dataclass
     class S:
@@ -135,9 +137,9 @@ condition = [
     "ret.label = data.label",
     "ret.qc = true",
 ]
-info.title = "Quality-check RNA-seq data (FastQC)"
+info.title = "Quality-check sequencing data with FastQC"
 info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Quality-check RNA-seq data (FastQC)"""
+    """Quality-check sequencing data with FastQC"""
 
     print("Running fastqc...")
 
@@ -150,6 +152,19 @@ info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 
     return data.dynamic'''
 
+[Function.multiqc]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = false",
+    "ret.label = data.label",
+    "ret.qc = true",
+]
+info.title = "Quality-check sequencing data with MultiQC"
+info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """Quality-check sequencing data with MultiQC"""
+    pass'''
+
 [Function.cutadapt_illumina]
 params.data = "RNASeq"
 ret = "RNASeq"
@@ -158,9 +173,9 @@ condition = [
     "ret.label = data.label",
     "ret.qc = false",
 ]
-info.title = "Remove Illumina universal adaptor and poly-A tails (cutadapt)"
+info.title = "Remove Illumina universal adaptor and poly-A tails with cutadapt"
 info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Remove Illumina universal adaptor and poly-A tails (cutadapt)"""
+    """Remove Illumina universal adaptor and poly-A tails with cutadapt"""
 
     in_path = data.dynamic.path
     ret_path = f"output/{ret.label}/cutadapt_trimmed"
@@ -191,9 +206,9 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.title = "Quantify transcript abundances (kallisto)"
+info.title = "Quantify transcript abundances with kallisto"
 info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """Quantify transcript abundances (kallisto)"""
+    """Quantify transcript abundances with kallisto"""
 
     in_path = data.dynamic.path
     ret_path = f"output/{ret.label}/kallisto_quant"
@@ -213,4 +228,164 @@ info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> Transcri
         sample_sheet=data.dynamic.sample_sheet,
         path=ret_path,
     )'''
+
+[Function.salmon]
+params.data = "RNASeq"
+ret = "TranscriptMatrices"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+]
+info.title = "Quantify transcript abundances with salmon"
+info.code = '''def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """Quantify transcript abundances with salmon"""
+    pass'''
+
+[Function.combat_seq]
+params.data = "TranscriptMatrices"
+ret = "TranscriptMatrices"
+condition = [
+    "ret.label = data.label",
+]
+info.title = "Correct for batch effects with ComBat-seq"
+info.code = '''def combat_seq(
+    data: TranscriptMatrices, ret: TranscriptMatrices.S
+) -> TranscriptMatrices.D:
+    """Correct for batch effects with ComBat-seq"""
+    pass'''
+
+[Type.Alignment]
+params.label = "Str"
+info.title = "Alignment to a reference genome"
+info.params.label = "Label for data"
+info.code = '''class Alignment:
+    "Alignment to a reference genome"
+
+    @dataclass
+    class S:
+        label: str
+        "Label for data"
+
+    @dataclass
+    class D:
+        sample_sheet: str
+        path: str'''
+
+[Function.featureCounts]
+params.data = "Alignment"
+ret = "TranscriptMatrices"
+condition = [
+    "ret.label = data.label",
+]
+info.title = "Summarize aligned reads with featureCounts"
+info.code = '''def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """Summarize aligned reads with featureCounts"""
+    pass'''
+
+[Function.star]
+params.data = "RNASeq"
+ret = "Alignment"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+]
+info.title = "Align spliced transcripts to a reference with STAR"
+info.code = '''def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
+    """Align spliced transcripts to a reference with STAR"""
+    pass'''
+
+[Prop.CutAndRunProp]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.title = "CUT&RUN-seq"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
+info.code = '''class CutAndRunProp:
+    "CUT&RUN-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"'''
+
+[Prop.EMSeqProp]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.title = "EM-seq"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
+info.code = '''class EMSeqProp:
+    "EM-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"'''
+
+[Prop.FlowProp]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.title = "Flow cytometry"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FCS files"
+info.code = '''class FlowProp:
+    "Flow cytometry"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FCS files"'''
+
+[Prop.SortProp]
+params.label = "Str"
+info.title = "Sort cells with FACS"
+info.params.label = "Label for data"
+info.code = '''class SortProp:
+    "Sort cells with FACS"
+
+    label: str
+    "Label for data"'''
+
+[Prop.StainProp]
+params.label = "Str"
+info.title = "Stain cells with antibodies"
+info.params.label = "Label for data"
+info.code = '''class StainProp:
+    "Stain cells with antibodies"
+
+    label: str
+    "Label for data"'''
+
+[Prop.TransfectProp]
+params.label = "Str"
+params.library = "Str"
+info.title = "Infect cells with CRISPR sgRNA guide library"
+info.params.label = "Label for data"
+info.params.library = "Path to the library file"
+info.code = '''class TransfectProp:
+    "Infect cells with CRISPR sgRNA guide library"
+
+    label: str
+    "Label for data"
+
+    library: str
+    "Path to the library file"'''
 

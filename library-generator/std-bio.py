@@ -21,6 +21,10 @@ def sample_names(filename):
     return sn
 
 
+################################################################################
+# RNA-seq
+
+
 # TODO auto-generate?
 @Prop
 class RNASeqProp:
@@ -38,7 +42,7 @@ class RNASeqProp:
 
 @Type(var_name="RNA_SAMPLES")
 class RNASeqSamples:
-    "RNA-seq samples"
+    "Loaded RNA-seq sample metadata"
 
     @dataclass
     class S:
@@ -61,12 +65,13 @@ class RNASeqSamples:
     "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }"
 )
 def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
+    """Load RNA-seq sample sheet"""
     return RNASeqSamples.D()
 
 
 @Type
 class RNASeq:
-    "RNA-seq data"
+    "Loaded RNA-seq data"
 
     @dataclass
     class S:
@@ -87,7 +92,7 @@ class RNASeq:
     "ret.qc = false",
 )
 def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
-    """Load RNA-seq dataset"""
+    """Directly load RNA-seq dataset"""
     return RNASeq.D(
         sample_sheet=samples.static.sample_sheet,
         path=samples.static.raw_data,
@@ -96,7 +101,7 @@ def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
 
 @Type
 class TranscriptMatrices:
-    "Transcript-by-sample matrices of counts and abundance (TPM)"
+    "Read count (and TPM abundance) matrix for samples"
 
     @dataclass
     class S:
@@ -115,7 +120,7 @@ class TranscriptMatrices:
     "ret.qc = true",
 )
 def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Quality-check RNA-seq data (FastQC)"""
+    """Quality-check sequencing data with FastQC"""
 
     print("Running fastqc...")
 
@@ -130,12 +135,22 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 
 
 @Function(
+    "data.qc = false",
+    "ret.label = data.label",
+    "ret.qc = true",
+)
+def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """Quality-check sequencing data with MultiQC"""
+    pass
+
+
+@Function(
     "data.qc = true",
     "ret.label = data.label",
     "ret.qc = false",
 )
 def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Remove Illumina universal adaptor and poly-A tails (cutadapt)"""
+    """Remove Illumina universal adaptor and poly-A tails with cutadapt"""
 
     in_path = data.dynamic.path
     ret_path = f"output/{ret.label}/cutadapt_trimmed"
@@ -165,7 +180,7 @@ def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.label = data.label",
 )
 def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """Quantify transcript abundances (kallisto)"""
+    """Quantify transcript abundances with kallisto"""
 
     in_path = data.dynamic.path
     ret_path = f"output/{ret.label}/kallisto_quant"
@@ -185,3 +200,127 @@ def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
         sample_sheet=data.dynamic.sample_sheet,
         path=ret_path,
     )
+
+
+@Function(
+    "data.qc = true",
+    "ret.label = data.label",
+)
+def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """Quantify transcript abundances with salmon"""
+    pass
+
+
+@Function(
+    "ret.label = data.label",
+)
+def combat_seq(
+    data: TranscriptMatrices, ret: TranscriptMatrices.S
+) -> TranscriptMatrices.D:
+    """Correct for batch effects with ComBat-seq"""
+    pass
+
+
+@Type
+class Alignment:
+    "Alignment to a reference genome"
+
+    @dataclass
+    class S:
+        label: str
+        "Label for data"
+
+    @dataclass
+    class D:
+        sample_sheet: str
+        path: str
+
+
+@Function(
+    "ret.label = data.label",
+)
+def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """Summarize aligned reads with featureCounts"""
+    pass
+
+
+@Function(
+    "data.qc = true",
+    "ret.label = data.label",
+)
+def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
+    """Align spliced transcripts to a reference with STAR"""
+    pass
+
+
+################################################################################
+# Stubs to implement
+
+
+@Prop
+class CutAndRunProp:
+    "CUT&RUN-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"
+
+
+@Prop
+class EMSeqProp:
+    "EM-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"
+
+
+@Prop
+class FlowProp:
+    "Flow cytometry"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FCS files"
+
+
+@Prop
+class SortProp:
+    "Sort cells with FACS"
+
+    label: str
+    "Label for data"
+
+
+@Prop
+class StainProp:
+    "Stain cells with antibodies"
+
+    label: str
+    "Label for data"
+
+
+@Prop
+class TransfectProp:
+    "Infect cells with CRISPR sgRNA guide library"
+
+    label: str
+    "Label for data"
+
+    library: str
+    "Path to the library file"
