@@ -133,20 +133,26 @@ i {
     --card-accent: #333;
 }
 
-.card.step {
+/* Types of cards */
+
+.step {
     --card-accent: #f55;
 }
 
-.card.goal {
+.goal {
     --card-accent: #f85;
 }
 
-.card.cell-code {
+.cell-code {
     --card-accent: #333;
 }
 
-.card.cell-choice {
+.cell-choice {
     --card-accent: #484;
+}
+
+.card.cell-choice {
+    box-shadow: var(--shadow);
 }
 
 .card-heading-wrapper {
@@ -217,6 +223,17 @@ i {
 .card-body input {
     width: 100%;
     margin-bottom: 10px;
+}
+
+/* Card reference */
+
+.card-reference {
+    background-color: var(--card-accent);
+    color: white;
+    padding: 3px;
+    text-transform: uppercase;
+    font-weight: var(--bold);
+    border-radius: var(--rounding);
 }
 
 /* || Steps */
@@ -298,4 +315,14 @@ i {
 .standout-button .subtitle {
     display: block;
     font-size: 0.7em;
+}
+
+/* || Custom Prism styles */
+
+.token.operator {
+    background: none;
+}
+
+code[class*="language-"] {
+    text-shadow: none;
 }

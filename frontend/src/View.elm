@@ -494,6 +494,17 @@ view model =
                 , span [] [ text "Navigation" ]
                 ]
             )
-            [ pbnStatus model.pbnStatus
+            [ p
+                []
+                [ text "When you see a "
+                , span
+                    [ A.class "card-reference"
+                    , A.class "cell-choice"
+                    ]
+                    [ text "Choice"
+                    ]
+                , text " cell, decide which analysis to run for that part of the code."
+                ]
+            , pbnStatus model.pbnStatus
             ]
         ]
