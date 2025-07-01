@@ -85,6 +85,10 @@ i {
     }
 }
 
+.pane.pane-inactive {
+    display: none;
+}
+
 .pane-heading {
     display: inline-block;
 
@@ -279,7 +283,8 @@ i {
     content: "+";
     display: inline-block;
     font-size: 1.7em;
-    line-height: 0.9em;
+    line-height: 0.8em;
+    text-align: center;
     width: 30px;
     height: 30px;
     border-radius: 50%;
