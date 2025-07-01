@@ -414,7 +414,12 @@ cell ctx c =
                     ]
                     [ text x.typeTitle
                     ]
-                    []
+                    [ button
+                        [ A.disabled <| x.selectedFunctionChoice == Nothing
+                        ]
+                        [ text "Make selection"
+                        ]
+                    ]
                 )
                 [ case x.typeDescription of
                     Nothing ->
@@ -430,11 +435,6 @@ cell ctx c =
                     , selectedFunctionChoice = x.selectedFunctionChoice
                     }
                     x.functionChoices
-                , button
-                    [ A.class "standout-button"
-                    , A.disabled (x.selectedFunctionChoice == Nothing)
-                    ]
-                    [ text "Select" ]
                 ]
 
 

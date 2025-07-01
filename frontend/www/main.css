@@ -77,12 +77,16 @@ i {
     user-select: none;
 }
 
+.tabbed-menu-header:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
 .tabbed-menu-header:first-child {
     border-left: 1px solid black;
 }
 
 .tabbed-menu-header.tabbed-menu-selected {
-    background-color: #ddd;
+    background-color: #fff;
     font-weight: var(--bold);
     border-width: 2px;
     border-left: 1px solid black;
@@ -95,7 +99,7 @@ i {
 
 .tabbed-menu-body {
     display: none;
-    background-color: #ddd;
+    background-color: #fff;
     padding: 10px;
     border: 2px solid black;
     overflow: hidden;
@@ -297,6 +301,29 @@ i {
     height: 150px;
     font-family: sans-serif;
     resize: vertical;
+}
+
+.card.cell-choice .card-heading-suffix button {
+    display: inline-block;
+    margin-right: 10px;
+    padding: 2px 5px;
+    font-size: 1.2em;
+    border-radius: var(--rounding);
+    background-color: #333;
+    color: #fff;
+    cursor: pointer;
+    outline: 0;
+    border: none;
+}
+
+.card.cell-choice .card-heading-suffix button:not([disabled]):hover {
+    background-color: #555;
+}
+
+.card.cell-choice .card-heading-suffix button[disabled] {
+    cursor: not-allowed;
+    background-color: #ccc;
+    color: #555;
 }
 
 /* Card reference */
