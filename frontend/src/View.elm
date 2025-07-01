@@ -15,6 +15,95 @@ import Model exposing (Model)
 import Update exposing (Msg(..))
 
 
+
+--------------------------------------------------------------------------------
+-- Generic
+
+
+menuBar : List (Attribute msg) -> List (Html msg) -> List (Html msg) -> List (Html msg) -> Html msg
+menuBar attrs left middle right =
+    div
+        (A.class "menu-bar" :: attrs)
+        [ div [ A.class "menu-bar-left" ] left
+        , div [ A.class "menu-bar-middle" ] middle
+        , div [ A.class "menu-bar-right" ] right
+        ]
+
+
+pane : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+pane attrs headerContent bodyContent =
+    section
+        (A.class "pane" :: attrs)
+        [ header [ A.class "pane-header" ] [ headerContent ]
+        , div [ A.class "pane-body" ] bodyContent
+        ]
+
+
+paneHeading : List (Attribute msg) -> List (Html msg) -> Html msg
+paneHeading attrs content =
+    h1 (A.class "pane-heading" :: attrs) content
+
+
+group : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+group attrs headerContent bodyContent =
+    section
+        (A.class "group" :: attrs)
+        [ header [ A.class "group-header" ] [ headerContent ]
+        , div [ A.class "group-body" ] bodyContent
+        ]
+
+
+groupHeading : List (Attribute msg) -> List (Html msg) -> Html msg
+groupHeading attrs content =
+    h2 (A.class "group-heading" :: attrs) content
+
+
+card : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+card attrs headerContent bodyContent =
+    section
+        (A.class "card" :: attrs)
+        [ header [ A.class "card-header" ] [ headerContent ]
+        , div [ A.class "card-body" ] bodyContent
+        ]
+
+
+cardHeading :
+    List (Attribute msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> Html msg
+cardHeading attrs prefix content suffix =
+    div
+        [ A.class "card-heading-wrapper" ]
+        [ span [ A.class "card-heading-prefix" ] prefix
+        , span [ A.class "card-heading-prefix-separator" ] []
+        , h3 [ A.class "card-heading" ] content
+        , span [ A.class "card-heading-suffix" ] suffix
+        ]
+
+
+cardHeadingSubtitle : List (Attribute msg) -> List (Html msg) -> Html msg
+cardHeadingSubtitle attrs content =
+    span [ A.class "card-heading-subtitle" ] content
+
+
+fancyCode : List (Attribute msg) -> { language : String, code : String } -> Html msg
+fancyCode attrs { language, code } =
+    node "fancy-code"
+        ([ A.attribute "language" language
+         , A.property "code" (Json.Encode.string code)
+         ]
+            ++ attrs
+        )
+        []
+
+
+
+--------------------------------------------------------------------------------
+-- Program construction
+
+
 arg :
     ProgramIndex
     -> Dict String String
@@ -95,17 +184,20 @@ step library suggestions pi s =
         blankName =
             "Choose a step…"
 
-        deleteButton =
+        ( prefix, deleteButton ) =
             case pi of
                 Prop i ->
-                    button
+                    ( "Step"
+                    , button
                         [ A.class "step-delete"
                         , E.onClick (UserRemovedStep i)
                         ]
-                        [ text "×" ]
+                        [ text "×"
+                        ]
+                    )
 
                 Goal ->
-                    text ""
+                    ( "Goal", text "" )
 
         inputEvent =
             E.onInput <|
@@ -151,31 +243,37 @@ step library suggestions pi s =
                     options
                 )
     in
-    div
-        [ A.class "step" ]
-        (dropdown :: deleteButton :: extras)
+    card
+        []
+        (cardHeading [] [ text prefix ] [ dropdown ] [ deleteButton ])
+        extras
 
 
 program :
     { m | library : Library, goalSuggestions : Assoc String (List Value) }
     -> WorkingProgram
-    -> Html Msg
+    -> List (Html Msg)
 program ctx prog =
-    div [ A.class "workflow" ]
-        [ h3 [] [ text "Experimental workflow" ]
-        , ol [ A.class "steps" ]
-            (List.indexedMap
-                (\i s -> li [] [ step ctx.library.props [] (Prop i) s ])
-                prog.props
-            )
-        , button
-            [ A.class "step-add"
-            , E.onClick UserAddedBlankStep
-            ]
-            [ text "Add step" ]
-        , h3 [] [ text "Goal of experiment" ]
-        , step ctx.library.types ctx.goalSuggestions Goal prog.goal
+    [ group [] (groupHeading [] [ text "Experimental workflow" ]) <|
+        List.indexedMap
+            (\i s -> step ctx.library.props [] (Prop i) s)
+            prog.props
+            ++ [ button
+                    [ A.class "step-add"
+                    , E.onClick UserAddedBlankStep
+                    ]
+                    [ text "Add step" ]
+               ]
+    , group []
+        (groupHeading [] [ text "Goal of experiment" ])
+        [ step ctx.library.types ctx.goalSuggestions Goal prog.goal
         ]
+    ]
+
+
+
+--------------------------------------------------------------------------------
+-- Direct manipulation Programming by Navigation
 
 
 functionChoices :
@@ -192,27 +290,36 @@ cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
 cell ctx c =
     case c of
         Cell.Code { title, code } ->
-            div
-                [ A.class "cell", A.class "cell-code" ]
-                [ case title of
-                    Just t ->
-                        h3 [] [ text t ]
+            card
+                []
+                (cardHeading []
+                    [ text "Code" ]
+                    (case title of
+                        Just t ->
+                            [ text t ]
 
-                    Nothing ->
-                        text ""
-                , node "fancy-code"
-                    [ A.attribute "language" "python"
-                    , A.property "code" (Json.Encode.string code)
-                    ]
+                        Nothing ->
+                            []
+                    )
                     []
+                )
+                [ fancyCode [] { language = "python", code = code }
                 ]
 
         Cell.Choice x ->
-            div
-                [ A.class "cell", A.class "cell-choice" ]
-                [ span [] [ text x.varName ]
-                , h3 [] [ text x.typeTitle ]
-                , case x.typeDescription of
+            card
+                []
+                (cardHeading []
+                    [ span []
+                        [ text "Choice"
+                        , cardHeadingSubtitle [] [ text x.varName ]
+                        ]
+                    ]
+                    [ text x.typeTitle
+                    ]
+                    []
+                )
+                [ case x.typeDescription of
                     Nothing ->
                         text ""
 
@@ -226,18 +333,20 @@ cell ctx c =
                 ]
 
 
-directManipulationPbn : List Cell.Cell -> Html Msg
+directManipulationPbn : List Cell.Cell -> List (Html Msg)
 directManipulationPbn cells =
-    div
-        [ A.class "direct-manipulation-pbn" ]
-        (List.indexedMap
-            (\i c -> cell { cellIndex = i } c)
-            cells
-        )
+    List.indexedMap
+        (\i c -> cell { cellIndex = i } c)
+        cells
 
 
-startNavigation : WorkingProgram -> Html Msg
-startNavigation prog =
+
+--------------------------------------------------------------------------------
+-- Glue
+
+
+startNavigationButton : WorkingProgram -> Html Msg
+startNavigationButton prog =
     let
         ( attrs, extras ) =
             case
@@ -247,7 +356,8 @@ startNavigation prog =
             of
                 Nothing ->
                     ( [ A.disabled True ]
-                    , [ div [ A.class "subtitle" ]
+                    , [ div
+                            [ A.class "subtitle" ]
                             [ text "(Complete experimental workflow first)" ]
                       ]
                     )
@@ -260,7 +370,7 @@ startNavigation prog =
                     )
     in
     button
-        ([ A.class "start-navigation", A.class "standout-button" ] ++ attrs)
+        ([ A.class "standout-button" ] ++ attrs)
         (text "Start navigating" :: extras)
 
 
@@ -305,31 +415,52 @@ pbnStatus ms =
                                 ]
                             )
             in
-            div
-                [ A.class "pbn" ]
-                [ if impossible then
-                    div [ A.class "pbn-impossible" ]
+            div [ A.class "pbn" ] <|
+                (if impossible then
+                    [ div [ A.class "pbn-impossible" ]
                         [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
-                        , p [] [ text "There might be missing steps (or typos) in your experiment or the Honeybee library might not include the computational steps you need." ]
+                        , p [] [ text "There might be missing steps (or typos) in your experiment. Alternatively, the Honeybee library might not include the computational steps you need." ]
+                        , p []
+                            [ text "Please reach out to Justin at"
+                            , a
+                                [ A.href "mailto://justinlubin@berkeley.edu" ]
+                                [ text "justinlubin@berkeley.edu" ]
+                            , text "for help!"
+                            ]
                         ]
+                    ]
 
-                  else
+                 else
                     directManipulationPbn cells
-                , downloadButton
-                ]
+                )
+                    ++ [ downloadButton ]
 
 
 view : Model -> Html Msg
 view model =
-    main_
-        []
-        [ header []
-            [ h1 []
-                [ span [ A.class "pbn" ] [ text "Programming by Navigation" ]
-                , text " with "
-                , span [ A.class "honeybee" ] [ text "Honeybee" ]
+    div
+        [ A.id "root"
+        ]
+        [ menuBar
+            []
+            [ b [] [ text "Programming by Navigation" ]
+            , text " with "
+            , b
+                []
+                [ text "Honeybee 🐝" ]
+            ]
+            []
+            [ button
+                [ A.id "devmode"
+                , E.onClick UserClickedDevMode
+                , A.title "Sets fun value to 65"
                 ]
-            , p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
+                [ text "devmode" ]
+            ]
+        , pane
+            []
+            (paneHeading [] [ text "Getting Started" ])
+            [ p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
             , p [] [ text "It works in two steps:" ]
             , ol []
                 [ li [] [ text "First, you write down your experimental workflow." ]
@@ -337,31 +468,26 @@ view model =
                 ]
             , p [] [ text "Using your biology expertise, you can navigate to the program that fits your need!" ]
             ]
-        , div [ A.class "specification-pane" ]
-            [ h2 []
-                [ span [] [ text "Step 1: " ]
-                , span [] [ text "Write down your experimental workflow" ]
+        , pane
+            []
+            (paneHeading []
+                [ b [] [ text "Step 1: " ]
+                , span [] [ text "Experimental Workflow" ]
                 ]
-            , program model model.program
-            , startNavigation model.program
+            )
+          <|
+            program model model.program
+                ++ [ startNavigationButton model.program ]
+        , pane
+            [ A.id "navigation-pane"
+            , A.classList [ ( "pane-inactive", model.pbnStatus == Nothing ) ]
             ]
-        , div [ A.class "navigation-pane" ]
-            [ h2
-                [ A.class <|
-                    if model.pbnStatus == Nothing then
-                        "inactive-pane-header"
-
-                    else
-                        "active-pane-header"
+            (paneHeading
+                []
+                [ b [] [ text "Step 2: " ]
+                , span [] [ text "Navigation" ]
                 ]
-                [ span [] [ text "Step 2: " ]
-                , span [] [ text "Create an analysis script for this experiment" ]
-                ]
-            , pbnStatus model.pbnStatus
+            )
+            [ pbnStatus model.pbnStatus
             ]
-        , button
-            [ A.id "devmode"
-            , E.onClick UserClickedDevMode
-            ]
-            [ text "devmode" ]
         ]

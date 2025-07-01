@@ -179,7 +179,7 @@ update msg model =
         UserStartedNavigation x ->
             ( model
             , Cmd.batch
-                [ Outgoing.oScrollIntoView { selector = ".navigation-pane" }
+                [ Outgoing.oScrollIntoView { selector = "#navigation-pane" }
                 , Outgoing.oPbnInit x
                 ]
             )
