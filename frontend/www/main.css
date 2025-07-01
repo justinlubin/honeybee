@@ -55,6 +55,59 @@ i {
     margin-right: 5px;
 }
 
+/* || Tabbed menu */
+
+.tabbed-menu {
+    margin-bottom: 10px;
+}
+
+.tabbed-menu-header {
+    display: inline-block;
+
+    padding: 5px;
+    border: 1px solid black;
+    border-bottom: none;
+    border-left: none;
+    border-top-left-radius: var(--rounding);
+    border-top-right-radius: var(--rounding);
+
+    position: relative;
+
+    cursor: pointer;
+    user-select: none;
+}
+
+.tabbed-menu-header:first-child {
+    border-left: 1px solid black;
+}
+
+.tabbed-menu-header.tabbed-menu-selected {
+    background-color: #ddd;
+    font-weight: var(--bold);
+    border-width: 2px;
+    border-left: 1px solid black;
+    top: 2px;
+}
+
+.tabbed-menu-header.tabbed-menu-selected:first-child {
+    border-left-width: 2px;
+}
+
+.tabbed-menu-body {
+    display: none;
+    background-color: #ddd;
+    padding: 10px;
+    border: 2px solid black;
+    overflow: hidden;
+    border-top-right-radius: var(--rounding);
+    border-bottom-left-radius: var(--rounding);
+    border-bottom-right-radius: var(--rounding);
+}
+
+.tabbed-menu-body.tabbed-menu-selected {
+    display: block;
+}
+
 /* || Menu bar */
 
 .menu-bar {
@@ -137,28 +190,6 @@ i {
     --card-accent: #333;
 }
 
-/* Types of cards */
-
-.step {
-    --card-accent: #f55;
-}
-
-.goal {
-    --card-accent: #f85;
-}
-
-.cell-code {
-    --card-accent: #333;
-}
-
-.cell-choice {
-    --card-accent: #484;
-}
-
-.card.cell-choice {
-    box-shadow: var(--shadow);
-}
-
 .card-heading-wrapper {
     display: flex;
     height: 40px;
@@ -227,6 +258,45 @@ i {
 .card-body input {
     width: 100%;
     margin-bottom: 10px;
+}
+
+.card-inner-heading {
+    font-size: 1.1em;
+    margin-top: 10px;
+    margin-bottom: 3px;
+}
+
+.card-inner-heading:first-child {
+    margin-top: 0;
+}
+
+/* Specific cards */
+
+.step {
+    --card-accent: #f55;
+}
+
+.goal {
+    --card-accent: #f85;
+}
+
+.cell-code {
+    --card-accent: #333;
+}
+
+.cell-choice {
+    --card-accent: #484;
+}
+
+.card.cell-choice {
+    box-shadow: var(--shadow);
+}
+
+.card.cell-choice textarea {
+    width: 100%;
+    height: 150px;
+    font-family: sans-serif;
+    resize: vertical;
 }
 
 /* Card reference */

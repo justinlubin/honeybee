@@ -1,6 +1,7 @@
 module Update exposing (Msg(..), subscriptions, update)
 
 import Assoc exposing (Assoc)
+import Cell
 import Compile
 import Complete
 import Core exposing (..)
@@ -34,6 +35,40 @@ setArgument pi param s model =
                 model.program
         , pbnStatus = Nothing
     }
+
+
+setFunctionChoice : { cellIndex : Int, functionIndex : Maybe Int } -> Model -> Model
+setFunctionChoice { cellIndex, functionIndex } model =
+    case model.pbnStatus of
+        Nothing ->
+            model
+
+        Just status ->
+            let
+                newStatus =
+                    { status
+                        | cells =
+                            List.indexedMap
+                                (\i c ->
+                                    case c of
+                                        Cell.Code _ ->
+                                            c
+
+                                        Cell.Choice ch ->
+                                            if i == cellIndex then
+                                                Cell.Choice
+                                                    { ch
+                                                        | selectedFunctionChoice =
+                                                            functionIndex
+                                                    }
+
+                                            else
+                                                c
+                                )
+                                status.cells
+                    }
+            in
+            { model | pbnStatus = Just newStatus }
 
 
 
@@ -106,6 +141,8 @@ type
     | UserRemovedStep Int
     | UserSetArgument ProgramIndex String String
     | UserStartedNavigation { programSource : String }
+    | UserSelectedFunction { cellIndex : Int } Int
+    | UserDeselectedFunction { cellIndex : Int }
     | UserMadePbnChoice Int
     | UserRequestedDownload Outgoing.DownloadMessage
     | UserClickedDevMode
@@ -182,6 +219,20 @@ update msg model =
                 [ Outgoing.oScrollIntoView { selector = "#navigation-pane" }
                 , Outgoing.oPbnInit x
                 ]
+            )
+
+        UserSelectedFunction { cellIndex } functionIndex ->
+            ( setFunctionChoice
+                { cellIndex = cellIndex, functionIndex = Just functionIndex }
+                model
+            , Cmd.none
+            )
+
+        UserDeselectedFunction { cellIndex } ->
+            ( setFunctionChoice
+                { cellIndex = cellIndex, functionIndex = Nothing }
+                model
+            , Cmd.none
             )
 
         UserMadePbnChoice choice ->

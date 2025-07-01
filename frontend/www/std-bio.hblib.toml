@@ -70,7 +70,7 @@ ret = "RNASeqSamples"
 condition = [
     "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 ]
-info.title = "Load RNA-seq sample sheet"
+info.description = "Load RNA-seq sample sheet"
 info.code = '''def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
     """Load RNA-seq sample sheet"""
     return RNASeqSamples.D()'''
@@ -104,7 +104,7 @@ condition = [
     "ret.label = samples.label",
     "ret.qc = false",
 ]
-info.title = "Directly load RNA-seq dataset"
+info.description = "Directly load RNA-seq dataset"
 info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
     """Directly load RNA-seq dataset"""
     return RNASeq.D(
@@ -137,7 +137,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = true",
 ]
-info.title = "Quality-check sequencing data with FastQC"
+info.description = "Quality-check sequencing data with FastQC"
 info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check sequencing data with FastQC"""
 
@@ -160,7 +160,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = true",
 ]
-info.title = "Quality-check sequencing data with MultiQC"
+info.description = "Quality-check sequencing data with MultiQC"
 info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check sequencing data with MultiQC"""
     pass'''
@@ -173,7 +173,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = false",
 ]
-info.title = "Remove Illumina universal adaptor and poly-A tails with cutadapt"
+info.description = "Remove Illumina universal adaptor and poly-A tails with cutadapt"
 info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Remove Illumina universal adaptor and poly-A tails with cutadapt"""
 
@@ -206,7 +206,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.title = "Quantify transcript abundances with kallisto"
+info.description = "Quantify transcript abundances with kallisto"
 info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Quantify transcript abundances with kallisto"""
 
@@ -236,7 +236,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.title = "Quantify transcript abundances with salmon"
+info.description = "Quantify transcript abundances with salmon"
 info.code = '''def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Quantify transcript abundances with salmon"""
     pass'''
@@ -247,7 +247,7 @@ ret = "TranscriptMatrices"
 condition = [
     "ret.label = data.label",
 ]
-info.title = "Correct for batch effects with ComBat-seq"
+info.description = "Correct for batch effects with ComBat-seq"
 info.code = '''def combat_seq(
     data: TranscriptMatrices, ret: TranscriptMatrices.S
 ) -> TranscriptMatrices.D:
@@ -277,7 +277,7 @@ ret = "TranscriptMatrices"
 condition = [
     "ret.label = data.label",
 ]
-info.title = "Summarize aligned reads with featureCounts"
+info.description = "Summarize aligned reads with featureCounts"
 info.code = '''def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Summarize aligned reads with featureCounts"""
     pass'''
@@ -289,7 +289,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.title = "Align spliced transcripts to a reference with STAR"
+info.description = "Align spliced transcripts to a reference with STAR"
 info.code = '''def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
     """Align spliced transcripts to a reference with STAR"""
     pass'''

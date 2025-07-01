@@ -101,7 +101,7 @@ def _emit_function(f, condition, kwargs):
         print(f'    "{c}",')
     print("]")
     if f.__doc__ is not None:
-        print(f'info.title = "{f.__doc__}"')
+        print(f'info.description = "{f.__doc__}"')
     for k in kwargs:
         print(f'info.{k} = "{kwargs[k]}"')
     code = inspect.getsource(f)

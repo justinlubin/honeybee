@@ -25,7 +25,12 @@ circled =
     A.class "circled"
 
 
-menuBar : List (Attribute msg) -> List (Html msg) -> List (Html msg) -> List (Html msg) -> Html msg
+menuBar :
+    List (Attribute msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> Html msg
 menuBar attrs left middle right =
     div
         (A.class "menu-bar" :: attrs)
@@ -80,7 +85,7 @@ cardHeading :
     -> Html msg
 cardHeading attrs prefix content suffix =
     div
-        [ A.class "card-heading-wrapper" ]
+        (A.class "card-heading-wrapper" :: attrs)
         [ span [ A.class "card-heading-prefix" ] prefix
         , span [ A.class "card-heading-prefix-separator" ] []
         , h3 [ A.class "card-heading" ] content
@@ -90,7 +95,12 @@ cardHeading attrs prefix content suffix =
 
 cardHeadingSubtitle : List (Attribute msg) -> List (Html msg) -> Html msg
 cardHeadingSubtitle attrs content =
-    span [ A.class "card-heading-subtitle" ] content
+    span (A.class "card-heading-subtitle" :: attrs) content
+
+
+cardInnerHeading : List (Attribute msg) -> List (Html msg) -> Html msg
+cardInnerHeading attrs content =
+    h4 (A.class "card-inner-heading" :: attrs) content
 
 
 fancyCode : List (Attribute msg) -> { language : String, code : String } -> Html msg
@@ -102,6 +112,54 @@ fancyCode attrs { language, code } =
             ++ attrs
         )
         []
+
+
+tabbedMenu :
+    List (Attribute msg)
+    -> { selectionEvent : Int -> msg, deselectionEvent : msg, selectedIndex : Maybe Int }
+    -> List { heading : Html msg, body : Html msg }
+    -> Html msg
+tabbedMenu attrs { selectionEvent, deselectionEvent, selectedIndex } content =
+    let
+        ( headers, bodies ) =
+            List.unzip <|
+                List.indexedMap
+                    (\i { heading, body } ->
+                        let
+                            selected =
+                                selectedIndex == Just i
+
+                            selectedAttr =
+                                A.classList
+                                    [ ( "tabbed-menu-selected"
+                                      , selectedIndex == Just i
+                                      )
+                                    ]
+                        in
+                        ( div
+                            [ A.class "tabbed-menu-header"
+                            , selectedAttr
+                            , E.onClick <|
+                                if selected then
+                                    deselectionEvent
+
+                                else
+                                    selectionEvent i
+                            ]
+                            [ heading
+                            ]
+                        , div
+                            [ A.class "tabbed-menu-body", selectedAttr ]
+                            [ body ]
+                        )
+                    )
+                    content
+    in
+    div
+        (A.class "tabbed-menu" :: attrs)
+        [ div [ A.class "tabbed-menu-headers" ] headers
+        , div [ A.class "tabbed-menu-bodies" ] bodies
+        ]
 
 
 
@@ -282,14 +340,47 @@ program ctx prog =
 -- Direct manipulation Programming by Navigation
 
 
+functionChoice :
+    { a | cellIndex : Int }
+    -> Cell.FunctionChoice
+    -> { heading : Html Msg, body : Html Msg }
+functionChoice ctx fc =
+    { heading = text fc.functionTitle
+    , body =
+        div [] <|
+            (fc.functionDescription
+                |> Maybe.withDefault "<no description>"
+                |> text
+            )
+                :: (case fc.code of
+                        Nothing ->
+                            []
+
+                        Just c ->
+                            [ fancyCode
+                                []
+                                { language = "python", code = c }
+                            , select [] [ option [] [ text "Metadata" ] ]
+                            ]
+                   )
+    }
+
+
 functionChoices :
-    { cellIndex : Int, selectedFunctionChoice : Maybe Int }
+    { a | cellIndex : Int, selectedFunctionChoice : Maybe Int }
     -> List Cell.FunctionChoice
     -> Html Msg
 functionChoices ctx fcs =
-    div
+    tabbedMenu
         []
-        (List.map (\x -> button [] [ text x.functionTitle ]) fcs)
+        { selectionEvent =
+            UserSelectedFunction { cellIndex = ctx.cellIndex }
+        , deselectionEvent =
+            UserDeselectedFunction { cellIndex = ctx.cellIndex }
+        , selectedIndex =
+            ctx.selectedFunctionChoice
+        }
+        (List.map (functionChoice ctx) fcs)
 
 
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
@@ -331,11 +422,19 @@ cell ctx c =
 
                     Just t ->
                         p [] [ text t ]
+                , cardInnerHeading [] [ text "Notes" ]
+                , textarea [] []
+                , cardInnerHeading [] [ text "Choices" ]
                 , functionChoices
                     { cellIndex = ctx.cellIndex
                     , selectedFunctionChoice = x.selectedFunctionChoice
                     }
                     x.functionChoices
+                , button
+                    [ A.class "standout-button"
+                    , A.disabled (x.selectedFunctionChoice == Nothing)
+                    ]
+                    [ text "Select" ]
                 ]
 
 
