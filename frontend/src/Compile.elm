@@ -1,4 +1,4 @@
-module Compile exposing (compile)
+module Compile exposing (compile, value)
 
 import Assoc exposing (Assoc)
 import Core exposing (..)

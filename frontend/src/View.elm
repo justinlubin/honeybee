@@ -357,7 +357,15 @@ functionChoice ctx fc =
                 [ text "Select additional information…" ]
             , select [ A.class "tabbed-menu-body-dropdown" ] <|
                 List.map
-                    (\mc -> option [] [ text <| String.fromInt mc.choiceIndex ])
+                    (\mc ->
+                        option
+                            [ A.value (String.fromInt mc.choiceIndex) ]
+                            [ mc.metadata
+                                |> Assoc.mapCollapse (\k v -> k ++ " = " ++ Compile.value v)
+                                |> String.join ", "
+                                |> text
+                            ]
+                    )
                     fc.metadataChoices
             ]
                 ++ (case fc.code of
@@ -425,12 +433,7 @@ cell ctx c =
                     ]
                     [ text x.typeTitle
                     ]
-                    [ button
-                        [ A.disabled <| x.selectedFunctionChoice == Nothing
-                        ]
-                        [ text "Make selection"
-                        ]
-                    ]
+                    []
                 )
                 [ case x.typeDescription of
                     Nothing ->
@@ -446,6 +449,25 @@ cell ctx c =
                     , selectedFunctionChoice = x.selectedFunctionChoice
                     }
                     x.functionChoices
+                , let
+                    disabled =
+                        x.selectedFunctionChoice == Nothing
+                  in
+                  button
+                    [ A.class "standout-button"
+                    , A.disabled disabled
+                    ]
+                    (text "Make selection"
+                        :: (if disabled then
+                                [ div
+                                    [ A.class "subtitle" ]
+                                    [ text "(Choose an analysis first)" ]
+                                ]
+
+                            else
+                                []
+                           )
+                    )
                 ]
 
 
