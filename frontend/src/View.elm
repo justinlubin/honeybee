@@ -441,7 +441,7 @@ cell ctx c =
 
                     Just t ->
                         p [] [ text t ]
-                , cardInnerHeading [] [ text "Notes (⚠️ WARNING: Currently doesn't save anywhere!)" ]
+                , cardInnerHeading [] [ text "Notes" ]
                 , textarea [] []
                 , cardInnerHeading [] [ text "Choices" ]
                 , functionChoices

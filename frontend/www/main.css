@@ -9,10 +9,8 @@
 }
 
 body {
-    /* https://stackoverflow.com/a/55364176 */
-    background: #ffc;
-    background-image: radial-gradient(rgba(0, 0, 0, 0.5) 1px, transparent 0);
-    background-size: 11px 11px;
+    background-image: url("assets/bg.png");
+    background-repeat: repeat;
 
     color: #000000;
     font-family: sans-serif;
@@ -171,6 +169,7 @@ i {
 .pane-heading {
     display: inline-block;
 
+    font-weight: var(--bold);
     font-size: 1.3em;
 
     background-color: #fff;
@@ -266,6 +265,7 @@ i {
 
 .card-heading {
     font-size: 1.1em;
+    font-weight: var(--bold);
 }
 
 .card-body {
@@ -291,24 +291,8 @@ i {
 
 /* Specific cards */
 
-.step {
-    --card-accent: #f55;
-}
-
-.goal {
-    --card-accent: #f85;
-}
-
-.cell-code {
-    --card-accent: #333;
-}
-
 .cell-choice {
-    --card-accent: #484;
-}
-
-.card.cell-choice {
-    box-shadow: var(--shadow);
+    --card-accent: #ff4d37;
 }
 
 .card.cell-choice textarea {
@@ -346,7 +330,7 @@ i {
 .card-reference {
     background-color: var(--card-accent);
     color: white;
-    padding: 3px;
+    padding: 3px 3px 0 3px;
     text-transform: uppercase;
     font-weight: var(--bold);
     border-radius: var(--rounding);
