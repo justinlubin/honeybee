@@ -249,11 +249,11 @@ export function pbn_init(lib_src, prog_src) {
 }
 
 /**
- * @param {number} choice
+ * @param {number} choice_index
  * @returns {any}
  */
-export function pbn_choose(choice) {
-    const ret = wasm.pbn_choose(choice);
+export function pbn_choose(choice_index) {
+    const ret = wasm.pbn_choose(choice_index);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }

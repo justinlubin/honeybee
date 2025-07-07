@@ -4,7 +4,7 @@ export function parse_library(lib_src: string): any;
 export function autopilot(lib_src: string, prog_src: string): string;
 export function valid_goal_metadata(lib_src: string, prog_src: string): any;
 export function pbn_init(lib_src: string, prog_src: string): any;
-export function pbn_choose(choice: number): any;
+export function pbn_choose(choice_index: number): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
