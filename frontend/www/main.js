@@ -60,8 +60,6 @@ const flags = {
     types: elmify(library.Type),
 };
 
-console.log(flags);
-
 ////////////////////////////////////////////////////////////////////////////////
 // Custom elements
 
@@ -140,7 +138,6 @@ app.ports.oPbnInit.subscribe((msg) => {
         const pbnStatusMessage = elmify(
             Honeybee.pbn_init(librarySource, msg.programSource),
         );
-        console.log(pbnStatusMessage);
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);
