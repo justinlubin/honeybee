@@ -347,13 +347,9 @@ functionChoice :
     -> Cell.FunctionChoice
     -> { heading : Html Msg, body : Html Msg }
 functionChoice ctx fc =
-    { heading = text fc.functionTitle
-    , body =
-        div [] <|
+    let
+        selectAdditionalInformation =
             [ p
-                [ A.class "tabbed-menu-body-heading" ]
-                [ text (Maybe.withDefault "" fc.functionDescription) ]
-            , p
                 [ A.class "tabbed-menu-body-label" ]
                 [ text "Select additional information…" ]
             , select
@@ -381,6 +377,20 @@ functionChoice ctx fc =
                     )
                     fc.metadataChoices
             ]
+    in
+    { heading = text fc.functionTitle
+    , body =
+        div [] <|
+            [ p
+                [ A.class "tabbed-menu-body-heading" ]
+                [ text (Maybe.withDefault "" fc.functionDescription) ]
+            ]
+                ++ (if List.length fc.metadataChoices > 1 then
+                        selectAdditionalInformation
+
+                    else
+                        []
+                   )
                 ++ (case fc.code of
                         Nothing ->
                             []
