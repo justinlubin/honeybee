@@ -627,7 +627,7 @@ view model =
                 ]
             )
             [ p
-                []
+                [ A.class "tip" ]
                 [ text "When you see a "
                 , span
                     [ A.class "card-reference"
@@ -635,7 +635,7 @@ view model =
                     ]
                     [ text "Choice"
                     ]
-                , text " cell, decide which analysis to run for that part of the code."
+                , text " cell, decide which analysis to run for that part of the code!"
                 ]
             , pbnStatus model.pbnStatus
             ]

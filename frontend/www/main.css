@@ -192,6 +192,18 @@ i {
     border-top-left-radius: 0;
 }
 
+.tip {
+    border: 1px solid black;
+    padding: 10px;
+    font-style: italic;
+    border-radius: var(--rounding);
+}
+
+.tip::before {
+    content: "Tip: ";
+    font-weight: bold;
+}
+
 /* || Groups */
 
 .group {
@@ -330,6 +342,7 @@ i {
 .card-reference {
     background-color: var(--card-accent);
     color: white;
+    font-style: normal;
     padding: 3px 3px 0 3px;
     text-transform: uppercase;
     font-weight: var(--bold);
