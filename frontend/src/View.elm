@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Assoc exposing (Assoc)
+import Cell
 import Compile
 import Complete
 import Core exposing (..)
@@ -13,6 +14,158 @@ import Json.Encode
 import Model exposing (Model)
 import Update exposing (Msg(..))
 import Util
+
+
+
+--------------------------------------------------------------------------------
+-- Generic
+
+
+circled : Attribute msg
+circled =
+    A.class "circled"
+
+
+menuBar :
+    List (Attribute msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> Html msg
+menuBar attrs left middle right =
+    div
+        (A.class "menu-bar" :: attrs)
+        [ div [ A.class "menu-bar-left" ] left
+        , div [ A.class "menu-bar-middle" ] middle
+        , div [ A.class "menu-bar-right" ] right
+        ]
+
+
+pane : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+pane attrs headerContent bodyContent =
+    section
+        (A.class "pane" :: attrs)
+        [ header [ A.class "pane-header" ] [ headerContent ]
+        , div [ A.class "pane-body" ] bodyContent
+        ]
+
+
+paneHeading : List (Attribute msg) -> List (Html msg) -> Html msg
+paneHeading attrs content =
+    h1 (A.class "pane-heading" :: attrs) content
+
+
+group : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+group attrs headerContent bodyContent =
+    section
+        (A.class "group" :: attrs)
+        [ header [ A.class "group-header" ] [ headerContent ]
+        , div [ A.class "group-body" ] bodyContent
+        ]
+
+
+groupHeading : List (Attribute msg) -> List (Html msg) -> Html msg
+groupHeading attrs content =
+    h2 (A.class "group-heading" :: attrs) content
+
+
+card : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+card attrs headerContent bodyContent =
+    section
+        (A.class "card" :: attrs)
+        [ header [ A.class "card-header" ] [ headerContent ]
+        , div [ A.class "card-body" ] bodyContent
+        ]
+
+
+cardHeading :
+    List (Attribute msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> List (Html msg)
+    -> Html msg
+cardHeading attrs prefix content suffix =
+    div
+        (A.class "card-heading-wrapper" :: attrs)
+        [ span [ A.class "card-heading-prefix" ] prefix
+        , span [ A.class "card-heading-prefix-separator" ] []
+        , h3 [ A.class "card-heading" ] content
+        , span [ A.class "card-heading-suffix" ] suffix
+        ]
+
+
+cardHeadingSubtitle : List (Attribute msg) -> List (Html msg) -> Html msg
+cardHeadingSubtitle attrs content =
+    span (A.class "card-heading-subtitle" :: attrs) content
+
+
+cardInnerHeading : List (Attribute msg) -> List (Html msg) -> Html msg
+cardInnerHeading attrs content =
+    h4 (A.class "card-inner-heading" :: attrs) content
+
+
+fancyCode : List (Attribute msg) -> { language : String, code : String } -> Html msg
+fancyCode attrs { language, code } =
+    node "fancy-code"
+        ([ A.attribute "language" language
+         , A.property "code" (Json.Encode.string code)
+         ]
+            ++ attrs
+        )
+        []
+
+
+tabbedMenu :
+    List (Attribute msg)
+    -> { selectionEvent : Int -> msg, deselectionEvent : msg, selectedIndex : Maybe Int }
+    -> List { heading : Html msg, body : Html msg }
+    -> Html msg
+tabbedMenu attrs { selectionEvent, deselectionEvent, selectedIndex } content =
+    let
+        ( headers, bodies ) =
+            List.unzip <|
+                List.indexedMap
+                    (\i { heading, body } ->
+                        let
+                            selected =
+                                selectedIndex == Just i
+
+                            selectedAttr =
+                                A.classList
+                                    [ ( "tabbed-menu-selected"
+                                      , selectedIndex == Just i
+                                      )
+                                    ]
+                        in
+                        ( div
+                            [ A.class "tabbed-menu-header"
+                            , selectedAttr
+                            , E.onClick <|
+                                if selected then
+                                    deselectionEvent
+
+                                else
+                                    selectionEvent i
+                            ]
+                            [ heading
+                            ]
+                        , div
+                            [ A.class "tabbed-menu-body", selectedAttr ]
+                            [ body ]
+                        )
+                    )
+                    content
+    in
+    div
+        (A.class "tabbed-menu" :: attrs)
+        [ div [ A.class "tabbed-menu-headers" ] headers
+        , div [ A.class "tabbed-menu-bodies" ] bodies
+        ]
+
+
+
+--------------------------------------------------------------------------------
+-- Program construction
 
 
 arg :
@@ -39,6 +192,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
         ]
         [ label
             [ A.for id
+            , A.class "card-inner-heading"
             ]
             [ argLabels
                 |> Dict.get argName
@@ -95,17 +249,21 @@ step library suggestions pi s =
         blankName =
             "Choose a step…"
 
-        deleteButton =
+        ( prefix, class, deleteButton ) =
             case pi of
                 Prop i ->
-                    button
+                    ( "Step"
+                    , "step"
+                    , button
                         [ A.class "step-delete"
                         , E.onClick (UserRemovedStep i)
                         ]
-                        [ text "×" ]
+                        [ text "×"
+                        ]
+                    )
 
                 Goal ->
-                    text ""
+                    ( "Goal", "goal", text "" )
 
         inputEvent =
             E.onInput <|
@@ -132,7 +290,7 @@ step library suggestions pi s =
         options =
             ( blankName, blankName )
                 :: Assoc.mapCollapse
-                    (\k sig -> ( k, Maybe.withDefault k sig.overview ))
+                    (\k sig -> ( k, Maybe.withDefault k sig.title ))
                     library
 
         dropdown =
@@ -151,124 +309,228 @@ step library suggestions pi s =
                     options
                 )
     in
-    div
-        [ A.class "step" ]
-        (dropdown :: deleteButton :: extras)
+    card
+        [ A.class class ]
+        (cardHeading [] [ text prefix ] [ dropdown ] [ deleteButton ])
+        extras
 
 
 program :
     { m | library : Library, goalSuggestions : Assoc String (List Value) }
     -> WorkingProgram
-    -> Html Msg
+    -> List (Html Msg)
 program ctx prog =
-    div [ A.class "workflow" ]
-        [ h3 [] [ text "Experimental workflow" ]
-        , ol [ A.class "steps" ]
-            (List.indexedMap
-                (\i s -> li [] [ step ctx.library.props [] (Prop i) s ])
-                prog.props
-            )
-        , button
-            [ A.class "step-add"
-            , E.onClick UserAddedBlankStep
-            ]
-            [ text "Add step" ]
-        , h3 [] [ text "Goal of experiment" ]
-        , step ctx.library.types ctx.goalSuggestions Goal prog.goal
+    [ group [] (groupHeading [] [ text "Experimental workflow" ]) <|
+        List.indexedMap
+            (\i s -> step ctx.library.props [] (Prop i) s)
+            prog.props
+            ++ [ button
+                    [ A.class "step-add"
+                    , E.onClick UserAddedBlankStep
+                    ]
+                    [ text "Add step" ]
+               ]
+    , group []
+        (groupHeading [] [ text "Goal of experiment" ])
+        [ step ctx.library.types ctx.goalSuggestions Goal prog.goal
         ]
+    ]
 
 
-directManipulationPbn : Incoming.PbnStatusMessage -> Html Msg
-directManipulationPbn { workingExpression, choices } =
+
+--------------------------------------------------------------------------------
+-- Direct manipulation Programming by Navigation
+
+
+functionChoice :
+    { cellIndex : Int, functionIndex : Int }
+    -> Cell.FunctionChoice
+    -> { heading : Html Msg, body : Html Msg }
+functionChoice ctx fc =
     let
-        collectedChoices =
-            choices
-                |> List.indexedMap (\i ( h, f ) -> ( h, ( f, i ) ))
-                |> Assoc.collect
-
-        codeLines =
-            workingExpression
-                |> String.lines
-                |> List.map
-                    (\line ->
-                        case String.split "?" line of
-                            [ left, right ] ->
-                                case
-                                    right
-                                        |> Util.unSubscriptNumbers
-                                        |> String.toInt
-                                of
-                                    Just h ->
-                                        ( left, Just h )
-
-                                    Nothing ->
-                                        ( line, Nothing )
-
-                            _ ->
-                                ( line, Nothing )
-                    )
-
-        impossible =
-            List.isEmpty collectedChoices
-                && List.all (\( line, _ ) -> String.isEmpty line) codeLines
-    in
-    if impossible then
-        div [ A.class "pbn-impossible" ]
-            [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
-            , p [] [ text "There might be missing steps (or typos) in your experiment or the Honeybee library might not include the computational steps you need." ]
-            ]
-
-    else
-        div [ A.class "direct-manipulation-pbn" ] <|
-            List.map
-                (\( line, maybeHole ) ->
-                    div
-                        [ A.class "code-line" ]
-                        [ node "fancy-code"
-                            [ A.attribute "language" "python"
-                            , A.property "code" (Json.Encode.string line)
-                            ]
-                            []
-                        , case maybeHole of
-                            Just h ->
-                                case Assoc.get h collectedChoices of
-                                    Just hChoices ->
-                                        select
-                                            [ A.class "h-choices"
-                                            , A.value "Choose a step…"
-                                            , E.onInput <|
-                                                \s ->
-                                                    case String.toInt s of
-                                                        Just i ->
-                                                            UserMadePbnChoice i
-
-                                                        Nothing ->
-                                                            Nop
-                                            ]
-                                            (option
-                                                [ A.value "Choose a step…" ]
-                                                [ text "Choose a step…" ]
-                                                :: List.map
-                                                    (\( f, i ) ->
-                                                        option
-                                                            [ A.value (String.fromInt i) ]
-                                                            [ text f ]
-                                                    )
-                                                    hChoices
-                                            )
-
-                                    Nothing ->
-                                        text ""
+        selectAdditionalInformation =
+            [ p
+                [ A.class "tabbed-menu-body-label" ]
+                [ text "Select additional information…" ]
+            , select
+                [ A.class "tabbed-menu-body-dropdown"
+                , E.onInput <|
+                    \v ->
+                        case String.toInt v of
+                            Just n ->
+                                UserSelectedMetadata ctx n
 
                             Nothing ->
-                                text ""
-                        ]
+                                Nop
+                ]
+              <|
+                List.indexedMap
+                    (\i mc ->
+                        option
+                            [ A.value (String.fromInt i)
+                            ]
+                            [ mc.metadata
+                                |> Assoc.mapCollapse (\k v -> k ++ " = " ++ Compile.value v)
+                                |> String.join ", "
+                                |> text
+                            ]
+                    )
+                    fc.metadataChoices
+            ]
+    in
+    { heading = text fc.functionTitle
+    , body =
+        div [] <|
+            [ p
+                [ A.class "tabbed-menu-body-heading" ]
+                [ text (Maybe.withDefault "" fc.functionDescription) ]
+            ]
+                ++ (if List.length fc.metadataChoices > 1 then
+                        selectAdditionalInformation
+
+                    else
+                        []
+                   )
+                ++ (case fc.code of
+                        Nothing ->
+                            []
+
+                        Just c ->
+                            [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
+                            , div
+                                [ A.class "code-preview" ]
+                                [ fancyCode
+                                    []
+                                    { language = "python", code = c }
+                                ]
+                            ]
+                   )
+    }
+
+
+functionChoices :
+    { a | cellIndex : Int, selectedFunctionChoice : Maybe Int }
+    -> List Cell.FunctionChoice
+    -> Html Msg
+functionChoices ctx fcs =
+    tabbedMenu
+        []
+        { selectionEvent =
+            UserSelectedFunction { cellIndex = ctx.cellIndex }
+        , deselectionEvent =
+            UserDeselectedFunction { cellIndex = ctx.cellIndex }
+        , selectedIndex =
+            ctx.selectedFunctionChoice
+        }
+        (List.indexedMap
+            (\i fc ->
+                functionChoice
+                    { cellIndex = ctx.cellIndex, functionIndex = i }
+                    fc
+            )
+            fcs
+        )
+
+
+cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
+cell ctx c =
+    case c of
+        Cell.Code { title, code } ->
+            card
+                [ A.class "cell-code" ]
+                (cardHeading []
+                    [ text "Code" ]
+                    (case title of
+                        Just t ->
+                            [ text t ]
+
+                        Nothing ->
+                            []
+                    )
+                    []
                 )
-                codeLines
+                [ fancyCode [] { language = "python", code = code }
+                ]
+
+        Cell.Choice x ->
+            card
+                [ A.class "cell-choice" ]
+                (cardHeading []
+                    [ span []
+                        [ text "Choice"
+                        , cardHeadingSubtitle [] [ text x.varName ]
+                        ]
+                    ]
+                    [ text x.typeTitle
+                    ]
+                    []
+                )
+                [ case x.typeDescription of
+                    Nothing ->
+                        text ""
+
+                    Just t ->
+                        p [] [ text t ]
+                , cardInnerHeading [] [ text "Notes" ]
+                , textarea [] []
+                , cardInnerHeading [] [ text "Choices" ]
+                , functionChoices
+                    { cellIndex = ctx.cellIndex
+                    , selectedFunctionChoice = x.selectedFunctionChoice
+                    }
+                    x.functionChoices
+                , let
+                    maybePbnChoiceIndex =
+                        x.selectedFunctionChoice
+                            |> Maybe.andThen (\fci -> Util.at fci x.functionChoices)
+                            |> Maybe.andThen
+                                (\fc ->
+                                    Util.at fc.selectedMetadataChoice
+                                        fc.metadataChoices
+                                )
+                            |> Maybe.map (\mc -> mc.choiceIndex)
+
+                    disabled =
+                        maybePbnChoiceIndex == Nothing
+
+                    event =
+                        maybePbnChoiceIndex
+                            |> Maybe.map UserMadePbnChoice
+                            |> Maybe.withDefault Nop
+                  in
+                  button
+                    [ A.class "standout-button"
+                    , A.disabled disabled
+                    , E.onClick event
+                    ]
+                    (text "Make selection"
+                        :: (if disabled then
+                                [ div
+                                    [ A.class "subtitle" ]
+                                    [ text "(Choose an analysis first)" ]
+                                ]
+
+                            else
+                                []
+                           )
+                    )
+                ]
 
 
-startNavigation : WorkingProgram -> Html Msg
-startNavigation prog =
+directManipulationPbn : List Cell.Cell -> List (Html Msg)
+directManipulationPbn cells =
+    List.indexedMap
+        (\i c -> cell { cellIndex = i } c)
+        cells
+
+
+
+--------------------------------------------------------------------------------
+-- Glue
+
+
+startNavigationButton : WorkingProgram -> Html Msg
+startNavigationButton prog =
     let
         ( attrs, extras ) =
             case
@@ -278,7 +540,8 @@ startNavigation prog =
             of
                 Nothing ->
                     ( [ A.disabled True ]
-                    , [ div [ A.class "subtitle" ]
+                    , [ div
+                            [ A.class "subtitle" ]
                             [ text "(Complete experimental workflow first)" ]
                       ]
                     )
@@ -291,7 +554,7 @@ startNavigation prog =
                     )
     in
     button
-        ([ A.class "start-navigation", A.class "standout-button" ] ++ attrs)
+        ([ A.class "standout-button" ] ++ attrs)
         (text "Start navigating" :: extras)
 
 
@@ -301,41 +564,87 @@ pbnStatus ms =
         Nothing ->
             text ""
 
-        Just msg ->
-            div
-                [ A.class "pbn" ]
-                [ directManipulationPbn msg
-                , if msg.valid then
-                    div [ A.class "pbn-completed" ]
-                        [ h3 [] [ text "All done!" ]
-                        , button
-                            [ A.class "standout-button"
-                            , E.onClick
-                                (UserRequestedDownload
-                                    { filename = "analysis.py"
-                                    , text = msg.workingExpression
-                                    }
-                                )
-                            ]
-                            [ text "Download analysis script" ]
-                        ]
+        Just { cells, output } ->
+            let
+                ( impossible, downloadButton ) =
+                    case output of
+                        Nothing ->
+                            ( List.all
+                                (\c ->
+                                    case c of
+                                        Cell.Code _ ->
+                                            True
 
-                  else
-                    text ""
-                ]
+                                        Cell.Choice x ->
+                                            List.isEmpty x.functionChoices
+                                )
+                                cells
+                            , text ""
+                            )
+
+                        Just solutionString ->
+                            ( False
+                            , div [ A.class "pbn-completed" ]
+                                [ h3 [] [ text "All done!" ]
+                                , button
+                                    [ A.class "standout-button"
+                                    , E.onClick
+                                        (UserRequestedDownload
+                                            { filename = "analysis.py"
+                                            , text = solutionString
+                                            }
+                                        )
+                                    ]
+                                    [ text "Download analysis script" ]
+                                ]
+                            )
+            in
+            div [ A.class "pbn" ] <|
+                (if impossible then
+                    [ div [ A.class "pbn-impossible" ]
+                        [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
+                        , p [] [ text "There might be missing steps (or typos) in your experiment. Alternatively, the Honeybee library might not include the computational steps you need." ]
+                        , p []
+                            [ text "Please reach out to Justin at"
+                            , a
+                                [ A.href "mailto://justinlubin@berkeley.edu" ]
+                                [ text "justinlubin@berkeley.edu" ]
+                            , text "for help!"
+                            ]
+                        ]
+                    ]
+
+                 else
+                    directManipulationPbn cells
+                )
+                    ++ [ downloadButton ]
 
 
 view : Model -> Html Msg
 view model =
-    main_
-        []
-        [ header []
-            [ h1 []
-                [ span [ A.class "pbn" ] [ text "Programming by Navigation" ]
-                , text " with "
-                , span [ A.class "honeybee" ] [ text "Honeybee" ]
+    div
+        [ A.id "root"
+        ]
+        [ menuBar
+            []
+            [ b [] [ text "Programming by Navigation" ]
+            , text " with "
+            , b
+                []
+                [ text "Honeybee 🐝" ]
+            ]
+            []
+            [ button
+                [ A.id "devmode"
+                , E.onClick UserClickedDevMode
+                , A.title "Sets fun value to 65"
                 ]
-            , p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
+                [ text "devmode" ]
+            ]
+        , pane
+            []
+            (paneHeading [] [ i [ circled ] [ text "i" ], text "Getting Started" ])
+            [ p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
             , p [] [ text "It works in two steps:" ]
             , ol []
                 [ li [] [ text "First, you write down your experimental workflow." ]
@@ -343,31 +652,37 @@ view model =
                 ]
             , p [] [ text "Using your biology expertise, you can navigate to the program that fits your need!" ]
             ]
-        , div [ A.class "specification-pane" ]
-            [ h2 []
-                [ span [] [ text "Step 1: " ]
-                , span [] [ text "Write down your experimental workflow" ]
+        , pane
+            []
+            (paneHeading []
+                [ span [ circled ] [ text "1" ]
+                , span [] [ text "Experimental Workflow" ]
                 ]
-            , program model model.program
-            , startNavigation model.program
+            )
+          <|
+            program model model.program
+                ++ [ startNavigationButton model.program ]
+        , pane
+            [ A.id "navigation-pane"
+            , A.classList [ ( "pane-inactive", model.pbnStatus == Nothing ) ]
             ]
-        , div [ A.class "navigation-pane" ]
-            [ h2
-                [ A.class <|
-                    if model.pbnStatus == Nothing then
-                        "inactive-pane-header"
-
-                    else
-                        "active-pane-header"
+            (paneHeading
+                []
+                [ span [ circled ] [ text "2" ]
+                , span [] [ text "Navigation" ]
                 ]
-                [ span [] [ text "Step 2: " ]
-                , span [] [ text "Create an analysis script for this experiment" ]
+            )
+            [ p
+                [ A.class "tip" ]
+                [ text "When you see a "
+                , span
+                    [ A.class "card-reference"
+                    , A.class "cell-choice"
+                    ]
+                    [ text "Choice"
+                    ]
+                , text " cell, decide which analysis to run for that part of the code!"
                 ]
             , pbnStatus model.pbnStatus
             ]
-        , button
-            [ A.id "devmode"
-            , E.onClick UserClickedDevMode
-            ]
-            [ text "devmode" ]
         ]

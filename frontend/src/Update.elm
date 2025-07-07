@@ -1,6 +1,7 @@
 module Update exposing (Msg(..), subscriptions, update)
 
 import Assoc exposing (Assoc)
+import Cell
 import Compile
 import Complete
 import Core exposing (..)
@@ -8,6 +9,33 @@ import Incoming
 import Model exposing (Model)
 import Outgoing
 import Util
+
+
+
+--------------------------------------------------------------------------------
+-- Messages
+
+
+type
+    Msg
+    -- No-op
+    = Nop
+      -- User actions
+    | UserAddedBlankStep
+    | UserSetStep ProgramIndex String
+    | UserClearedStep ProgramIndex
+    | UserRemovedStep Int
+    | UserSetArgument ProgramIndex String String
+    | UserStartedNavigation { programSource : String }
+    | UserSelectedFunction { cellIndex : Int } Int
+    | UserDeselectedFunction { cellIndex : Int }
+    | UserSelectedMetadata { cellIndex : Int, functionIndex : Int } Int
+    | UserMadePbnChoice Int
+    | UserRequestedDownload Outgoing.DownloadMessage
+    | UserClickedDevMode
+      -- Backend actions
+    | BackendSentPbnStatus Incoming.PbnStatusMessage
+    | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
 
 
 
@@ -34,6 +62,87 @@ setArgument pi param s model =
                 model.program
         , pbnStatus = Nothing
     }
+
+
+setFunctionChoice : { cellIndex : Int, functionIndex : Maybe Int } -> Model -> Model
+setFunctionChoice { cellIndex, functionIndex } model =
+    case model.pbnStatus of
+        Nothing ->
+            model
+
+        Just status ->
+            let
+                newStatus =
+                    { status
+                        | cells =
+                            List.indexedMap
+                                (\i c ->
+                                    case c of
+                                        Cell.Code _ ->
+                                            c
+
+                                        Cell.Choice ch ->
+                                            if i == cellIndex then
+                                                Cell.Choice
+                                                    { ch
+                                                        | selectedFunctionChoice =
+                                                            functionIndex
+                                                    }
+
+                                            else
+                                                c
+                                )
+                                status.cells
+                    }
+            in
+            { model | pbnStatus = Just newStatus }
+
+
+setMetadataChoice :
+    { cellIndex : Int, functionIndex : Int, metadataIndex : Int }
+    -> Model
+    -> Model
+setMetadataChoice { cellIndex, functionIndex, metadataIndex } model =
+    case model.pbnStatus of
+        Nothing ->
+            model
+
+        Just status ->
+            let
+                updateFunctionChoices =
+                    List.indexedMap
+                        (\fci fc ->
+                            if fci == functionIndex then
+                                { fc | selectedMetadataChoice = metadataIndex }
+
+                            else
+                                fc
+                        )
+
+                updateCells =
+                    List.indexedMap
+                        (\i c ->
+                            case c of
+                                Cell.Code _ ->
+                                    c
+
+                                Cell.Choice ch ->
+                                    if i == cellIndex then
+                                        Cell.Choice
+                                            { ch
+                                                | functionChoices =
+                                                    updateFunctionChoices
+                                                        ch.functionChoices
+                                            }
+
+                                    else
+                                        c
+                        )
+
+                newStatus =
+                    { status | cells = updateCells status.cells }
+            in
+            { model | pbnStatus = Just newStatus }
 
 
 
@@ -93,25 +202,6 @@ consistentSuggestions goalFact choices =
 
 --------------------------------------------------------------------------------
 -- Main update
-
-
-type
-    Msg
-    -- No-op
-    = Nop
-      -- User actions
-    | UserAddedBlankStep
-    | UserSetStep ProgramIndex String
-    | UserClearedStep ProgramIndex
-    | UserRemovedStep Int
-    | UserSetArgument ProgramIndex String String
-    | UserStartedNavigation { programSource : String }
-    | UserMadePbnChoice Int
-    | UserRequestedDownload Outgoing.DownloadMessage
-    | UserClickedDevMode
-      -- Backend actions
-    | BackendSentPbnStatus Incoming.PbnStatusMessage
-    | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -179,9 +269,33 @@ update msg model =
         UserStartedNavigation x ->
             ( model
             , Cmd.batch
-                [ Outgoing.oScrollIntoView { selector = ".navigation-pane" }
+                [ Outgoing.oScrollIntoView { selector = "#navigation-pane" }
                 , Outgoing.oPbnInit x
                 ]
+            )
+
+        UserSelectedFunction { cellIndex } functionIndex ->
+            ( setFunctionChoice
+                { cellIndex = cellIndex, functionIndex = Just functionIndex }
+                model
+            , Cmd.none
+            )
+
+        UserDeselectedFunction { cellIndex } ->
+            ( setFunctionChoice
+                { cellIndex = cellIndex, functionIndex = Nothing }
+                model
+            , Cmd.none
+            )
+
+        UserSelectedMetadata { cellIndex, functionIndex } metadataIndex ->
+            ( setMetadataChoice
+                { cellIndex = cellIndex
+                , functionIndex = functionIndex
+                , metadataIndex = metadataIndex
+                }
+                model
+            , Cmd.none
             )
 
         UserMadePbnChoice choice ->
@@ -230,7 +344,18 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Incoming.iPbnStatus BackendSentPbnStatus
+        [ Incoming.iPbnStatus <|
+            \psResult ->
+                case psResult of
+                    Ok ps ->
+                        BackendSentPbnStatus ps
+
+                    Err e ->
+                        let
+                            _ =
+                                Debug.log "error" e
+                        in
+                        BackendSentPbnStatus { cells = [], output = Nothing }
         , Incoming.iValidGoalMetadata <|
             \vgmResult ->
                 case vgmResult of

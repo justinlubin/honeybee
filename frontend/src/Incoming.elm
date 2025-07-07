@@ -1,6 +1,7 @@
 port module Incoming exposing (..)
 
 import Assoc exposing (Assoc)
+import Cell exposing (..)
 import Core
 import Json.Decode as D
 
@@ -41,15 +42,63 @@ iValidGoalMetadata f =
 
 
 type alias PbnStatusMessage =
-    { workingExpression : String
-    , choices : Assoc Int String
-    , valid : Bool
+    { cells : List Cell
+    , output : Maybe String
     }
 
 
-port iPbnStatus_ : (PbnStatusMessage -> msg) -> Sub msg
+decodeCodeCell : D.Decoder CodeCell
+decodeCodeCell =
+    D.map2 CodeCell
+        (D.field "title" <| D.nullable D.string)
+        (D.field "code" D.string)
 
 
-iPbnStatus : (PbnStatusMessage -> msg) -> Sub msg
+decodeMetadataChoice : D.Decoder MetadataChoice
+decodeMetadataChoice =
+    D.map2 MetadataChoice
+        (D.field "metadata" <| D.keyValuePairs decodeValue)
+        (D.field "choice_index" D.int)
+
+
+decodeFunctionChoice : D.Decoder FunctionChoice
+decodeFunctionChoice =
+    D.map5 FunctionChoice
+        (D.field "function_title" D.string)
+        (D.field "function_description" <| D.nullable D.string)
+        (D.field "code" <| D.nullable D.string)
+        (D.field "metadata_choices" <| D.list decodeMetadataChoice)
+        (D.succeed 0)
+
+
+decodeChoiceCell : D.Decoder ChoiceCell
+decodeChoiceCell =
+    D.map5 ChoiceCell
+        (D.field "var_name" D.string)
+        (D.field "type_title" D.string)
+        (D.field "type_description" <| D.nullable D.string)
+        (D.field "function_choices" <| D.list decodeFunctionChoice)
+        (D.succeed Nothing)
+
+
+decodeCell : D.Decoder Cell
+decodeCell =
+    D.oneOf
+        [ D.field "Code" <| D.map Code decodeCodeCell
+        , D.field "Choice" <| D.map Choice decodeChoiceCell
+        ]
+
+
+decodePbnStatus : D.Decoder PbnStatusMessage
+decodePbnStatus =
+    D.map2 PbnStatusMessage
+        (D.field "cells" <| D.list decodeCell)
+        (D.field "output" <| D.nullable D.string)
+
+
+port iPbnStatus_ : (D.Value -> msg) -> Sub msg
+
+
+iPbnStatus : (Result D.Error PbnStatusMessage -> msg) -> Sub msg
 iPbnStatus f =
-    iPbnStatus_ f
+    iPbnStatus_ (D.decodeValue decodePbnStatus >> f)

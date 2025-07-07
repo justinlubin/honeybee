@@ -166,17 +166,17 @@ impl std::str::FromStr for Algorithm {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Code generators
-//
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum CodegenStyle {
+    PlainTextNotebook,
     Simple,
-    Full,
 }
 
 impl CodegenStyle {
     /// The list of all the possible code generators
     pub fn all() -> Vec<Self> {
-        vec![Self::Simple, Self::Full]
+        vec![Self::PlainTextNotebook, Self::Simple]
     }
 
     /// Returns a code generator for the given style
@@ -185,11 +185,13 @@ impl CodegenStyle {
         library: core::Library,
     ) -> Result<Box<dyn Codegen>, String> {
         match self {
+            Self::PlainTextNotebook => {
+                Ok(Box::new(codegen::PlainTextNotebook::new(library)))
+            }
             Self::Simple => Ok(Box::new(codegen::Simple {
                 indent: 1,
                 color: true,
             })),
-            Self::Full => Ok(Box::new(codegen::Full::new(library)?)),
         }
     }
 }

@@ -78,7 +78,12 @@ enum Command {
         program: PathBuf,
 
         /// The codegen style to use
-        #[arg(short, long, value_name = "STYLE", default_value = "Full")]
+        #[arg(
+            short,
+            long,
+            value_name = "STYLE",
+            default_value = "PlainTextNotebook"
+        )]
         style: honeybee::menu::CodegenStyle,
 
         /// Whether or not to use "quiet" mode

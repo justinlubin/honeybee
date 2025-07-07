@@ -122,3 +122,10 @@ unSubscriptNumbers s =
                     c
         )
         s
+
+
+at : Int -> List a -> Maybe a
+at i xs =
+    xs
+        |> List.drop i
+        |> List.head
