@@ -13,6 +13,7 @@ import Incoming
 import Json.Encode
 import Model exposing (Model)
 import Update exposing (Msg(..))
+import Util
 
 
 
@@ -342,7 +343,7 @@ program ctx prog =
 
 
 functionChoice :
-    { a | cellIndex : Int }
+    { cellIndex : Int, functionIndex : Int }
     -> Cell.FunctionChoice
     -> { heading : Html Msg, body : Html Msg }
 functionChoice ctx fc =
@@ -355,11 +356,23 @@ functionChoice ctx fc =
             , p
                 [ A.class "tabbed-menu-body-label" ]
                 [ text "Select additional information…" ]
-            , select [ A.class "tabbed-menu-body-dropdown" ] <|
-                List.map
-                    (\mc ->
+            , select
+                [ A.class "tabbed-menu-body-dropdown"
+                , E.onInput <|
+                    \v ->
+                        case String.toInt v of
+                            Just n ->
+                                UserSelectedMetadata ctx n
+
+                            Nothing ->
+                                Nop
+                ]
+              <|
+                List.indexedMap
+                    (\i mc ->
                         option
-                            [ A.value (String.fromInt mc.choiceIndex) ]
+                            [ A.value (String.fromInt i)
+                            ]
                             [ mc.metadata
                                 |> Assoc.mapCollapse (\k v -> k ++ " = " ++ Compile.value v)
                                 |> String.join ", "
@@ -399,7 +412,14 @@ functionChoices ctx fcs =
         , selectedIndex =
             ctx.selectedFunctionChoice
         }
-        (List.map (functionChoice ctx) fcs)
+        (List.indexedMap
+            (\i fc ->
+                functionChoice
+                    { cellIndex = ctx.cellIndex, functionIndex = i }
+                    fc
+            )
+            fcs
+        )
 
 
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
@@ -450,12 +470,28 @@ cell ctx c =
                     }
                     x.functionChoices
                 , let
+                    maybePbnChoiceIndex =
+                        x.selectedFunctionChoice
+                            |> Maybe.andThen (\fci -> Util.at fci x.functionChoices)
+                            |> Maybe.andThen
+                                (\fc ->
+                                    Util.at fc.selectedMetadataChoice
+                                        fc.metadataChoices
+                                )
+                            |> Maybe.map (\mc -> mc.choiceIndex)
+
                     disabled =
-                        x.selectedFunctionChoice == Nothing
+                        maybePbnChoiceIndex == Nothing
+
+                    event =
+                        maybePbnChoiceIndex
+                            |> Maybe.map UserMadePbnChoice
+                            |> Maybe.withDefault Nop
                   in
                   button
                     [ A.class "standout-button"
                     , A.disabled disabled
+                    , E.onClick event
                     ]
                     (text "Make selection"
                         :: (if disabled then

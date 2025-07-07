@@ -13,6 +13,33 @@ import Util
 
 
 --------------------------------------------------------------------------------
+-- Messages
+
+
+type
+    Msg
+    -- No-op
+    = Nop
+      -- User actions
+    | UserAddedBlankStep
+    | UserSetStep ProgramIndex String
+    | UserClearedStep ProgramIndex
+    | UserRemovedStep Int
+    | UserSetArgument ProgramIndex String String
+    | UserStartedNavigation { programSource : String }
+    | UserSelectedFunction { cellIndex : Int } Int
+    | UserDeselectedFunction { cellIndex : Int }
+    | UserSelectedMetadata { cellIndex : Int, functionIndex : Int } Int
+    | UserMadePbnChoice Int
+    | UserRequestedDownload Outgoing.DownloadMessage
+    | UserClickedDevMode
+      -- Backend actions
+    | BackendSentPbnStatus Incoming.PbnStatusMessage
+    | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
+
+
+
+--------------------------------------------------------------------------------
 -- Model helpers
 
 
@@ -67,6 +94,53 @@ setFunctionChoice { cellIndex, functionIndex } model =
                                 )
                                 status.cells
                     }
+            in
+            { model | pbnStatus = Just newStatus }
+
+
+setMetadataChoice :
+    { cellIndex : Int, functionIndex : Int, metadataIndex : Int }
+    -> Model
+    -> Model
+setMetadataChoice { cellIndex, functionIndex, metadataIndex } model =
+    case model.pbnStatus of
+        Nothing ->
+            model
+
+        Just status ->
+            let
+                updateFunctionChoices =
+                    List.indexedMap
+                        (\fci fc ->
+                            if fci == functionIndex then
+                                { fc | selectedMetadataChoice = metadataIndex }
+
+                            else
+                                fc
+                        )
+
+                updateCells =
+                    List.indexedMap
+                        (\i c ->
+                            case c of
+                                Cell.Code _ ->
+                                    c
+
+                                Cell.Choice ch ->
+                                    if i == cellIndex then
+                                        Cell.Choice
+                                            { ch
+                                                | functionChoices =
+                                                    updateFunctionChoices
+                                                        ch.functionChoices
+                                            }
+
+                                    else
+                                        c
+                        )
+
+                newStatus =
+                    { status | cells = updateCells status.cells }
             in
             { model | pbnStatus = Just newStatus }
 
@@ -128,27 +202,6 @@ consistentSuggestions goalFact choices =
 
 --------------------------------------------------------------------------------
 -- Main update
-
-
-type
-    Msg
-    -- No-op
-    = Nop
-      -- User actions
-    | UserAddedBlankStep
-    | UserSetStep ProgramIndex String
-    | UserClearedStep ProgramIndex
-    | UserRemovedStep Int
-    | UserSetArgument ProgramIndex String String
-    | UserStartedNavigation { programSource : String }
-    | UserSelectedFunction { cellIndex : Int } Int
-    | UserDeselectedFunction { cellIndex : Int }
-    | UserMadePbnChoice Int
-    | UserRequestedDownload Outgoing.DownloadMessage
-    | UserClickedDevMode
-      -- Backend actions
-    | BackendSentPbnStatus Incoming.PbnStatusMessage
-    | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -231,6 +284,16 @@ update msg model =
         UserDeselectedFunction { cellIndex } ->
             ( setFunctionChoice
                 { cellIndex = cellIndex, functionIndex = Nothing }
+                model
+            , Cmd.none
+            )
+
+        UserSelectedMetadata { cellIndex, functionIndex } metadataIndex ->
+            ( setMetadataChoice
+                { cellIndex = cellIndex
+                , functionIndex = functionIndex
+                , metadataIndex = metadataIndex
+                }
                 model
             , Cmd.none
             )

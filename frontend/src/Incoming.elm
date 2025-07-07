@@ -68,7 +68,7 @@ decodeFunctionChoice =
         (D.field "function_description" <| D.nullable D.string)
         (D.field "code" <| D.nullable D.string)
         (D.field "metadata_choices" <| D.list decodeMetadataChoice)
-        (D.succeed Nothing)
+        (D.succeed 0)
 
 
 decodeChoiceCell : D.Decoder ChoiceCell
