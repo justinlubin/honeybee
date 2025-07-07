@@ -13,6 +13,7 @@ import Incoming
 import Json.Encode
 import Markdown
 import Model exposing (Model)
+import Regex
 import Update exposing (Msg(..))
 import Util
 
@@ -397,12 +398,23 @@ functionChoice ctx fc =
                             []
 
                         Just c ->
+                            let
+                                cleanCode =
+                                    Regex.replaceAtMost 1
+                                        (Maybe.withDefault Regex.never <|
+                                            Regex.fromString "\"\"\"(.|\n)*?\"\"\"\\s*"
+                                        )
+                                        (\_ -> "")
+                                        (Debug.log "code" c)
+                            in
                             [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
                             , div
                                 [ A.class "code-preview" ]
                                 [ fancyCode
                                     []
-                                    { language = "python", code = c }
+                                    { language = "python"
+                                    , code = cleanCode
+                                    }
                                 ]
                             ]
                    )
