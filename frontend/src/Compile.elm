@@ -43,6 +43,17 @@ prop f =
     fact "[[Prop]]\n" f
 
 
+props : List (Fact Value) -> String
+props fs =
+    if List.isEmpty fs then
+        "Prop = []"
+
+    else
+        fs
+            |> List.map prop
+            |> String.join "\n\n"
+
+
 goal : Fact Value -> String
 goal f =
     fact "[Goal]\n" f
@@ -50,5 +61,4 @@ goal f =
 
 compile : CompleteProgram -> String
 compile prog =
-    String.join "\n\n"
-        (List.map prop prog.props ++ [ goal prog.goal ])
+    props prog.props ++ "\n\n" ++ goal prog.goal
