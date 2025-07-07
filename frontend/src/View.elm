@@ -11,6 +11,7 @@ import Html.Attributes as A
 import Html.Events as E
 import Incoming
 import Json.Encode
+import Markdown
 import Model exposing (Model)
 import Update exposing (Msg(..))
 import Util
@@ -381,9 +382,9 @@ functionChoice ctx fc =
     { heading = text fc.functionTitle
     , body =
         div [] <|
-            [ p
-                [ A.class "tabbed-menu-body-heading" ]
-                [ text (Maybe.withDefault "" fc.functionDescription) ]
+            [ Markdown.toHtml
+                [ A.class "markdown" ]
+                (Maybe.withDefault "" fc.functionDescription)
             ]
                 ++ (if List.length fc.metadataChoices > 1 then
                         selectAdditionalInformation
@@ -465,12 +466,9 @@ cell ctx c =
                     ]
                     []
                 )
-                [ case x.typeDescription of
-                    Nothing ->
-                        text ""
-
-                    Just t ->
-                        p [] [ text t ]
+                [ Markdown.toHtml
+                    [ A.class "markdown" ]
+                    (Maybe.withDefault "" x.typeDescription)
                 , cardInnerHeading [] [ text "Notes" ]
                 , textarea [] []
                 , cardInnerHeading [] [ text "Choices" ]

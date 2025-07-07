@@ -70,7 +70,7 @@ ret = "RNASeqSamples"
 condition = [
     "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 ]
-info.description = "Load RNA-seq sample sheet"
+info.description = """Load RNA-seq sample sheet"""
 info.code = '''def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
     """Load RNA-seq sample sheet"""
     return RNASeqSamples.D()'''
@@ -104,7 +104,7 @@ condition = [
     "ret.label = samples.label",
     "ret.qc = false",
 ]
-info.description = "Directly load RNA-seq dataset"
+info.description = """Directly load RNA-seq dataset"""
 info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
     """Directly load RNA-seq dataset"""
     return RNASeq.D(
@@ -115,9 +115,16 @@ info.code = '''def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq
 [Type.TranscriptMatrices]
 params.label = "Str"
 info.title = "Read count (and TPM abundance) matrix for samples"
+info.description = """Calculate two transcript × sample matrices:
+- One with (estimated) read counts.
+- One with TPM (transcripts-per-million) abundance."""
 info.params.label = "Label for RNA-seq data to analyze"
 info.code = '''class TranscriptMatrices:
-    "Read count (and TPM abundance) matrix for samples"
+    """Read count (and TPM abundance) matrix for samples
+
+    Calculate two transcript × sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance."""
 
     @dataclass
     class S:
@@ -137,7 +144,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = true",
 ]
-info.description = "Quality-check sequencing data with FastQC"
+info.description = """Quality-check sequencing data with FastQC"""
 info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check sequencing data with FastQC"""
 
@@ -160,7 +167,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = true",
 ]
-info.description = "Quality-check sequencing data with MultiQC"
+info.description = """Quality-check sequencing data with MultiQC"""
 info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check sequencing data with MultiQC"""
     pass'''
@@ -173,7 +180,7 @@ condition = [
     "ret.label = data.label",
     "ret.qc = false",
 ]
-info.description = "Remove Illumina universal adaptor and poly-A tails with cutadapt"
+info.description = """Remove Illumina universal adaptor and poly-A tails with cutadapt"""
 info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Remove Illumina universal adaptor and poly-A tails with cutadapt"""
 
@@ -206,7 +213,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.description = "Quantify transcript abundances with kallisto"
+info.description = """Quantify transcript abundances with kallisto"""
 info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Quantify transcript abundances with kallisto"""
 
@@ -236,7 +243,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.description = "Quantify transcript abundances with salmon"
+info.description = """Quantify transcript abundances with salmon"""
 info.code = '''def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Quantify transcript abundances with salmon"""
     pass'''
@@ -247,11 +254,70 @@ ret = "TranscriptMatrices"
 condition = [
     "ret.label = data.label",
 ]
-info.description = "Correct for batch effects with ComBat-seq"
+info.title = "ComBat-seq"
+info.description = """# Correct for batch effects with ComBat-seq
+
+ComBat-seq is a batch effect adjustment tool for bulk RNA-seq count data.
+It is an improved model based on the popular
+    [ComBat](https://doi.org/10.1093/biostatistics/kxj037),
+to address its limitations through novel methods designed specifically for
+RNA-Seq studies.  ComBat-seq takes untransformed, raw count matrix as
+input. Same as ComBat, it requires a known batch variable.
+
+We use a negative binomial regression to model batch effects, then provide
+adjusted data by mapping the original data to an expected distribution if
+there were no batch effects. This approach better captures the properties
+of RNA-Seq count data compared to the Gaussian distribution assumed by
+ComBat. ComBat-seq specifies different dispersion parameters across
+batches, allowing for flexible modeling of the variance of gene expression.
+In addition, ComBat-seq provides adjusted data which preserves the integer
+nature of counts, so that the adjusted data are compatible with the
+assumptions of state-of-the-art differential expression software (e.g.
+edgeR, DESeq2, which specifically request untransformed count data).
+
+ComBat-seq was recently published in NAR genomics and bioinformatics.
+Whenever using ComBat-seq, please cite:
+
+> Yuqing Zhang, Giovanni Parmigiani, W Evan Johnson, ComBat-seq: batch
+> effect adjustment for RNA-seq count data, NAR Genomics and Bioinformatics,
+> Volume 2, Issue 3, 1 September 2020, lqaa078,
+> [https://doi.org/10.1093/nargab/lqaa078](https://doi.org/10.1093/nargab/lqaa078)
+
+*Description taken from [ComBat-seq GitHub repository](https://github.com/zhangyuqing/ComBat-seq).*"""
 info.code = '''def combat_seq(
     data: TranscriptMatrices, ret: TranscriptMatrices.S
 ) -> TranscriptMatrices.D:
-    """Correct for batch effects with ComBat-seq"""
+    """ComBat-seq
+
+    # Correct for batch effects with ComBat-seq
+
+    ComBat-seq is a batch effect adjustment tool for bulk RNA-seq count data.
+    It is an improved model based on the popular
+        [ComBat](https://doi.org/10.1093/biostatistics/kxj037),
+    to address its limitations through novel methods designed specifically for
+    RNA-Seq studies.  ComBat-seq takes untransformed, raw count matrix as
+    input. Same as ComBat, it requires a known batch variable.
+
+    We use a negative binomial regression to model batch effects, then provide
+    adjusted data by mapping the original data to an expected distribution if
+    there were no batch effects. This approach better captures the properties
+    of RNA-Seq count data compared to the Gaussian distribution assumed by
+    ComBat. ComBat-seq specifies different dispersion parameters across
+    batches, allowing for flexible modeling of the variance of gene expression.
+    In addition, ComBat-seq provides adjusted data which preserves the integer
+    nature of counts, so that the adjusted data are compatible with the
+    assumptions of state-of-the-art differential expression software (e.g.
+    edgeR, DESeq2, which specifically request untransformed count data).
+
+    ComBat-seq was recently published in NAR genomics and bioinformatics.
+    Whenever using ComBat-seq, please cite:
+
+    > Yuqing Zhang, Giovanni Parmigiani, W Evan Johnson, ComBat-seq: batch
+    > effect adjustment for RNA-seq count data, NAR Genomics and Bioinformatics,
+    > Volume 2, Issue 3, 1 September 2020, lqaa078,
+    > [https://doi.org/10.1093/nargab/lqaa078](https://doi.org/10.1093/nargab/lqaa078)
+
+    *Description taken from [ComBat-seq GitHub repository](https://github.com/zhangyuqing/ComBat-seq).*"""
     pass'''
 
 [Type.Alignment]
@@ -277,7 +343,7 @@ ret = "TranscriptMatrices"
 condition = [
     "ret.label = data.label",
 ]
-info.description = "Summarize aligned reads with featureCounts"
+info.description = """Summarize aligned reads with featureCounts"""
 info.code = '''def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Summarize aligned reads with featureCounts"""
     pass'''
@@ -289,7 +355,7 @@ condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
-info.description = "Align spliced transcripts to a reference with STAR"
+info.description = """Align spliced transcripts to a reference with STAR"""
 info.code = '''def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
     """Align spliced transcripts to a reference with STAR"""
     pass'''
