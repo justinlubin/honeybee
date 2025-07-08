@@ -49,8 +49,9 @@ type alias PbnStatusMessage =
 
 decodeCodeCell : D.Decoder CodeCell
 decodeCodeCell =
-    D.map2 CodeCell
+    D.map3 CodeCell
         (D.field "title" <| D.nullable D.string)
+        (D.field "function_title" <| D.nullable D.string)
         (D.field "code" D.string)
 
 

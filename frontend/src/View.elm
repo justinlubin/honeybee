@@ -452,16 +452,19 @@ functionChoices ctx fcs =
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
 cell ctx c =
     case c of
-        Cell.Code { title, code } ->
+        Cell.Code { title, functionTitle, code } ->
             card
                 [ A.class "cell-code" ]
                 (cardHeading []
                     [ text "Code" ]
-                    (case title of
-                        Just t ->
+                    (case ( title, functionTitle ) of
+                        ( Just t, _ ) ->
                             [ text t ]
 
-                        Nothing ->
+                        ( _, Just t ) ->
+                            [ text t ]
+
+                        _ ->
                             []
                     )
                     []

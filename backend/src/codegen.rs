@@ -28,13 +28,13 @@ pub fn plain_text_notebook(lib: &Library, e: &Exp) -> String {
         ret += &match cell {
             cellgen::Cell::Code {
                 title,
-                type_title,
+                function_title,
                 code,
                 ..
             } => format!(
                 "# %%{}\n\n{}",
                 title
-                    .or(type_title)
+                    .or(function_title)
                     .map(|t| format!(" {}", t))
                     .unwrap_or("".to_owned()),
                 code,
