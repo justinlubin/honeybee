@@ -159,7 +159,11 @@ tabbedMenu attrs { selectionEvent, deselectionEvent, selectedIndex } content =
                     content
     in
     div
-        (A.class "tabbed-menu" :: attrs)
+        ([ A.class "tabbed-menu"
+         , A.classList [ ( "closed", selectedIndex == Nothing ) ]
+         ]
+            ++ attrs
+        )
         [ div [ A.class "tabbed-menu-headers" ] headers
         , div [ A.class "tabbed-menu-bodies" ] bodies
         ]
@@ -654,13 +658,22 @@ view model =
         , pane
             []
             (paneHeading [] [ i [ circled ] [ text "i" ], text "Getting Started" ])
-            [ p [] [ text "Honeybee is a tool you can use to write code to analyze experimental data." ]
-            , p [] [ text "It works in two steps:" ]
+            [ p [] [ text "Honeybee is a programming tool you can use to write Python code to analyze experimental data. It works in two steps:" ]
             , ol []
-                [ li [] [ text "First, you write down your experimental workflow." ]
-                , li [] [ text "Then, Honeybee helps you navigate among all possible programs to analyze the experiment you wrote down." ]
+                [ li [] [ text "First, you write down your experimental workflow and goal." ]
+                , li [] [ text "Then, Honeybee helps you work backward from your goal to write a program to analyze the experiment you wrote down." ]
                 ]
-            , p [] [ text "Using your biology expertise, you can navigate to the program that fits your need!" ]
+            , p
+                []
+                [ text "Using your biology expertise, you can make "
+                , span
+                    [ A.class "card-reference"
+                    , A.class "cell-choice"
+                    ]
+                    [ text "Choice"
+                    ]
+                , text "s in the program that fit your need!"
+                ]
             ]
         , pane
             []

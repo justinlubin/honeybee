@@ -106,9 +106,30 @@ i {
     margin-bottom: 10px;
 }
 
+.tabbed-menu.closed::after {
+    content: "Choose a step above to see more details.";
+    display: block;
+
+    background-color: #ddd;
+    color: #444;
+
+    font-style: italic;
+
+    padding: 10px;
+    border: 1px solid black;
+    border-top-right-radius: var(--rounding);
+    border-bottom-left-radius: var(--rounding);
+    border-bottom-right-radius: var(--rounding);
+
+    position: relative;
+    top: -1px;
+    z-index: 0;
+}
+
 .tabbed-menu-header {
     display: inline-block;
 
+    background-color: #ddd;
     padding: 5px;
     border: 1px solid black;
     border-bottom: none;
@@ -117,13 +138,14 @@ i {
     border-top-right-radius: var(--rounding);
 
     position: relative;
+    z-index: 1;
 
     cursor: pointer;
     user-select: none;
 }
 
 .tabbed-menu-header:hover {
-    background: rgba(0, 0, 0, 0.03);
+    background-color: #e8e8e8;
 }
 
 .tabbed-menu-header:first-child {
@@ -200,11 +222,11 @@ i {
 /* || Panes */
 
 .pane {
-    max-width: 1000px;
+    max-width: 900px;
     margin: 20px auto;
 }
 
-@media (max-width: 1010px) {
+@media (max-width: 910px) {
     .pane {
         width: calc(100% - 40px);
         margin-left: 20px;
@@ -345,6 +367,7 @@ i {
 .card-inner-heading {
     display: block;
     font-size: 1.1em;
+    font-weight: var(--bold);
     margin-top: 8px;
     margin-bottom: 5px;
     margin-left: 5px;
@@ -422,12 +445,13 @@ i {
     justify-content: center;
 
     width: 100%;
-    height: 90px;
+    height: 80px;
+    margin: auto;
 
     font-size: 1.1em;
 
     background-color: transparent;
-    border: 1px dashed rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.5);
     border-radius: 5px;
 
     cursor: pointer;
