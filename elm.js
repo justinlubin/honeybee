@@ -5665,16 +5665,20 @@ var $author$project$Incoming$decodeChoiceCell = A6(
 		'function_choices',
 		$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice)),
 	$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing));
-var $author$project$Cell$CodeCell = F2(
-	function (title, code) {
-		return {code: code, title: title};
+var $author$project$Cell$CodeCell = F3(
+	function (title, functionTitle, code) {
+		return {code: code, functionTitle: functionTitle, title: title};
 	});
-var $author$project$Incoming$decodeCodeCell = A3(
-	$elm$json$Json$Decode$map2,
+var $author$project$Incoming$decodeCodeCell = A4(
+	$elm$json$Json$Decode$map3,
 	$author$project$Cell$CodeCell,
 	A2(
 		$elm$json$Json$Decode$field,
 		'title',
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'function_title',
 		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
 	A2($elm$json$Json$Decode$field, 'code', $elm$json$Json$Decode$string));
 var $author$project$Incoming$decodeCell = $elm$json$Json$Decode$oneOf(
@@ -6881,6 +6885,30 @@ var $author$project$Update$UserRequestedDownload = function (a) {
 	return {$: 'UserRequestedDownload', a: a};
 };
 var $elm$html$Html$a = _VirtualDom_node('a');
+var $author$project$View$cellId = function (cellIndex) {
+	return 'cell' + $elm$core$String$fromInt(cellIndex);
+};
+var $author$project$View$cellTitle = function (c) {
+	if (c.$ === 'Code') {
+		var title = c.a.title;
+		var functionTitle = c.a.functionTitle;
+		var _v1 = _Utils_Tuple2(title, functionTitle);
+		if (_v1.a.$ === 'Just') {
+			var t = _v1.a.a;
+			return t;
+		} else {
+			if (_v1.b.$ === 'Just') {
+				var t = _v1.b.a;
+				return t;
+			} else {
+				return '';
+			}
+		}
+	} else {
+		var typeTitle = c.a.typeTitle;
+		return typeTitle;
+	}
+};
 var $author$project$Update$Nop = {$: 'Nop'};
 var $author$project$Update$UserMadePbnChoice = function (a) {
 	return {$: 'UserMadePbnChoice', a: a};
@@ -7222,7 +7250,7 @@ var $author$project$View$functionChoice = F2(
 									function (_v1) {
 										return '';
 									},
-									A2($elm$core$Debug$log, 'code', c));
+									c);
 								return _List_fromArray(
 									[
 										A2(
@@ -7322,9 +7350,18 @@ var $author$project$View$tabbedMenu = F3(
 		var bodies = _v1.b;
 		return A2(
 			$elm$html$Html$div,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('tabbed-menu'),
+			_Utils_ap(
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('tabbed-menu'),
+						$elm$html$Html$Attributes$classList(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'closed',
+								_Utils_eq(selectedIndex, $elm$core$Maybe$Nothing))
+							]))
+					]),
 				attrs),
 			_List_fromArray(
 				[
@@ -7371,13 +7408,14 @@ var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $author$project$View$cell = F2(
 	function (ctx, c) {
 		if (c.$ === 'Code') {
-			var title = c.a.title;
 			var code = c.a.code;
 			return A3(
 				$author$project$View$card,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('cell-code')
+						$elm$html$Html$Attributes$class('cell-code'),
+						$elm$html$Html$Attributes$id(
+						$author$project$View$cellId(ctx.cellIndex))
 					]),
 				A4(
 					$author$project$View$cardHeading,
@@ -7386,17 +7424,11 @@ var $author$project$View$cell = F2(
 						[
 							$elm$html$Html$text('Code')
 						]),
-					function () {
-						if (title.$ === 'Just') {
-							var t = title.a;
-							return _List_fromArray(
-								[
-									$elm$html$Html$text(t)
-								]);
-						} else {
-							return _List_Nil;
-						}
-					}(),
+					_List_fromArray(
+						[
+							$elm$html$Html$text(
+							$author$project$View$cellTitle(c))
+						]),
 					_List_Nil),
 				_List_fromArray(
 					[
@@ -7411,7 +7443,9 @@ var $author$project$View$cell = F2(
 				$author$project$View$card,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('cell-choice')
+						$elm$html$Html$Attributes$class('cell-choice'),
+						$elm$html$Html$Attributes$id(
+						$author$project$View$cellId(ctx.cellIndex))
 					]),
 				A4(
 					$author$project$View$cardHeading,
@@ -7435,7 +7469,8 @@ var $author$project$View$cell = F2(
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text(x.typeTitle)
+							$elm$html$Html$text(
+							$author$project$View$cellTitle(c))
 						]),
 					_List_Nil),
 				_List_fromArray(
@@ -7534,12 +7569,92 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $elm$html$Html$nav = _VirtualDom_node('nav');
+var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
-		return $elm$html$Html$text('');
+		return _List_Nil;
 	} else {
 		var cells = ms.a.cells;
 		var output = ms.a.output;
+		var outline = A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('outline-wrapper')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$nav,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('outline')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h3,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('outline-heading')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Outline')
+								])),
+							A2(
+							$elm$html$Html$ul,
+							_List_Nil,
+							A2(
+								$elm$core$List$indexedMap,
+								F2(
+									function (cellIndex, c) {
+										var choice = function () {
+											if (c.$ === 'Code') {
+												return false;
+											} else {
+												return true;
+											}
+										}();
+										return A2(
+											$elm$html$Html$li,
+											_List_Nil,
+											_Utils_ap(
+												choice ? _List_fromArray(
+													[
+														A2(
+														$elm$html$Html$span,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('card-reference'),
+																$elm$html$Html$Attributes$class('cell-choice')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Choice')
+															])),
+														$elm$html$Html$text(' ')
+													]) : _List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$a,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$href(
+																'#' + $author$project$View$cellId(cellIndex))
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																$author$project$View$cellTitle(c))
+															]))
+													])));
+									}),
+								cells))
+						]))
+				]));
 		var _v1 = function () {
 			if (output.$ === 'Nothing') {
 				return _Utils_Tuple2(
@@ -7592,11 +7707,32 @@ var $author$project$View$pbnStatus = function (ms) {
 		}();
 		var impossible = _v1.a;
 		var downloadButton = _v1.b;
-		return A2(
-			$elm$html$Html$div,
+		return _Utils_ap(
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('pbn')
+					A2(
+					$elm$html$Html$p,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('tip')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('When you see a '),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card-reference'),
+									$elm$html$Html$Attributes$class('cell-choice')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Choice')
+								])),
+							$elm$html$Html$text(' cell, decide which analysis to run for that part of the code!')
+						])),
+					outline
 				]),
 			_Utils_ap(
 				impossible ? _List_fromArray(
@@ -8158,14 +8294,7 @@ var $author$project$View$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Honeybee is a tool you can use to write code to analyze experimental data.')
-							])),
-						A2(
-						$elm$html$Html$p,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('It works in two steps:')
+								$elm$html$Html$text('Honeybee is a programming tool you can use to write Python code to analyze experimental data. It works in two steps:')
 							])),
 						A2(
 						$elm$html$Html$ol,
@@ -8177,14 +8306,14 @@ var $author$project$View$view = function (model) {
 								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('First, you write down your experimental workflow.')
+										$elm$html$Html$text('First, you write down your experimental workflow and goal.')
 									])),
 								A2(
 								$elm$html$Html$li,
 								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Then, Honeybee helps you navigate among all possible programs to analyze the experiment you wrote down.')
+										$elm$html$Html$text('Then, Honeybee helps you work backward from your goal to write a program to analyze the experiment you wrote down.')
 									]))
 							])),
 						A2(
@@ -8192,7 +8321,19 @@ var $author$project$View$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Using your biology expertise, you can navigate to the program that fits your need!')
+								$elm$html$Html$text('Using your biology expertise, you can make '),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('card-reference'),
+										$elm$html$Html$Attributes$class('cell-choice')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Choice')
+									])),
+								$elm$html$Html$text('s in the program that fit your need!')
 							]))
 					])),
 				A3(
@@ -8259,32 +8400,7 @@ var $author$project$View$view = function (model) {
 									$elm$html$Html$text('Navigation')
 								]))
 						])),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$p,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('tip')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('When you see a '),
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('card-reference'),
-										$elm$html$Html$Attributes$class('cell-choice')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Choice')
-									])),
-								$elm$html$Html$text(' cell, decide which analysis to run for that part of the code!')
-							])),
-						$author$project$View$pbnStatus(model.pbnStatus)
-					]))
+				$author$project$View$pbnStatus(model.pbnStatus))
 			]));
 };
 var $elm$core$Result$withDefault = F2(

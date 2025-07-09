@@ -106,9 +106,30 @@ i {
     margin-bottom: 10px;
 }
 
+.tabbed-menu.closed::after {
+    content: "Choose a step above to see more details.";
+    display: block;
+
+    background-color: #ddd;
+    color: #444;
+
+    font-style: italic;
+
+    padding: 10px;
+    border: 1px solid black;
+    border-top-right-radius: var(--rounding);
+    border-bottom-left-radius: var(--rounding);
+    border-bottom-right-radius: var(--rounding);
+
+    position: relative;
+    top: -1px;
+    z-index: 0;
+}
+
 .tabbed-menu-header {
     display: inline-block;
 
+    background-color: #ddd;
     padding: 5px;
     border: 1px solid black;
     border-bottom: none;
@@ -117,13 +138,14 @@ i {
     border-top-right-radius: var(--rounding);
 
     position: relative;
+    z-index: 1;
 
     cursor: pointer;
     user-select: none;
 }
 
 .tabbed-menu-header:hover {
-    background: rgba(0, 0, 0, 0.03);
+    background-color: #e8e8e8;
 }
 
 .tabbed-menu-header:first-child {
@@ -200,11 +222,11 @@ i {
 /* || Panes */
 
 .pane {
-    max-width: 1000px;
+    max-width: 900px;
     margin: 20px auto;
 }
 
-@media (max-width: 1010px) {
+@media (max-width: 910px) {
     .pane {
         width: calc(100% - 40px);
         margin-left: 20px;
@@ -230,6 +252,7 @@ i {
 
     position: relative;
     top: 1px;
+    z-index: 1;
 }
 
 .pane-body {
@@ -239,6 +262,8 @@ i {
     box-shadow: var(--shadow);
     border-radius: var(--rounding);
     border-top-left-radius: 0;
+
+    position: relative;
 }
 
 .tip {
@@ -345,6 +370,7 @@ i {
 .card-inner-heading {
     display: block;
     font-size: 1.1em;
+    font-weight: var(--bold);
     margin-top: 8px;
     margin-bottom: 5px;
     margin-left: 5px;
@@ -422,12 +448,13 @@ i {
     justify-content: center;
 
     width: 100%;
-    height: 90px;
+    height: 80px;
+    margin: auto;
 
     font-size: 1.1em;
 
-    background-color: transparent;
-    border: 1px dashed rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.5);
     border-radius: 5px;
 
     cursor: pointer;
@@ -478,6 +505,50 @@ i {
 .standout-button .subtitle {
     display: block;
     font-size: 0.7em;
+}
+
+/* || Outline */
+
+.outline-wrapper {
+    width: 200px;
+    margin-left: 10px;
+
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 100%;
+}
+
+.outline {
+    background-color: #fff;
+    font-size: 0.7em;
+
+    padding: 5px;
+
+    border: 1px solid black;
+    border-radius: var(--rounding);
+    box-shadow: var(--shadow);
+
+    position: sticky;
+    top: 10px;
+}
+
+.outline .outline-heading {
+    font-weight: var(--bold);
+}
+
+.outline li {
+    margin: 5px 0 0 10px;
+    list-style-type: disc;
+}
+
+.outline a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.outline a:hover {
+    text-decoration: underline;
 }
 
 /* || Custom Prism styles */
