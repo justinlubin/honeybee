@@ -409,7 +409,7 @@ functionChoice ctx fc =
                                             Regex.fromString "\"\"\"(.|\n)*?\"\"\"\\s*"
                                         )
                                         (\_ -> "")
-                                        (Debug.log "code" c)
+                                        c
                             in
                             [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
                             , div
