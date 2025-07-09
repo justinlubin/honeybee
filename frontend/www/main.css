@@ -252,6 +252,7 @@ i {
 
     position: relative;
     top: 1px;
+    z-index: 1;
 }
 
 .pane-body {
@@ -261,6 +262,8 @@ i {
     box-shadow: var(--shadow);
     border-radius: var(--rounding);
     border-top-left-radius: 0;
+
+    position: relative;
 }
 
 .tip {
@@ -502,6 +505,50 @@ i {
 .standout-button .subtitle {
     display: block;
     font-size: 0.7em;
+}
+
+/* || Outline */
+
+.outline-wrapper {
+    width: 200px;
+    margin-left: 10px;
+
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 100%;
+}
+
+.outline {
+    background-color: #fff;
+    font-size: 0.7em;
+
+    padding: 5px;
+
+    border: 1px solid black;
+    border-radius: var(--rounding);
+    box-shadow: var(--shadow);
+
+    position: sticky;
+    top: 10px;
+}
+
+.outline .outline-heading {
+    font-weight: var(--bold);
+}
+
+.outline li {
+    margin: 5px 0 0 10px;
+    list-style-type: disc;
+}
+
+.outline a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.outline a:hover {
+    text-decoration: underline;
 }
 
 /* || Custom Prism styles */

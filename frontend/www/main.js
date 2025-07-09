@@ -156,3 +156,18 @@ app.ports.oPbnChoose.subscribe((msg) => {
 app.ports.oDownload.subscribe((msg) => {
     download(msg.filename, msg.text);
 });
+
+////////////////////////////////////////////////////////////////////////////////
+// Smooth-scroll clicks
+
+// https://stackoverflow.com/a/33616981
+document.addEventListener("click", (e) => {
+    let target = e.target.closest("a");
+    if (target) {
+        const href = target.getAttribute("href");
+        if (href && href.startsWith("#")) {
+            e.preventDefault();
+            document.querySelector(href).scrollIntoView({ behavior: "smooth" });
+        }
+    }
+});

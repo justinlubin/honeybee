@@ -449,24 +449,40 @@ functionChoices ctx fcs =
         )
 
 
+cellId : Int -> String
+cellId cellIndex =
+    "cell" ++ String.fromInt cellIndex
+
+
+cellTitle : Cell.Cell -> String
+cellTitle c =
+    case c of
+        Cell.Code { title, functionTitle } ->
+            case ( title, functionTitle ) of
+                ( Just t, _ ) ->
+                    t
+
+                ( _, Just t ) ->
+                    t
+
+                _ ->
+                    ""
+
+        Cell.Choice { typeTitle } ->
+            typeTitle
+
+
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
 cell ctx c =
     case c of
-        Cell.Code { title, functionTitle, code } ->
+        Cell.Code { code } ->
             card
-                [ A.class "cell-code" ]
+                [ A.class "cell-code"
+                , A.id (cellId ctx.cellIndex)
+                ]
                 (cardHeading []
                     [ text "Code" ]
-                    (case ( title, functionTitle ) of
-                        ( Just t, _ ) ->
-                            [ text t ]
-
-                        ( _, Just t ) ->
-                            [ text t ]
-
-                        _ ->
-                            []
-                    )
+                    [ text (cellTitle c) ]
                     []
                 )
                 [ fancyCode [] { language = "python", code = code }
@@ -474,15 +490,16 @@ cell ctx c =
 
         Cell.Choice x ->
             card
-                [ A.class "cell-choice" ]
+                [ A.class "cell-choice"
+                , A.id (cellId ctx.cellIndex)
+                ]
                 (cardHeading []
                     [ span []
                         [ text "Choice"
                         , cardHeadingSubtitle [] [ text x.varName ]
                         ]
                     ]
-                    [ text x.typeTitle
-                    ]
+                    [ text (cellTitle c) ]
                     []
                 )
                 [ Markdown.toHtml
@@ -575,14 +592,59 @@ startNavigationButton prog =
         (text "Start navigating" :: extras)
 
 
-pbnStatus : Maybe Incoming.PbnStatusMessage -> Html Msg
+pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
 pbnStatus ms =
     case ms of
         Nothing ->
-            text ""
+            []
 
         Just { cells, output } ->
             let
+                outline =
+                    div
+                        [ A.class "outline-wrapper" ]
+                        [ nav
+                            [ A.class "outline" ]
+                            [ h3
+                                [ A.class "outline-heading" ]
+                                [ text "Outline" ]
+                            , ul
+                                []
+                                (List.indexedMap
+                                    (\cellIndex c ->
+                                        let
+                                            choice =
+                                                case c of
+                                                    Cell.Code _ ->
+                                                        False
+
+                                                    Cell.Choice _ ->
+                                                        True
+                                        in
+                                        li [] <|
+                                            (if choice then
+                                                [ span
+                                                    [ A.class "card-reference"
+                                                    , A.class "cell-choice"
+                                                    ]
+                                                    [ text "Choice"
+                                                    ]
+                                                , text " "
+                                                ]
+
+                                             else
+                                                []
+                                            )
+                                                ++ [ a
+                                                        [ A.href ("#" ++ cellId cellIndex) ]
+                                                        [ text (cellTitle c) ]
+                                                   ]
+                                    )
+                                    cells
+                                )
+                            ]
+                        ]
+
                 ( impossible, downloadButton ) =
                     case output of
                         Nothing ->
@@ -616,25 +678,37 @@ pbnStatus ms =
                                 ]
                             )
             in
-            div [ A.class "pbn" ] <|
-                (if impossible then
-                    [ div [ A.class "pbn-impossible" ]
-                        [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
-                        , p [] [ text "There might be missing steps (or typos) in your experiment. Alternatively, the Honeybee library might not include the computational steps you need." ]
-                        , p []
-                            [ text "Please reach out to Justin at"
-                            , a
-                                [ A.href "mailto://justinlubin@berkeley.edu" ]
-                                [ text "justinlubin@berkeley.edu" ]
-                            , text "for help!"
+            [ p
+                [ A.class "tip" ]
+                [ text "When you see a "
+                , span
+                    [ A.class "card-reference"
+                    , A.class "cell-choice"
+                    ]
+                    [ text "Choice"
+                    ]
+                , text " cell, decide which analysis to run for that part of the code!"
+                ]
+            , outline
+            ]
+                ++ (if impossible then
+                        [ div [ A.class "pbn-impossible" ]
+                            [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
+                            , p [] [ text "There might be missing steps (or typos) in your experiment. Alternatively, the Honeybee library might not include the computational steps you need." ]
+                            , p []
+                                [ text "Please reach out to Justin at"
+                                , a
+                                    [ A.href "mailto://justinlubin@berkeley.edu" ]
+                                    [ text "justinlubin@berkeley.edu" ]
+                                , text "for help!"
+                                ]
                             ]
                         ]
-                    ]
 
-                 else
-                    directManipulationPbn cells
-                )
-                    ++ [ downloadButton ]
+                    else
+                        directManipulationPbn cells
+                   )
+                ++ [ downloadButton ]
 
 
 view : Model -> Html Msg
@@ -698,17 +772,5 @@ view model =
                 , span [] [ text "Navigation" ]
                 ]
             )
-            [ p
-                [ A.class "tip" ]
-                [ text "When you see a "
-                , span
-                    [ A.class "card-reference"
-                    , A.class "cell-choice"
-                    ]
-                    [ text "Choice"
-                    ]
-                , text " cell, decide which analysis to run for that part of the code!"
-                ]
-            , pbnStatus model.pbnStatus
-            ]
+            (pbnStatus model.pbnStatus)
         ]
