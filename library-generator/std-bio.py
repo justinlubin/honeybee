@@ -101,11 +101,20 @@ def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
 
 @Type
 class TranscriptMatrices:
-    """Read count (and TPM abundance) matrix for samples
+    """Read count (and TPM abundance) matrix for RNA-seq samples
 
-    Calculate two transcript × sample matrices:
+    The goal of this step is to calculate two two transcript × sample matrices:
     - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance."""
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices:
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
 
     @dataclass
     class S:
@@ -133,7 +142,6 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 
     RUN(f"mkdir -p output/{label}/fastqc")
     RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
-    RUN(f"multiqc --filename output/{label}/multiqc.html output/{label}/fastqc")
 
     return data.dynamic
 
@@ -145,7 +153,17 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 )
 def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """Quality-check sequencing data with MultiQC"""
-    pass
+
+    print("Running fastqc and multiqc...")
+
+    label = data.static.label
+    in_path = data.dynamic.path
+
+    RUN(f"mkdir -p output/{label}/fastqc")
+    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
+    RUN(f"multiqc --filename output/{label}/multiqc.html output/{label}/fastqc")
+
+    return data.dynamic
 
 
 @Function(
@@ -184,7 +202,29 @@ def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.label = data.label",
 )
 def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """Quantify transcript abundances with kallisto"""
+    """kallisto
+
+    # Quantify transcript abundances *without* alignment using kallisto
+
+    kallisto is a program for quantifying abundances of transcripts from
+    RNA-Seq data, or more generally of target sequences using high-throughput
+    sequencing reads. It is based on the novel idea of pseudoalignment for
+    rapidly determining the compatibility of reads with targets, without the
+    need for alignment. On benchmarks with standard RNA-Seq data, kallisto can
+    quantify 30 million human bulk RNA-seq reads in less than 3 minutes on a
+    Mac desktop computer using only the read sequences and a transcriptome
+    index that itself takes than 10 minutes to build. Pseudoalignment of reads
+    preserves the key information needed for quantification, and kallisto is
+    therefore not only fast, but also comparably accurate to other existing
+    quantification tools. In fact, because the pseudoalignment procedure is
+    robust to errors in the reads, in many benchmarks kallisto significantly
+    outperforms existing tools. The kallisto algorithms are described in more
+    detail in:
+
+    > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
+    > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016).
+
+    *Description taken from [kallisto GitHub repository](https://github.com/pachterlab/kallisto).*"""
 
     in_path = data.dynamic.path
     ret_path = f"output/{ret.label}/kallisto_quant"
@@ -211,7 +251,25 @@ def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     "ret.label = data.label",
 )
 def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """Quantify transcript abundances with salmon"""
+    """salmon
+
+    # Quantify transcript abundances *without* alignment using salmon
+
+    Salmon is a wicked-fast program to produce a highly-accurate,
+    transcript-level quantification estimates from RNA-seq data. Salmon
+    achieves its accuracy and speed via a number of different innovations,
+    including the use of selective-alignment (accurate but fast-to-compute
+    proxies for traditional read alignments), and massively-parallel stochastic
+    collapsed variational inference. The result is a versatile tool that fits
+    nicely into many different pipelines. For example, you can choose to make
+    use of our selective-alignment algorithm by providing Salmon with raw
+    sequencing reads, or, if it is more convenient, you can provide Salmon with
+    regular alignments (e.g. an unsorted BAM file with alignments to the
+    transcriptome produced with your favorite aligner), and it will use the
+    same wicked-fast, state-of-the-art inference algorithm to estimate
+    transcript-level abundances for your experiment.
+
+    *Description taken from [salmon GitHub repository](https://github.com/COMBINE-lab/salmon).*"""
     pass
 
 
@@ -223,7 +281,7 @@ def combat_seq(
 ) -> TranscriptMatrices.D:
     """ComBat-seq
 
-    # Correct for batch effects with ComBat-seq
+    # Correct for batch effects using ComBat-seq
 
     ComBat-seq is a batch effect adjustment tool for bulk RNA-seq count data.
     It is an improved model based on the popular
@@ -274,7 +332,16 @@ class Alignment:
     "ret.label = data.label",
 )
 def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """Summarize aligned reads with featureCounts"""
+    """featureCounts
+
+    # Quantify transcript abundances *after* alignment using featureCounts
+
+    featureCounts is a highly efficient general-purpose read summarization
+    program that counts mapped reads for genomic features such as genes, exons,
+    promoter, gene bodies, genomic bins and chromosomal locations. It can be
+    used to count both RNA-seq and genomic DNA-seq reads.
+
+    *Description taken from [featureCounts website](https://subread.sourceforge.net/featureCounts.html).*"""
     pass
 
 
