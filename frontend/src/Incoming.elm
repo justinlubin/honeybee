@@ -78,7 +78,10 @@ decodeChoiceCell =
         (D.field "var_name" D.string)
         (D.field "type_title" D.string)
         (D.field "type_description" <| D.nullable D.string)
-        (D.field "function_choices" <| D.list decodeFunctionChoice)
+        (D.field "function_choices" <|
+            D.map (List.sortBy (\x -> x.functionTitle)) <|
+                D.list decodeFunctionChoice
+        )
         (D.succeed Nothing)
 
 
