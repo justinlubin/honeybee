@@ -224,6 +224,7 @@ i {
 .pane {
     max-width: 900px;
     margin: 20px auto;
+    scroll-margin-top: 10px;
 }
 
 @media (max-width: 910px) {
@@ -297,6 +298,7 @@ i {
     border-radius: var(--rounding);
     margin-bottom: 10px;
     overflow: hidden;
+    scroll-margin-top: 9px;
 
     --card-accent: #333;
 }

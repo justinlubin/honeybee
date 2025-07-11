@@ -5651,6 +5651,7 @@ var $author$project$Incoming$decodeFunctionChoice = A6(
 		'metadata_choices',
 		$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice)),
 	$elm$json$Json$Decode$succeed(0));
+var $elm$core$List$sortBy = _List_sortBy;
 var $author$project$Incoming$decodeChoiceCell = A6(
 	$elm$json$Json$Decode$map5,
 	$author$project$Cell$ChoiceCell,
@@ -5663,7 +5664,13 @@ var $author$project$Incoming$decodeChoiceCell = A6(
 	A2(
 		$elm$json$Json$Decode$field,
 		'function_choices',
-		$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice)),
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$core$List$sortBy(
+				function (x) {
+					return x.functionTitle;
+				}),
+			$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice))),
 	$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing));
 var $author$project$Cell$CodeCell = F3(
 	function (title, functionTitle, code) {
@@ -5944,7 +5951,6 @@ var $author$project$Assoc$map = function (f) {
 				A2(f, x, y));
 		});
 };
-var $elm$core$List$sortBy = _List_sortBy;
 var $elm$core$List$member = F2(
 	function (x, xs) {
 		return A2(

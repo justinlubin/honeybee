@@ -162,7 +162,7 @@ app.ports.oDownload.subscribe((msg) => {
 
 // https://stackoverflow.com/a/33616981
 document.addEventListener("click", (e) => {
-    let target = e.target.closest("a");
+    const target = e.target.closest("a");
     if (target) {
         const href = target.getAttribute("href");
         if (href && href.startsWith("#")) {
