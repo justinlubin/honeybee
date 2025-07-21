@@ -211,7 +211,6 @@ i {
     background-color: #fff;
     padding: 10px;
     border-bottom: 2px solid black;
-    border-radius: var(--rounding);
 }
 
 #devmode {
