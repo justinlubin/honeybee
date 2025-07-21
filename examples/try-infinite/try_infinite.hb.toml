@@ -1,0 +1,15 @@
+[[Prop]]
+name = "P"
+args.x = 2
+
+[[Prop]]
+name = "P"
+args.x = 1
+
+[[Prop]]
+name = "P"
+args.x = 0
+
+[Goal]
+name = "GoalType"
+args.v = 0

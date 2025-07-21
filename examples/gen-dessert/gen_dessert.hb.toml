@@ -1,0 +1,47 @@
+[[Prop]]
+name = "BlizzardMachine"
+args.working = 1
+
+[[Prop]]
+name = "LactoseIntolerant"
+args.intolerant = 0
+
+[[Prop]]
+name = "AvailableFlavor"
+args.flavor = 0
+
+[[Prop]]
+name = "AvailableFlavor"
+args.flavor = 1
+
+[[Prop]]
+name = "AvailableFlavor"
+args.flavor = 2
+
+[[Prop]]
+name = "AvailableTopping"
+args.topping = 0
+
+[[Prop]]
+name = "AvailableTopping"
+args.topping = 1
+
+[[Prop]]
+name = "AvailableTopping"
+args.topping = 2
+
+[[Prop]]
+name = "AvailableTopping"
+args.topping = 3
+
+[[Prop]]
+name = "AvailableTopping"
+args.topping = 4
+
+[[Prop]]
+name = "AvailableTopping"
+args.topping = 5
+
+[Goal]
+name = "FrozenDessert"
+args = {}

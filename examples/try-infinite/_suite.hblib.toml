@@ -1,0 +1,30 @@
+[Prop.P]
+params.x = "Int"
+
+[Type.GoalType]
+params.v = "Int"
+
+[Type.IntermediateType]
+params.i = "Int"
+
+## Infinitely many values IntermediateType metadata can have
+[Function.getIntermediate]
+params = {}
+ret = "IntermediateType"
+condition = []
+
+[Function.incrementIntermediate]
+params.in = "IntermediateType"
+ret = "IntermediateType"
+condition = ["in.i < ret.i"]
+
+# can't just have increment, need decrement too then can switch off as many times as wanted
+[Function.decrementMetadata]
+params.in = "IntermediateType"
+ret = "IntermediateType"
+condition = ["ret.i < in.i"]
+
+[Function.getGoal]
+params.intermediate = "IntermediateType"
+ret = "GoalType"
+condition = ["ret.v < intermediate.i"]

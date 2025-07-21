@@ -1,0 +1,82 @@
+# what should be a proposition vs parameter?
+# should the return type have metadata that will need to be specified in goal type?
+# how to write library so that many steps are possible? 
+    # tricky at first to 
+# why can spec assign different values to proposition on different lines?
+# does a type have to be returned from a function to be reachable?
+# parameters, propositions can be configured according to things that need to be controlled
+    # right off the bat (like someone can't possibly have dairy), versus things we actually want
+    # to be flexible (freedom to choose a flavor)
+
+[Prop.BlizzardMachine]
+params.working = "Int"    ## 0-not working, 1-working
+
+[Prop.LactoseIntolerant]
+params.intolerant = "Int"       ## 0-lactose tolerant, 1-lactose intolerant
+
+[Prop.AvailableFlavor]
+params.flavor = "Int"       ## control what flavors are offered
+
+[Prop.AvailableTopping]
+params.topping = "Int"       ## control what mixins/toppings are offered
+
+[Type.Milk]
+params.nonDairy = "Int"       ## 0-dairy, 1-coconut
+
+[Type.Ice]
+params = {}
+
+[Type.IceCream]
+params.flavor = "Int"       ## 0-vanilla, 1-chocolate, 2-strawberry
+
+[Type.MixInTopping]
+params.kind = "Int"       ## 0-chocolate bar, 1-cookies, 2-fruit, 3-chocolate sauce, 4-whipped cream, 5-none
+
+[Type.FrozenDessert]
+params = {}
+
+[Function.getDairyMilk]
+params = {}
+ret = "Milk"
+condition = [
+    "LactoseIntolerant { intolerant = 0}", ## only get dairy if not lactose intolerant
+    "ret.nonDairy = 0"
+]
+
+[Function.getCoconutMilk]
+params = {}
+ret = "Milk"
+condition = [
+    "ret.nonDairy = 1"      ## anyone can get coconut milk
+]
+
+[Function.getIce]
+params = {}
+ret = "Ice"
+condition = []
+
+[Function.getIceCream]
+params.milk = "Milk"
+params.ice = "Ice"
+ret = "IceCream"
+condition = ["AvailableFlavor {flavor = ret.flavor}"]      ## check flavor exists
+
+[Function.getMixinTopping]
+params = {}
+ret = "MixInTopping"
+condition = ["AvailableTopping { topping = ret.kind }"]
+
+[Function.Scoop]
+params.base = "IceCream"
+params.topping = "MixInTopping"
+ret = "FrozenDessert"
+condition = []
+
+[Function.Blizzard]
+params.base = "IceCream"
+params.mixin = "MixInTopping"
+ret = "FrozenDessert"
+condition = [
+    "BlizzardMachine { working = 1 }",
+    "mixin.kind < 3",           ## mixin has to be a chunk and chunks are numbered below 3
+    ]
