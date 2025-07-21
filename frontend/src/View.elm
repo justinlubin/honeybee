@@ -664,8 +664,7 @@ pbnStatus ms =
                         Just solutionString ->
                             ( False
                             , div [ A.class "pbn-completed" ]
-                                [ h3 [] [ text "All done!" ]
-                                , button
+                                [ button
                                     [ A.class "standout-button"
                                     , E.onClick
                                         (UserRequestedDownload
@@ -680,14 +679,17 @@ pbnStatus ms =
             in
             [ p
                 [ A.class "tip" ]
-                [ text "When you see a "
-                , span
-                    [ A.class "card-reference"
-                    , A.class "cell-choice"
-                    ]
-                    [ text "Choice"
-                    ]
-                , text " cell, decide which analysis to run for that part of the code!"
+                [ text "Just like in Jupyter notebooks, this interface consists of many "
+                , span [ A.class "card-reference", A.class "cell-code" ] [ text "Code" ]
+                , text " cells. However, now there are also "
+                , span [ A.class "card-reference", A.class "cell-choice" ] [ text "Choice" ]
+                , text " cells! When you see a "
+                , span [ A.class "card-reference", A.class "cell-choice" ] [ text "Choice" ]
+                , text " cell, decide which analysis to run for that part of the code. When you make the selection, the "
+                , span [ A.class "card-reference", A.class "cell-choice" ] [ text "Choice" ]
+                , text " cell will become a "
+                , span [ A.class "card-reference", A.class "cell-code" ] [ text "Code" ]
+                , text " cell."
                 ]
             , outline
             ]
@@ -738,18 +740,7 @@ view model =
             [ p [] [ text "Honeybee is a programming tool you can use to write Python code to analyze experimental data. It works in two steps:" ]
             , ol []
                 [ li [] [ text "First, you write down your experimental workflow and goal." ]
-                , li [] [ text "Then, Honeybee helps you work backward from your goal to write a program to analyze the experiment you wrote down." ]
-                ]
-            , p
-                []
-                [ text "Using your biology expertise, you can make "
-                , span
-                    [ A.class "card-reference"
-                    , A.class "cell-choice"
-                    ]
-                    [ text "Choice"
-                    ]
-                , text "s in the program that fit your need!"
+                , li [] [ text "Then, Honeybee helps you work backward from your goal to write a program to analyze your experimental data." ]
                 ]
             ]
         , pane

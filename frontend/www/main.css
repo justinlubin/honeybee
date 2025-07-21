@@ -268,10 +268,10 @@ i {
 }
 
 .tip {
-    border: 1px solid black;
+    border: 1px dashed black;
     padding: 10px;
-    font-style: italic;
     border-radius: var(--rounding);
+    line-height: 1.4;
 }
 
 .tip::before {
@@ -379,6 +379,10 @@ i {
 }
 
 /* Specific cards */
+
+.cell-code {
+    --card-accent: #333;
+}
 
 .cell-choice {
     --card-accent: #ff4d37;
