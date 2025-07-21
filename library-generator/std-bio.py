@@ -25,7 +25,7 @@ def sample_names(filename):
 # RNA-seq
 
 
-# TODO auto-generate?
+# TODO auto-generate from RNASeqSampleSheet?
 @Prop
 class RNASeqProp:
     "RNA-seq"
@@ -41,7 +41,7 @@ class RNASeqProp:
 
 
 @Type(var_name="RNA_SAMPLES")
-class RNASeqSamples:
+class RNASeqSampleSheet:
     "Loaded RNA-seq sample metadata"
 
     @dataclass
@@ -64,14 +64,14 @@ class RNASeqSamples:
 @Function(
     "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }"
 )
-def get_rna_seq_samples(ret: RNASeqSamples.S) -> RNASeqSamples.D:
+def load_rna_seq_sample_sheet(ret: RNASeqSampleSheet.S) -> RNASeqSampleSheet.D:
     """Load RNA-seq sample sheet"""
-    return RNASeqSamples.D()
+    return RNASeqSampleSheet.D()
 
 
 @Type
 class RNASeq:
-    "Loaded RNA-seq data"
+    "Raw RNA-seq data (reads)"
 
     @dataclass
     class S:
@@ -91,8 +91,14 @@ class RNASeq:
     "ret.label = samples.label",
     "ret.qc = false",
 )
-def load_rna_seq(samples: RNASeqSamples, ret: RNASeq.S) -> RNASeq.D:
-    """Directly load RNA-seq dataset"""
+def load_rna_seq_reads(samples: RNASeqSampleSheet, ret: RNASeq.S) -> RNASeq.D:
+    """Load RNA-seq reads
+
+    # Directly load RNA-seq reads
+
+    This function directly loads a dataset of RNA-seq reads, usually in the
+    .fastq.gz file format."""
+
     return RNASeq.D(
         sample_sheet=samples.static.sample_sheet,
         path=samples.static.raw_data,
@@ -133,7 +139,17 @@ class TranscriptMatrices:
     "ret.qc = true",
 )
 def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Quality-check sequencing data with FastQC"""
+    """FastQC
+
+    # Quality-check sequencing data with FastQC
+
+    FastQC aims to provide a simple way to do some quality control checks on
+    raw sequence data coming from high throughput sequencing pipelines. It
+    provides a modular set of analyses which you can use to give a quick
+    impression of whether your data has any problems of which you should be
+    aware before doing any further analysis.
+
+    *Description taken from [FastQC webpage](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).*"""
 
     print("Running fastqc...")
 
@@ -152,7 +168,12 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.qc = true",
 )
 def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Quality-check sequencing data with MultiQC"""
+    """MultiQC
+
+    # Quality-check sequencing data with MultiQC
+
+    MultiQC aggregates the output of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    quality-control checks into a single page viewable in a web browser."""
 
     print("Running fastqc and multiqc...")
 
@@ -172,7 +193,27 @@ def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.qc = false",
 )
 def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """Remove Illumina universal adaptor and poly-A tails with cutadapt"""
+    """cutadapt (Illumina RNA-seq)
+
+    # Remove Illumina universal adaptor and poly-A tails with cutadapt
+
+    Cutadapt finds and removes adapter sequences, primers, poly-A tails and
+    other types of unwanted sequence from your high-throughput sequencing
+    reads.
+
+    Cleaning your data in this way is often required: Reads from small-RNA
+    sequencing contain the 3’ sequencing adapter because the read is longer
+    than the molecule that is sequenced. Amplicon reads start with a primer
+    sequence. Poly-A tails are useful for pulling out RNA from your sample, but
+    often you don’t want them to be in your reads.
+
+    *Description taken from [cutadapt documentation](https://cutadapt.readthedocs.io/en/stable/).*
+
+    ## Use of cutadapt for this step
+
+    This particular step of the pipeline will use cutadapt to remove the
+    Illumina universal adaptor and poly-A tails. This is suitable for RNA-seq
+    experiments with raw data coming from an Illumina machine."""
 
     in_path = data.dynamic.path
     ret_path = f"output/{ret.label}/cutadapt_trimmed"
