@@ -7689,13 +7689,6 @@ var $author$project$View$pbnStatus = function (ms) {
 						_List_fromArray(
 							[
 								A2(
-								$elm$html$Html$h3,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('All done!')
-									])),
-								A2(
 								$elm$html$Html$button,
 								_List_fromArray(
 									[
@@ -7724,7 +7717,19 @@ var $author$project$View$pbnStatus = function (ms) {
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text('When you see a '),
+							$elm$html$Html$text('Just like in Jupyter notebooks, this interface consists of many '),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card-reference'),
+									$elm$html$Html$Attributes$class('cell-code')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Code')
+								])),
+							$elm$html$Html$text(' cells. However, now there are also '),
 							A2(
 							$elm$html$Html$span,
 							_List_fromArray(
@@ -7736,7 +7741,43 @@ var $author$project$View$pbnStatus = function (ms) {
 								[
 									$elm$html$Html$text('Choice')
 								])),
-							$elm$html$Html$text(' cell, decide which analysis to run for that part of the code!')
+							$elm$html$Html$text(' cells! When you see a '),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card-reference'),
+									$elm$html$Html$Attributes$class('cell-choice')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Choice')
+								])),
+							$elm$html$Html$text(' cell, decide which analysis to run for that part of the code. When you make the selection, the '),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card-reference'),
+									$elm$html$Html$Attributes$class('cell-choice')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Choice')
+								])),
+							$elm$html$Html$text(' cell will become a '),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card-reference'),
+									$elm$html$Html$Attributes$class('cell-code')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Code')
+								])),
+							$elm$html$Html$text(' cell.')
 						])),
 					outline
 				]),
@@ -8319,27 +8360,8 @@ var $author$project$View$view = function (model) {
 								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Then, Honeybee helps you work backward from your goal to write a program to analyze the experiment you wrote down.')
+										$elm$html$Html$text('Then, Honeybee helps you work backward from your goal to write a program to analyze your experimental data.')
 									]))
-							])),
-						A2(
-						$elm$html$Html$p,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Using your biology expertise, you can make '),
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('card-reference'),
-										$elm$html$Html$Attributes$class('cell-choice')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Choice')
-									])),
-								$elm$html$Html$text('s in the program that fit your need!')
 							]))
 					])),
 				A3(
