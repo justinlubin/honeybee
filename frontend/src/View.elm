@@ -645,25 +645,13 @@ pbnStatus ms =
                             ]
                         ]
 
-                ( impossible, downloadButton ) =
+                downloadButton =
                     case output of
                         Nothing ->
-                            ( List.all
-                                (\c ->
-                                    case c of
-                                        Cell.Code _ ->
-                                            True
-
-                                        Cell.Choice x ->
-                                            List.isEmpty x.functionChoices
-                                )
-                                cells
-                            , text ""
-                            )
+                            text ""
 
                         Just solutionString ->
-                            ( False
-                            , div [ A.class "pbn-completed" ]
+                            div [ A.class "pbn-completed" ]
                                 [ button
                                     [ A.class "standout-button"
                                     , E.onClick
@@ -675,7 +663,6 @@ pbnStatus ms =
                                     ]
                                     [ text "Download analysis script" ]
                                 ]
-                            )
             in
             [ p
                 [ A.class "tip" ]
@@ -693,23 +680,7 @@ pbnStatus ms =
                 ]
             , outline
             ]
-                ++ (if impossible then
-                        [ div [ A.class "pbn-impossible" ]
-                            [ p [] [ text "Honeybee can't figure out how to make analysis script for this experiment." ]
-                            , p [] [ text "There might be missing steps (or typos) in your experiment. Alternatively, the Honeybee library might not include the computational steps you need." ]
-                            , p []
-                                [ text "Please reach out to Justin at"
-                                , a
-                                    [ A.href "mailto://justinlubin@berkeley.edu" ]
-                                    [ text "justinlubin@berkeley.edu" ]
-                                , text "for help!"
-                                ]
-                            ]
-                        ]
-
-                    else
-                        directManipulationPbn cells
-                   )
+                ++ directManipulationPbn cells
                 ++ [ downloadButton ]
 
 
