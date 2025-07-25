@@ -730,7 +730,7 @@ view model =
             [ button
                 [ A.id "devmode"
                 , E.onClick UserClickedDevMode
-                , A.title "Sets fun value to 65"
+                , A.title "Set fun value to 65"
                 ]
                 [ text "devmode" ]
             ]
