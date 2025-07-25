@@ -140,6 +140,21 @@ app.ports.oPbnInit.subscribe((msg) => {
         );
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
+        alert(
+            `Honeybee cannot figure out how to make an analysis script for this experiment.
+
+Here are some things to try:
+
+1. Make sure there are no missing steps in your experimental workflow or typos in your descriptions of the steps.
+
+2. Make sure your selected goal is actually the goal you have for the experiment.
+
+3. Make sure your selected goal can actually be achieved using the steps in your experiment.
+
+If none of these steps help, it is likely that the Honeybee library does not (yet!) include the comptuational steps you need.
+
+In any case, please feel free reach out to Justin at justinlubin@berkeley.edu with a screenshot of this page for help! ☺`,
+        );
         console.error(e);
     }
 });

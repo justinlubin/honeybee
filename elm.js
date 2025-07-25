@@ -7661,51 +7661,35 @@ var $author$project$View$pbnStatus = function (ms) {
 								cells))
 						]))
 				]));
-		var _v1 = function () {
+		var downloadButton = function () {
 			if (output.$ === 'Nothing') {
-				return _Utils_Tuple2(
-					A2(
-						$elm$core$List$all,
-						function (c) {
-							if (c.$ === 'Code') {
-								return true;
-							} else {
-								var x = c.a;
-								return $elm$core$List$isEmpty(x.functionChoices);
-							}
-						},
-						cells),
-					$elm$html$Html$text(''));
+				return $elm$html$Html$text('');
 			} else {
 				var solutionString = output.a;
-				return _Utils_Tuple2(
-					false,
-					A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('pbn-completed')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('standout-button'),
-										$elm$html$Html$Events$onClick(
-										$author$project$Update$UserRequestedDownload(
-											{filename: 'analysis.py', text: solutionString}))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Download analysis script')
-									]))
-							])));
+				return A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('pbn-completed')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('standout-button'),
+									$elm$html$Html$Events$onClick(
+									$author$project$Update$UserRequestedDownload(
+										{filename: 'analysis.py', text: solutionString}))
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Download analysis script')
+								]))
+						]));
 			}
 		}();
-		var impossible = _v1.a;
-		var downloadButton = _v1.b;
 		return _Utils_ap(
 			_List_fromArray(
 				[
@@ -7782,50 +7766,7 @@ var $author$project$View$pbnStatus = function (ms) {
 					outline
 				]),
 			_Utils_ap(
-				impossible ? _List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('pbn-impossible')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Honeybee can\'t figure out how to make analysis script for this experiment.')
-									])),
-								A2(
-								$elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('There might be missing steps (or typos) in your experiment. Alternatively, the Honeybee library might not include the computational steps you need.')
-									])),
-								A2(
-								$elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Please reach out to Justin at'),
-										A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href('mailto://justinlubin@berkeley.edu')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('justinlubin@berkeley.edu')
-											])),
-										$elm$html$Html$text('for help!')
-									]))
-							]))
-					]) : $author$project$View$directManipulationPbn(cells),
+				$author$project$View$directManipulationPbn(cells),
 				_List_fromArray(
 					[downloadButton])));
 	}
