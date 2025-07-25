@@ -8255,6 +8255,16 @@ var $author$project$View$view = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text('devmode')
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('version-number')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(' version 5e2206b')
 							]))
 					])),
 				A3(
