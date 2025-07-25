@@ -1,6 +1,6 @@
 [package]
 name = "honeybee"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Justin Lubin <justin@jlubin.net>"]
 edition = "2021"
 readme = "README.md"
