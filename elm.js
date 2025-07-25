@@ -8309,7 +8309,7 @@ var $author$project$View$view = function (model) {
 							[
 								$elm$html$Html$Attributes$id('devmode'),
 								$elm$html$Html$Events$onClick($author$project$Update$UserClickedDevMode),
-								$elm$html$Html$Attributes$title('Sets fun value to 65')
+								$elm$html$Html$Attributes$title('Set fun value to 65')
 							]),
 						_List_fromArray(
 							[
