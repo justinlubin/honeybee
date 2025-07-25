@@ -8264,7 +8264,7 @@ var $author$project$View$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(' version 5e2206b')
+								$elm$html$Html$text(' version a0996a9')
 							]))
 					])),
 				A3(
