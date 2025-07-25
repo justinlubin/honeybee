@@ -704,6 +704,7 @@ view model =
                 , A.title "Set fun value to 65"
                 ]
                 [ text "devmode" ]
+            , span [ A.class "version-number" ] [ text " version <<<COMMIT-SHORT-HASH>>>" ]
             ]
         , pane
             []

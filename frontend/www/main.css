@@ -218,6 +218,11 @@ button {
     padding: 10px;
 }
 
+.version-number {
+    color: rgba(255, 255, 255, 0.25);
+    margin-left: 10px;
+}
+
 #devmode {
     opacity: 0.01;
     font-size: 0.5em;
