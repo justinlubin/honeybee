@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+make
+
 shopt -s extglob
 
 TO="__gh-pages"
