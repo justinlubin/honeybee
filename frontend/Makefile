@@ -14,7 +14,7 @@ clean:
 	rm $(OUT_DIR)/pkg/honeybee.js
 	rm $(OUT_DIR)/std-bio.hblib.toml
 
-$(OUT_DIR)/elm.js: $(wildcard src/*.elm) .current-commit
+$(OUT_DIR)/elm.js: $(wildcard src/*.elm)
 ifeq ($(OPTIMIZE_ELM),true)
 	elm make src/Main.elm --optimize --output=$(OUT_DIR)/elm.js || touch $(OUT_DIR)/elm.js
 	uglifyjs $(OUT_DIR)/elm.js --compress "pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe" | uglifyjs --mangle --output $(OUT_DIR)/elm.min.js
