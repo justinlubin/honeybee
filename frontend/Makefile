@@ -22,12 +22,8 @@ ifeq ($(OPTIMIZE_ELM),true)
 else
 	elm make src/Main.elm --output=$(OUT_DIR)/elm.js || touch $(OUT_DIR)/elm.js
 endif
-	CURRENT_COMMIT=$$(cat .current-commit) && \
-	sed "s/<<<COMMIT-SHORT-HASH>>>/$$CURRENT_COMMIT/g" $(OUT_DIR)/elm.js > $(OUT_DIR)/elm.js.tmp && \
+	sed "s/<<<COMMIT-SHORT-HASH>>>/$(CURRENT_COMMIT)/g" $(OUT_DIR)/elm.js > $(OUT_DIR)/elm.js.tmp
 	mv $(OUT_DIR)/elm.js.tmp $(OUT_DIR)/elm.js
-
-.current-commit:
-	git rev-parse --short HEAD > .current-commit
 
 $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 	cd ../backend/ && \

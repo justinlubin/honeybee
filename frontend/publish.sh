@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-make
+make clean
+make all
 
 shopt -s extglob
 
