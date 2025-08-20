@@ -68,6 +68,9 @@ class Milk:
     class D:
         pass
 
+    static: S
+    dynamic: D
+
 @Type(var_name="ICE")
 class Ice:
     "Ice"
@@ -79,6 +82,9 @@ class Ice:
     @dataclass
     class D:
         pass
+
+    static: S
+    dynamic: D
 
 @Type(var_name="ICE_CREAM")
 class IceCream:
@@ -93,6 +99,9 @@ class IceCream:
     class D:
         pass
 
+    #static: S
+    dynamic: D
+
 @Type(var_name="MIX_IN_TOPPING")
 class MixInTopping:
     "Mix-in/topping"
@@ -106,6 +115,9 @@ class MixInTopping:
     class D:
         pass
 
+    static: S
+    dynamic: D
+
 @Type(var_name="FROZEN_DESSERT")
 class FrozenDessert:
     "Frozen dessert"
@@ -117,6 +129,9 @@ class FrozenDessert:
     @dataclass
     class D:
         pass
+
+    static: S
+    dynamic: D
 
 @Function(
     "LactoseIntolerant { intolerant = 0 }",

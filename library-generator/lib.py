@@ -99,9 +99,11 @@ def _emit_function(f, condition, kwargs):
             # for some reason re.split('.', arg) didnt work
             split = re.split(r'[.]', arg)
             # error if len != 2
-            if len(split) != 2:
+            if len(split) == 1:
+                return str
+            if len(split) > 2:
                 raise ValueError(
-                    f"In type_of too may or too few dots '{arg}'"
+                    f"In type_of too many dots '{arg}'"
                 )   
             # split left and right
             lhs = split[0]
@@ -186,13 +188,48 @@ def _emit_function(f, condition, kwargs):
                 raise ValueError(
                     f"lhs and rhs are not same type in function '{f.__name__}'"
                 )
-            '''
         else:
-            print("prop")
-            '''
-
-
-
+            # expecting c to be len 2 here- no reason for more than one {
+            if len(c) != 2:
+                raise ValueError(
+                    f"condition should not have more than one opening curly brace in function '{f.__name__}'"
+                )
+            prop_name = c[0]
+            # make sure prop name exists
+            if prop_name not in props:
+                raise ValueError(
+                    f"prop name not in props in function '{f.__name__}'"
+                )
+            c = c[1]
+            c = re.split('}', c)
+            if len(c) != 2:
+                raise ValueError(
+                    f"prop conditions doesn't have one closing curly brace in function '{f.__name__}'"
+                )
+            c = c[0]
+            # split on =
+            c = re.split('=', c)
+            if len(c) != 2:
+                raise ValueError(
+                    f"no lhs, rhs in function '{f.__name__}'"
+                )
+            lhs = c[0]
+            rhs = c[1]
+            # make sure lhs is a field of prop name
+            prop_cls = props[prop_name]
+            if lhs not in prop_cls.__annotations__:
+                raise ValueError(
+                    f"field name not in prop in function '{f.__name__}'"
+                )
+            # get type of lhs
+            lhs_type = prop_cls.__annotations__[lhs]
+            # get type of rhs
+            rhs_type = type_of(rhs)
+            # compare types
+            if lhs_type is not rhs_type:
+                raise ValueError(
+                    f"lhs and rhs are not same type in function '{f.__name__}'"
+                )
 
 
         print(f'    "{c_original}",')
@@ -239,11 +276,30 @@ def Prop(*args, **kwargs):
 def Type(*args, **kwargs):
     def wrap(cls):
         classes[cls.__name__] = cls
-        #print("the classes:")
-        #print(classes)
         _emit_fact("Type", cls.S, cls, kwargs)
         cls.S.__honeybee_parent = cls
         cls.D.__honeybee_parent = cls
+        
+        if '__annotations__' not in dir(cls):
+            raise ValueError("Doesn't have annotations")
+
+        if 'static' not in cls.__annotations__:
+            raise ValueError("Doesn't have static")
+        # name of cls.__annotations__['static'].__name__ needs to be S
+        if cls.__annotations__['static'].__name__ != 'S':
+            raise ValueError("static type is not S")
+        # cls.__annotations__['static'].__honeybee_parent should be same as cls
+        if cls.__annotations__['static'].__honeybee_parent != cls:
+            raise ValueError("static parent is not cls")
+        
+        if 'dynamic' not in cls.__annotations__:
+            raise ValueError("Doesn't have dynamic")
+        # name of cls.__annotations__['dynamic'].__name__ needs to be D
+        if cls.__annotations__['dynamic'].__name__ != 'D':
+            raise ValueError("dynamic type is not D")
+        # cls.__annotations__['static'].__honeybee_parent should be same as cls
+        if cls.__annotations__['dynamic'].__honeybee_parent != cls:
+            raise ValueError("dynamic parent is not cls")
         cls.__honeybee_object = "Type"
         return cls
 
