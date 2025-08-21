@@ -171,9 +171,9 @@ def _emit_function(f, condition, kwargs):
         # split on '{' if len 2 this has to do with proposition
         c = re.split('{', c)
         if len(c) == 1:
+            # binary operator
             c = re.split(r'[=|!=|<]', c[0])
             # if len of c is not two, that means one of those characters was not found or too many were found
-            # make sure this works on <=
             if len(c) != 2:
                 raise ValueError(
                     f"expectd = OR != OR < in condition '{c_original}' function '{f.__name__}'"
@@ -205,6 +205,10 @@ def _emit_function(f, condition, kwargs):
             if len(c) != 2:
                 raise ValueError(
                     f"prop conditions doesn't have one closing curly brace in function '{f.__name__}'"
+                )
+            if c[1] != '':
+                raise ValueError(
+                    f"extra stuff after end of condition in function '{f.__name__}'"
                 )
             c = c[0]
             # split on =
@@ -279,7 +283,7 @@ def Type(*args, **kwargs):
         _emit_fact("Type", cls.S, cls, kwargs)
         cls.S.__honeybee_parent = cls
         cls.D.__honeybee_parent = cls
-        
+
         if '__annotations__' not in dir(cls):
             raise ValueError("Doesn't have annotations")
 
