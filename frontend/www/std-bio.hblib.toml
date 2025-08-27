@@ -17,15 +17,64 @@ content='''def sample_names(filename):
     sn = RUN(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
     return sn'''
 
-[Prop.RNASeqProp]
+[Prop.P_SraRnaSeq]
+params.label = "Str"
+params.sra_sample_sheet = "Str"
+info.title = "RNA-seq data from SRA"
+info.params.label = "Label for data"
+info.params.sra_sample_sheet = "Path to sample sheet CSV with SRA metadata"
+info.code = '''@dataclass
+class P_SraRnaSeq:
+    "RNA-seq data from SRA"
+
+    label: str
+    "Label for data"
+
+    sra_sample_sheet: str
+    "Path to sample sheet CSV with SRA metadata"'''
+
+[Type.SraRnaSeq]
+params.label = "Str"
+params.sra_sample_sheet = "Str"
+info.params.label = "Label for data"
+info.params.sra_sample_sheet = "Path to sample sheet CSV with SRA metadata"
+info.code = '''@dataclass
+class SraRnaSeq:
+@dataclass
+    class S:
+        "RNA-seq data from SRA"
+
+        label: str
+        "Label for data"
+
+        sra_sample_sheet: str
+        "Path to sample sheet CSV with SRA metadata"
+
+@dataclass
+    class D:
+        pass'''
+
+[Function.sra_rna_seq]
+params = {}
+ret = "SraRnaSeq"
+condition = [
+    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+]
+info.description = """TODO"""
+info.code = '''def sra_rna_seq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
+    "TODO"
+    SraRnaSeq.D()'''
+
+[Prop.P_LocalRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
 info.title = "RNA-seq"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
-info.params.raw_data = "Path to raw FASTQ files"
-info.code = '''class RNASeqProp:
+info.params.raw_data = "Path to directory containing raw reads (FASTQ files)"
+info.code = '''@dataclass
+class P_LocalRnaSeq:
     "RNA-seq"
 
     label: str
@@ -35,21 +84,21 @@ info.code = '''class RNASeqProp:
     "Path to sample sheet CSV"
 
     raw_data: str
-    "Path to raw FASTQ files"'''
+    "Path to directory containing raw reads (FASTQ files)"'''
 
-[Type.RNASeqSampleSheet]
+[Type.LocalRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
 params.raw_data = "Str"
-info.title = "Loaded RNA-seq sample metadata"
+info.title = "RNA-seq"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
-info.params.raw_data = "Path to raw FASTQ files"
-info.var_name = "RNA_SAMPLES"
-info.code = '''class RNASeqSampleSheet:
-    "Loaded RNA-seq sample metadata"
+info.params.raw_data = "Path to directory containing raw reads (FASTQ files)"
+info.code = '''@dataclass
+class LocalRnaSeq:
+    "RNA-seq"
 
-    @dataclass
+@dataclass
     class S:
         label: str
         "Label for data"
@@ -58,22 +107,22 @@ info.code = '''class RNASeqSampleSheet:
         "Path to sample sheet CSV"
 
         raw_data: str
-        "Path to raw FASTQ files"
+        "Path to directory containing raw reads (FASTQ files)"
 
-    @dataclass
+@dataclass
     class D:
         pass'''
 
-[Function.load_rna_seq_sample_sheet]
+[Function.local_rna_seq]
 params = {}
-ret = "RNASeqSampleSheet"
+ret = "LocalRnaSeq"
 condition = [
-    "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 ]
-info.description = """Load RNA-seq sample sheet"""
-info.code = '''def load_rna_seq_sample_sheet(ret: RNASeqSampleSheet.S) -> RNASeqSampleSheet.D:
-    """Load RNA-seq sample sheet"""
-    return RNASeqSampleSheet.D()'''
+info.description = """TODO"""
+info.code = '''def local_rna_seq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
+    "TODO"
+    LocalRnaSeq.D()'''
 
 [Type.RNASeq]
 params.label = "Str"
@@ -81,10 +130,11 @@ params.qc = "Bool"
 info.title = "Raw RNA-seq data (reads)"
 info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
-info.code = '''class RNASeq:
+info.code = '''@dataclass
+class RNASeq:
     "Raw RNA-seq data (reads)"
 
-    @dataclass
+@dataclass
     class S:
         label: str
         "Label for data"
@@ -92,34 +142,59 @@ info.code = '''class RNASeq:
         qc: bool
         "Whether or not quality checks have been run"
 
-    @dataclass
+@dataclass
     class D:
         sample_sheet: str
         path: str'''
 
-[Function.load_rna_seq_reads]
-params.samples = "RNASeqSampleSheet"
+[Function.from_local_rna_seq]
+params.local = "LocalRnaSeq"
 ret = "RNASeq"
 condition = [
-    "ret.label = samples.label",
+    "LocalRnaSeq { label = ret.label, sample_sheet = _, raw_data = _ }",
     "ret.qc = false",
 ]
-info.title = "Load RNA-seq reads"
-info.description = """# Directly load RNA-seq reads
+info.title = "Load local RNA-seq"
+info.description = """# Directly load local RNA-seq reads
 
-This function directly loads a dataset of RNA-seq reads, usually in the
-.fastq.gz file format."""
-info.code = '''def load_rna_seq_reads(samples: RNASeqSampleSheet, ret: RNASeq.S) -> RNASeq.D:
-    """Load RNA-seq reads
+This function loads raw RNA-seq data that you already have on your computer,
+typically in the .fastq.gz file format."""
+info.code = '''def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+    """Load local RNA-seq
 
-    # Directly load RNA-seq reads
+    # Directly load local RNA-seq reads
 
-    This function directly loads a dataset of RNA-seq reads, usually in the
-    .fastq.gz file format."""
+    This function loads raw RNA-seq data that you already have on your computer,
+    typically in the .fastq.gz file format."""
 
     return RNASeq.D(
-        sample_sheet=samples.static.sample_sheet,
-        path=samples.static.raw_data,
+        sample_sheet=local.static.sample_sheet,
+        path=local.static.raw_data,
+    )'''
+
+[Function.from_local_rna_seq]
+params.sra = "SraRnaSeq"
+ret = "RNASeq"
+condition = [
+    "SraRnaSeq { label = ret.label, sra_sample_sheet = _ }",
+    "ret.qc = false",
+]
+info.title = "Load RNA-seq from SRA"
+info.description = """# Load RNA-seq reads from SRA database
+
+This function loads RNA-seq data from the
+[NCBI SRA database](https://www.ncbi.nlm.nih.gov/sra/)."""
+info.code = '''def from_local_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+    """Load RNA-seq from SRA
+
+    # Load RNA-seq reads from SRA database
+
+    This function loads RNA-seq data from the
+    [NCBI SRA database](https://www.ncbi.nlm.nih.gov/sra/)."""
+
+    return RNASeq.D(
+        sample_sheet=sra.static.sample_sheet,
+        path=local.static.raw_data,
     )'''
 
 [Type.TranscriptMatrices]
@@ -138,7 +213,8 @@ read count matrices:
 > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
 > https://doi.org/10.1186/s13059-016-0881-8"""
 info.params.label = "Label for RNA-seq data to analyze"
-info.code = '''class TranscriptMatrices:
+info.code = '''@dataclass
+class TranscriptMatrices:
     """Read count (and TPM abundance) matrix for RNA-seq samples
 
     The goal of this step is to calculate two two transcript × sample matrices:
@@ -155,11 +231,13 @@ info.code = '''class TranscriptMatrices:
     > https://doi.org/10.1186/s13059-016-0881-8"""
 
     @dataclass
+@dataclass
     class S:
         label: str
         "Label for RNA-seq data to analyze"
 
     @dataclass
+@dataclass
     class D:
         sample_sheet: str
         path: str'''
@@ -506,15 +584,18 @@ info.code = '''def combat_seq(
 params.label = "Str"
 info.title = "Alignment to a reference genome"
 info.params.label = "Label for data"
-info.code = '''class Alignment:
+info.code = '''@dataclass
+class Alignment:
     "Alignment to a reference genome"
 
     @dataclass
+@dataclass
     class S:
         label: str
         "Label for data"
 
     @dataclass
+@dataclass
     class D:
         sample_sheet: str
         path: str'''
@@ -567,7 +648,8 @@ info.title = "CUT&RUN-seq"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
-info.code = '''class CutAndRunProp:
+info.code = '''@dataclass
+class CutAndRunProp:
     "CUT&RUN-seq"
 
     label: str
@@ -587,7 +669,8 @@ info.title = "EM-seq"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FASTQ files"
-info.code = '''class EMSeqProp:
+info.code = '''@dataclass
+class EMSeqProp:
     "EM-seq"
 
     label: str
@@ -607,7 +690,8 @@ info.title = "Flow cytometry"
 info.params.label = "Label for data"
 info.params.sample_sheet = "Path to sample sheet CSV"
 info.params.raw_data = "Path to raw FCS files"
-info.code = '''class FlowProp:
+info.code = '''@dataclass
+class FlowProp:
     "Flow cytometry"
 
     label: str
@@ -623,7 +707,8 @@ info.code = '''class FlowProp:
 params.label = "Str"
 info.title = "Sort cells with FACS"
 info.params.label = "Label for data"
-info.code = '''class SortProp:
+info.code = '''@dataclass
+class SortProp:
     "Sort cells with FACS"
 
     label: str
@@ -633,7 +718,8 @@ info.code = '''class SortProp:
 params.label = "Str"
 info.title = "Stain cells with antibodies"
 info.params.label = "Label for data"
-info.code = '''class StainProp:
+info.code = '''@dataclass
+class StainProp:
     "Stain cells with antibodies"
 
     label: str
@@ -645,7 +731,8 @@ params.library = "Str"
 info.title = "Infect cells with CRISPR sgRNA guide library"
 info.params.label = "Label for data"
 info.params.library = "Path to the library file"
-info.code = '''class TransfectProp:
+info.code = '''@dataclass
+class TransfectProp:
     "Infect cells with CRISPR sgRNA guide library"
 
     label: str

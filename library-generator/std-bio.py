@@ -22,12 +22,45 @@ def sample_names(filename):
 
 
 ################################################################################
-# RNA-seq
+# Raw RNA-seq data (reads)
 
 
-# TODO auto-generate from RNASeqSampleSheet?
 @Prop
-class RNASeqProp:
+class P_SraRnaSeq:
+    "RNA-seq data from SRA"
+
+    label: str
+    "Label for data"
+
+    sra_sample_sheet: str
+    "Path to sample sheet CSV with SRA metadata"
+
+
+@Type
+class SraRnaSeq:
+    class S:
+        "RNA-seq data from SRA"
+
+        label: str
+        "Label for data"
+
+        sra_sample_sheet: str
+        "Path to sample sheet CSV with SRA metadata"
+
+    class D:
+        pass
+
+
+@Function(
+    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+)
+def sra_rna_seq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
+    "TODO"
+    SraRnaSeq.D()
+
+
+@Prop
+class P_LocalRnaSeq:
     "RNA-seq"
 
     label: str
@@ -37,14 +70,13 @@ class RNASeqProp:
     "Path to sample sheet CSV"
 
     raw_data: str
-    "Path to raw FASTQ files"
+    "Path to directory containing raw reads (FASTQ files)"
 
 
-@Type(var_name="RNA_SAMPLES")
-class RNASeqSampleSheet:
-    "Loaded RNA-seq sample metadata"
+@Type
+class LocalRnaSeq:
+    "RNA-seq"
 
-    @dataclass
     class S:
         label: str
         "Label for data"
@@ -53,27 +85,24 @@ class RNASeqSampleSheet:
         "Path to sample sheet CSV"
 
         raw_data: str
-        "Path to raw FASTQ files"
+        "Path to directory containing raw reads (FASTQ files)"
 
-    @dataclass
     class D:
         pass
 
 
-# TODO auto-generate?
 @Function(
-    "RNASeqProp { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }"
+    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 )
-def load_rna_seq_sample_sheet(ret: RNASeqSampleSheet.S) -> RNASeqSampleSheet.D:
-    """Load RNA-seq sample sheet"""
-    return RNASeqSampleSheet.D()
+def local_rna_seq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
+    "TODO"
+    LocalRnaSeq.D()
 
 
 @Type
 class RNASeq:
     "Raw RNA-seq data (reads)"
 
-    @dataclass
     class S:
         label: str
         "Label for data"
@@ -81,28 +110,49 @@ class RNASeq:
         qc: bool
         "Whether or not quality checks have been run"
 
-    @dataclass
     class D:
         sample_sheet: str
         path: str
 
 
 @Function(
-    "ret.label = samples.label",
+    "LocalRnaSeq { label = ret.label, sample_sheet = _, raw_data = _ }",
     "ret.qc = false",
 )
-def load_rna_seq_reads(samples: RNASeqSampleSheet, ret: RNASeq.S) -> RNASeq.D:
-    """Load RNA-seq reads
+def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+    """Load local RNA-seq
 
-    # Directly load RNA-seq reads
+    # Directly load local RNA-seq reads
 
-    This function directly loads a dataset of RNA-seq reads, usually in the
-    .fastq.gz file format."""
+    This function loads raw RNA-seq data that you already have on your computer,
+    typically in the .fastq.gz file format."""
 
     return RNASeq.D(
-        sample_sheet=samples.static.sample_sheet,
-        path=samples.static.raw_data,
+        sample_sheet=local.static.sample_sheet,
+        path=local.static.raw_data,
     )
+
+
+@Function(
+    "SraRnaSeq { label = ret.label, sra_sample_sheet = _ }",
+    "ret.qc = false",
+)
+def from_local_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+    """Load RNA-seq from SRA
+
+    # Load RNA-seq reads from SRA database
+
+    This function loads RNA-seq data from the
+    [NCBI SRA database](https://www.ncbi.nlm.nih.gov/sra/)."""
+
+    return RNASeq.D(
+        sample_sheet=sra.static.sample_sheet,
+        path=local.static.raw_data,
+    )
+
+
+################################################################################
+# Raw RNA-seq data (reads)
 
 
 @Type
