@@ -1,11 +1,24 @@
-from dataclasses import dataclass
-
 from lib import Function, Helper, Prop, Type
 
 
 @Helper
-def RUN(command):
+def bash(command):
     import subprocess
+
+    print(f"Running bash command:\n\n{command}\n")
+
+    subprocess.run(
+        command,
+        shell=True,
+        text=True,
+    )
+
+
+@Helper
+def capture_bash(command):
+    import subprocess
+
+    print(f"Running bash command:\n\n{command}\n")
 
     return subprocess.run(
         command,
@@ -17,7 +30,7 @@ def RUN(command):
 
 @Helper
 def sample_names(filename):
-    sn = RUN(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
+    sn = capture_bash(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
     return sn
 
 
@@ -25,83 +38,81 @@ def sample_names(filename):
 # Raw RNA-seq data (reads)
 
 
-@Prop
-class P_SraRnaSeq:
-    "RNA-seq data from SRA"
-
-    label: str
-    "Label for data"
-
-    sra_sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata"
-
-
 @Type
 class SraRnaSeq:
     class S:
-        "RNA-seq data from SRA"
-
         label: str
-        "Label for data"
-
-        sra_sample_sheet: str
-        "Path to sample sheet CSV with SRA metadata"
+        sample_sheet: str
 
     class D:
         pass
+
+
+@Prop
+class P_SraRnaSeq:
+    "RNA-seq (stored on remote Sequence Read Archive)"
+
+    label: str
+    "Label for data, like 'main' or 'JL001'"
+
+    sample_sheet: str
+    "Path to sample sheet CSV with SRA metadata (columnsyy: sample_name,condition,replicate,srr)"
 
 
 @Function(
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 )
-def sra_rna_seq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
+def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
     "TODO"
     SraRnaSeq.D()
 
 
-@Prop
-class P_LocalRnaSeq:
-    "RNA-seq"
-
-    label: str
-    "Label for data"
-
-    sample_sheet: str
-    "Path to sample sheet CSV"
-
-    raw_data: str
-    "Path to directory containing raw reads (FASTQ files)"
-
-
 @Type
 class LocalRnaSeq:
-    "RNA-seq"
-
     class S:
         label: str
-        "Label for data"
-
         sample_sheet: str
-        "Path to sample sheet CSV"
-
-        raw_data: str
-        "Path to directory containing raw reads (FASTQ files)"
 
     class D:
         pass
 
 
+@Prop
+class P_LocalRnaSeq:
+    "RNA-seq (locally-saved)"
+
+    label: str
+    "Label for data, like 'main' or 'JPL001'"
+
+    sample_sheet: str
+    "Path to sample sheet CSV (columns: sample_name,condition,replicate,forward,reverse)"
+
+
 @Function(
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 )
-def local_rna_seq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
+def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
     "TODO"
     LocalRnaSeq.D()
 
 
 @Type
 class RNASeq:
-    "Raw RNA-seq data (reads)"
+    """RNA-seq reads
+
+    The goal of this step is to get RNA-seq reads.
+
+    These reads can either be raw data (that is, the direct output of a machine
+    like an
+    [Illumina sequencer](https://www.illumina.com/systems/sequencing-platforms.html), or
+    can be the result of pre-processing that raw data.
+
+    Many pre-processing techniques (like
+    [adapter trimming](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002905))
+    require that the RNA-seq reads undergo _quality control_ (QC) checks using
+    a tool like
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    before and after running the tool."""
 
     class S:
         label: str
@@ -112,42 +123,65 @@ class RNASeq:
 
     class D:
         sample_sheet: str
-        path: str
 
 
 @Function(
-    "LocalRnaSeq { label = ret.label, sample_sheet = _, raw_data = _ }",
+    "ret.label = local.label",
     "ret.qc = false",
 )
 def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Load local RNA-seq
-
-    # Directly load local RNA-seq reads
+    """Load local RNA-seq data
 
     This function loads raw RNA-seq data that you already have on your computer,
     typically in the .fastq.gz file format."""
 
     return RNASeq.D(
         sample_sheet=local.static.sample_sheet,
-        path=local.static.raw_data,
     )
 
 
 @Function(
-    "SraRnaSeq { label = ret.label, sra_sample_sheet = _ }",
+    "ret.label = local.label",
     "ret.qc = false",
 )
-def from_local_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Load RNA-seq from SRA
-
-    # Load RNA-seq reads from SRA database
+def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+    """Download RNA-seq data from European Nucleotide Archive (ENA)
 
     This function loads RNA-seq data from the
-    [NCBI SRA database](https://www.ncbi.nlm.nih.gov/sra/)."""
+    [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
+    SRR accession identifiers."""
+
+    import polars as pl
+
+    df = pl.read_csv(sra.static.sample_sheet).with_columns(
+        path=pl.col("sample_name") + pl.lit(".fastq")
+    )
+
+    outdir = f"output/{sra.static.label}/sra/"
+
+    for srr in df["srr"]:
+        base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
+        base_url += srr[:6] + "/"
+        base_url += srr[9:].zfill(3) + "/"
+        base_url += srr + "/"
+
+        # Assumes forward (_1) and reverse (_2) reads exist
+
+        bash(f"""
+             wget -nc --directory-prefix={outdir} {base_url}{srr}_1.fastq.gz
+        """)
+
+        bash(f"""
+             wget -nc --directory-prefix={outdir} {base_url}{srr}_2.fastq.gz
+        """)
+
+    df.with_columns(
+        forward=pl.lit(outdir) + pl.col("srr") + pl.lit("_1.fastq.gz"),
+        reverse=pl.lit(outdir) + pl.col("srr") + pl.lit("_2.fastq.gz"),
+    ).drop("srr").write_csv(outdir + "sample_sheet.csv")
 
     return RNASeq.D(
-        sample_sheet=sra.static.sample_sheet,
-        path=local.static.raw_data,
+        sample_sheet=outdir + "sample_sheet.csv",
     )
 
 
@@ -172,12 +206,10 @@ class TranscriptMatrices:
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
     > https://doi.org/10.1186/s13059-016-0881-8"""
 
-    @dataclass
     class S:
         label: str
         "Label for RNA-seq data to analyze"
 
-    @dataclass
     class D:
         sample_sheet: str
         path: str
@@ -408,12 +440,10 @@ def combat_seq(
 class Alignment:
     "Alignment to a reference genome"
 
-    @dataclass
     class S:
         label: str
         "Label for data"
 
-    @dataclass
     class D:
         sample_sheet: str
         path: str

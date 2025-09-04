@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Define Honeybee libraries using Python"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "polars>=1.33.0",
+]
 
 [tool.uv]
 dev-dependencies = [

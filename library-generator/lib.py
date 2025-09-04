@@ -1,4 +1,5 @@
 import ast
+import dataclasses
 import inspect
 
 
@@ -138,6 +139,7 @@ def _emit_function(f, condition, kwargs):
 def Prop(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Prop", cls, cls, kwargs)
+        cls = dataclasses.dataclass(cls)
         cls.__honeybee_object = "Prop"
         return cls
 
@@ -151,6 +153,11 @@ def Prop(*args, **kwargs):
 def Type(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Type", cls.S, cls, kwargs)
+        cls.S = dataclasses.dataclass(cls.S)
+        cls.D = dataclasses.dataclass(cls.D)
+        cls.__annotations__["static"] = cls.S
+        cls.__annotations__["dynamic"] = cls.D
+        cls = dataclasses.dataclass(cls)
         cls.S.__honeybee_parent = cls
         cls.D.__honeybee_parent = cls
         cls.__honeybee_object = "Type"
@@ -190,3 +197,5 @@ def Helper(f):
             continue
         new_code += line + "\n"
     print(f"[[Preamble]]\ncontent='''{new_code.strip()}'''\n")
+
+    return f

@@ -20,3 +20,6 @@ pldi25ae-honeybee.tar.gz
 # Frontend
 frontend/www/elm.js
 frontend/elm-stuff
+
+# Library
+library-generator/output
