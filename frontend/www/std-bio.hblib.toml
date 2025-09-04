@@ -5,6 +5,8 @@ content = 'from dataclasses import dataclass'
 content='''def bash(command):
     import subprocess
 
+    print(f"Running bash command:\n\n{command}\n")
+
     subprocess.run(
         command,
         shell=True,
@@ -14,6 +16,8 @@ content='''def bash(command):
 [[Preamble]]
 content='''def capture_bash(command):
     import subprocess
+
+    print(f"Running bash command:\n\n{command}\n")
 
     return subprocess.run(
         command,
@@ -29,20 +33,13 @@ content='''def sample_names(filename):
 
 [Type.SraRnaSeq]
 params.label = "Str"
-params.sra_sample_sheet = "Str"
-info.params.label = "Label for data"
-info.params.sra_sample_sheet = "Path to sample sheet CSV with SRA metadata (sample name, SRR accession)"
+params.sample_sheet = "Str"
 info.code = '''@dataclass
 class SraRnaSeq:
 @dataclass
     class S:
-        "RNA-seq data from SRA"
-
         label: str
-        "Label for data"
-
-        sra_sample_sheet: str
-        "Path to sample sheet CSV with SRA metadata (sample name, SRR accession)"
+        sample_sheet: str
 
 @dataclass
     class D:
@@ -50,19 +47,19 @@ class SraRnaSeq:
 
 [Prop.P_SraRnaSeq]
 params.label = "Str"
-params.sra_sample_sheet = "Str"
-info.title = "RNA-seq data from SRA"
-info.params.label = "Label for data"
-info.params.sra_sample_sheet = "Path to sample sheet CSV with SRA metadata"
+params.sample_sheet = "Str"
+info.title = "RNA-seq (stored on remote Sequence Read Archive)"
+info.params.label = "Label for data, like 'main' or 'JL001'"
+info.params.sample_sheet = "Path to sample sheet CSV with SRA metadata (columnsyy: sample_name,condition,replicate,srr)"
 info.code = '''@dataclass
 class P_SraRnaSeq:
-    "RNA-seq data from SRA"
+    "RNA-seq (stored on remote Sequence Read Archive)"
 
     label: str
-    "Label for data"
+    "Label for data, like 'main' or 'JL001'"
 
-    sra_sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata"'''
+    sample_sheet: str
+    "Path to sample sheet CSV with SRA metadata (columnsyy: sample_name,condition,replicate,srr)"'''
 
 [Function.F_SraRnaSeq]
 params = {}
@@ -78,25 +75,12 @@ info.code = '''def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
 [Type.LocalRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
-params.raw_data = "Str"
-info.title = "RNA-seq"
-info.params.label = "Label for data"
-info.params.sample_sheet = "Path to sample sheet CSV"
-info.params.raw_data = "Path to directory containing raw reads (FASTQ files)"
 info.code = '''@dataclass
 class LocalRnaSeq:
-    "RNA-seq"
-
 @dataclass
     class S:
         label: str
-        "Label for data"
-
         sample_sheet: str
-        "Path to sample sheet CSV"
-
-        raw_data: str
-        "Path to directory containing raw reads (FASTQ files)"
 
 @dataclass
     class D:
@@ -105,23 +89,18 @@ class LocalRnaSeq:
 [Prop.P_LocalRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
-params.raw_data = "Str"
-info.title = "RNA-seq"
-info.params.label = "Label for data"
-info.params.sample_sheet = "Path to sample sheet CSV"
-info.params.raw_data = "Path to directory containing raw reads (FASTQ files)"
+info.title = "RNA-seq (locally-saved)"
+info.params.label = "Label for data, like 'main' or 'JPL001'"
+info.params.sample_sheet = "Path to sample sheet CSV (columns: sample_name,condition,replicate,forward,reverse)"
 info.code = '''@dataclass
 class P_LocalRnaSeq:
-    "RNA-seq"
+    "RNA-seq (locally-saved)"
 
     label: str
-    "Label for data"
+    "Label for data, like 'main' or 'JPL001'"
 
     sample_sheet: str
-    "Path to sample sheet CSV"
-
-    raw_data: str
-    "Path to directory containing raw reads (FASTQ files)"'''
+    "Path to sample sheet CSV (columns: sample_name,condition,replicate,forward,reverse)"'''
 
 [Function.F_LocalRnaSeq]
 params = {}
@@ -137,12 +116,39 @@ info.code = '''def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
 [Type.RNASeq]
 params.label = "Str"
 params.qc = "Bool"
-info.title = "Raw RNA-seq data (reads)"
+info.title = "RNA-seq reads"
+info.description = """The goal of this step is to get RNA-seq reads.
+
+These reads can either be raw data (that is, the direct output of a machine
+like an
+[Illumina sequencer](https://www.illumina.com/systems/sequencing-platforms.html), or
+can be the result of pre-processing that raw data.
+
+Many pre-processing techniques (like
+[adapter trimming](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002905))
+require that the RNA-seq reads undergo _quality control_ (QC) checks using
+a tool like
+[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+before and after running the tool."""
 info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
 info.code = '''@dataclass
 class RNASeq:
-    "Raw RNA-seq data (reads)"
+    """RNA-seq reads
+
+    The goal of this step is to get RNA-seq reads.
+
+    These reads can either be raw data (that is, the direct output of a machine
+    like an
+    [Illumina sequencer](https://www.illumina.com/systems/sequencing-platforms.html), or
+    can be the result of pre-processing that raw data.
+
+    Many pre-processing techniques (like
+    [adapter trimming](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002905))
+    require that the RNA-seq reads undergo _quality control_ (QC) checks using
+    a tool like
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    before and after running the tool."""
 
 @dataclass
     class S:
@@ -154,8 +160,7 @@ class RNASeq:
 
 @dataclass
     class D:
-        sample_sheet: str
-        path: str'''
+        sample_sheet: str'''
 
 [Function.from_local_rna_seq]
 params.local = "LocalRnaSeq"
@@ -164,22 +169,17 @@ condition = [
     "ret.label = local.label",
     "ret.qc = false",
 ]
-info.title = "Load local RNA-seq"
-info.description = """# Directly load local RNA-seq reads
-
-This function loads raw RNA-seq data that you already have on your computer,
+info.title = "Load local RNA-seq data"
+info.description = """This function loads raw RNA-seq data that you already have on your computer,
 typically in the .fastq.gz file format."""
 info.code = '''def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Load local RNA-seq
-
-    # Directly load local RNA-seq reads
+    """Load local RNA-seq data
 
     This function loads raw RNA-seq data that you already have on your computer,
     typically in the .fastq.gz file format."""
 
     return RNASeq.D(
         sample_sheet=local.static.sample_sheet,
-        path=local.static.raw_data,
     )'''
 
 [Function.from_sra_rna_seq]
@@ -189,21 +189,587 @@ condition = [
     "ret.label = local.label",
     "ret.qc = false",
 ]
-info.title = "Load RNA-seq from SRA"
-info.description = """# Load RNA-seq reads from SRA database
-
-This function loads RNA-seq data from the
-[NCBI SRA database](https://www.ncbi.nlm.nih.gov/sra/)."""
+info.title = "Download RNA-seq data from European Nucleotide Archive (ENA)"
+info.description = """This function loads RNA-seq data from the
+[European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
+SRR accession identifiers."""
 info.code = '''def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Load RNA-seq from SRA
-
-    # Load RNA-seq reads from SRA database
+    """Download RNA-seq data from European Nucleotide Archive (ENA)
 
     This function loads RNA-seq data from the
-    [NCBI SRA database](https://www.ncbi.nlm.nih.gov/sra/)."""
+    [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
+    SRR accession identifiers."""
+
+    import polars as pl
+
+    df = pl.read_csv(sra.static.sample_sheet).with_columns(
+        path=pl.col("sample_name") + pl.lit(".fastq")
+    )
+
+    outdir = f"output/{sra.static.label}/sra/"
+
+    for srr in df["srr"]:
+        base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
+        base_url += srr[:6] + "/"
+        base_url += srr[9:].zfill(3) + "/"
+        base_url += srr + "/"
+
+        # Assumes forward (_1) and reverse (_2) reads exist
+
+        bash(f"""
+             wget -nc --directory-prefix={outdir} {base_url}{srr}_1.fastq.gz
+        """)
+
+        bash(f"""
+             wget -nc --directory-prefix={outdir} {base_url}{srr}_2.fastq.gz
+        """)
+
+    df.with_columns(
+        forward=pl.lit(outdir) + pl.col("srr") + pl.lit("_1.fastq.gz"),
+        reverse=pl.lit(outdir) + pl.col("srr") + pl.lit("_2.fastq.gz"),
+    ).drop("srr").write_csv(outdir + "sample_sheet.csv")
 
     return RNASeq.D(
-        sample_sheet=sra.static.sample_sheet,
-        path=sra.static.raw_data,
+        sample_sheet=outdir + "sample_sheet.csv",
     )'''
+
+[Type.TranscriptMatrices]
+params.label = "Str"
+info.title = "Read count (and TPM abundance) matrix for RNA-seq samples"
+info.description = """The goal of this step is to calculate two two transcript × sample matrices:
+- One with (estimated) read counts.
+- One with TPM (transcripts-per-million) abundance.
+
+These matrices can be used for plotting, differential expression testing,
+clustering, and many other downstream analyses. The following review
+provides an overview of RNA-seq data analysis, including information about
+read count matrices:
+
+> Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+> for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+> https://doi.org/10.1186/s13059-016-0881-8"""
+info.params.label = "Label for RNA-seq data to analyze"
+info.code = '''@dataclass
+class TranscriptMatrices:
+    """Read count (and TPM abundance) matrix for RNA-seq samples
+
+    The goal of this step is to calculate two two transcript × sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices:
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
+
+@dataclass
+    class S:
+        label: str
+        "Label for RNA-seq data to analyze"
+
+@dataclass
+    class D:
+        sample_sheet: str
+        path: str'''
+
+[Function.fastqc]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = false",
+    "ret.label = data.label",
+    "ret.qc = true",
+]
+info.title = "FastQC"
+info.description = """# Quality-check sequencing data with FastQC
+
+FastQC aims to provide a simple way to do some quality control checks on
+raw sequence data coming from high throughput sequencing pipelines. It
+provides a modular set of analyses which you can use to give a quick
+impression of whether your data has any problems of which you should be
+aware before doing any further analysis.
+
+*Description taken from [FastQC webpage](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).*"""
+info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """FastQC
+
+    # Quality-check sequencing data with FastQC
+
+    FastQC aims to provide a simple way to do some quality control checks on
+    raw sequence data coming from high throughput sequencing pipelines. It
+    provides a modular set of analyses which you can use to give a quick
+    impression of whether your data has any problems of which you should be
+    aware before doing any further analysis.
+
+    *Description taken from [FastQC webpage](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).*"""
+
+    print("Running fastqc...")
+
+    label = data.static.label
+    in_path = data.dynamic.path
+
+    RUN(f"mkdir -p output/{label}/fastqc")
+    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
+
+    return data.dynamic'''
+
+[Function.multiqc]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = false",
+    "ret.label = data.label",
+    "ret.qc = true",
+]
+info.title = "MultiQC"
+info.description = """# Quality-check sequencing data with MultiQC
+
+MultiQC aggregates the output of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+quality-control checks into a single page viewable in a web browser."""
+info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """MultiQC
+
+    # Quality-check sequencing data with MultiQC
+
+    MultiQC aggregates the output of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    quality-control checks into a single page viewable in a web browser."""
+
+    print("Running fastqc and multiqc...")
+
+    label = data.static.label
+    in_path = data.dynamic.path
+
+    RUN(f"mkdir -p output/{label}/fastqc")
+    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
+    RUN(f"multiqc --filename output/{label}/multiqc.html output/{label}/fastqc")
+
+    return data.dynamic'''
+
+[Function.cutadapt_illumina]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+    "ret.qc = false",
+]
+info.title = "cutadapt (Illumina RNA-seq)"
+info.description = """# Remove Illumina universal adaptor and poly-A tails with cutadapt
+
+Cutadapt finds and removes adapter sequences, primers, poly-A tails and
+other types of unwanted sequence from your high-throughput sequencing
+reads.
+
+Cleaning your data in this way is often required: Reads from small-RNA
+sequencing contain the 3’ sequencing adapter because the read is longer
+than the molecule that is sequenced. Amplicon reads start with a primer
+sequence. Poly-A tails are useful for pulling out RNA from your sample, but
+often you don’t want them to be in your reads.
+
+*Description taken from [cutadapt documentation](https://cutadapt.readthedocs.io/en/stable/).*
+
+## Use of cutadapt for this step
+
+This particular step of the pipeline will use cutadapt to remove the
+Illumina universal adaptor and poly-A tails. This is suitable for RNA-seq
+experiments with raw data coming from an Illumina machine."""
+info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """cutadapt (Illumina RNA-seq)
+
+    # Remove Illumina universal adaptor and poly-A tails with cutadapt
+
+    Cutadapt finds and removes adapter sequences, primers, poly-A tails and
+    other types of unwanted sequence from your high-throughput sequencing
+    reads.
+
+    Cleaning your data in this way is often required: Reads from small-RNA
+    sequencing contain the 3’ sequencing adapter because the read is longer
+    than the molecule that is sequenced. Amplicon reads start with a primer
+    sequence. Poly-A tails are useful for pulling out RNA from your sample, but
+    often you don’t want them to be in your reads.
+
+    *Description taken from [cutadapt documentation](https://cutadapt.readthedocs.io/en/stable/).*
+
+    ## Use of cutadapt for this step
+
+    This particular step of the pipeline will use cutadapt to remove the
+    Illumina universal adaptor and poly-A tails. This is suitable for RNA-seq
+    experiments with raw data coming from an Illumina machine."""
+
+    in_path = data.dynamic.path
+    ret_path = f"output/{ret.label}/cutadapt_trimmed"
+
+    RUN(f"mkdir -p {ret_path}")
+    for name in sample_names(data.sample_sheet):
+        print(f"Running cutadapt_illumina on {name}...")
+        RUN(f"""cutadapt \\
+                    --cores=0 \\
+                    -m 1 \\
+                    --poly-a \\
+                    -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
+                    -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
+                    -o {ret_path}/{name}_R1.fastq.gz \\
+                    -p {ret_path}/{name}_R2.fastq.gz \\
+                    {in_path}/{name}_R1_001.fastq.gz \\
+                    {in_path}/{name}_R2_001.fastq.gz""")
+
+    return RNASeq.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=ret_path,
+    )'''
+
+[Function.kallisto]
+params.data = "RNASeq"
+ret = "TranscriptMatrices"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+]
+info.title = "kallisto"
+info.description = """# Quantify transcript abundances *without* alignment using kallisto
+
+kallisto is a program for quantifying abundances of transcripts from
+RNA-Seq data, or more generally of target sequences using high-throughput
+sequencing reads. It is based on the novel idea of pseudoalignment for
+rapidly determining the compatibility of reads with targets, without the
+need for alignment. On benchmarks with standard RNA-Seq data, kallisto can
+quantify 30 million human bulk RNA-seq reads in less than 3 minutes on a
+Mac desktop computer using only the read sequences and a transcriptome
+index that itself takes than 10 minutes to build. Pseudoalignment of reads
+preserves the key information needed for quantification, and kallisto is
+therefore not only fast, but also comparably accurate to other existing
+quantification tools. In fact, because the pseudoalignment procedure is
+robust to errors in the reads, in many benchmarks kallisto significantly
+outperforms existing tools. The kallisto algorithms are described in more
+detail in:
+
+> NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
+> RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016).
+
+*Description taken from [kallisto GitHub repository](https://github.com/pachterlab/kallisto).*"""
+info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """kallisto
+
+    # Quantify transcript abundances *without* alignment using kallisto
+
+    kallisto is a program for quantifying abundances of transcripts from
+    RNA-Seq data, or more generally of target sequences using high-throughput
+    sequencing reads. It is based on the novel idea of pseudoalignment for
+    rapidly determining the compatibility of reads with targets, without the
+    need for alignment. On benchmarks with standard RNA-Seq data, kallisto can
+    quantify 30 million human bulk RNA-seq reads in less than 3 minutes on a
+    Mac desktop computer using only the read sequences and a transcriptome
+    index that itself takes than 10 minutes to build. Pseudoalignment of reads
+    preserves the key information needed for quantification, and kallisto is
+    therefore not only fast, but also comparably accurate to other existing
+    quantification tools. In fact, because the pseudoalignment procedure is
+    robust to errors in the reads, in many benchmarks kallisto significantly
+    outperforms existing tools. The kallisto algorithms are described in more
+    detail in:
+
+    > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
+    > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016).
+
+    *Description taken from [kallisto GitHub repository](https://github.com/pachterlab/kallisto).*"""
+
+    in_path = data.dynamic.path
+    ret_path = f"output/{ret.label}/kallisto_quant"
+
+    RUN(f"mkdir {ret_path}")
+    for name in sample_names(data.sample_sheet):
+        print(f"Running kallisto on {name}...")
+
+        RUN(f"""kallisto quant \\
+                    -t 8 \\
+                    -i KALLISTO_INDEX \\
+                    -o {ret_path}/{name} \\
+                    {in_path}/{name}_R1.fastq.gz \\
+                    {in_path}/{name}_R2.fastq.gz""")
+
+    return TranscriptMatrices.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=ret_path,
+    )'''
+
+[Function.salmon]
+params.data = "RNASeq"
+ret = "TranscriptMatrices"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+]
+info.title = "salmon"
+info.description = """# Quantify transcript abundances *without* alignment using salmon
+
+Salmon is a wicked-fast program to produce a highly-accurate,
+transcript-level quantification estimates from RNA-seq data. Salmon
+achieves its accuracy and speed via a number of different innovations,
+including the use of selective-alignment (accurate but fast-to-compute
+proxies for traditional read alignments), and massively-parallel stochastic
+collapsed variational inference. The result is a versatile tool that fits
+nicely into many different pipelines. For example, you can choose to make
+use of our selective-alignment algorithm by providing Salmon with raw
+sequencing reads, or, if it is more convenient, you can provide Salmon with
+regular alignments (e.g. an unsorted BAM file with alignments to the
+transcriptome produced with your favorite aligner), and it will use the
+same wicked-fast, state-of-the-art inference algorithm to estimate
+transcript-level abundances for your experiment.
+
+*Description taken from [salmon GitHub repository](https://github.com/COMBINE-lab/salmon).*"""
+info.code = '''def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """salmon
+
+    # Quantify transcript abundances *without* alignment using salmon
+
+    Salmon is a wicked-fast program to produce a highly-accurate,
+    transcript-level quantification estimates from RNA-seq data. Salmon
+    achieves its accuracy and speed via a number of different innovations,
+    including the use of selective-alignment (accurate but fast-to-compute
+    proxies for traditional read alignments), and massively-parallel stochastic
+    collapsed variational inference. The result is a versatile tool that fits
+    nicely into many different pipelines. For example, you can choose to make
+    use of our selective-alignment algorithm by providing Salmon with raw
+    sequencing reads, or, if it is more convenient, you can provide Salmon with
+    regular alignments (e.g. an unsorted BAM file with alignments to the
+    transcriptome produced with your favorite aligner), and it will use the
+    same wicked-fast, state-of-the-art inference algorithm to estimate
+    transcript-level abundances for your experiment.
+
+    *Description taken from [salmon GitHub repository](https://github.com/COMBINE-lab/salmon).*"""
+    pass'''
+
+[Function.combat_seq]
+params.data = "TranscriptMatrices"
+ret = "TranscriptMatrices"
+condition = [
+    "ret.label = data.label",
+]
+info.title = "ComBat-seq"
+info.description = """# Correct for batch effects using ComBat-seq
+
+ComBat-seq is a batch effect adjustment tool for bulk RNA-seq count data.
+It is an improved model based on the popular
+    [ComBat](https://doi.org/10.1093/biostatistics/kxj037),
+to address its limitations through novel methods designed specifically for
+RNA-Seq studies.  ComBat-seq takes untransformed, raw count matrix as
+input. Same as ComBat, it requires a known batch variable.
+
+We use a negative binomial regression to model batch effects, then provide
+adjusted data by mapping the original data to an expected distribution if
+there were no batch effects. This approach better captures the properties
+of RNA-Seq count data compared to the Gaussian distribution assumed by
+ComBat. ComBat-seq specifies different dispersion parameters across
+batches, allowing for flexible modeling of the variance of gene expression.
+In addition, ComBat-seq provides adjusted data which preserves the integer
+nature of counts, so that the adjusted data are compatible with the
+assumptions of state-of-the-art differential expression software (e.g.
+edgeR, DESeq2, which specifically request untransformed count data).
+
+ComBat-seq was recently published in NAR genomics and bioinformatics.
+Whenever using ComBat-seq, please cite:
+
+> Yuqing Zhang, Giovanni Parmigiani, W Evan Johnson, ComBat-seq: batch
+> effect adjustment for RNA-seq count data, NAR Genomics and Bioinformatics,
+> Volume 2, Issue 3, 1 September 2020, lqaa078,
+> [https://doi.org/10.1093/nargab/lqaa078](https://doi.org/10.1093/nargab/lqaa078)
+
+*Description taken from [ComBat-seq GitHub repository](https://github.com/zhangyuqing/ComBat-seq).*"""
+info.code = '''def combat_seq(
+    data: TranscriptMatrices, ret: TranscriptMatrices.S
+) -> TranscriptMatrices.D:
+    """ComBat-seq
+
+    # Correct for batch effects using ComBat-seq
+
+    ComBat-seq is a batch effect adjustment tool for bulk RNA-seq count data.
+    It is an improved model based on the popular
+        [ComBat](https://doi.org/10.1093/biostatistics/kxj037),
+    to address its limitations through novel methods designed specifically for
+    RNA-Seq studies.  ComBat-seq takes untransformed, raw count matrix as
+    input. Same as ComBat, it requires a known batch variable.
+
+    We use a negative binomial regression to model batch effects, then provide
+    adjusted data by mapping the original data to an expected distribution if
+    there were no batch effects. This approach better captures the properties
+    of RNA-Seq count data compared to the Gaussian distribution assumed by
+    ComBat. ComBat-seq specifies different dispersion parameters across
+    batches, allowing for flexible modeling of the variance of gene expression.
+    In addition, ComBat-seq provides adjusted data which preserves the integer
+    nature of counts, so that the adjusted data are compatible with the
+    assumptions of state-of-the-art differential expression software (e.g.
+    edgeR, DESeq2, which specifically request untransformed count data).
+
+    ComBat-seq was recently published in NAR genomics and bioinformatics.
+    Whenever using ComBat-seq, please cite:
+
+    > Yuqing Zhang, Giovanni Parmigiani, W Evan Johnson, ComBat-seq: batch
+    > effect adjustment for RNA-seq count data, NAR Genomics and Bioinformatics,
+    > Volume 2, Issue 3, 1 September 2020, lqaa078,
+    > [https://doi.org/10.1093/nargab/lqaa078](https://doi.org/10.1093/nargab/lqaa078)
+
+    *Description taken from [ComBat-seq GitHub repository](https://github.com/zhangyuqing/ComBat-seq).*"""
+    pass'''
+
+[Type.Alignment]
+params.label = "Str"
+info.title = "Alignment to a reference genome"
+info.params.label = "Label for data"
+info.code = '''@dataclass
+class Alignment:
+    "Alignment to a reference genome"
+
+@dataclass
+    class S:
+        label: str
+        "Label for data"
+
+@dataclass
+    class D:
+        sample_sheet: str
+        path: str'''
+
+[Function.featureCounts]
+params.data = "Alignment"
+ret = "TranscriptMatrices"
+condition = [
+    "ret.label = data.label",
+]
+info.title = "featureCounts"
+info.description = """# Quantify transcript abundances *after* alignment using featureCounts
+
+featureCounts is a highly efficient general-purpose read summarization
+program that counts mapped reads for genomic features such as genes, exons,
+promoter, gene bodies, genomic bins and chromosomal locations. It can be
+used to count both RNA-seq and genomic DNA-seq reads.
+
+*Description taken from [featureCounts website](https://subread.sourceforge.net/featureCounts.html).*"""
+info.code = '''def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """featureCounts
+
+    # Quantify transcript abundances *after* alignment using featureCounts
+
+    featureCounts is a highly efficient general-purpose read summarization
+    program that counts mapped reads for genomic features such as genes, exons,
+    promoter, gene bodies, genomic bins and chromosomal locations. It can be
+    used to count both RNA-seq and genomic DNA-seq reads.
+
+    *Description taken from [featureCounts website](https://subread.sourceforge.net/featureCounts.html).*"""
+    pass'''
+
+[Function.star]
+params.data = "RNASeq"
+ret = "Alignment"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+]
+info.description = """Align spliced transcripts to a reference with STAR"""
+info.code = '''def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
+    """Align spliced transcripts to a reference with STAR"""
+    pass'''
+
+[Prop.CutAndRunProp]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.title = "CUT&RUN-seq"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
+info.code = '''@dataclass
+class CutAndRunProp:
+    "CUT&RUN-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"'''
+
+[Prop.EMSeqProp]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.title = "EM-seq"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FASTQ files"
+info.code = '''@dataclass
+class EMSeqProp:
+    "EM-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"'''
+
+[Prop.FlowProp]
+params.label = "Str"
+params.sample_sheet = "Str"
+params.raw_data = "Str"
+info.title = "Flow cytometry"
+info.params.label = "Label for data"
+info.params.sample_sheet = "Path to sample sheet CSV"
+info.params.raw_data = "Path to raw FCS files"
+info.code = '''@dataclass
+class FlowProp:
+    "Flow cytometry"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FCS files"'''
+
+[Prop.SortProp]
+params.label = "Str"
+info.title = "Sort cells with FACS"
+info.params.label = "Label for data"
+info.code = '''@dataclass
+class SortProp:
+    "Sort cells with FACS"
+
+    label: str
+    "Label for data"'''
+
+[Prop.StainProp]
+params.label = "Str"
+info.title = "Stain cells with antibodies"
+info.params.label = "Label for data"
+info.code = '''@dataclass
+class StainProp:
+    "Stain cells with antibodies"
+
+    label: str
+    "Label for data"'''
+
+[Prop.TransfectProp]
+params.label = "Str"
+params.library = "Str"
+info.title = "Infect cells with CRISPR sgRNA guide library"
+info.params.label = "Label for data"
+info.params.library = "Path to the library file"
+info.code = '''@dataclass
+class TransfectProp:
+    "Infect cells with CRISPR sgRNA guide library"
+
+    label: str
+    "Label for data"
+
+    library: str
+    "Path to the library file"'''
 

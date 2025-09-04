@@ -16,6 +16,7 @@ import Model exposing (Model)
 import Regex
 import Update exposing (Msg(..))
 import Util
+import Version
 
 
 
@@ -701,10 +702,15 @@ view model =
             [ button
                 [ A.id "devmode"
                 , E.onClick UserClickedDevMode
-                , A.title "Set fun value to 65"
                 ]
                 [ text "devmode" ]
-            , span [ A.class "version-number" ] [ text " version <<<COMMIT-SHORT-HASH>>>" ]
+            , span
+                [ A.class "version-number" ]
+                [ text <|
+                    " version "
+                        ++ Version.version
+                        ++ "+<<<COMMIT-SHORT-HASH>>>"
+                ]
             ]
         , pane
             []
