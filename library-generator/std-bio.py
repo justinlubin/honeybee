@@ -56,15 +56,14 @@ class P_SraRnaSeq:
     "Label for data, like 'main' or 'JL001'"
 
     sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata (columnsyy: sample_name,condition,replicate,srr)"
+    "Path to sample sheet CSV with SRA metadata (columns: sample_name,condition,replicate,srr)"
 
 
 @Function(
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 )
 def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
-    "TODO"
-    SraRnaSeq.D()
+    return SraRnaSeq.D()
 
 
 @Type
@@ -92,8 +91,7 @@ class P_LocalRnaSeq:
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 )
 def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
-    "TODO"
-    LocalRnaSeq.D()
+    return LocalRnaSeq.D()
 
 
 @Type
