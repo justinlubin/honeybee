@@ -28,12 +28,6 @@ def capture_bash(command):
     ).stdout.split()
 
 
-@Helper
-def sample_names(filename):
-    sn = capture_bash(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
-    return sn
-
-
 ################################################################################
 # Raw RNA-seq data (reads)
 
@@ -128,10 +122,12 @@ class RNASeq:
     "ret.qc = false",
 )
 def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Load local RNA-seq data
+    """Load local data
 
     This function loads raw RNA-seq data that you already have on your computer,
     typically in the .fastq.gz file format."""
+
+    print("### Loading local RNA-seq data files... ###\n")
 
     return RNASeq.D(
         sample_sheet=local.static.sample_sheet,
@@ -143,17 +139,17 @@ def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.qc = false",
 )
 def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Download RNA-seq data from European Nucleotide Archive (ENA)
+    """Download from ENA
 
     This function loads RNA-seq data from the
     [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
     SRR accession identifiers."""
 
+    print("### Downloading RNA-seq data files from ENA... ###\n")
+
     import polars as pl
 
-    df = pl.read_csv(sra.static.sample_sheet).with_columns(
-        path=pl.col("sample_name") + pl.lit(".fastq")
-    )
+    df = pl.read_csv(sra.static.sample_sheet)
 
     outdir = f"output/{sra.static.label}/sra/"
 
@@ -183,36 +179,6 @@ def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
     )
 
 
-################################################################################
-# Raw RNA-seq data (reads)
-
-
-@Type
-class TranscriptMatrices:
-    """Read count (and TPM abundance) matrix for RNA-seq samples
-
-    The goal of this step is to calculate two two transcript × sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
-
-    These matrices can be used for plotting, differential expression testing,
-    clustering, and many other downstream analyses. The following review
-    provides an overview of RNA-seq data analysis, including information about
-    read count matrices:
-
-    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
-    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
-    > https://doi.org/10.1186/s13059-016-0881-8"""
-
-    class S:
-        label: str
-        "Label for RNA-seq data to analyze"
-
-    class D:
-        sample_sheet: str
-        path: str
-
-
 @Function(
     "data.qc = false",
     "ret.label = data.label",
@@ -221,23 +187,29 @@ class TranscriptMatrices:
 def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """FastQC
 
-    # Quality-check sequencing data with FastQC
+    Run quality control checks on RNA-seq data with
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
 
-    FastQC aims to provide a simple way to do some quality control checks on
-    raw sequence data coming from high throughput sequencing pipelines. It
-    provides a modular set of analyses which you can use to give a quick
-    impression of whether your data has any problems of which you should be
-    aware before doing any further analysis.
+    FastQC produces two HTML reports for each sample: one for the forward reads
+    and one for the reverse reads. These HTML reports can be individually opened
+    and inspected in your web browser.
 
-    *Description taken from [FastQC webpage](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).*"""
+    The Harvard Chan Bioinformatics Core provides a
+    [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+    for assessing the outputs of FastQC."""
 
-    print("Running fastqc...")
+    print("### Running FastQC... ###\n")
 
-    label = data.static.label
-    in_path = data.dynamic.path
+    outdir = f"output/{data.static.label}/fastqc/"
+    bash(f"mkdir -p {outdir}")
 
-    RUN(f"mkdir -p output/{label}/fastqc")
-    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
+    import polars as pl
+
+    df = pl.read_csv(data.dynamic.sample_sheet)
+    fastqs = " ".join(df["forward"] + " " + df["reverse"])
+    cores = 8
+
+    bash(f"fastqc -t {cores} -o {outdir} {fastqs}")
 
     return data.dynamic
 
@@ -250,19 +222,34 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     """MultiQC
 
-    # Quality-check sequencing data with MultiQC
+    Run quality control checks on RNA-seq data with
+    [MultiQC](https://seqera.io/multiqc/).
 
-    MultiQC aggregates the output of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-    quality-control checks into a single page viewable in a web browser."""
+    MultiQC aggregates the output of
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    quality-control checks into a single page viewable in a web browser.
 
-    print("Running fastqc and multiqc...")
+    The Harvard Chan Bioinformatics Core provides a
+    [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+    for assessing the outputs of FastQC that can also be used to understand
+    the outputs of MultiQC."""
 
-    label = data.static.label
-    in_path = data.dynamic.path
+    print("### Running MultiQC (and pre-requisite FastQC commands)... ###")
 
-    RUN(f"mkdir -p output/{label}/fastqc")
-    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
-    RUN(f"multiqc --filename output/{label}/multiqc.html output/{label}/fastqc")
+    fastqc_outdir = f"output/{data.static.label}/fastqc/"
+    bash(f"mkdir -p {fastqc_outdir}")
+
+    import polars as pl
+
+    df = pl.read_csv(data.dynamic.sample_sheet)
+    fastqs = " ".join(df["forward"] + " " + df["reverse"])
+    cores = 8
+
+    bash(f"fastqc -t {cores} -o {fastqc_outdir} {fastqs}")
+
+    multiqc_outdir = f"output/{data.static.label}/multiqc/"
+    bash(f"mkdir -p {multiqc_outdir}")
+    bash(f"uv run multiqc --filename {multiqc_outdir}multiqc.html {fastqc_outdir}")
 
     return data.dynamic
 
@@ -316,6 +303,36 @@ def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
         sample_sheet=data.dynamic.sample_sheet,
         path=ret_path,
     )
+
+
+################################################################################
+# Transcript matrices
+
+
+@Type
+class TranscriptMatrices:
+    """Read count (and TPM abundance) matrix for RNA-seq samples
+
+    The goal of this step is to calculate two transcript × sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices:
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
+
+    class S:
+        label: str
+        "Label for RNA-seq data to analyze"
+
+    class D:
+        sample_sheet: str
+        path: str
 
 
 @Function(

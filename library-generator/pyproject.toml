@@ -5,6 +5,7 @@ description = "Define Honeybee libraries using Python"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "multiqc>=1.30",
     "polars>=1.33.0",
 ]
 
