@@ -200,7 +200,7 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 
     print("### Running FastQC... ###\n")
 
-    outdir = f"output/{data.static.label}/fastqc/"
+    outdir = f"output/{ret.label}/fastqc/"
     bash(f"mkdir -p {outdir}")
 
     import polars as pl
@@ -236,7 +236,7 @@ def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 
     print("### Running MultiQC (and pre-requisite FastQC commands)... ###")
 
-    fastqc_outdir = f"output/{data.static.label}/fastqc/"
+    fastqc_outdir = f"output/{ret.label}/fastqc/"
     bash(f"mkdir -p {fastqc_outdir}")
 
     import polars as pl
@@ -247,7 +247,7 @@ def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
 
     bash(f"fastqc -t {cores} -o {fastqc_outdir} {fastqs}")
 
-    multiqc_outdir = f"output/{data.static.label}/multiqc/"
+    multiqc_outdir = f"output/{ret.label}/multiqc/"
     bash(f"mkdir -p {multiqc_outdir}")
     bash(f"uv run multiqc --filename {multiqc_outdir}multiqc.html {fastqc_outdir}")
 
@@ -260,48 +260,50 @@ def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.qc = false",
 )
 def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """cutadapt (Illumina RNA-seq)
+    """cutadapt (Illumina)
 
-    # Remove Illumina universal adaptor and poly-A tails with cutadapt
+    Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
+    an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
-    Cutadapt finds and removes adapter sequences, primers, poly-A tails and
-    other types of unwanted sequence from your high-throughput sequencing
-    reads.
+    This is typically a good step to do in an RNA-seq pre-processing pipeline.
+    [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
+    removes adapter sequences that are present due to a read length being
+    longer than the insert size of the sequence in a sequencer. Poly(A) tails
+    are the result of post-transcriptional
+    [polyadenylation](https://www.nature.com/articles/nsb1000_838),
+    and thus will not map back to a reference genome or transcriptome;
+    therefore, if you're not specifically looking to analyze polyadenylation,
+    you'll likely want to remove these tails for your analysis."""
 
-    Cleaning your data in this way is often required: Reads from small-RNA
-    sequencing contain the 3’ sequencing adapter because the read is longer
-    than the molecule that is sequenced. Amplicon reads start with a primer
-    sequence. Poly-A tails are useful for pulling out RNA from your sample, but
-    often you don’t want them to be in your reads.
+    print("### Running cudapat (Illumina RNA-seq)... ###")
 
-    *Description taken from [cutadapt documentation](https://cutadapt.readthedocs.io/en/stable/).*
+    outdir = f"output/{ret.label}/cutadapt_trimmed/"
+    bash(f"mkdir -p {outdir}")
 
-    ## Use of cutadapt for this step
+    import polars as pl
 
-    This particular step of the pipeline will use cutadapt to remove the
-    Illumina universal adaptor and poly-A tails. This is suitable for RNA-seq
-    experiments with raw data coming from an Illumina machine."""
+    df = pl.read_csv(data.dynamic.sample_sheet)
 
-    in_path = data.dynamic.path
-    ret_path = f"output/{ret.label}/cutadapt_trimmed"
-
-    RUN(f"mkdir -p {ret_path}")
-    for name in sample_names(data.sample_sheet):
-        print(f"Running cutadapt_illumina on {name}...")
-        RUN(f"""cutadapt \\
+    # "Path to sample sheet CSV (columns: sample_name,condition,replicate,forward,reverse)"
+    for row in df.iter_rows(named=True):
+        sample_name = row["sample_name"]
+        forward = row["forward"]
+        reverse = row["reverse"]
+        bash(f"""cutadapt \\
                     --cores=0 \\
                     -m 1 \\
                     --poly-a \\
                     -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
                     -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
-                    -o {ret_path}/{name}_R1.fastq.gz \\
-                    -p {ret_path}/{name}_R2.fastq.gz \\
-                    {in_path}/{name}_R1_001.fastq.gz \\
-                    {in_path}/{name}_R2_001.fastq.gz""")
+                    -o {outdir}/{sample_name}_R1.fastq.gz \\
+                    -p {outdir}/{sample_name}_R2.fastq.gz \\
+                    {forward} \\
+                    {reverse} """)
+
+    # TODO need to update sample sheet
 
     return RNASeq.D(
         sample_sheet=data.dynamic.sample_sheet,
-        path=ret_path,
     )
 
 
