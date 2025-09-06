@@ -33,3 +33,14 @@ C = RNASeq(
         ret=Cret,
     ),
 )
+
+# %%
+
+Dret = RNASeq.S(label="hi", qc=False)
+D = RNASeq(
+    static=Dret,
+    dynamic=cutadapt_illumina(
+        data=B,
+        ret=Dret,
+    ),
+)
