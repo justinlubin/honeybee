@@ -275,17 +275,15 @@ example : WorkingProgram
 example =
     { props =
         [ Just
-            { name = "RNASeqProp"
+            { name = "P_SraRnaSeq"
             , args =
                 [ ( "label", ( "main", VTStr ) )
                 , ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
-                , ( "raw_data", ( "raw-data", VTStr ) )
                 ]
             , sig =
                 { params =
                     [ ( "label", VTStr )
                     , ( "sample_sheet", VTStr )
-                    , ( "raw_data", VTStr )
                     ]
                 , paramLabels = Dict.empty
                 , title = Nothing
@@ -294,13 +292,15 @@ example =
         ]
     , goal =
         Just
-            { name = "TranscriptMatrices"
+            { name = "RnaSeq"
             , args =
                 [ ( "label", ( "main", VTStr ) )
+                , ( "qc", ( "True", VTBool ) )
                 ]
             , sig =
                 { params =
                     [ ( "label", VTStr )
+                    , ( "qc", VTBool )
                     ]
                 , paramLabels = Dict.empty
                 , title = Nothing

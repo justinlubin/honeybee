@@ -77,7 +77,7 @@ def _emit_fact(fact_kind, cls, parent_cls, kwargs):
             new_code += "@dataclass\n"
             continue
         elif line in ["    class S:", "    class D:"]:
-            new_code += "@dataclass\n"
+            new_code += "    @dataclass\n"
         new_code += line + "\n"
     print(f"info.code = '''{new_code.strip()}'''")
     print()

@@ -31,12 +31,12 @@ params.label = "Str"
 params.sample_sheet = "Str"
 info.code = '''@dataclass
 class SraRnaSeq:
-@dataclass
+    @dataclass
     class S:
         label: str
         sample_sheet: str
 
-@dataclass
+    @dataclass
     class D:
         pass'''
 
@@ -60,7 +60,7 @@ class P_SraRnaSeq:
 params = {}
 ret = "SraRnaSeq"
 condition = [
-    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
 ]
 info.code = '''def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
     return SraRnaSeq.D()'''
@@ -71,13 +71,13 @@ params.sample_sheet = "Str"
 params.path = "Str"
 info.code = '''@dataclass
 class LocalRnaSeq:
-@dataclass
+    @dataclass
     class S:
         label: str
         sample_sheet: str
         path: str
 
-@dataclass
+    @dataclass
     class D:
         pass'''
 
@@ -106,12 +106,12 @@ class P_LocalRnaSeq:
 params = {}
 ret = "LocalRnaSeq"
 condition = [
-    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
 ]
 info.code = '''def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
     return LocalRnaSeq.D()'''
 
-[Type.RNASeq]
+[Type.RnaSeq]
 params.label = "Str"
 params.qc = "Bool"
 info.title = "RNA-seq reads"
@@ -131,7 +131,7 @@ before and after running the tool."""
 info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
 info.code = '''@dataclass
-class RNASeq:
+class RnaSeq:
     """RNA-seq reads
 
     The goal of this step is to get RNA-seq reads.
@@ -148,7 +148,7 @@ class RNASeq:
     [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
     before and after running the tool."""
 
-@dataclass
+    @dataclass
     class S:
         label: str
         "Label for data"
@@ -156,23 +156,22 @@ class RNASeq:
         qc: bool
         "Whether or not quality checks have been run"
 
-@dataclass
+    @dataclass
     class D:
         sample_sheet: str
         path: str'''
 
 [Function.from_local_rna_seq]
 params.local = "LocalRnaSeq"
-ret = "RNASeq"
+ret = "RnaSeq"
 condition = [
     "ret.label = local.label",
-    "ret.path = local.path",
     "ret.qc = false",
 ]
 info.title = "Load local data"
 info.description = """This function loads raw RNA-seq data that you already have on your computer,
 typically in the .fastq.gz file format."""
-info.code = '''def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+info.code = '''def from_local_rna_seq(local: LocalRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """Load local data
 
     This function loads raw RNA-seq data that you already have on your computer,
@@ -180,23 +179,23 @@ info.code = '''def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNAS
 
     print("### Loading local RNA-seq data files... ###\n")
 
-    return RNASeq.D(
+    return RnaSeq.D(
         sample_sheet=local.static.sample_sheet,
         path=local.static.path,
     )'''
 
 [Function.from_sra_rna_seq]
 params.sra = "SraRnaSeq"
-ret = "RNASeq"
+ret = "RnaSeq"
 condition = [
-    "ret.label = local.label",
+    "ret.label = sra.label",
     "ret.qc = false",
 ]
 info.title = "Download from ENA"
 info.description = """This function loads RNA-seq data from the
 [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
 SRR accession identifiers."""
-info.code = '''def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+info.code = '''def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """Download from ENA
 
     This function loads RNA-seq data from the
@@ -231,14 +230,14 @@ info.code = '''def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
         outdir + "sample_sheet.csv"
     )
 
-    return RNASeq.D(
+    return RnaSeq.D(
         sample_sheet=outdir + "sample_sheet.csv",
         path=outdir,
     )'''
 
 [Function.fastqc]
-params.data = "RNASeq"
-ret = "RNASeq"
+params.data = "RnaSeq"
+ret = "RnaSeq"
 condition = [
     "data.qc = false",
     "ret.label = data.label",
@@ -263,7 +262,7 @@ If you use FastQC, please cite it as:
 > Simon Andrews. FastQC: a quality control tool for high throughput
 > sequence data. (2010). Available online at:
 > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
-info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+info.code = '''def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """FastQC
 
     Run quality control checks on RNA-seq data with
@@ -304,8 +303,8 @@ info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     return data.dynamic'''
 
 [Function.multiqc]
-params.data = "RNASeq"
-ret = "RNASeq"
+params.data = "RnaSeq"
+ret = "RnaSeq"
 condition = [
     "data.qc = false",
     "ret.label = data.label",
@@ -338,7 +337,7 @@ This step also relies on FastQC. Please also cite it as:
 > Simon Andrews. FastQC: a quality control tool for high throughput
 > sequence data. (2010). Available online at:
 > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
-info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+info.code = '''def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """MultiQC
 
     Run quality control checks on RNA-seq data with
@@ -391,8 +390,8 @@ info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     return data.dynamic'''
 
 [Function.cutadapt_illumina]
-params.data = "RNASeq"
-ret = "RNASeq"
+params.data = "RnaSeq"
+ret = "RnaSeq"
 condition = [
     "data.qc = true",
     "ret.label = data.label",
@@ -402,7 +401,8 @@ info.title = "cutadapt (Illumina)"
 info.description = """Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
 an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
-This is typically a good step to do in an RNA-seq pre-processing pipeline.
+This is typically a good step to do in an RNA-seq pre-processing pipeline,
+and **typically only need to be done (at most) once**.
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
 removes adapter sequences that are present due to a read length being
 longer than the insert size of the sequence in a sequencer. Poly(A) tails
@@ -437,13 +437,14 @@ If you use cutadapt, please cite it as:
 > Marcel Martin. Cutadapt removes adapter sequences from high-throughput
 > sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011.
 > http://dx.doi.org/10.14806/ej.17.1.200"""
-info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+info.code = '''def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """cutadapt (Illumina)
 
     Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
     an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
-    This is typically a good step to do in an RNA-seq pre-processing pipeline.
+    This is typically a good step to do in an RNA-seq pre-processing pipeline,
+    and **typically only need to be done (at most) once**.
     [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
     removes adapter sequences that are present due to a read length being
     longer than the insert size of the sequence in a sequencer. Poly(A) tails
@@ -500,7 +501,7 @@ info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
                     {data.dynamic.path}{sample_name}_1.fastq.gz \\
                     {data.dynamic.path}{sample_name}_2.fastq.gz""")
 
-    return RNASeq.D(
+    return RnaSeq.D(
         sample_sheet=data.dynamic.sample_sheet,
         path=outdir,
     )'''
@@ -538,18 +539,18 @@ class TranscriptMatrices:
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
     > https://doi.org/10.1186/s13059-016-0881-8"""
 
-@dataclass
+    @dataclass
     class S:
         label: str
         "Label for RNA-seq data to analyze"
 
-@dataclass
+    @dataclass
     class D:
         sample_sheet: str
         path: str'''
 
 [Function.kallisto]
-params.data = "RNASeq"
+params.data = "RnaSeq"
 ret = "TranscriptMatrices"
 condition = [
     "data.qc = true",
@@ -577,7 +578,7 @@ detail in:
 > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016).
 
 *Description taken from [kallisto GitHub repository](https://github.com/pachterlab/kallisto).*"""
-info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+info.code = '''def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """kallisto
 
     # Quantify transcript abundances *without* alignment using kallisto
@@ -622,7 +623,7 @@ info.code = '''def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> Transcri
     )'''
 
 [Function.salmon]
-params.data = "RNASeq"
+params.data = "RnaSeq"
 ret = "TranscriptMatrices"
 condition = [
     "data.qc = true",
@@ -646,7 +647,7 @@ same wicked-fast, state-of-the-art inference algorithm to estimate
 transcript-level abundances for your experiment.
 
 *Description taken from [salmon GitHub repository](https://github.com/COMBINE-lab/salmon).*"""
-info.code = '''def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+info.code = '''def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """salmon
 
     # Quantify transcript abundances *without* alignment using salmon
@@ -748,12 +749,12 @@ info.code = '''@dataclass
 class Alignment:
     "Alignment to a reference genome"
 
-@dataclass
+    @dataclass
     class S:
         label: str
         "Label for data"
 
-@dataclass
+    @dataclass
     class D:
         sample_sheet: str
         path: str'''
@@ -787,14 +788,14 @@ info.code = '''def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> 
     pass'''
 
 [Function.star]
-params.data = "RNASeq"
+params.data = "RnaSeq"
 ret = "Alignment"
 condition = [
     "data.qc = true",
     "ret.label = data.label",
 ]
 info.description = """Align spliced transcripts to a reference with STAR"""
-info.code = '''def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
+info.code = '''def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
     """Align spliced transcripts to a reference with STAR"""
     pass'''
 

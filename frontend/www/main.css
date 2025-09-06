@@ -70,6 +70,12 @@ button {
     margin-bottom: 10px;
 }
 
+.markdown h2 {
+    font-weight: var(--bold);
+    font-size: 1.05em;
+    margin-bottom: 10px;
+}
+
 .markdown blockquote {
     color: #888;
     border-left: 5px solid #888;

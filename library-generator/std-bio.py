@@ -54,7 +54,7 @@ class P_SraRnaSeq:
 
 
 @Function(
-    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
 )
 def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
     return SraRnaSeq.D()
@@ -86,14 +86,14 @@ class P_LocalRnaSeq:
 
 
 @Function(
-    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
+    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
 )
 def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
     return LocalRnaSeq.D()
 
 
 @Type
-class RNASeq:
+class RnaSeq:
     """RNA-seq reads
 
     The goal of this step is to get RNA-seq reads.
@@ -124,10 +124,9 @@ class RNASeq:
 
 @Function(
     "ret.label = local.label",
-    "ret.path = local.path",
     "ret.qc = false",
 )
-def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+def from_local_rna_seq(local: LocalRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """Load local data
 
     This function loads raw RNA-seq data that you already have on your computer,
@@ -135,17 +134,17 @@ def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
 
     print("### Loading local RNA-seq data files... ###\n")
 
-    return RNASeq.D(
+    return RnaSeq.D(
         sample_sheet=local.static.sample_sheet,
         path=local.static.path,
     )
 
 
 @Function(
-    "ret.label = local.label",
+    "ret.label = sra.label",
     "ret.qc = false",
 )
-def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
+def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """Download from ENA
 
     This function loads RNA-seq data from the
@@ -180,7 +179,7 @@ def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
         outdir + "sample_sheet.csv"
     )
 
-    return RNASeq.D(
+    return RnaSeq.D(
         sample_sheet=outdir + "sample_sheet.csv",
         path=outdir,
     )
@@ -191,7 +190,7 @@ def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.label = data.label",
     "ret.qc = true",
 )
-def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """FastQC
 
     Run quality control checks on RNA-seq data with
@@ -237,7 +236,7 @@ def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.label = data.label",
     "ret.qc = true",
 )
-def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """MultiQC
 
     Run quality control checks on RNA-seq data with
@@ -295,13 +294,14 @@ def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
     "ret.label = data.label",
     "ret.qc = false",
 )
-def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """cutadapt (Illumina)
 
     Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
     an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
-    This is typically a good step to do in an RNA-seq pre-processing pipeline.
+    This is typically a good step to do in an RNA-seq pre-processing pipeline,
+    and **typically only need to be done (at most) once**.
     [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
     removes adapter sequences that are present due to a read length being
     longer than the insert size of the sequence in a sequencer. Poly(A) tails
@@ -358,7 +358,7 @@ def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
                     {data.dynamic.path}{sample_name}_1.fastq.gz \\
                     {data.dynamic.path}{sample_name}_2.fastq.gz""")
 
-    return RNASeq.D(
+    return RnaSeq.D(
         sample_sheet=data.dynamic.sample_sheet,
         path=outdir,
     )
@@ -398,7 +398,7 @@ class TranscriptMatrices:
     "data.qc = true",
     "ret.label = data.label",
 )
-def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """kallisto
 
     # Quantify transcript abundances *without* alignment using kallisto
@@ -447,7 +447,7 @@ def kallisto(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     "data.qc = true",
     "ret.label = data.label",
 )
-def salmon(data: RNASeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """salmon
 
     # Quantify transcript abundances *without* alignment using salmon
@@ -544,7 +544,7 @@ def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatri
     "data.qc = true",
     "ret.label = data.label",
 )
-def star(data: RNASeq, ret: Alignment.S) -> Alignment.D:
+def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
     """Align spliced transcripts to a reference with STAR"""
     pass
 

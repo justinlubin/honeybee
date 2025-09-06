@@ -228,6 +228,8 @@ pub fn validate(library: PathBuf) -> Result<(), String> {
         )
     })?;
 
+    println!("{}", Green.bold().paint("library validated!"));
+
     Ok(())
 }
 

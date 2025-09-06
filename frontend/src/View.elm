@@ -506,8 +506,9 @@ cell ctx c =
                 [ Markdown.toHtml
                     [ A.class "markdown" ]
                     (Maybe.withDefault "" x.typeDescription)
-                , cardInnerHeading [] [ text "Notes" ]
-                , textarea [] []
+
+                -- , cardInnerHeading [] [ text "Notes" ]
+                -- , textarea [] []
                 , cardInnerHeading [] [ text "Choices" ]
                 , functionChoices
                     { cellIndex = ctx.cellIndex
@@ -678,6 +679,12 @@ pbnStatus ms =
                 , text " cell will become a "
                 , span [ A.class "card-reference", A.class "cell-code" ] [ text "Code" ]
                 , text " cell."
+                ]
+            , p
+                [ A.class "tip" ]
+                [ text "Choosing between analyses in a "
+                , span [ A.class "card-reference", A.class "cell-choice" ] [ text "Choice" ]
+                , text " cell can be quite challenging. Please take your time, read the information at each step, and search the Internet for resources that could help you make your decision!"
                 ]
             , outline
             ]
