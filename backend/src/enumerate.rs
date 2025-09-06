@@ -275,7 +275,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
         mut worklist: VecDeque<Exp>,
         max_solutions: usize,
     ) -> Result<Vec<Exp>, EarlyCutoff> {
-        let type_context = typecheck::Context(&self.problem);
+        let type_context = typecheck::Context(&self.problem.library);
         let mut solutions = vec![];
         while let Some(e) = worklist.pop_front() {
             timer.tick()?;
@@ -290,7 +290,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
             };
 
             if sup.is_empty() {
-                if type_context.infer_exp(&e).is_ok() {
+                if type_context.infer_exp(&self.problem.program, &e).is_ok() {
                     solutions.push(e);
                 }
                 if solutions.len() >= max_solutions {

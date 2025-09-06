@@ -30,13 +30,13 @@ factSignature =
     map3
         (\p pl t ->
             { params = p
-            , paramLabels = Dict.fromList pl
+            , paramLabels = Dict.fromList (Maybe.withDefault [] pl)
             , title = t
             }
         )
         (field "params" <| keyValuePairs valueType)
-        (at [ "info", "params" ] <| keyValuePairs string)
-        (at [ "info", "title" ] <| nullable string)
+        (maybe <| at [ "info", "params" ] <| keyValuePairs string)
+        (maybe <| at [ "info", "title" ] string)
 
 
 factLibrary : Decoder FactLibrary

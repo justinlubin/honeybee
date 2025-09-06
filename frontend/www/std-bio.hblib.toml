@@ -26,11 +26,6 @@ content='''def capture_bash(command):
         text=True,
     ).stdout.split()'''
 
-[[Preamble]]
-content='''def sample_names(filename):
-    sn = capture_bash(f"cat {filename} | cut -d ',' -f1 | tail -n +2")
-    return sn'''
-
 [Type.SraRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
@@ -50,7 +45,7 @@ params.label = "Str"
 params.sample_sheet = "Str"
 info.title = "RNA-seq (stored on remote Sequence Read Archive)"
 info.params.label = "Label for data, like 'main' or 'JL001'"
-info.params.sample_sheet = "Path to sample sheet CSV with SRA metadata (columnsyy: sample_name,condition,replicate,srr)"
+info.params.sample_sheet = "Path to sample sheet CSV with SRA metadata (columns: srr,condition,replicate)"
 info.code = '''@dataclass
 class P_SraRnaSeq:
     "RNA-seq (stored on remote Sequence Read Archive)"
@@ -59,7 +54,7 @@ class P_SraRnaSeq:
     "Label for data, like 'main' or 'JL001'"
 
     sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata (columnsyy: sample_name,condition,replicate,srr)"'''
+    "Path to sample sheet CSV with SRA metadata (columns: srr,condition,replicate)"'''
 
 [Function.F_SraRnaSeq]
 params = {}
@@ -67,20 +62,20 @@ ret = "SraRnaSeq"
 condition = [
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 ]
-info.description = """TODO"""
 info.code = '''def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
-    "TODO"
-    SraRnaSeq.D()'''
+    return SraRnaSeq.D()'''
 
 [Type.LocalRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
+params.path = "Str"
 info.code = '''@dataclass
 class LocalRnaSeq:
 @dataclass
     class S:
         label: str
         sample_sheet: str
+        path: str
 
 @dataclass
     class D:
@@ -89,9 +84,11 @@ class LocalRnaSeq:
 [Prop.P_LocalRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
+params.path = "Str"
 info.title = "RNA-seq (locally-saved)"
 info.params.label = "Label for data, like 'main' or 'JPL001'"
-info.params.sample_sheet = "Path to sample sheet CSV (columns: sample_name,condition,replicate,forward,reverse)"
+info.params.sample_sheet = "Path to sample sheet CSV (columns: sample_name,condition,replicate)"
+info.params.path = "Path to the directory containing the RNA-seq data"
 info.code = '''@dataclass
 class P_LocalRnaSeq:
     "RNA-seq (locally-saved)"
@@ -100,7 +97,10 @@ class P_LocalRnaSeq:
     "Label for data, like 'main' or 'JPL001'"
 
     sample_sheet: str
-    "Path to sample sheet CSV (columns: sample_name,condition,replicate,forward,reverse)"'''
+    "Path to sample sheet CSV (columns: sample_name,condition,replicate)"
+
+    path: str
+    "Path to the directory containing the RNA-seq data"'''
 
 [Function.F_LocalRnaSeq]
 params = {}
@@ -108,10 +108,8 @@ ret = "LocalRnaSeq"
 condition = [
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, raw_data = ret.raw_data }",
 ]
-info.description = """TODO"""
 info.code = '''def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
-    "TODO"
-    LocalRnaSeq.D()'''
+    return LocalRnaSeq.D()'''
 
 [Type.RNASeq]
 params.label = "Str"
@@ -160,26 +158,31 @@ class RNASeq:
 
 @dataclass
     class D:
-        sample_sheet: str'''
+        sample_sheet: str
+        path: str'''
 
 [Function.from_local_rna_seq]
 params.local = "LocalRnaSeq"
 ret = "RNASeq"
 condition = [
     "ret.label = local.label",
+    "ret.path = local.path",
     "ret.qc = false",
 ]
-info.title = "Load local RNA-seq data"
+info.title = "Load local data"
 info.description = """This function loads raw RNA-seq data that you already have on your computer,
 typically in the .fastq.gz file format."""
 info.code = '''def from_local_rna_seq(local: LocalRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Load local RNA-seq data
+    """Load local data
 
     This function loads raw RNA-seq data that you already have on your computer,
     typically in the .fastq.gz file format."""
 
+    print("### Loading local RNA-seq data files... ###\n")
+
     return RNASeq.D(
         sample_sheet=local.static.sample_sheet,
+        path=local.static.path,
     )'''
 
 [Function.from_sra_rna_seq]
@@ -189,22 +192,22 @@ condition = [
     "ret.label = local.label",
     "ret.qc = false",
 ]
-info.title = "Download RNA-seq data from European Nucleotide Archive (ENA)"
+info.title = "Download from ENA"
 info.description = """This function loads RNA-seq data from the
 [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
 SRR accession identifiers."""
 info.code = '''def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
-    """Download RNA-seq data from European Nucleotide Archive (ENA)
+    """Download from ENA
 
     This function loads RNA-seq data from the
     [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
     SRR accession identifiers."""
 
+    print("### Downloading RNA-seq data files from ENA... ###\n")
+
     import polars as pl
 
-    df = pl.read_csv(sra.static.sample_sheet).with_columns(
-        path=pl.col("sample_name") + pl.lit(".fastq")
-    )
+    df = pl.read_csv(sra.static.sample_sheet)
 
     outdir = f"output/{sra.static.label}/sra/"
 
@@ -224,19 +227,288 @@ info.code = '''def from_sra_rna_seq(sra: SraRnaSeq, ret: RNASeq.S) -> RNASeq.D:
              wget -nc --directory-prefix={outdir} {base_url}{srr}_2.fastq.gz
         """)
 
-    df.with_columns(
-        forward=pl.lit(outdir) + pl.col("srr") + pl.lit("_1.fastq.gz"),
-        reverse=pl.lit(outdir) + pl.col("srr") + pl.lit("_2.fastq.gz"),
-    ).drop("srr").write_csv(outdir + "sample_sheet.csv")
+    df.with_columns().rename({"srr": "sample_name"}).write_csv(
+        outdir + "sample_sheet.csv"
+    )
 
     return RNASeq.D(
         sample_sheet=outdir + "sample_sheet.csv",
+        path=outdir,
+    )'''
+
+[Function.fastqc]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = false",
+    "ret.label = data.label",
+    "ret.qc = true",
+]
+info.title = "FastQC"
+info.description = """Run quality control checks on RNA-seq data with
+[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
+
+FastQC produces two HTML reports for each sample: one for the forward reads
+and one for the reverse reads. These HTML reports can be individually opened
+and inspected in your web browser.
+
+The Harvard Chan Bioinformatics Core provides a
+[useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+for assessing the outputs of FastQC.
+
+## Citation
+
+If you use FastQC, please cite it as:
+
+> Simon Andrews. FastQC: a quality control tool for high throughput
+> sequence data. (2010). Available online at:
+> http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
+info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """FastQC
+
+    Run quality control checks on RNA-seq data with
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
+
+    FastQC produces two HTML reports for each sample: one for the forward reads
+    and one for the reverse reads. These HTML reports can be individually opened
+    and inspected in your web browser.
+
+    The Harvard Chan Bioinformatics Core provides a
+    [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+    for assessing the outputs of FastQC.
+
+    ## Citation
+
+    If you use FastQC, please cite it as:
+
+    > Simon Andrews. FastQC: a quality control tool for high throughput
+    > sequence data. (2010). Available online at:
+    > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
+
+    print("### Running FastQC... ###\n")
+
+    outdir = f"output/{ret.label}/fastqc/"
+    bash(f"mkdir -p {outdir}")
+
+    import polars as pl
+
+    df = pl.read_csv(data.dynamic.sample_sheet)
+    fastqs = " ".join(
+        (data.dynamic.path + df["sample_name"] + "_1.fastq.gz ")
+        + (data.dynamic.path + df["sample_name"] + "_2.fastq.gz")
+    )
+    cores = 8
+
+    bash(f"fastqc -t {cores} -o {outdir} {fastqs}")
+
+    return data.dynamic'''
+
+[Function.multiqc]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = false",
+    "ret.label = data.label",
+    "ret.qc = true",
+]
+info.title = "MultiQC"
+info.description = """Run quality control checks on RNA-seq data with
+[MultiQC](https://seqera.io/multiqc/).
+
+MultiQC aggregates the output of
+[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+quality-control checks into a single page viewable in a web browser.
+
+The Harvard Chan Bioinformatics Core provides a
+[useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+for assessing the outputs of FastQC that can also be used to understand
+the outputs of MultiQC.
+
+## Citation
+
+If you use MultiQC, please cite it as:
+
+> Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC:
+> Summarize analysis results for multiple tools and samples in a single
+> report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354.
+> PMID: 27312411
+
+This step also relies on FastQC. Please also cite it as:
+
+> Simon Andrews. FastQC: a quality control tool for high throughput
+> sequence data. (2010). Available online at:
+> http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
+info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """MultiQC
+
+    Run quality control checks on RNA-seq data with
+    [MultiQC](https://seqera.io/multiqc/).
+
+    MultiQC aggregates the output of
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    quality-control checks into a single page viewable in a web browser.
+
+    The Harvard Chan Bioinformatics Core provides a
+    [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+    for assessing the outputs of FastQC that can also be used to understand
+    the outputs of MultiQC.
+
+    ## Citation
+
+    If you use MultiQC, please cite it as:
+
+    > Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC:
+    > Summarize analysis results for multiple tools and samples in a single
+    > report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354.
+    > PMID: 27312411
+
+    This step also relies on FastQC. Please also cite it as:
+
+    > Simon Andrews. FastQC: a quality control tool for high throughput
+    > sequence data. (2010). Available online at:
+    > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
+
+    print("### Running MultiQC (and pre-requisite FastQC commands)... ###")
+
+    fastqc_outdir = f"output/{ret.label}/fastqc/"
+    bash(f"mkdir -p {fastqc_outdir}")
+
+    import polars as pl
+
+    df = pl.read_csv(data.dynamic.sample_sheet)
+    fastqs = " ".join(
+        (data.dynamic.path + df["sample_name"] + "_1.fastq.gz ")
+        + (data.dynamic.path + df["sample_name"] + "_2.fastq.gz")
+    )
+    cores = 8
+
+    bash(f"fastqc -t {cores} -o {fastqc_outdir} {fastqs}")
+
+    multiqc_outdir = f"output/{ret.label}/multiqc/"
+    bash(f"mkdir -p {multiqc_outdir}")
+    bash(f"uv run multiqc --filename {multiqc_outdir}multiqc.html {fastqc_outdir}")
+
+    return data.dynamic'''
+
+[Function.cutadapt_illumina]
+params.data = "RNASeq"
+ret = "RNASeq"
+condition = [
+    "data.qc = true",
+    "ret.label = data.label",
+    "ret.qc = false",
+]
+info.title = "cutadapt (Illumina)"
+info.description = """Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
+an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+
+This is typically a good step to do in an RNA-seq pre-processing pipeline.
+[Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
+removes adapter sequences that are present due to a read length being
+longer than the insert size of the sequence in a sequencer. Poly(A) tails
+are the result of post-transcriptional
+[polyadenylation](https://www.nature.com/articles/nsb1000_838),
+and thus will not map back to a reference genome or transcriptome;
+therefore, if you're not specifically looking to analyze polyadenylation,
+you'll likely want to remove these tails for your analysis.
+
+From the [cutadapt manual](https://cutadapt.readthedocs.io/en/stable/):
+
+> Cutadapt finds and removes adapter sequences, primers, poly-A tails and
+> other types of unwanted sequence from your high-throughput sequencing
+> reads.
+
+> Cleaning your data in this way is often required: Reads from small-RNA
+> sequencing contain the 3’ sequencing adapter because the read is longer
+> than the molecule that is sequenced. Amplicon reads start with a primer
+> sequence. Poly-A tails are useful for pulling out RNA from your sample,
+> but often you don’t want them to be in your reads.
+
+> Cutadapt helps with these trimming tasks by finding the adapter or primer
+> sequences in an error-tolerant way. It can also modify and filter
+> single-end and paired-end reads in various ways. Adapter sequences can
+> contain IUPAC wildcard characters. Cutadapt can also demultiplex your
+> reads.
+
+## Citation
+
+If you use cutadapt, please cite it as:
+
+> Marcel Martin. Cutadapt removes adapter sequences from high-throughput
+> sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011.
+> http://dx.doi.org/10.14806/ej.17.1.200"""
+info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
+    """cutadapt (Illumina)
+
+    Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
+    an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+
+    This is typically a good step to do in an RNA-seq pre-processing pipeline.
+    [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
+    removes adapter sequences that are present due to a read length being
+    longer than the insert size of the sequence in a sequencer. Poly(A) tails
+    are the result of post-transcriptional
+    [polyadenylation](https://www.nature.com/articles/nsb1000_838),
+    and thus will not map back to a reference genome or transcriptome;
+    therefore, if you're not specifically looking to analyze polyadenylation,
+    you'll likely want to remove these tails for your analysis.
+
+    From the [cutadapt manual](https://cutadapt.readthedocs.io/en/stable/):
+
+    > Cutadapt finds and removes adapter sequences, primers, poly-A tails and
+    > other types of unwanted sequence from your high-throughput sequencing
+    > reads.
+
+    > Cleaning your data in this way is often required: Reads from small-RNA
+    > sequencing contain the 3’ sequencing adapter because the read is longer
+    > than the molecule that is sequenced. Amplicon reads start with a primer
+    > sequence. Poly-A tails are useful for pulling out RNA from your sample,
+    > but often you don’t want them to be in your reads.
+
+    > Cutadapt helps with these trimming tasks by finding the adapter or primer
+    > sequences in an error-tolerant way. It can also modify and filter
+    > single-end and paired-end reads in various ways. Adapter sequences can
+    > contain IUPAC wildcard characters. Cutadapt can also demultiplex your
+    > reads.
+
+    ## Citation
+
+    If you use cutadapt, please cite it as:
+
+    > Marcel Martin. Cutadapt removes adapter sequences from high-throughput
+    > sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011.
+    > http://dx.doi.org/10.14806/ej.17.1.200"""
+
+    print("### Running cudapat (Illumina RNA-seq)... ###")
+
+    outdir = f"output/{ret.label}/cutadapt_trimmed/"
+    bash(f"mkdir -p {outdir}")
+
+    import polars as pl
+
+    df = pl.read_csv(data.dynamic.sample_sheet)
+
+    for sample_name in df["sample_name"]:
+        bash(f"""uv run cutadapt \\
+                    --cores=0 \\
+                    -m 1 \\
+                    --poly-a \\
+                    -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
+                    -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
+                    -o {outdir}{sample_name}_1.fastq.gz \\
+                    -p {outdir}{sample_name}_2.fastq.gz \\
+                    {data.dynamic.path}{sample_name}_1.fastq.gz \\
+                    {data.dynamic.path}{sample_name}_2.fastq.gz""")
+
+    return RNASeq.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=outdir,
     )'''
 
 [Type.TranscriptMatrices]
 params.label = "Str"
 info.title = "Read count (and TPM abundance) matrix for RNA-seq samples"
-info.description = """The goal of this step is to calculate two two transcript × sample matrices:
+info.description = """The goal of this step is to calculate two transcript × sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
 
@@ -253,7 +525,7 @@ info.code = '''@dataclass
 class TranscriptMatrices:
     """Read count (and TPM abundance) matrix for RNA-seq samples
 
-    The goal of this step is to calculate two two transcript × sample matrices:
+    The goal of this step is to calculate two transcript × sample matrices:
     - One with (estimated) read counts.
     - One with TPM (transcripts-per-million) abundance.
 
@@ -275,152 +547,6 @@ class TranscriptMatrices:
     class D:
         sample_sheet: str
         path: str'''
-
-[Function.fastqc]
-params.data = "RNASeq"
-ret = "RNASeq"
-condition = [
-    "data.qc = false",
-    "ret.label = data.label",
-    "ret.qc = true",
-]
-info.title = "FastQC"
-info.description = """# Quality-check sequencing data with FastQC
-
-FastQC aims to provide a simple way to do some quality control checks on
-raw sequence data coming from high throughput sequencing pipelines. It
-provides a modular set of analyses which you can use to give a quick
-impression of whether your data has any problems of which you should be
-aware before doing any further analysis.
-
-*Description taken from [FastQC webpage](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).*"""
-info.code = '''def fastqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """FastQC
-
-    # Quality-check sequencing data with FastQC
-
-    FastQC aims to provide a simple way to do some quality control checks on
-    raw sequence data coming from high throughput sequencing pipelines. It
-    provides a modular set of analyses which you can use to give a quick
-    impression of whether your data has any problems of which you should be
-    aware before doing any further analysis.
-
-    *Description taken from [FastQC webpage](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).*"""
-
-    print("Running fastqc...")
-
-    label = data.static.label
-    in_path = data.dynamic.path
-
-    RUN(f"mkdir -p output/{label}/fastqc")
-    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
-
-    return data.dynamic'''
-
-[Function.multiqc]
-params.data = "RNASeq"
-ret = "RNASeq"
-condition = [
-    "data.qc = false",
-    "ret.label = data.label",
-    "ret.qc = true",
-]
-info.title = "MultiQC"
-info.description = """# Quality-check sequencing data with MultiQC
-
-MultiQC aggregates the output of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-quality-control checks into a single page viewable in a web browser."""
-info.code = '''def multiqc(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """MultiQC
-
-    # Quality-check sequencing data with MultiQC
-
-    MultiQC aggregates the output of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-    quality-control checks into a single page viewable in a web browser."""
-
-    print("Running fastqc and multiqc...")
-
-    label = data.static.label
-    in_path = data.dynamic.path
-
-    RUN(f"mkdir -p output/{label}/fastqc")
-    RUN(f"fastqc -t 8 -o output/{label}/fastqc {in_path}/*.fastq*")
-    RUN(f"multiqc --filename output/{label}/multiqc.html output/{label}/fastqc")
-
-    return data.dynamic'''
-
-[Function.cutadapt_illumina]
-params.data = "RNASeq"
-ret = "RNASeq"
-condition = [
-    "data.qc = true",
-    "ret.label = data.label",
-    "ret.qc = false",
-]
-info.title = "cutadapt (Illumina RNA-seq)"
-info.description = """# Remove Illumina universal adaptor and poly-A tails with cutadapt
-
-Cutadapt finds and removes adapter sequences, primers, poly-A tails and
-other types of unwanted sequence from your high-throughput sequencing
-reads.
-
-Cleaning your data in this way is often required: Reads from small-RNA
-sequencing contain the 3’ sequencing adapter because the read is longer
-than the molecule that is sequenced. Amplicon reads start with a primer
-sequence. Poly-A tails are useful for pulling out RNA from your sample, but
-often you don’t want them to be in your reads.
-
-*Description taken from [cutadapt documentation](https://cutadapt.readthedocs.io/en/stable/).*
-
-## Use of cutadapt for this step
-
-This particular step of the pipeline will use cutadapt to remove the
-Illumina universal adaptor and poly-A tails. This is suitable for RNA-seq
-experiments with raw data coming from an Illumina machine."""
-info.code = '''def cutadapt_illumina(data: RNASeq, ret: RNASeq.S) -> RNASeq.D:
-    """cutadapt (Illumina RNA-seq)
-
-    # Remove Illumina universal adaptor and poly-A tails with cutadapt
-
-    Cutadapt finds and removes adapter sequences, primers, poly-A tails and
-    other types of unwanted sequence from your high-throughput sequencing
-    reads.
-
-    Cleaning your data in this way is often required: Reads from small-RNA
-    sequencing contain the 3’ sequencing adapter because the read is longer
-    than the molecule that is sequenced. Amplicon reads start with a primer
-    sequence. Poly-A tails are useful for pulling out RNA from your sample, but
-    often you don’t want them to be in your reads.
-
-    *Description taken from [cutadapt documentation](https://cutadapt.readthedocs.io/en/stable/).*
-
-    ## Use of cutadapt for this step
-
-    This particular step of the pipeline will use cutadapt to remove the
-    Illumina universal adaptor and poly-A tails. This is suitable for RNA-seq
-    experiments with raw data coming from an Illumina machine."""
-
-    in_path = data.dynamic.path
-    ret_path = f"output/{ret.label}/cutadapt_trimmed"
-
-    RUN(f"mkdir -p {ret_path}")
-    for name in sample_names(data.sample_sheet):
-        print(f"Running cutadapt_illumina on {name}...")
-        RUN(f"""cutadapt \\
-                    --cores=0 \\
-                    -m 1 \\
-                    --poly-a \\
-                    -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
-                    -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
-                    -o {ret_path}/{name}_R1.fastq.gz \\
-                    -p {ret_path}/{name}_R2.fastq.gz \\
-                    {in_path}/{name}_R1_001.fastq.gz \\
-                    {in_path}/{name}_R2_001.fastq.gz""")
-
-    return RNASeq.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=ret_path,
-    )'''
 
 [Function.kallisto]
 params.data = "RNASeq"

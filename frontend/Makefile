@@ -27,10 +27,13 @@ endif
 
 $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 	cd ../backend/ && \
+	cargo build && \
 	wasm-pack build --target web --out-dir ../frontend/www/pkg
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
 	uv run \
 		--project ../library-generator/ \
 		../library-generator/std-bio.py \
-		> $(OUT_DIR)/std-bio.hblib.toml
+		> $(OUT_DIR)/std-bio.hblib.toml && \
+	cd ../backend/ && \
+	cargo run -- validate -l ../frontend/$(OUT_DIR)/std-bio.hblib.toml

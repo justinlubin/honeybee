@@ -18,7 +18,7 @@ use indexmap::{IndexMap, IndexSet};
 /// For convenience, these are created automatically as part of the [`problem`]
 /// function, but more fine-grained control (to check particular components of
 /// Honeybee core syntax) are provided in the `impl` block for this struct.
-pub struct Context<'a>(pub &'a Problem);
+pub struct Context<'a>(pub &'a Library);
 
 /// The type of type errors.
 #[derive(Debug)]
@@ -66,9 +66,18 @@ impl Error {
 type Check = Result<(), Error>;
 type Infer<T> = Result<T, Error>;
 
+/// Typecheck a library.
+pub fn library(library: &Library) -> Check {
+    let context = Context(&library);
+
+    context
+        .check()
+        .map_err(|e| e.with_context("library".to_owned()))
+}
+
 /// Create a context from a problem and use that context to check the problem.
 pub fn problem(problem: &Problem) -> Check {
-    let context = Context(problem);
+    let context = Context(&problem.library);
 
     context
         .check()
@@ -81,10 +90,8 @@ pub fn problem(problem: &Problem) -> Check {
 
 impl Context<'_> {
     fn check(&self) -> Check {
-        let pnames: IndexSet<_> =
-            self.0.library.props.keys().cloned().collect();
-        let tnames: IndexSet<_> =
-            self.0.library.types.keys().cloned().collect();
+        let pnames: IndexSet<_> = self.0.props.keys().cloned().collect();
+        let tnames: IndexSet<_> = self.0.types.keys().cloned().collect();
         let ambiguous_names: IndexSet<_> =
             pnames.intersection(&tnames).collect();
 
@@ -95,7 +102,7 @@ impl Context<'_> {
             )));
         }
 
-        for (f, fs) in &self.0.library.functions {
+        for (f, fs) in &self.0.functions {
             self.check_function_signature(fs).map_err(|e| {
                 e.with_context(format!("function signature '{}'", f.0))
             })?;
@@ -122,14 +129,12 @@ impl Context<'_> {
         for type_name in fs.params.values() {
             let _ = self
                 .0
-                .library
                 .types
                 .get(type_name)
                 .ok_or_else(|| Error::mn(type_name))?;
         }
         let _ = self
             .0
-            .library
             .types
             .get(&fs.ret)
             .ok_or_else(|| Error::mn(&fs.ret))?;
@@ -184,7 +189,6 @@ impl Context<'_> {
     ) -> Check {
         let sig = self
             .0
-            .library
             .props
             .get(&ap.name)
             .ok_or_else(|| Error::mn(&ap.name))?;
@@ -231,7 +235,6 @@ impl Context<'_> {
                 let name = fs.params.get(fp).ok_or_else(|| Error::fp(fp))?;
 
                 self.0
-                    .library
                     .types
                     .get(name)
                     .ok_or_else(|| Error::mn(name))?
@@ -242,7 +245,6 @@ impl Context<'_> {
             }
             FormulaAtom::Ret(mp) => self
                 .0
-                .library
                 .types
                 .get(&fs.ret)
                 .ok_or_else(|| Error::mn(&fs.ret))?
@@ -286,11 +288,11 @@ impl Context<'_> {
     }
 
     pub fn infer_proposition(&self, met: &Met<Value>) -> Infer<MetSignature> {
-        self.infer_met(&self.0.library.props, met)
+        self.infer_met(&self.0.props, met)
     }
 
     pub fn infer_type(&self, met: &Met<Value>) -> Infer<MetSignature> {
-        self.infer_met(&self.0.library.types, met)
+        self.infer_met(&self.0.types, met)
     }
 
     pub fn infer_value(&self, v: &Value) -> ValueType {
@@ -307,7 +309,7 @@ impl Context<'_> {
     /// arguments are well-typed and have metadata satisfying the validity
     /// condition of the function (and the metadata is contained within the
     /// allowable domain defined by the presence of values in the libraries).
-    pub fn infer_exp(&self, e: &Exp) -> Infer<Met<Value>> {
+    pub fn infer_exp(&self, program: &Program, e: &Exp) -> Infer<Met<Value>> {
         match e {
             Sketch::Hole(_) => {
                 Err(Error::new("holes are not well-typed".to_string()))
@@ -316,17 +318,16 @@ impl Context<'_> {
                 // Get signature
                 let sig = self
                     .0
-                    .library
                     .functions
                     .get(&f.name)
                     .ok_or_else(|| Error::bf(&f.name))?;
 
                 // Compute domain
                 let mut vals = IndexSet::new();
-                for fs in self.0.library.functions.values() {
+                for fs in self.0.functions.values() {
                     vals.extend(fs.vals());
                 }
-                for p in &self.0.program.props {
+                for p in &program.props {
                     vals.extend(p.args.values().cloned());
                 }
                 vals.extend(f.metadata.values().cloned());
@@ -334,7 +335,7 @@ impl Context<'_> {
                 // Recursively infer values and check proper domain
                 let mut ctx_args = IndexMap::new();
                 for (fp, arg) in args {
-                    let tau = self.infer_exp(arg)?;
+                    let tau = self.infer_exp(program, arg)?;
                     let metadata = tau.args;
                     for v in metadata.values() {
                         if !vals.contains(v) {
@@ -349,7 +350,7 @@ impl Context<'_> {
 
                 // Check condition
                 let ctx = eval::Context {
-                    props: &self.0.program.props,
+                    props: &program.props,
                     args: &ctx_args,
                     ret: &f.metadata,
                 };

@@ -115,6 +115,13 @@ enum Command {
         program: PathBuf,
     },
 
+    /// Validate that a Honeybee library is parseable and well-typed
+    Validate {
+        /// The library file (.hblib.toml)
+        #[arg(short, long, value_name = "FILE")]
+        library: PathBuf,
+    },
+
     /// Run a benchmark suite
     Benchmark {
         /// The benchmark suite directories to use (comma-separated list)
@@ -179,6 +186,7 @@ impl Command {
             Self::Check { library, program } => {
                 main_handler::check(library, program)
             }
+            Self::Validate { library } => main_handler::validate(library),
             Self::Benchmark {
                 suite,
                 algorithms,

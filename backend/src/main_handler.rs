@@ -190,7 +190,7 @@ pub fn interact(
     Ok(())
 }
 
-/// Check if a Honeybee poblem is solvable
+/// Check if a Honeybee problem is solvable
 pub fn check(library: PathBuf, program: PathBuf) -> Result<(), String> {
     let problem = load_problem(library, program)?;
     let chosen_metadata = problem.program.goal.args.clone();
@@ -202,6 +202,32 @@ pub fn check(library: PathBuf, program: PathBuf) -> Result<(), String> {
     } else {
         println!("{}", Red.bold().paint("Not solvable..."));
     }
+    Ok(())
+}
+
+/// Check if a Honeybee library is parseable and well-typed
+pub fn validate(library: PathBuf) -> Result<(), String> {
+    let lib_string = std::fs::read_to_string(library).map_err(|e| {
+        format!("error while reading library file: {}", e.to_string())
+    })?;
+
+    let library = parse::library(&lib_string).map_err(|e| {
+        format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
+    })?;
+
+    typecheck::library(&library).map_err(|e| {
+        format!(
+            "{} {}\n  occurred:{}",
+            Red.bold().paint("type error:"),
+            ansi_term::Style::new().bold().paint(e.message),
+            e.context
+                .into_iter()
+                .map(|ctx| format!("\n    - in {}", ctx))
+                .collect::<Vec<_>>()
+                .join("")
+        )
+    })?;
+
     Ok(())
 }
 
