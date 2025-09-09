@@ -129,8 +129,9 @@ class RnaSeq:
 def from_local_rna_seq(local: LocalRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """Load local data
 
-    This function loads raw RNA-seq data that you already have on your computer,
-    typically in the .fastq.gz file format."""
+    # Load raw RNA-seq data already present on your computer
+
+    The raw RNA-seq files are typically in the .fastq.gz file format."""
 
     print("### Loading local RNA-seq data files... ###\n")
 
@@ -147,9 +148,11 @@ def from_local_rna_seq(local: LocalRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """Download from ENA
 
-    This function loads RNA-seq data from the
-    [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by
-    SRR accession identifiers."""
+    # Download RNA-seq data from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by SRR accession identifiers
+
+    The downloaded files will be in the .fastq.gz file format, with the
+    filenames for the forward reads ending in _1.fastq.gz and the filenames for
+    the reverse reads ending in _2.fastq.gz."""
 
     print("### Downloading RNA-seq data files from ENA... ###\n")
 
@@ -193,8 +196,7 @@ def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """FastQC
 
-    Run quality control checks on RNA-seq data with
-    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
+    # Run quality control checks on RNA-seq data with [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 
     FastQC produces two HTML reports for each sample: one for the forward reads
     and one for the reverse reads. These HTML reports can be individually opened
@@ -204,6 +206,12 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
     for assessing the outputs of FastQC.
 
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `CORES`: the number of cores that you want FastQC to use
+
     ## Citation
 
     If you use FastQC, please cite it as:
@@ -211,6 +219,8 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > Simon Andrews. FastQC: a quality control tool for high throughput
     > sequence data. (2010). Available online at:
     > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
+
+    CORES = 8
 
     print("### Running FastQC... ###\n")
 
@@ -224,9 +234,8 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
         (data.dynamic.path + df["sample_name"] + "_1.fastq.gz ")
         + (data.dynamic.path + df["sample_name"] + "_2.fastq.gz")
     )
-    cores = 8
 
-    bash(f"fastqc -t {cores} -o {outdir} {fastqs}")
+    bash(f"fastqc -t {CORES} -o {outdir} {fastqs}")
 
     return data.dynamic
 
@@ -239,8 +248,7 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """MultiQC
 
-    Run quality control checks on RNA-seq data with
-    [MultiQC](https://seqera.io/multiqc/).
+    # Run quality control checks on RNA-seq data with [MultiQC](https://seqera.io/multiqc/)
 
     MultiQC aggregates the output of
     [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
@@ -250,6 +258,15 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
     for assessing the outputs of FastQC that can also be used to understand
     the outputs of MultiQC.
+
+    This function calls FastQC on the necessary files then aggregates them with
+    MultiQC.
+
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `CORES`: the number of cores that you want FastQC to use
 
     ## Citation
 
@@ -266,6 +283,8 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > sequence data. (2010). Available online at:
     > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
 
+    CORES = 8
+
     print("### Running MultiQC (and pre-requisite FastQC commands)... ###")
 
     fastqc_outdir = f"output/{ret.label}/fastqc/"
@@ -278,9 +297,8 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
         (data.dynamic.path + df["sample_name"] + "_1.fastq.gz ")
         + (data.dynamic.path + df["sample_name"] + "_2.fastq.gz")
     )
-    cores = 8
 
-    bash(f"fastqc -t {cores} -o {fastqc_outdir} {fastqs}")
+    bash(f"fastqc -t {CORES} -o {fastqc_outdir} {fastqs}")
 
     multiqc_outdir = f"output/{ret.label}/multiqc/"
     bash(f"mkdir -p {multiqc_outdir}")
@@ -297,8 +315,7 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """cutadapt (Illumina)
 
-    Remove the Illumina universal adapter for RNA-seq and poly(A) tails from
-    an RNA-seq dataset using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+    # Remove Illumina universal adapter for RNA-seq and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
     This is typically a good step to do in an RNA-seq pre-processing pipeline,
     and **typically only need to be done (at most) once**.
@@ -337,7 +354,7 @@ def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011.
     > http://dx.doi.org/10.14806/ej.17.1.200"""
 
-    print("### Running cudapat (Illumina RNA-seq)... ###")
+    print("### Running cutadapt (Illumina RNA-seq)... ###")
 
     outdir = f"output/{ret.label}/cutadapt_trimmed/"
     bash(f"mkdir -p {outdir}")
@@ -370,16 +387,16 @@ def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
 @Type
 class TranscriptMatrices:
-    """Read count (and TPM abundance) matrix for RNA-seq samples
+    """Transcript read counts (and TPM abundance) of RNA-seq samples
 
-    The goal of this step is to calculate two transcript × sample matrices:
+    The goal of this step is to calculate two transcript-by-sample matrices:
     - One with (estimated) read counts.
     - One with TPM (transcripts-per-million) abundance.
 
     These matrices can be used for plotting, differential expression testing,
     clustering, and many other downstream analyses. The following review
     provides an overview of RNA-seq data analysis, including information about
-    read count matrices:
+    read count matrices (Fig 2a and 2b are especially relevant):
 
     > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -389,6 +406,9 @@ class TranscriptMatrices:
         label: str
         "Label for RNA-seq data to analyze"
 
+        bc: str
+        "Whether or not batch correction has been run"
+
     class D:
         sample_sheet: str
         path: str
@@ -397,77 +417,67 @@ class TranscriptMatrices:
 @Function(
     "data.qc = true",
     "ret.label = data.label",
+    "ret.bc = false",
 )
 def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """kallisto
 
-    # Quantify transcript abundances *without* alignment using kallisto
+    # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/)
 
-    kallisto is a program for quantifying abundances of transcripts from
-    RNA-Seq data, or more generally of target sequences using high-throughput
-    sequencing reads. It is based on the novel idea of pseudoalignment for
-    rapidly determining the compatibility of reads with targets, without the
-    need for alignment. On benchmarks with standard RNA-Seq data, kallisto can
-    quantify 30 million human bulk RNA-seq reads in less than 3 minutes on a
-    Mac desktop computer using only the read sequences and a transcriptome
-    index that itself takes than 10 minutes to build. Pseudoalignment of reads
-    preserves the key information needed for quantification, and kallisto is
-    therefore not only fast, but also comparably accurate to other existing
-    quantification tools. In fact, because the pseudoalignment procedure is
-    robust to errors in the reads, in many benchmarks kallisto significantly
-    outperforms existing tools. The kallisto algorithms are described in more
-    detail in:
+    kallisto is a tool that estimates the number of times a transcript appears
+    using a technique called _pseudoalignment_ that is much faster than a full
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+
+    If you have a reference transcriptome already available that you trust and
+    you are not specifically interested in scientifically studying the
+    alignment of your RNA-seq to the genome, then a tool that performs
+    quantification without alignment (like kallisto or
+    [salmon](https://salmon.readthedocs.io/en/latest/)) is generally a good
+    choice due to their orders-of-magnitude speedup over alignment-based
+    procedures.
+
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `KALLISTO_INDEX`: the location of the kallisto index on your computer
+    - `CORES`: the number of cores that you want kallisto to use
+
+    ## Citation
+
+    If you use kallisto, please cite it as:
 
     > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
-    > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016).
+    > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."""
 
-    *Description taken from [kallisto GitHub repository](https://github.com/pachterlab/kallisto).*"""
+    KALLISTO_INDEX = "put the path to the kallisto index here"
+    CORES = 8
 
-    in_path = data.dynamic.path
-    ret_path = f"output/{ret.label}/kallisto_quant"
+    print("### Running kallisto ###")
 
-    RUN(f"mkdir {ret_path}")
-    for name in sample_names(data.sample_sheet):
-        print(f"Running kallisto on {name}...")
+    outdir = f"output/{ret.label}/kallisto_quant"
+    bash(f"mkdir -p {outdir}")
 
-        RUN(f"""kallisto quant \\
-                    -t 8 \\
-                    -i KALLISTO_INDEX \\
-                    -o {ret_path}/{name} \\
-                    {in_path}/{name}_R1.fastq.gz \\
-                    {in_path}/{name}_R2.fastq.gz""")
+    import polars as pl
+
+    df = pl.read_csv(data.dynamic.sample_sheet)
+
+    for sample_name in df["sample_name"]:
+        bash(f"""kallisto quant \\
+                    -t {CORES} \\
+                    -i {KALLISTO_INDEX} \\
+                    -o {outdir}/{sample_name} \\
+                    {data.dynamic.path}/{sample_name}_1.fastq.gz \\
+                    {data.dynamic.path}/{sample_name}_2.fastq.gz""")
 
     return TranscriptMatrices.D(
         sample_sheet=data.dynamic.sample_sheet,
-        path=ret_path,
+        path=outdir,
     )
 
 
-@Function(
-    "data.qc = true",
-    "ret.label = data.label",
-)
-def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """salmon
-
-    # Quantify transcript abundances *without* alignment using salmon
-
-    Salmon is a wicked-fast program to produce a highly-accurate,
-    transcript-level quantification estimates from RNA-seq data. Salmon
-    achieves its accuracy and speed via a number of different innovations,
-    including the use of selective-alignment (accurate but fast-to-compute
-    proxies for traditional read alignments), and massively-parallel stochastic
-    collapsed variational inference. The result is a versatile tool that fits
-    nicely into many different pipelines. For example, you can choose to make
-    use of our selective-alignment algorithm by providing Salmon with raw
-    sequencing reads, or, if it is more convenient, you can provide Salmon with
-    regular alignments (e.g. an unsorted BAM file with alignments to the
-    transcriptome produced with your favorite aligner), and it will use the
-    same wicked-fast, state-of-the-art inference algorithm to estimate
-    transcript-level abundances for your experiment.
-
-    *Description taken from [salmon GitHub repository](https://github.com/COMBINE-lab/salmon).*"""
-    pass
+################################################################################
+# %% TODO
 
 
 @Function(
@@ -547,76 +557,3 @@ def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatri
 def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
     """Align spliced transcripts to a reference with STAR"""
     pass
-
-
-################################################################################
-# Stubs to implement
-
-
-@Prop
-class CutAndRunProp:
-    "CUT&RUN-seq"
-
-    label: str
-    "Label for data"
-
-    sample_sheet: str
-    "Path to sample sheet CSV"
-
-    raw_data: str
-    "Path to raw FASTQ files"
-
-
-@Prop
-class EMSeqProp:
-    "EM-seq"
-
-    label: str
-    "Label for data"
-
-    sample_sheet: str
-    "Path to sample sheet CSV"
-
-    raw_data: str
-    "Path to raw FASTQ files"
-
-
-@Prop
-class FlowProp:
-    "Flow cytometry"
-
-    label: str
-    "Label for data"
-
-    sample_sheet: str
-    "Path to sample sheet CSV"
-
-    raw_data: str
-    "Path to raw FCS files"
-
-
-@Prop
-class SortProp:
-    "Sort cells with FACS"
-
-    label: str
-    "Label for data"
-
-
-@Prop
-class StainProp:
-    "Stain cells with antibodies"
-
-    label: str
-    "Label for data"
-
-
-@Prop
-class TransfectProp:
-    "Infect cells with CRISPR sgRNA guide library"
-
-    label: str
-    "Label for data"
-
-    library: str
-    "Path to the library file"
