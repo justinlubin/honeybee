@@ -482,47 +482,24 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
 
 @Function(
     "ret.label = data.label",
+    "data.bc = false",
+    "ret.bc = true",
 )
 def combat_seq(
     data: TranscriptMatrices, ret: TranscriptMatrices.S
 ) -> TranscriptMatrices.D:
-    """ComBat-seq
-
-    # Correct for batch effects using ComBat-seq
-
-    ComBat-seq is a batch effect adjustment tool for bulk RNA-seq count data.
-    It is an improved model based on the popular
-        [ComBat](https://doi.org/10.1093/biostatistics/kxj037),
-    to address its limitations through novel methods designed specifically for
-    RNA-Seq studies.  ComBat-seq takes untransformed, raw count matrix as
-    input. Same as ComBat, it requires a known batch variable.
-
-    We use a negative binomial regression to model batch effects, then provide
-    adjusted data by mapping the original data to an expected distribution if
-    there were no batch effects. This approach better captures the properties
-    of RNA-Seq count data compared to the Gaussian distribution assumed by
-    ComBat. ComBat-seq specifies different dispersion parameters across
-    batches, allowing for flexible modeling of the variance of gene expression.
-    In addition, ComBat-seq provides adjusted data which preserves the integer
-    nature of counts, so that the adjusted data are compatible with the
-    assumptions of state-of-the-art differential expression software (e.g.
-    edgeR, DESeq2, which specifically request untransformed count data).
-
-    ComBat-seq was recently published in NAR genomics and bioinformatics.
-    Whenever using ComBat-seq, please cite:
-
-    > Yuqing Zhang, Giovanni Parmigiani, W Evan Johnson, ComBat-seq: batch
-    > effect adjustment for RNA-seq count data, NAR Genomics and Bioinformatics,
-    > Volume 2, Issue 3, 1 September 2020, lqaa078,
-    > [https://doi.org/10.1093/nargab/lqaa078](https://doi.org/10.1093/nargab/lqaa078)
-
-    *Description taken from [ComBat-seq GitHub repository](https://github.com/zhangyuqing/ComBat-seq).*"""
     pass
 
 
 @Type
-class Alignment:
-    "Alignment to a reference genome"
+class DifferentialGeneExpression:
+    """Differential gene expression
+
+    The goal of this step is to assign a score (like a _p_-value) to each gene
+    that ranks how differentially expressed it is between two conditions.
+    Among other uses, this information can be plotted in an
+    [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
+    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics))."""
 
     class S:
         label: str
@@ -533,27 +510,29 @@ class Alignment:
         path: str
 
 
-@Function(
-    "ret.label = data.label",
-)
-def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """featureCounts
-
-    # Quantify transcript abundances *after* alignment using featureCounts
-
-    featureCounts is a highly efficient general-purpose read summarization
-    program that counts mapped reads for genomic features such as genes, exons,
-    promoter, gene bodies, genomic bins and chromosomal locations. It can be
-    used to count both RNA-seq and genomic DNA-seq reads.
-
-    *Description taken from [featureCounts website](https://subread.sourceforge.net/featureCounts.html).*"""
-    pass
-
-
-@Function(
-    "data.qc = true",
-    "ret.label = data.label",
-)
-def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
-    """Align spliced transcripts to a reference with STAR"""
-    pass
+# @Type
+# class Alignment:
+#     "Alignment to a reference genome"
+#
+#     class S:
+#         label: str
+#         "Label for data"
+#
+#     class D:
+#         sample_sheet: str
+#         path: str
+#
+#
+# @Function(
+#     "ret.label = data.label",
+# )
+# def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+#     pass
+#
+#
+# @Function(
+#     "data.qc = true",
+#     "ret.label = data.label",
+# )
+# def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
+#     pass
