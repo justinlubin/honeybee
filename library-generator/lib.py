@@ -1,5 +1,4 @@
 import ast
-import dataclasses
 import inspect
 
 
@@ -74,10 +73,7 @@ def _emit_fact(fact_kind, cls, parent_cls, kwargs):
     new_code = ""
     for line in code.splitlines():
         if line.startswith("@Type") or line.startswith("@Prop"):
-            new_code += "@dataclass\n"
             continue
-        elif line in ["    class S:", "    class D:"]:
-            new_code += "    @dataclass\n"
         new_code += line + "\n"
     print(f"info.code = '''{new_code.strip()}'''")
     print()
@@ -139,7 +135,7 @@ def _emit_function(f, condition, kwargs):
 def Prop(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Prop", cls, cls, kwargs)
-        cls = dataclasses.dataclass(cls)
+        # cls = dataclasses.dataclass(cls)
         cls.__honeybee_object = "Prop"
         return cls
 
@@ -153,11 +149,11 @@ def Prop(*args, **kwargs):
 def Type(*args, **kwargs):
     def wrap(cls):
         _emit_fact("Type", cls.S, cls, kwargs)
-        cls.S = dataclasses.dataclass(cls.S)
-        cls.D = dataclasses.dataclass(cls.D)
-        cls.__annotations__["static"] = cls.S
-        cls.__annotations__["dynamic"] = cls.D
-        cls = dataclasses.dataclass(cls)
+        # cls.S = dataclasses.dataclass(cls.S)
+        # cls.D = dataclasses.dataclass(cls.D)
+        # cls.__annotations__["static"] = cls.S
+        # cls.__annotations__["dynamic"] = cls.D
+        # cls = dataclasses.dataclass(cls)
         cls.S.__honeybee_parent = cls
         cls.D.__honeybee_parent = cls
         cls.__honeybee_object = "Type"

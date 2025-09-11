@@ -1,3 +1,5 @@
+# type: ignore
+
 # %%
 
 Aret = RNASeq.S(label="hi", qc=False)

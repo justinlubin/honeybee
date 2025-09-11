@@ -623,24 +623,26 @@ pbnStatus ms =
                                                     Cell.Choice _ ->
                                                         True
                                         in
-                                        li [] <|
-                                            (if choice then
-                                                [ span
-                                                    [ A.class "card-reference"
-                                                    , A.class "cell-choice"
+                                        li []
+                                            [ a
+                                                [ A.href ("#" ++ cellId cellIndex) ]
+                                              <|
+                                                (if choice then
+                                                    [ span
+                                                        [ A.class "card-reference"
+                                                        , A.class "cell-choice"
+                                                        ]
+                                                        [ text "Choice"
+                                                        ]
+                                                    , text " "
                                                     ]
-                                                    [ text "Choice"
-                                                    ]
-                                                , text " "
-                                                ]
 
-                                             else
-                                                []
-                                            )
-                                                ++ [ a
-                                                        [ A.href ("#" ++ cellId cellIndex) ]
-                                                        [ text (cellTitle c) ]
-                                                   ]
+                                                 else
+                                                    []
+                                                )
+                                                    ++ [ text (cellTitle c)
+                                                       ]
+                                            ]
                                     )
                                     cells
                                 )

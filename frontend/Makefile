@@ -32,6 +32,9 @@ $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
 	uv run \
+		--project ../library-generator \
+		ty check && \
+	uv run \
 		--project ../library-generator/ \
 		../library-generator/std-bio.py \
 		> $(OUT_DIR)/std-bio.hblib.toml && \

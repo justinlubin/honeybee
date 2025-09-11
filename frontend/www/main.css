@@ -111,6 +111,11 @@ button {
     list-style-type: disc;
 }
 
+.markdown code {
+    background-color: rgba(0, 0, 0, 0.05);
+    font-family: monospace;
+}
+
 /* || Tabbed menu */
 
 .tabbed-menu {

@@ -1,0 +1,11 @@
+[project]
+name = "environment"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cutadapt>=5.1",
+    "multiqc>=1.30",
+    "polars>=1.33.0",
+]

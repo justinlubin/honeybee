@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from lib import Function, Helper, Prop, Type
 
 
@@ -7,11 +9,14 @@ def bash(command):
 
     print(f"Running bash command:\n\n{command}\n")
 
-    subprocess.run(
+    p = subprocess.run(
         command,
         shell=True,
         text=True,
     )
+
+    if p.returncode != 0:
+        raise ValueError(f"Non-zero exit code: {p.returncode}")
 
 
 @Helper
@@ -33,13 +38,19 @@ def capture_bash(command):
 
 
 @Type
+@dataclass
 class SraRnaSeq:
+    @dataclass
     class S:
         label: str
         sample_sheet: str
 
+    @dataclass
     class D:
         pass
+
+    static: S
+    dynamic: D
 
 
 @Prop
@@ -50,7 +61,7 @@ class P_SraRnaSeq:
     "Label for data, like 'main' or 'JL001'"
 
     sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata (columns: srr,condition,replicate)"
+    "Path to sample sheet CSV with SRA metadata (columns: srr, condition, replicate)"
 
 
 @Function(
@@ -61,17 +72,24 @@ def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
 
 
 @Type
+@dataclass
 class LocalRnaSeq:
+    @dataclass
     class S:
         label: str
         sample_sheet: str
         path: str
 
+    @dataclass
     class D:
         pass
 
+    static: S
+    dynamic: D
+
 
 @Prop
+@dataclass
 class P_LocalRnaSeq:
     "RNA-seq (locally-saved)"
 
@@ -79,7 +97,7 @@ class P_LocalRnaSeq:
     "Label for data, like 'main' or 'JPL001'"
 
     sample_sheet: str
-    "Path to sample sheet CSV (columns: sample_name,condition,replicate)"
+    "Path to sample sheet CSV (columns: sample_name, condition, replicate)"
 
     path: str
     "Path to the directory containing the RNA-seq data"
@@ -93,6 +111,7 @@ def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
 
 
 @Type
+@dataclass
 class RnaSeq:
     """RNA-seq reads
 
@@ -110,6 +129,7 @@ class RnaSeq:
     [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
     before and after running the tool."""
 
+    @dataclass
     class S:
         label: str
         "Label for data"
@@ -117,9 +137,13 @@ class RnaSeq:
         qc: bool
         "Whether or not quality checks have been run"
 
+    @dataclass
     class D:
         sample_sheet: str
         path: str
+
+    static: S
+    dynamic: D
 
 
 @Function(
@@ -210,7 +234,7 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
     In the code, please set the following parameters:
 
-    - `CORES`: the number of cores that you want FastQC to use
+    - `CORES`: the number of cores that you want FastQC to use (default: 4)
 
     ## Citation
 
@@ -220,7 +244,7 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > sequence data. (2010). Available online at:
     > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
 
-    CORES = 8
+    CORES = 4
 
     print("### Running FastQC... ###\n")
 
@@ -266,7 +290,7 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
     In the code, please set the following parameters:
 
-    - `CORES`: the number of cores that you want FastQC to use
+    - `CORES`: the number of cores that you want FastQC to use (default: 4)
 
     ## Citation
 
@@ -283,7 +307,7 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > sequence data. (2010). Available online at:
     > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
 
-    CORES = 8
+    CORES = 4
 
     print("### Running MultiQC (and pre-requisite FastQC commands)... ###")
 
@@ -341,10 +365,7 @@ def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > but often you don’t want them to be in your reads.
 
     > Cutadapt helps with these trimming tasks by finding the adapter or primer
-    > sequences in an error-tolerant way. It can also modify and filter
-    > single-end and paired-end reads in various ways. Adapter sequences can
-    > contain IUPAC wildcard characters. Cutadapt can also demultiplex your
-    > reads.
+    > sequences in an error-tolerant way.
 
     ## Citation
 
@@ -356,7 +377,7 @@ def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
     print("### Running cutadapt (Illumina RNA-seq)... ###")
 
-    outdir = f"output/{ret.label}/cutadapt_trimmed/"
+    outdir = f"output/{ret.label}/cutadapt/"
     bash(f"mkdir -p {outdir}")
 
     import polars as pl
@@ -386,6 +407,7 @@ def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
 
 @Type
+@dataclass
 class TranscriptMatrices:
     """Transcript read counts (and TPM abundance) of RNA-seq samples
 
@@ -393,25 +415,26 @@ class TranscriptMatrices:
     - One with (estimated) read counts.
     - One with TPM (transcripts-per-million) abundance.
 
-    These matrices can be used for plotting, differential expression testing,
-    clustering, and many other downstream analyses. The following review
-    provides an overview of RNA-seq data analysis, including information about
-    read count matrices (Fig 2a and 2b are especially relevant):
+    These matrices are usually computed by using a reference transcriptome
+    (coding sequences) rather than a reference genome. Unless your scientific
+    question relates specifically to transcript information, these matrices are
+    often aggregated into **gene-level** read count and abundance information."""
 
-    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
-    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
-    > https://doi.org/10.1186/s13059-016-0881-8"""
-
+    @dataclass
     class S:
         label: str
         "Label for RNA-seq data to analyze"
 
-        bc: str
+        bc: bool
         "Whether or not batch correction has been run"
 
+    @dataclass
     class D:
         sample_sheet: str
         path: str
+
+    static: S
+    dynamic: D
 
 
 @Function(
@@ -428,20 +451,12 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     using a technique called _pseudoalignment_ that is much faster than a full
     alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
 
-    If you have a reference transcriptome already available that you trust and
-    you are not specifically interested in scientifically studying the
-    alignment of your RNA-seq to the genome, then a tool that performs
-    quantification without alignment (like kallisto or
-    [salmon](https://salmon.readthedocs.io/en/latest/)) is generally a good
-    choice due to their orders-of-magnitude speedup over alignment-based
-    procedures.
-
     ## Parameters to set
 
     In the code, please set the following parameters:
 
-    - `KALLISTO_INDEX`: the location of the kallisto index on your computer
-    - `CORES`: the number of cores that you want kallisto to use
+    - `KALLISTO_INDEX`: the location of the kallisto transcriptome index on your computer (default: "ensembl115-hg38-kallisto.idx")
+    - `CORES`: the number of cores that you want kallisto to use (default: 4)
 
     ## Citation
 
@@ -450,12 +465,12 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
     > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."""
 
-    KALLISTO_INDEX = "put the path to the kallisto index here"
-    CORES = 8
+    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+    CORES = 4
 
     print("### Running kallisto ###")
 
-    outdir = f"output/{ret.label}/kallisto_quant"
+    outdir = f"output/{ret.label}/kallisto"
     bash(f"mkdir -p {outdir}")
 
     import polars as pl
@@ -476,8 +491,39 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     )
 
 
-################################################################################
-# %% TODO
+@Function(
+    "data.qc = true",
+    "ret.label = data.label",
+    "ret.bc = false",
+)
+def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """Salmon
+
+    # Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
+
+    Salmon is a tool that estimates the number of times a transcript appears
+    using a lightweight mapping technique that is much faster than a full
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `SALMON_INDEX`: the location of the Salmon transcriptome index on your computer
+    - `CORES`: the number of cores that you want Salmon to use (default: 4)
+
+    ## Citation
+
+    If you use Salmon, please cite it as:
+
+    > Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C.
+    > (2017). Salmon provides fast and bias-aware quantification of transcript
+    > expression. Nature Methods."""
+
+    SALMON_INDEX = "put the path to the Salmon index here"
+    CORES = 4
+
+    raise NotImplementedError
 
 
 @Function(
@@ -488,10 +534,122 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
 def combat_seq(
     data: TranscriptMatrices, ret: TranscriptMatrices.S
 ) -> TranscriptMatrices.D:
-    pass
+    raise NotImplementedError
+
+
+################################################################################
+# %% Gene matrices
 
 
 @Type
+@dataclass
+class GeneMatrices:
+    """Gene read counts (and TPM abundance) of RNA-seq samples
+
+    The goal of this step is to calculate two gene-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices can be created using an alignment-based approach that aligns
+    transcripts to a reference genome in a splice-aware fashion or using
+    an alignment-free approach that matches transcripts against a reference
+    transcriptome.
+
+    If you have a reference transcriptome already available that you trust and
+    you are not specifically interested in scientifically studying the
+    alignment of your RNA-seq to the genome, then a tool that performs
+    quantification without alignment is generally a good choice due to their
+    orders-of-magnitude speedup over alignment-based procedures.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices (Fig 2a and 2b are especially relevant):
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
+
+    @dataclass
+    class S:
+        label: str
+        "Label for RNA-seq data to analyze"
+
+        bc: bool
+        "Whether or not batch correction has been run"
+
+    @dataclass
+    class D:
+        sample_sheet: str
+        path: str
+
+    static: S
+    dynamic: D
+
+
+@Function(
+    "ret.label = data.label",
+    "data.bc = false",
+    "ret.bc = true",
+)
+def tximport(data: TranscriptMatrices, ret: GeneMatrices.S) -> GeneMatrices.D:
+    """tximport
+
+    # Aggregate transcript-level estimated counts for gene-level analysis with [tximport](https://bioconductor.org/packages/release/bioc/html/tximport.html)
+
+    Tools like [kallisto](https://pachterlab.github.io/kallisto/) and
+    [salmon](https://salmon.readthedocs.io/en/latest/) report transcript-level
+    read counts, but many analyses of interest (such as differential _gene_
+    expression) require gene-level data. tximport aggregates transcripts of the
+    same gene together for gene-level downstream analysis.
+
+    Salmon is a tool that estimates the number of times a transcript appears
+    using a lightweight mapping technique that is much faster than a full
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `ENSEMBL_VERSION`: the version of Ensembl to use for gene annotations (default: "115", released September 2025)
+    - `ENSEMBL_DATASET`: the Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
+
+    ## Citation
+
+    If you use tximport, please cite it as:
+
+    > Soneson C, Love MI, Robinson MD (2015). “Differential analyses for
+    RNA-seq: transcript-level estimates improve gene-level inferences.”
+    F1000Research, 4. doi:10.12688/f1000research.7563.1."""
+
+    ENSEMBL_VERSION = "115"
+    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+
+    print("### Running tximport... ###\n")
+
+    outdir = f"output/{ret.label}/tximport/"
+    bash(f"mkdir -p {outdir}")
+
+    bash(f"""
+        Rscript tximport.r \\
+            {ENSEMBL_VERSION} \\
+            {ENSEMBL_DATASET} \\
+            {data.dynamic.sample_sheet} \\
+            {data.dynamic.path} \\
+            {outdir}""")
+
+    return GeneMatrices.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=outdir,
+    )
+
+
+################################################################################
+# %% Differential Gene Expression
+
+
+@Type
+@dataclass
 class DifferentialGeneExpression:
     """Differential gene expression
 
@@ -501,13 +659,80 @@ class DifferentialGeneExpression:
     [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
     [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics))."""
 
+    @dataclass
     class S:
         label: str
         "Label for data"
 
+        comparison_sheet: str
+        "@noauto:Comparisons to make (columns: control_condition, treatment_condition)"
+
+    @dataclass
     class D:
         sample_sheet: str
         path: str
+
+    static: S
+    dynamic: D
+
+
+@Function(
+    "ret.label = data.label",
+)
+def deseq2(
+    data: GeneMatrices, ret: DifferentialGeneExpression.S
+) -> DifferentialGeneExpression.D:
+    """DESeq2
+
+    # Find differentially-expressed protein-coding genes with [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
+
+    DESeq2 models gene expression using what is called a _negative binomial distribution_,
+    which is much more suitable for RNA-seq data than something like a _t_-test.
+    DESeq2 has an
+    [extensive guide](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
+    about how to use DESeq2 to analyze RNA-seq data.
+
+    The above guide includes a very helpful
+    [list of frequently-asked questions](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#frequently-asked-questions),
+    including an explanation of why some adjusted _p_-values are `NA` and what
+    can be done to turn off that behavior.
+
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `ENSEMBL_VERSION`: the version of Ensembl to use for gene annotations (default: "115", released September 2025)
+    - `ENSEMBL_DATASET`: the Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
+
+    ## Citation
+
+    If you use DESeq, please cite it as:
+
+    > Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change
+    > and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550.
+    > doi:10.1186/s13059-014-0550-8."""
+
+    ENSEMBL_VERSION = "115"
+    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+
+    print("### Running DESeq2... ###\n")
+
+    outdir = f"output/{ret.label}/deseq2/"
+    bash(f"mkdir -p {outdir}")
+
+    bash(f"""
+        Rscript deseq2.r \\
+            {ENSEMBL_VERSION} \\
+            {ENSEMBL_DATASET} \\
+            {data.dynamic.sample_sheet} \\
+            {ret.comparison_sheet} \\
+            {data.dynamic.path}counts.csv \\
+            {outdir}""")
+
+    return DifferentialGeneExpression.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=outdir,
+    )
 
 
 # @Type
