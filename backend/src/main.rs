@@ -90,6 +90,10 @@ enum Command {
         #[arg(short, long, action)]
         quiet: bool,
 
+        /// Path to output synthesized expression
+        #[arg(short, long, value_name = "FILE", default_value = "/dev/null")]
+        out: PathBuf,
+
         /// Path to output JSON of synthesized expression (blank for no output)
         #[arg(short, long, value_name = "FILE", default_value = "")]
         json: String,
@@ -173,6 +177,7 @@ impl Command {
                 program,
                 style,
                 quiet,
+                out,
                 json,
                 algorithm,
             } => main_handler::interact(
@@ -180,6 +185,7 @@ impl Command {
                 program,
                 style,
                 quiet,
+                out,
                 custom_parse::at_most_one_path(&json),
                 algorithm,
             ),

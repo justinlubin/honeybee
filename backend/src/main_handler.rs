@@ -61,6 +61,7 @@ pub fn interact(
     program: PathBuf,
     style: menu::CodegenStyle,
     quiet: bool,
+    out: PathBuf,
     json: Option<PathBuf>,
     algorithm: menu::Algorithm,
 ) -> Result<(), String> {
@@ -169,15 +170,22 @@ pub fn interact(
         controller.decide(options.swap_remove(idx))
     }
 
+    let output = gen.exp(&controller.working_expression())?;
+
     if quiet {
-        println!("output: {}", gen.exp(&controller.working_expression())?);
+        println!("output: {}", output);
     } else {
         println!(
             "\n{}\n\n{}",
             Green.bold().paint("Final expression:"),
-            gen.exp(&controller.working_expression())?
+            output
         );
     }
+
+    match write_file(out, &output) {
+        Ok(()) => (),
+        Err(e) => eprintln!("file write error: {}", e),
+    };
 
     if let Some(json) = json {
         let contents = unparse::exp(&controller.working_expression())?;
