@@ -9,7 +9,6 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
-import Html.Keyed
 import Incoming
 import Json.Encode
 import Markdown
@@ -596,6 +595,14 @@ startNavigationButton prog =
         (text "Start navigating" :: extras)
 
 
+nextChoice : List Cell.Cell -> Maybe Int
+nextChoice cells =
+    cells
+        |> List.indexedMap Tuple.pair
+        |> Util.findFirst (\( _, c ) -> Cell.isChoice c)
+        |> Maybe.map Tuple.first
+
+
 pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
 pbnStatus ms =
     case ms of
@@ -612,24 +619,14 @@ pbnStatus ms =
                             [ h3
                                 [ A.class "outline-heading" ]
                                 [ text "Outline" ]
-                            , ul
-                                []
-                                (List.indexedMap
+                            , ul [] <|
+                                List.indexedMap
                                     (\cellIndex c ->
-                                        let
-                                            choice =
-                                                case c of
-                                                    Cell.Code _ ->
-                                                        False
-
-                                                    Cell.Choice _ ->
-                                                        True
-                                        in
                                         li []
                                             [ a
                                                 [ A.href ("#" ++ cellId cellIndex) ]
                                               <|
-                                                (if choice then
+                                                (if Cell.isChoice c then
                                                     [ span
                                                         [ A.class "card-reference"
                                                         , A.class "cell-choice"
@@ -647,7 +644,29 @@ pbnStatus ms =
                                             ]
                                     )
                                     cells
-                                )
+                                    ++ [ button
+                                            [ A.class "standout-button"
+                                            ]
+                                            [ case nextChoice cells of
+                                                Just i ->
+                                                    a
+                                                        [ A.href ("#" ++ cellId i) ]
+                                                        [ text "Next "
+                                                        , span
+                                                            [ A.class "card-reference"
+                                                            , A.class "cell-choice"
+                                                            ]
+                                                            [ text "Choice"
+                                                            ]
+                                                        ]
+
+                                                Nothing ->
+                                                    a
+                                                        [ A.href "#pbn-completed" ]
+                                                        [ text "Go to download button!"
+                                                        ]
+                                            ]
+                                       ]
                             ]
                         ]
 
@@ -657,7 +676,7 @@ pbnStatus ms =
                             text ""
 
                         Just solutionString ->
-                            div [ A.class "pbn-completed" ]
+                            div [ A.id "pbn-completed" ]
                                 [ button
                                     [ A.class "standout-button"
                                     , E.onClick

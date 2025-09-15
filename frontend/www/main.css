@@ -580,6 +580,16 @@ button {
     text-decoration: underline;
 }
 
+.outline .standout-button {
+    padding: 0;
+    margin-top: 10px;
+}
+
+.outline .standout-button a {
+    display: block;
+    padding: 15px;
+}
+
 /* || Custom Prism styles */
 
 .token.operator {

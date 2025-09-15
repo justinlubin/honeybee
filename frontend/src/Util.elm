@@ -1,6 +1,11 @@
 module Util exposing (..)
 
 
+findFirst : (a -> Bool) -> List a -> Maybe a
+findFirst f xs =
+    List.head (List.filter f xs)
+
+
 indexedFilter : (Int -> a -> Bool) -> List a -> List a
 indexedFilter pred xs =
     xs

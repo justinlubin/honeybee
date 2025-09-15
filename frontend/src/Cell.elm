@@ -38,3 +38,13 @@ type alias ChoiceCell =
 type Cell
     = Code CodeCell
     | Choice ChoiceCell
+
+
+isChoice : Cell -> Bool
+isChoice c =
+    case c of
+        Code _ ->
+            False
+
+        Choice _ ->
+            True
