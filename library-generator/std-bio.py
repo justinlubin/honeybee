@@ -669,7 +669,7 @@ class DifferentialGeneExpression:
         "Label for data"
 
         comparison_sheet: str
-        "@noauto:Comparisons to make (columns: control_condition, treatment_condition)"
+        "@noauto:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 
     @dataclass
     class D:

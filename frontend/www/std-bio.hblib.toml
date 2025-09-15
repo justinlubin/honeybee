@@ -908,7 +908,7 @@ Among other uses, this information can be plotted in an
 [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
 [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics))."""
 info.params.label = "Label for data"
-info.params.comparison_sheet = "@noauto:Comparisons to make (columns: control_condition, treatment_condition)"
+info.params.comparison_sheet = "@noauto:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 info.code = '''@dataclass
 class DifferentialGeneExpression:
     """Differential gene expression
@@ -925,7 +925,7 @@ class DifferentialGeneExpression:
         "Label for data"
 
         comparison_sheet: str
-        "@noauto:Comparisons to make (columns: control_condition, treatment_condition)"
+        "@noauto:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 
     @dataclass
     class D:
