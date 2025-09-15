@@ -40,6 +40,8 @@ def capture_bash(command):
 @Type
 @dataclass
 class SraRnaSeq:
+    "@nodisplay"
+
     @dataclass
     class S:
         label: str
@@ -74,6 +76,8 @@ def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
 @Type
 @dataclass
 class LocalRnaSeq:
+    "@nodisplay"
+
     @dataclass
     class S:
         label: str

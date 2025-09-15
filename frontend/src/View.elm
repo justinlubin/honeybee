@@ -303,10 +303,13 @@ step library suggestions pi s =
                     )
 
         options =
-            ( blankName, blankName )
-                :: Assoc.mapCollapse
-                    (\k sig -> ( k, Maybe.withDefault k sig.title ))
-                    library
+            List.filter
+                (\( _, displayName ) -> displayName /= "@nodisplay")
+            <|
+                ( blankName, blankName )
+                    :: Assoc.mapCollapse
+                        (\k sig -> ( k, Maybe.withDefault k sig.title ))
+                        library
 
         dropdown =
             select

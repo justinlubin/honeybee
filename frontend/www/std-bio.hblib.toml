@@ -32,9 +32,11 @@ content='''def capture_bash(command):
 [Type.SraRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
-info.title = "SraRnaSeq(static: __main__.SraRnaSeq.S, dynamic: __main__.SraRnaSeq.D)"
+info.title = "@nodisplay"
 info.code = '''@dataclass
 class SraRnaSeq:
+    "@nodisplay"
+
     @dataclass
     class S:
         label: str
@@ -75,9 +77,11 @@ info.code = '''def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
 params.label = "Str"
 params.sample_sheet = "Str"
 params.path = "Str"
-info.title = "LocalRnaSeq(static: __main__.LocalRnaSeq.S, dynamic: __main__.LocalRnaSeq.D)"
+info.title = "@nodisplay"
 info.code = '''@dataclass
 class LocalRnaSeq:
+    "@nodisplay"
+
     @dataclass
     class S:
         label: str
