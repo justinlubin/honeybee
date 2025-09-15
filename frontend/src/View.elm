@@ -502,6 +502,14 @@ cell ctx c =
                 ]
 
         Cell.Choice x ->
+            let
+                suffix =
+                    if List.length x.functionChoices == 1 then
+                        " (there's only one option in this case)"
+
+                    else
+                        ""
+            in
             card
                 [ A.class "cell-choice"
                 , A.id (cellId ctx.cellIndex)
@@ -521,7 +529,7 @@ cell ctx c =
 
                 -- , cardInnerHeading [] [ text "Notes" ]
                 -- , textarea [] []
-                , cardInnerHeading [] [ text "Choices" ]
+                , cardInnerHeading [] [ text ("Choices" ++ suffix) ]
                 , functionChoices
                     { cellIndex = ctx.cellIndex
                     , selectedFunctionChoice = x.selectedFunctionChoice

@@ -70,6 +70,9 @@ class P_SraRnaSeq:
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
 )
 def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
+    """Work in progress! Please simply click this option and proceed. ☺
+
+    Thanks!"""
     return SraRnaSeq.D()
 
 
@@ -111,6 +114,9 @@ class P_LocalRnaSeq:
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
 )
 def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
+    """Work in progress! Please simply click this option and proceed. ☺
+
+    Thanks!"""
     return LocalRnaSeq.D()
 
 

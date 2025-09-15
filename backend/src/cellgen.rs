@@ -216,7 +216,10 @@ impl<'a> Context<'a> {
                 type_description: None,
                 function_title: None,
                 function_description: None,
-                title: Some("Helpers and types".to_owned()),
+                title: Some(
+                    "This cell just hooks things together. Scroll down for important analysis choices!"
+                        .to_owned(),
+                ),
                 code: code.trim().to_owned(),
             },
         );

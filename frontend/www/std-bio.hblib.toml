@@ -70,7 +70,12 @@ ret = "SraRnaSeq"
 condition = [
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
 ]
+info.title = "Work in progress! Please simply click this option and proceed. ☺"
+info.description = """Thanks!"""
 info.code = '''def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
+    """Work in progress! Please simply click this option and proceed. ☺
+
+    Thanks!"""
     return SraRnaSeq.D()'''
 
 [Type.LocalRnaSeq]
@@ -122,7 +127,12 @@ ret = "LocalRnaSeq"
 condition = [
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
 ]
+info.title = "Work in progress! Please simply click this option and proceed. ☺"
+info.description = """Thanks!"""
 info.code = '''def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
+    """Work in progress! Please simply click this option and proceed. ☺
+
+    Thanks!"""
     return LocalRnaSeq.D()'''
 
 [Type.RnaSeq]
