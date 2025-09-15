@@ -203,6 +203,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             ]
             [ argLabels
                 |> Dict.get argName
+                |> Maybe.map (String.replace "@noauto:" "")
                 |> Maybe.withDefault argName
                 |> text
             ]
@@ -213,7 +214,14 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             , A.value valueStr
             ]
             []
-        , if List.isEmpty suggestions then
+        , if
+            List.isEmpty suggestions
+                || (argLabels
+                        |> Dict.get argName
+                        |> Maybe.map (String.startsWith "@noauto:")
+                        |> (==) (Just True)
+                   )
+          then
             text ""
 
           else
