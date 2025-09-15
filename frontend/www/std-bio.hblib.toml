@@ -7,11 +7,14 @@ content='''def bash(command):
 
     print(f"Running bash command:\n\n{command}\n")
 
-    subprocess.run(
+    p = subprocess.run(
         command,
         shell=True,
         text=True,
-    )'''
+    )
+
+    if p.returncode != 0:
+        raise ValueError(f"Non-zero exit code: {p.returncode}")'''
 
 [[Preamble]]
 content='''def capture_bash(command):
@@ -604,7 +607,7 @@ alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
 
 In the code, please set the following parameters:
 
-- `KALLISTO_INDEX`: the location of the kallisto transcriptome index on your computer
+- `KALLISTO_INDEX`: the location of the kallisto transcriptome index on your computer (default: "ensembl115-hg38-kallisto.idx")
 - `CORES`: the number of cores that you want kallisto to use (default: 4)
 
 ## Citation
@@ -626,7 +629,7 @@ info.code = '''def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> Transcri
 
     In the code, please set the following parameters:
 
-    - `KALLISTO_INDEX`: the location of the kallisto transcriptome index on your computer
+    - `KALLISTO_INDEX`: the location of the kallisto transcriptome index on your computer (default: "ensembl115-hg38-kallisto.idx")
     - `CORES`: the number of cores that you want kallisto to use (default: 4)
 
     ## Citation
@@ -636,7 +639,7 @@ info.code = '''def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> Transcri
     > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
     > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."""
 
-    KALLISTO_INDEX = "put the path to the kallisto index here"
+    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
     CORES = 4
 
     print("### Running kallisto ###")
@@ -876,6 +879,7 @@ info.code = '''def tximport(data: TranscriptMatrices, ret: GeneMatrices.S) -> Ge
     print("### Running tximport... ###\n")
 
     outdir = f"output/{ret.label}/tximport/"
+    bash(f"mkdir -p {outdir}")
 
     bash(f"""
         Rscript tximport.r \\
@@ -1000,6 +1004,7 @@ info.code = '''def deseq2(
     print("### Running DESeq2... ###\n")
 
     outdir = f"output/{ret.label}/deseq2/"
+    bash(f"mkdir -p {outdir}")
 
     bash(f"""
         Rscript deseq2.r \\
@@ -1007,7 +1012,7 @@ info.code = '''def deseq2(
             {ENSEMBL_DATASET} \\
             {data.dynamic.sample_sheet} \\
             {ret.comparison_sheet} \\
-            {data.dynamic.path}/counts.csv \\
+            {data.dynamic.path}counts.csv \\
             {outdir}""")
 
     return DifferentialGeneExpression.D(

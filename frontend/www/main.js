@@ -180,9 +180,54 @@ document.addEventListener("click", (e) => {
     const target = e.target.closest("a");
     if (target) {
         const href = target.getAttribute("href");
-        if (href && href.startsWith("#")) {
+        if (href?.startsWith("#")) {
             e.preventDefault();
             document.querySelector(href).scrollIntoView({ behavior: "smooth" });
         }
     }
+});
+
+////////////////////////////////////////////////////////////////////////////////
+// Animations
+
+// https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
+
+let seen = new Set();
+
+const target = document.querySelector("#navigation-pane .pane-body");
+
+document.getElementById("start-navigating").addEventListener("click", () => {
+    seen = new Set();
+});
+
+function findElementToFocus(target) {
+    for (const node of target.childNodes) {
+        if (!node.classList?.contains("cell-code")) {
+            continue;
+        }
+        if (node.dataset.key.startsWith("from dataclasses")) {
+            continue;
+        }
+        if (seen.has(node.dataset.key)) {
+            continue;
+        }
+        return node;
+    }
+    return null;
+}
+
+const observer = new MutationObserver((_mutations, _obs) => {
+    const el = findElementToFocus(target);
+    if (el) {
+        seen.add(el.dataset.key);
+        el.scrollIntoView({ behavior: "instant" });
+        el.classList.add("just-added");
+        window.setTimeout(() => {
+            el.classList.remove("just-added");
+        }, 500);
+    }
+});
+
+observer.observe(target, {
+    childList: true,
 });

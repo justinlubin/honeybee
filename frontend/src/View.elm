@@ -9,6 +9,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
+import Html.Keyed
 import Incoming
 import Json.Encode
 import Markdown
@@ -480,6 +481,7 @@ cell ctx c =
             card
                 [ A.class "cell-code"
                 , A.id (cellId ctx.cellIndex)
+                , A.attribute "data-key" code
                 ]
                 (cardHeading []
                     [ text "Code" ]
@@ -590,7 +592,7 @@ startNavigationButton prog =
                     )
     in
     button
-        ([ A.class "standout-button" ] ++ attrs)
+        ([ A.id "start-navigating", A.class "standout-button" ] ++ attrs)
         (text "Start navigating" :: extras)
 
 

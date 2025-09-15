@@ -242,12 +242,12 @@ button {
 /* || Panes */
 
 .pane {
-    max-width: 900px;
+    max-width: 800px;
     margin: 30px auto;
     scroll-margin-top: 10px;
 }
 
-@media (max-width: 910px) {
+@media (max-width: 810px) {
     .pane {
         width: calc(100% - 40px);
         margin-left: 20px;
@@ -588,4 +588,27 @@ button {
 
 code[class*="language-"] {
     text-shadow: none;
+}
+
+/* || Animations */
+
+@keyframes just-added {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    70% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.just-added {
+    animation: just-added 0.5s ease-out 1 forwards;
 }
