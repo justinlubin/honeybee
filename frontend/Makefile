@@ -1,18 +1,26 @@
-OPTIMIZE_ELM = false
-OUT_DIR = www
-CURRENT_COMMIT = $(shell git rev-parse --short HEAD)
+OPTIMIZE_ELM := false
+OUT_DIR := www
+CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
+
+DIAGRAMS_DIR := $(OUT_DIR)/assets/diagrams
+DIAGRAM_OBJECTS := $(patsubst \
+    $(DIAGRAMS_DIR)/dot/%.dot, \
+    $(DIAGRAMS_DIR)/svg/%.svg, \
+    $(wildcard $(DIAGRAMS_DIR)/dot/*.dot))
 
 .PHONY: all
 all: \
 	$(OUT_DIR)/elm.js \
 	$(OUT_DIR)/pkg/honeybee.js \
-	$(OUT_DIR)/std-bio.hblib.toml
+	$(OUT_DIR)/std-bio.hblib.toml \
+	$(DIAGRAM_OBJECTS)
 
 .PHONY: clean
 clean:
 	rm $(OUT_DIR)/elm.js
 	rm $(OUT_DIR)/pkg/honeybee.js
 	rm $(OUT_DIR)/std-bio.hblib.toml
+	rm $(OUT_DIR)/assets/diagrams/svg/*.svg
 
 $(OUT_DIR)/elm.js: $(wildcard src/*.elm)
 ifeq ($(OPTIMIZE_ELM),true)
@@ -40,3 +48,8 @@ $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
 		> $(OUT_DIR)/std-bio.hblib.toml && \
 	cd ../backend/ && \
 	cargo run -- validate -l ../frontend/$(OUT_DIR)/std-bio.hblib.toml
+
+$(OUT_DIR)/assets/diagrams/svg/%.svg: $(OUT_DIR)/assets/diagrams/dot/%.dot
+
+$(DIAGRAMS_DIR)/svg/%.svg: $(DIAGRAMS_DIR)/dot/%.dot
+	dot -Tsvg $< > $@

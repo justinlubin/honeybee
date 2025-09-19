@@ -673,6 +673,15 @@ nextChoice cells =
         |> Maybe.map Tuple.first
 
 
+solutionPrefix : String
+solutionPrefix =
+    "################################################################################\n"
+        ++ "# Script originally created using\n"
+        ++ "#     Honeybee (https://honeybee-lang.org), version "
+        ++ Version.fullVersion
+        ++ "\n\n"
+
+
 pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
 pbnStatus ms =
     case ms of
@@ -753,7 +762,7 @@ pbnStatus ms =
                                     , E.onClick
                                         (UserRequestedDownload
                                             { filename = "analysis.py"
-                                            , text = solutionString
+                                            , text = solutionPrefix ++ solutionString
                                             }
                                         )
                                     ]
@@ -807,10 +816,7 @@ view model =
                 [ text "devmode" ]
             , span
                 [ A.class "version-number" ]
-                [ text <|
-                    " version "
-                        ++ Version.version
-                        ++ "+<<<COMMIT-SHORT-HASH>>>"
+                [ text <| " version " ++ Version.fullVersion
                 ]
             ]
         , pane

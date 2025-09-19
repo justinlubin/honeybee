@@ -1,6 +1,11 @@
-module Version exposing (version)
+module Version exposing (fullVersion)
 
 
-version : String
-version =
+shortVersion : String
+shortVersion =
     "0.3.0"
+
+
+fullVersion : String
+fullVersion =
+    shortVersion ++ "+<<<COMMIT-SHORT-HASH>>>"
