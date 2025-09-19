@@ -321,8 +321,25 @@ button {
     margin-bottom: 10px;
     overflow: hidden;
     scroll-margin-top: 9px;
+    position: relative;
 
     --card-accent: #333;
+}
+
+.card summary {
+    display: block;
+    cursor: pointer;
+}
+
+.card details .card-heading-suffix::after {
+    content: "▼";
+    transform: rotate(90deg);
+    margin-right: 10px;
+    transition: transform 0.1s;
+}
+
+.card details[open] .card-heading-suffix::after {
+    transform: rotate(0deg);
 }
 
 .card-heading-wrapper {

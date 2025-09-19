@@ -72,12 +72,41 @@ groupHeading attrs content =
     h2 (A.class "group-heading" :: attrs) content
 
 
-card : List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
-card attrs headerContent bodyContent =
+type CollapseConfig
+    = NotCollapsible
+    | Collapsible { openByDefault : Bool }
+
+
+type alias CardConfig =
+    { collapse : CollapseConfig
+    }
+
+
+card : CardConfig -> List (Attribute msg) -> Html msg -> List (Html msg) -> Html msg
+card config attrs headerContent bodyContent =
+    let
+        ( overallWrapper, headerWrapper ) =
+            case config.collapse of
+                NotCollapsible ->
+                    ( div [], div [] )
+
+                Collapsible { openByDefault } ->
+                    ( details
+                        (if openByDefault then
+                            [ A.attribute "open" "" ]
+
+                         else
+                            []
+                        )
+                    , summary []
+                    )
+    in
     section
         (A.class "card" :: attrs)
-        [ header [ A.class "card-header" ] [ headerContent ]
-        , div [ A.class "card-body" ] bodyContent
+        [ overallWrapper
+            [ headerWrapper [ header [ A.class "card-header" ] [ headerContent ] ]
+            , div [ A.class "card-body" ] bodyContent
+            ]
         ]
 
 
@@ -328,6 +357,7 @@ step library suggestions pi s =
                 )
     in
     card
+        { collapse = NotCollapsible }
         [ A.class class ]
         (cardHeading [] [ text prefix ] [ dropdown ] [ deleteButton ])
         extras
@@ -489,6 +519,7 @@ cell ctx c =
     case c of
         Cell.Code { code } ->
             card
+                { collapse = Collapsible { openByDefault = ctx.cellIndex /= 0 } }
                 [ A.class "cell-code"
                 , A.id (cellId ctx.cellIndex)
                 , A.attribute "data-key" code
@@ -511,6 +542,7 @@ cell ctx c =
                         ""
             in
             card
+                { collapse = Collapsible { openByDefault = True } }
                 [ A.class "cell-choice"
                 , A.id (cellId ctx.cellIndex)
                 ]
