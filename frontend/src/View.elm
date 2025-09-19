@@ -800,7 +800,11 @@ view model =
             [ p [] [ text "Honeybee is a programming tool you can use to write Python code to analyze experimental data. It works in two steps:" ]
             , ol []
                 [ li [] [ text "First, you write down your experimental workflow and goal." ]
-                , li [] [ text "Then, Honeybee helps you work backward from your goal to write a program to analyze your experimental data." ]
+                , li []
+                    [ text "Then, Honeybee helps you work "
+                    , b [] [ text "backward" ]
+                    , text " from your goal to write a program to analyze your experimental data."
+                    ]
                 ]
             ]
         , pane
