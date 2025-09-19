@@ -124,12 +124,26 @@ customElements.define(
                 const el = findElementToFocus(this);
                 if (el) {
                     seen.add(el.dataset.popinkey);
+
                     // Important to scroll before adding just-added class
                     el.scrollIntoView({ behavior: "instant" });
+
                     el.classList.add("just-added");
                     window.setTimeout(() => {
                         el.classList.remove("just-added");
                     }, 500);
+
+                    window.setTimeout(() => {
+                        document
+                            .querySelectorAll(".post-popin-attention")
+                            .forEach((x) => {
+                                console.log(x);
+                                x.classList.add("attention");
+                                window.setTimeout(() => {
+                                    x.classList.remove("attention");
+                                }, 500);
+                            });
+                    }, 1000);
                 }
             });
 

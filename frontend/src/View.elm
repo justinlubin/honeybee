@@ -709,6 +709,7 @@ pbnStatus ms =
                                     cells
                                     ++ [ button
                                             [ A.class "standout-button"
+                                            , A.class "post-popin-attention"
                                             ]
                                             [ case nextChoice cells of
                                                 Just i ->
