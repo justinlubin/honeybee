@@ -21,7 +21,8 @@ body {
 }
 
 p,
-li {
+li,
+img {
     margin-bottom: 10px;
 }
 

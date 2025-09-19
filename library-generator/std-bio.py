@@ -667,7 +667,16 @@ class DifferentialGeneExpression:
     that ranks how differentially expressed it is between two conditions.
     Among other uses, this information can be plotted in an
     [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
-    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics))."""
+    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics)).
+
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.svg)
+
+    For example, sometimes you start with reads already quantified or trimmed,
+    and sometimes you need to run additional processing steps like batch
+    correction."""
 
     @dataclass
     class S:

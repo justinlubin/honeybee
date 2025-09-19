@@ -831,6 +831,9 @@ view model =
                     , text " from your goal to write a program to analyze your experimental data."
                     ]
                 ]
+            , p [] [ text "Once you finish Step 1 (filling out the details of your experiment), Step 2 (navigation) works like this:" ]
+            , img [ A.src "assets/navigation-overview.svg" ] []
+            , p [] [ text "You’ll keep working backward until there are no steps left." ]
             ]
         , pane
             []
