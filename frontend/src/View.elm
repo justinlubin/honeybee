@@ -521,10 +521,17 @@ cell ctx c =
         Cell.Code { code } ->
             card
                 { collapse = Collapsible { openByDefault = ctx.cellIndex /= 0 } }
-                [ A.class "cell-code"
-                , A.id (cellId ctx.cellIndex)
-                , A.attribute "data-key" code
-                ]
+                ([ A.class "cell-code"
+                 , A.id (cellId ctx.cellIndex)
+                 ]
+                    ++ (if ctx.cellIndex /= 0 then
+                            [ A.attribute "data-popinkey" code
+                            ]
+
+                        else
+                            []
+                       )
+                )
                 (cardHeading []
                     [ text "Code" ]
                     [ text (cellTitle c) ]
@@ -609,7 +616,11 @@ cell ctx c =
 directManipulationPbn : List Cell.Cell -> List ( String, Html Msg )
 directManipulationPbn cells =
     List.indexedMap
-        (\i c -> ( Cell.key c, cell { cellIndex = i } c ))
+        (\i c ->
+            ( Cell.key c
+            , cell { cellIndex = i } c
+            )
+        )
         cells
 
 
@@ -762,7 +773,7 @@ pbnStatus ms =
                 , text " cell can be quite challenging. Please take your time, read the information at each step, and search the Internet for resources that could help you make your decision!"
                 ]
             , outline
-            , Html.Keyed.node "div" [] (directManipulationPbn cells)
+            , Html.Keyed.node "pop-in" [] (directManipulationPbn cells)
             , downloadButton
             ]
 
