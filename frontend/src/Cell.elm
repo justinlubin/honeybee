@@ -48,3 +48,13 @@ isChoice c =
 
         Choice _ ->
             True
+
+
+key : Cell -> String
+key c =
+    case c of
+        Code x ->
+            x.code
+
+        Choice x ->
+            x.varName

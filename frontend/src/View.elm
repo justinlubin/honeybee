@@ -9,6 +9,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
+import Html.Keyed
 import Incoming
 import Json.Encode
 import Markdown
@@ -605,10 +606,10 @@ cell ctx c =
                 ]
 
 
-directManipulationPbn : List Cell.Cell -> List (Html Msg)
+directManipulationPbn : List Cell.Cell -> List ( String, Html Msg )
 directManipulationPbn cells =
     List.indexedMap
-        (\i c -> cell { cellIndex = i } c)
+        (\i c -> ( Cell.key c, cell { cellIndex = i } c ))
         cells
 
 
@@ -761,9 +762,9 @@ pbnStatus ms =
                 , text " cell can be quite challenging. Please take your time, read the information at each step, and search the Internet for resources that could help you make your decision!"
                 ]
             , outline
+            , Html.Keyed.node "div" [] (directManipulationPbn cells)
+            , downloadButton
             ]
-                ++ directManipulationPbn cells
-                ++ [ downloadButton ]
 
 
 view : Model -> Html Msg
