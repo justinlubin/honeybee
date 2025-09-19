@@ -4,7 +4,7 @@
     box-sizing: border-box;
 
     --bold: 600;
-    --shadow: 3px 3px 0px #000;
+    --shadow: 2px 2px 0px #333;
     --rounding: 5px;
     --ff: "Lucida Grande", "Lucida Sans Unicode", sans-serif;
 }
@@ -646,7 +646,7 @@ code[class*="language-"] {
     }
 
     30% {
-        transform: scale(0.7);
+        transform: scale(0.88);
     }
 
     70% {
