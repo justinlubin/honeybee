@@ -292,15 +292,15 @@ example =
         ]
     , goal =
         Just
-            { name = "RnaSeq"
+            { name = "DifferentialGeneExpression"
             , args =
                 [ ( "label", ( "main", VTStr ) )
-                , ( "qc", ( "True", VTBool ) )
+                , ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
                 ]
             , sig =
                 { params =
                     [ ( "label", VTStr )
-                    , ( "qc", VTBool )
+                    , ( "qc", VTStr )
                     ]
                 , paramLabels = Dict.empty
                 , title = Nothing

@@ -40,7 +40,7 @@ def capture_bash(command):
 @Type
 @dataclass
 class SraRnaSeq:
-    "@nodisplay"
+    "@intermediate:Under construction!"
 
     @dataclass
     class S:
@@ -79,7 +79,7 @@ def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
 @Type
 @dataclass
 class LocalRnaSeq:
-    "@nodisplay"
+    "@intermediate:Under construction!"
 
     @dataclass
     class S:
@@ -123,7 +123,7 @@ def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
 @Type
 @dataclass
 class RnaSeq:
-    """RNA-seq reads
+    """@intermediate:RNA-seq reads
 
     The goal of this step is to get RNA-seq reads.
 
@@ -675,7 +675,7 @@ class DifferentialGeneExpression:
         "Label for data"
 
         comparison_sheet: str
-        "@noauto:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
+        "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 
     @dataclass
     class D:

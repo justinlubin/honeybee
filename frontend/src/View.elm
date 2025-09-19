@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Annotations
 import Assoc exposing (Assoc)
 import Cell
 import Compile
@@ -233,7 +234,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             ]
             [ argLabels
                 |> Dict.get argName
-                |> Maybe.map (String.replace "@noauto:" "")
+                |> Maybe.map Annotations.removeAll
                 |> Maybe.withDefault argName
                 |> text
             ]
@@ -248,7 +249,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             List.isEmpty suggestions
                 || (argLabels
                         |> Dict.get argName
-                        |> Maybe.map (String.startsWith "@noauto:")
+                        |> Maybe.map (Annotations.contains Annotations.NoSuggest)
                         |> (==) (Just True)
                    )
           then
@@ -334,7 +335,12 @@ step library suggestions pi s =
 
         options =
             List.filter
-                (\( _, displayName ) -> displayName /= "@nodisplay")
+                (\( _, displayName ) ->
+                    not <|
+                        Annotations.contains
+                            Annotations.Intermediate
+                            displayName
+                )
             <|
                 ( blankName, blankName )
                     :: Assoc.mapCollapse
@@ -499,20 +505,21 @@ cellId cellIndex =
 
 cellTitle : Cell.Cell -> String
 cellTitle c =
-    case c of
-        Cell.Code { title, functionTitle } ->
-            case ( title, functionTitle ) of
-                ( Just t, _ ) ->
-                    t
+    Annotations.removeAll <|
+        case c of
+            Cell.Code { title, functionTitle } ->
+                case ( title, functionTitle ) of
+                    ( Just t, _ ) ->
+                        t
 
-                ( _, Just t ) ->
-                    t
+                    ( _, Just t ) ->
+                        t
 
-                _ ->
-                    ""
+                    _ ->
+                        ""
 
-        Cell.Choice { typeTitle } ->
-            typeTitle
+            Cell.Choice { typeTitle } ->
+                typeTitle
 
 
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg

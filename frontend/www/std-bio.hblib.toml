@@ -32,10 +32,10 @@ content='''def capture_bash(command):
 [Type.SraRnaSeq]
 params.label = "Str"
 params.sample_sheet = "Str"
-info.title = "@nodisplay"
+info.title = "@intermediate:Under construction!"
 info.code = '''@dataclass
 class SraRnaSeq:
-    "@nodisplay"
+    "@intermediate:Under construction!"
 
     @dataclass
     class S:
@@ -82,10 +82,10 @@ info.code = '''def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
 params.label = "Str"
 params.sample_sheet = "Str"
 params.path = "Str"
-info.title = "@nodisplay"
+info.title = "@intermediate:Under construction!"
 info.code = '''@dataclass
 class LocalRnaSeq:
-    "@nodisplay"
+    "@intermediate:Under construction!"
 
     @dataclass
     class S:
@@ -138,7 +138,7 @@ info.code = '''def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
 [Type.RnaSeq]
 params.label = "Str"
 params.qc = "Bool"
-info.title = "RNA-seq reads"
+info.title = "@intermediate:RNA-seq reads"
 info.description = """The goal of this step is to get RNA-seq reads.
 
 These reads can either be raw data (that is, the direct output of a machine
@@ -156,7 +156,7 @@ info.params.label = "Label for data"
 info.params.qc = "Whether or not quality checks have been run"
 info.code = '''@dataclass
 class RnaSeq:
-    """RNA-seq reads
+    """@intermediate:RNA-seq reads
 
     The goal of this step is to get RNA-seq reads.
 
@@ -918,7 +918,7 @@ Among other uses, this information can be plotted in an
 [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
 [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics))."""
 info.params.label = "Label for data"
-info.params.comparison_sheet = "@noauto:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
+info.params.comparison_sheet = "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 info.code = '''@dataclass
 class DifferentialGeneExpression:
     """Differential gene expression
@@ -935,7 +935,7 @@ class DifferentialGeneExpression:
         "Label for data"
 
         comparison_sheet: str
-        "@noauto:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
+        "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 
     @dataclass
     class D:
