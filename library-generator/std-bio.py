@@ -60,7 +60,7 @@ class P_SraRnaSeq:
     "RNA-seq (stored on remote Sequence Read Archive)"
 
     label: str
-    "Label for data, like 'main' or 'JL001'"
+    "Personal label for data, like 'experiment006' or '2025-09-03_data'"
 
     sample_sheet: str
     "Path to sample sheet CSV with SRA metadata (columns: srr, condition, replicate)"
@@ -101,7 +101,7 @@ class P_LocalRnaSeq:
     "RNA-seq (locally-saved)"
 
     label: str
-    "Label for data, like 'main' or 'JPL001'"
+    "Personal label for data, like 'experiment001' or '2025-09-03_data'"
 
     sample_sheet: str
     "Path to sample sheet CSV (columns: sample_name, condition, replicate)"
@@ -533,7 +533,7 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     SALMON_INDEX = "put the path to the Salmon index here"
     CORES = 4
 
-    raise NotImplementedError
+    raise NotImplementedError # Coming soon!
 
 
 @Function(
@@ -747,6 +747,44 @@ def deseq2(
             {ret.comparison_sheet} \\
             {data.dynamic.path}counts.csv \\
             {outdir}""")
+
+    return DifferentialGeneExpression.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=outdir,
+    )
+
+@Function(
+    "ret.label = data.label",
+)
+def sleuth(
+    data: TranscriptMatrices, ret: DifferentialGeneExpression.S
+) -> DifferentialGeneExpression.D:
+    """sleuth
+
+    # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
+
+    sleuth can find differentially-expressed genes between samples and can
+    incorporate measurements of uncertainty using "bootstrap estimates" from
+    read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
+    sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
+    that demonstrate how to use it to analyze RNA-seq datasets.
+
+    ## Citation
+
+    If you use sleuth, please cite it as:
+
+    > Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior
+    > Pachter, Differential analysis of RNA-Seq incorporating quantification
+    > uncertainty, Nature Methods (2017), advanced access
+    > http://dx.doi.org/10.1038/nmeth.4324."""
+
+
+    print("### Running sleuth... ###\n")
+
+    outdir = f"output/{ret.label}/sleuth/"
+    bash(f"mkdir -p {outdir}")
+
+    raise NotImplementedError # Coming soon!
 
     return DifferentialGeneExpression.D(
         sample_sheet=data.dynamic.sample_sheet,
