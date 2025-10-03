@@ -17,9 +17,9 @@ __pycache__
 DOCKER_MOUNT
 pldi25ae-honeybee.tar.gz
 
-# Frontend
-frontend/www/elm.js
-frontend/elm-stuff
+# Editor
+editor/www/elm.js
+editor/elm-stuff
 
 # Library
 library-generator/environment/output

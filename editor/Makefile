@@ -1,4 +1,5 @@
 OPTIMIZE_ELM := false
+HERE_DIR := editor
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 
@@ -36,7 +37,7 @@ endif
 $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 	cd ../backend/ && \
 	cargo build && \
-	wasm-pack build --target web --out-dir ../frontend/www/pkg
+	wasm-pack build --target web --out-dir ../$(HERE_DIR)/www/pkg
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
 	uv run \
@@ -47,7 +48,7 @@ $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
 		../library-generator/std-bio.py \
 		> $(OUT_DIR)/std-bio.hblib.toml && \
 	cd ../backend/ && \
-	cargo run -- validate -l ../frontend/$(OUT_DIR)/std-bio.hblib.toml
+	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/std-bio.hblib.toml
 
 $(OUT_DIR)/assets/diagrams/svg/%.svg: $(OUT_DIR)/assets/diagrams/dot/%.dot
 
