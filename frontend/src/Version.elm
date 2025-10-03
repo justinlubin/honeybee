@@ -3,7 +3,7 @@ module Version exposing (fullVersion)
 
 shortVersion : String
 shortVersion =
-    "0.3.0"
+    "0.4.0"
 
 
 fullVersion : String
