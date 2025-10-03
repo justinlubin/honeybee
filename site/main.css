@@ -5,13 +5,14 @@ body {
     font-family: "Lucida Grande", "Lucida Sans Unicode", sans-serif;
     font-size: 17px;
     line-height: 1.6;
+    padding: 10px;
 }
 
 main {
     max-width: 800px;
     background-color: #fff;
 
-    margin: 10px auto;
+    margin: auto;
     padding: 20px;
 
     border: 2px solid black;
