@@ -40,7 +40,7 @@ def capture_bash(command):
 @Type
 @dataclass
 class SraRnaSeq:
-    "@intermediate:Under construction!"
+    "@intermediate:Complete analysis!"
 
     @dataclass
     class S:
@@ -70,16 +70,16 @@ class P_SraRnaSeq:
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
 )
 def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
-    """Work in progress! Please simply click this option and proceed. ☺
+    """Complete analysis!
 
-    Thanks!"""
+    """
     return SraRnaSeq.D()
 
 
 @Type
 @dataclass
 class LocalRnaSeq:
-    "@intermediate:Under construction!"
+    "@intermediate:Complete analysis!"
 
     @dataclass
     class S:
@@ -114,9 +114,9 @@ class P_LocalRnaSeq:
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
 )
 def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
-    """Work in progress! Please simply click this option and proceed. ☺
+    """Complete analysis!
 
-    Thanks!"""
+    """
     return LocalRnaSeq.D()
 
 
@@ -753,6 +753,9 @@ def deseq2(
         path=outdir,
     )
 
+################################################################################
+# %% Stubs
+
 @Function(
     "ret.label = data.label",
 )
@@ -792,29 +795,116 @@ def sleuth(
     )
 
 
-# @Type
-# class Alignment:
-#     "Alignment to a reference genome"
-#
-#     class S:
-#         label: str
-#         "Label for data"
-#
-#     class D:
-#         sample_sheet: str
-#         path: str
-#
-#
-# @Function(
-#     "ret.label = data.label",
-# )
-# def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-#     pass
-#
-#
-# @Function(
-#     "data.qc = true",
-#     "ret.label = data.label",
-# )
-# def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
-#     pass
+@Type
+class Alignment:
+    "Alignment to a reference genome"
+
+    class S:
+        label: str
+        "Label for data"
+
+    class D:
+        sample_sheet: str
+        path: str
+
+
+@Function(
+    "ret.label = data.label",
+    "ret.bc = false", # TODO why does removing this crash HB?
+)
+def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+    """featureCounts
+
+    # Summarize reads aligned to a reference genome using [featureCounts](https://subread.sourceforge.net/featureCounts.html)
+
+    featureCounts counts up reads mapped to genomic regions. When used with
+    RNA-seq reads that have been aligned with a transcript aligner like
+    [STAR](https://github.com/alexdobin/STAR), these counts correspond to
+    transcript counts. Thus, using featureCounts **requires using an
+    alignment-based approach for RNA-seq read quantification.**
+
+    ## Citation
+
+    If you use featureCounts, please cite it as:
+
+    >  Liao Y, Smyth GK and Shi W (2014). featureCounts: an efficient general
+    > purpose program for assigning sequence reads to genomic features.
+    > Bioinformatics, 30(7):923-30."""
+
+    raise NotImplementedError # Coming soon!
+
+
+@Function(
+    "data.qc = true",
+    "ret.label = data.label",
+)
+def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
+    "STAR"
+    pass
+
+@Prop
+class CutAndRunProp:
+    "CUT&RUN-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"
+
+
+@Prop
+class EMSeqProp:
+    "EM-seq"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FASTQ files"
+
+
+@Prop
+class FlowProp:
+    "Flow cytometry"
+
+    label: str
+    "Label for data"
+
+    sample_sheet: str
+    "Path to sample sheet CSV"
+
+    raw_data: str
+    "Path to raw FCS files"
+
+
+@Prop
+class SortProp:
+    "Sort cells with FACS"
+
+    label: str
+    "Label for data"
+
+
+@Prop
+class StainProp:
+    "Stain cells with antibodies"
+
+    label: str
+    "Label for data"
+
+@Prop
+class TransfectProp:
+    "Infect cells with CRISPR sgRNA guide library"
+
+    label: str
+    "Label for data"
+
+    library: str
+    "Path to the library file"
