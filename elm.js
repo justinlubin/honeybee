@@ -6766,6 +6766,7 @@ var $author$project$Update$update = F2(
 		}
 	});
 var $author$project$Update$UserClickedDevMode = {$: 'UserClickedDevMode'};
+var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$b = _VirtualDom_node('b');
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -6804,7 +6805,13 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+e2720b3';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+9d3e10b';
+var $elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
 var $elm$html$Html$i = _VirtualDom_node('i');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$img = _VirtualDom_node('img');
@@ -6904,7 +6911,6 @@ var $author$project$View$paneHeading = F2(
 var $author$project$Update$UserRequestedDownload = function (a) {
 	return {$: 'UserRequestedDownload', a: a};
 };
-var $elm$html$Html$a = _VirtualDom_node('a');
 var $author$project$View$cellId = function (cellIndex) {
 	return 'cell' + $elm$core$String$fromInt(cellIndex);
 };
@@ -7670,12 +7676,6 @@ var $author$project$View$directManipulationPbn = function (cells) {
 						c));
 			}),
 		cells);
-};
-var $elm$html$Html$Attributes$href = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'href',
-		_VirtualDom_noJavaScriptUri(url));
 };
 var $author$project$Cell$isChoice = function (c) {
 	if (c.$ === 'Code') {
@@ -8478,7 +8478,17 @@ var $author$project$View$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Honeybee 🐝')
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href('https://honeybee-lang.org')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Honeybee')
+									])),
+								$elm$html$Html$text(' 🐝')
 							]))
 					]),
 				_List_Nil,
