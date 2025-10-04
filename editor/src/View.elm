@@ -824,7 +824,7 @@ view model =
         , pane
             []
             (paneHeading [] [ i [ circled ] [ text "i" ], text "Getting Started" ])
-            [ p [] [ text "Honeybee is a programming tool you can use to write Python code to analyze experimental data. It works in two steps:" ]
+            [ p [] [ text "Honeybee is a programming tool you can use to help you write Python code to analyze experimental data. It works in two steps:" ]
             , ol []
                 [ li [] [ text "First, you write down your experimental workflow and goal." ]
                 , li []
@@ -833,7 +833,7 @@ view model =
                     , text " from your goal to write a program to analyze your experimental data."
                     ]
                 ]
-            , p [] [ text "Once you finish Step 1 (filling out the details of your experiment), Step 2 (navigation) works like this:" ]
+            , p [] [ text "Once you finish the first step (filling out the details of your experiment), the next step (navigating to an analysis program) works like this:" ]
             , img [ A.src "assets/navigation-overview.svg" ] []
             , p [] [ text "You’ll keep working backward until there are no steps left." ]
             ]
