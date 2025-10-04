@@ -6805,7 +6805,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+9d3e10b';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+60d61a6';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -8541,7 +8541,7 @@ var $author$project$View$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Honeybee is a programming tool you can use to write Python code to analyze experimental data. It works in two steps:')
+								$elm$html$Html$text('Honeybee is a programming tool you can use to help you write Python code to analyze experimental data. It works in two steps:')
 							])),
 						A2(
 						$elm$html$Html$ol,
@@ -8576,7 +8576,7 @@ var $author$project$View$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Once you finish Step 1 (filling out the details of your experiment), Step 2 (navigation) works like this:')
+								$elm$html$Html$text('Once you finish the first step (filling out the details of your experiment), the next step (navigating to an analysis program) works like this:')
 							])),
 						A2(
 						$elm$html$Html$img,
