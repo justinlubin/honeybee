@@ -1,9 +1,9 @@
 [[Prop]]
-name = "RNASeqProp"
+name = "P_SraRnaSeq"
 args.label = "main"
-args.sample_sheet = "samples/"
-args.raw_data = "raw-data/"
+args.sample_sheet = "samples.csv"
 
 [Goal]
-name = "TranscriptMatrices"
+name = "DifferentialGeneExpression"
 args.label = "main"
+args.comparison_sheet = "comparisons.csv"

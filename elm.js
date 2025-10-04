@@ -5494,14 +5494,13 @@ var $elm$core$Dict$fromList = function (assocs) {
 };
 var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
 var $elm$json$Json$Decode$map3 = _Json_map3;
-var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
-var $elm$json$Json$Decode$nullable = function (decoder) {
+var $elm$json$Json$Decode$maybe = function (decoder) {
 	return $elm$json$Json$Decode$oneOf(
 		_List_fromArray(
 			[
-				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
 			]));
 };
 var $elm$json$Json$Decode$string = _Json_decodeString;
@@ -5525,12 +5524,22 @@ var $author$project$Decode$valueType = A2(
 		}
 	},
 	$elm$json$Json$Decode$string);
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
 var $author$project$Decode$factSignature = A4(
 	$elm$json$Json$Decode$map3,
 	F3(
 		function (p, pl, t) {
 			return {
-				paramLabels: $elm$core$Dict$fromList(pl),
+				paramLabels: $elm$core$Dict$fromList(
+					A2($elm$core$Maybe$withDefault, _List_Nil, pl)),
 				params: p,
 				title: t
 			};
@@ -5539,16 +5548,18 @@ var $author$project$Decode$factSignature = A4(
 		$elm$json$Json$Decode$field,
 		'params',
 		$elm$json$Json$Decode$keyValuePairs($author$project$Decode$valueType)),
-	A2(
-		$elm$json$Json$Decode$at,
-		_List_fromArray(
-			['info', 'params']),
-		$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string)),
-	A2(
-		$elm$json$Json$Decode$at,
-		_List_fromArray(
-			['info', 'title']),
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)));
+	$elm$json$Json$Decode$maybe(
+		A2(
+			$elm$json$Json$Decode$at,
+			_List_fromArray(
+				['info', 'params']),
+			$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string))),
+	$elm$json$Json$Decode$maybe(
+		A2(
+			$elm$json$Json$Decode$at,
+			_List_fromArray(
+				['info', 'title']),
+			$elm$json$Json$Decode$string)));
 var $author$project$Decode$factLibrary = $elm$json$Json$Decode$keyValuePairs($author$project$Decode$factSignature);
 var $author$project$Decode$library = A3(
 	$elm$json$Json$Decode$map2,
@@ -5634,6 +5645,15 @@ var $author$project$Incoming$decodeMetadataChoice = A3(
 	A2($elm$json$Json$Decode$field, 'choice_index', $elm$json$Json$Decode$int));
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
 var $author$project$Incoming$decodeFunctionChoice = A6(
 	$elm$json$Json$Decode$map5,
 	$author$project$Cell$FunctionChoice,
@@ -5854,15 +5874,6 @@ var $elm$core$Maybe$map = F2(
 	});
 var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$trim = _String_trim;
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var $author$project$Core$parse = F2(
 	function (vt, str) {
 		if ($elm$core$String$isEmpty(
@@ -6033,14 +6044,18 @@ var $author$project$Core$example = {
 				[
 					_Utils_Tuple2(
 					'label',
-					_Utils_Tuple2('main', $author$project$Core$VTStr))
+					_Utils_Tuple2('main', $author$project$Core$VTStr)),
+					_Utils_Tuple2(
+					'comparison_sheet',
+					_Utils_Tuple2('metadata/comparisons.csv', $author$project$Core$VTStr))
 				]),
-			name: 'TranscriptMatrices',
+			name: 'DifferentialGeneExpression',
 			sig: {
 				paramLabels: $elm$core$Dict$empty,
 				params: _List_fromArray(
 					[
-						_Utils_Tuple2('label', $author$project$Core$VTStr)
+						_Utils_Tuple2('label', $author$project$Core$VTStr),
+						_Utils_Tuple2('qc', $author$project$Core$VTStr)
 					]),
 				title: $elm$core$Maybe$Nothing
 			}
@@ -6056,19 +6071,15 @@ var $author$project$Core$example = {
 						_Utils_Tuple2('main', $author$project$Core$VTStr)),
 						_Utils_Tuple2(
 						'sample_sheet',
-						_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr)),
-						_Utils_Tuple2(
-						'raw_data',
-						_Utils_Tuple2('raw-data', $author$project$Core$VTStr))
+						_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr))
 					]),
-				name: 'RNASeqProp',
+				name: 'P_SraRnaSeq',
 				sig: {
 					paramLabels: $elm$core$Dict$empty,
 					params: _List_fromArray(
 						[
 							_Utils_Tuple2('label', $author$project$Core$VTStr),
-							_Utils_Tuple2('sample_sheet', $author$project$Core$VTStr),
-							_Utils_Tuple2('raw_data', $author$project$Core$VTStr)
+							_Utils_Tuple2('sample_sheet', $author$project$Core$VTStr)
 						]),
 					title: $elm$core$Maybe$Nothing
 				}
@@ -6792,8 +6803,11 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Version$shortVersion = '0.4.0';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+e2720b3';
 var $elm$html$Html$i = _VirtualDom_node('i');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$li = _VirtualDom_node('li');
 var $author$project$View$menuBar = F4(
 	function (attrs, left, middle, right) {
@@ -6894,26 +6908,78 @@ var $elm$html$Html$a = _VirtualDom_node('a');
 var $author$project$View$cellId = function (cellIndex) {
 	return 'cell' + $elm$core$String$fromInt(cellIndex);
 };
-var $author$project$View$cellTitle = function (c) {
-	if (c.$ === 'Code') {
-		var title = c.a.title;
-		var functionTitle = c.a.functionTitle;
-		var _v1 = _Utils_Tuple2(title, functionTitle);
-		if (_v1.a.$ === 'Just') {
-			var t = _v1.a.a;
-			return t;
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Annotations$Intermediate = {$: 'Intermediate'};
+var $author$project$Annotations$NoSuggest = {$: 'NoSuggest'};
+var $author$project$Annotations$parseAnnotation = function (s) {
+	switch (s) {
+		case 'nosuggest':
+			return $elm$core$Maybe$Just($author$project$Annotations$NoSuggest);
+		case 'intermediate':
+			return $elm$core$Maybe$Just($author$project$Annotations$Intermediate);
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Annotations$split = function (s) {
+	if (A2($elm$core$String$startsWith, '@', s)) {
+		var _v0 = $elm$core$List$head(
+			A2($elm$core$String$indexes, ':', s));
+		if (_v0.$ === 'Nothing') {
+			return _Utils_Tuple2(_List_Nil, s);
 		} else {
-			if (_v1.b.$ === 'Just') {
-				var t = _v1.b.a;
-				return t;
-			} else {
-				return '';
-			}
+			var i = _v0.a;
+			return _Utils_Tuple2(
+				A2(
+					$elm$core$List$filterMap,
+					$author$project$Annotations$parseAnnotation,
+					A2(
+						$elm$core$String$split,
+						',',
+						A3($elm$core$String$slice, 1, i, s))),
+				A2($elm$core$String$dropLeft, i + 1, s));
 		}
 	} else {
-		var typeTitle = c.a.typeTitle;
-		return typeTitle;
+		return _Utils_Tuple2(_List_Nil, s);
 	}
+};
+var $author$project$Annotations$removeAll = function (s) {
+	return $author$project$Annotations$split(s).b;
+};
+var $author$project$View$cellTitle = function (c) {
+	return $author$project$Annotations$removeAll(
+		function () {
+			if (c.$ === 'Code') {
+				var title = c.a.title;
+				var functionTitle = c.a.functionTitle;
+				var _v1 = _Utils_Tuple2(title, functionTitle);
+				if (_v1.a.$ === 'Just') {
+					var t = _v1.a.a;
+					return t;
+				} else {
+					if (_v1.b.$ === 'Just') {
+						var t = _v1.b.a;
+						return t;
+					} else {
+						return '';
+					}
+				}
+			} else {
+				var typeTitle = c.a.typeTitle;
+				return typeTitle;
+			}
+		}());
+};
+var $author$project$View$Collapsible = function (a) {
+	return {$: 'Collapsible', a: a};
 };
 var $author$project$Update$Nop = {$: 'Nop'};
 var $author$project$Update$UserMadePbnChoice = function (a) {
@@ -6940,22 +7006,42 @@ var $elm$core$List$drop = F2(
 			}
 		}
 	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
 var $author$project$Util$at = F2(
 	function (i, xs) {
 		return $elm$core$List$head(
 			A2($elm$core$List$drop, i, xs));
 	});
-var $author$project$View$card = F3(
-	function (attrs, headerContent, bodyContent) {
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $elm$html$Html$details = _VirtualDom_node('details');
+var $elm$html$Html$summary = _VirtualDom_node('summary');
+var $author$project$View$card = F4(
+	function (config, attrs, headerContent, bodyContent) {
+		var _v0 = function () {
+			var _v1 = config.collapse;
+			if (_v1.$ === 'NotCollapsible') {
+				return _Utils_Tuple2(
+					$elm$html$Html$div(_List_Nil),
+					$elm$html$Html$div(_List_Nil));
+			} else {
+				var openByDefault = _v1.a.openByDefault;
+				return _Utils_Tuple2(
+					$elm$html$Html$details(
+						openByDefault ? _List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$attribute, 'open', '')
+							]) : _List_Nil),
+					$elm$html$Html$summary(_List_Nil));
+			}
+		}();
+		var overallWrapper = _v0.a;
+		var headerWrapper = _v0.b;
 		return A2(
 			$elm$html$Html$section,
 			A2(
@@ -6964,21 +7050,29 @@ var $author$project$View$card = F3(
 				attrs),
 			_List_fromArray(
 				[
-					A2(
-					$elm$html$Html$header,
+					overallWrapper(
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('card-header')
-						]),
-					_List_fromArray(
-						[headerContent])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('card-body')
-						]),
-					bodyContent)
+							headerWrapper(
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$header,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('card-header')
+										]),
+									_List_fromArray(
+										[headerContent]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card-body')
+								]),
+							bodyContent)
+						]))
 				]));
 	});
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
@@ -7053,14 +7147,6 @@ var $elm$html$Html$Attributes$boolProperty = F2(
 			$elm$json$Json$Encode$bool(bool));
 	});
 var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $elm$virtual_dom$VirtualDom$node = function (tag) {
 	return _VirtualDom_node(
 		_VirtualDom_noScript(tag));
@@ -7410,19 +7496,27 @@ var $author$project$View$functionChoices = F2(
 					}),
 				fcs));
 	});
-var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $author$project$View$cell = F2(
 	function (ctx, c) {
 		if (c.$ === 'Code') {
 			var code = c.a.code;
-			return A3(
+			return A4(
 				$author$project$View$card,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('cell-code'),
-						$elm$html$Html$Attributes$id(
-						$author$project$View$cellId(ctx.cellIndex))
-					]),
+				{
+					collapse: $author$project$View$Collapsible(
+						{openByDefault: !(!ctx.cellIndex)})
+				},
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('cell-code'),
+							$elm$html$Html$Attributes$id(
+							$author$project$View$cellId(ctx.cellIndex))
+						]),
+					(!(!ctx.cellIndex)) ? _List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$attribute, 'data-popinkey', code)
+						]) : _List_Nil),
 				A4(
 					$author$project$View$cardHeading,
 					_List_Nil,
@@ -7445,8 +7539,13 @@ var $author$project$View$cell = F2(
 					]));
 		} else {
 			var x = c.a;
-			return A3(
+			var suffix = ($elm$core$List$length(x.functionChoices) === 1) ? ' (there\'s only one option in this case)' : '';
+			return A4(
 				$author$project$View$card,
+				{
+					collapse: $author$project$View$Collapsible(
+						{openByDefault: true})
+				},
 				_List_fromArray(
 					[
 						$elm$html$Html$Attributes$class('cell-choice'),
@@ -7493,15 +7592,7 @@ var $author$project$View$cell = F2(
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Notes')
-							])),
-						A2($elm$html$Html$textarea, _List_Nil, _List_Nil),
-						A2(
-						$author$project$View$cardInnerHeading,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Choices')
+								$elm$html$Html$text('Choices' + suffix)
 							])),
 						A2(
 						$author$project$View$functionChoices,
@@ -7557,15 +7648,26 @@ var $author$project$View$cell = F2(
 					]));
 		}
 	});
+var $author$project$Cell$key = function (c) {
+	if (c.$ === 'Code') {
+		var x = c.a;
+		return x.code;
+	} else {
+		var x = c.a;
+		return x.varName;
+	}
+};
 var $author$project$View$directManipulationPbn = function (cells) {
 	return A2(
 		$elm$core$List$indexedMap,
 		F2(
 			function (i, c) {
-				return A2(
-					$author$project$View$cell,
-					{cellIndex: i},
-					c);
+				return _Utils_Tuple2(
+					$author$project$Cell$key(c),
+					A2(
+						$author$project$View$cell,
+						{cellIndex: i},
+						c));
 			}),
 		cells);
 };
@@ -7575,7 +7677,41 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $author$project$Cell$isChoice = function (c) {
+	if (c.$ === 'Code') {
+		return false;
+	} else {
+		return true;
+	}
+};
 var $elm$html$Html$nav = _VirtualDom_node('nav');
+var $author$project$Util$findFirst = F2(
+	function (f, xs) {
+		return $elm$core$List$head(
+			A2($elm$core$List$filter, f, xs));
+	});
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $author$project$View$nextChoice = function (cells) {
+	return A2(
+		$elm$core$Maybe$map,
+		$elm$core$Tuple$first,
+		A2(
+			$author$project$Util$findFirst,
+			function (_v0) {
+				var c = _v0.b;
+				return $author$project$Cell$isChoice(c);
+			},
+			A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, cells)));
+};
+var $elm$virtual_dom$VirtualDom$keyedNode = function (tag) {
+	return _VirtualDom_keyedNode(
+		_VirtualDom_noScript(tag));
+};
+var $elm$html$Html$Keyed$node = $elm$virtual_dom$VirtualDom$keyedNode;
+var $author$project$View$solutionPrefix = '################################################################################\n' + ('# Script originally created using\n' + ('#     Honeybee (https://honeybee-lang.org), version ' + ($author$project$Version$fullVersion + '\n\n')));
 var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
@@ -7612,36 +7748,14 @@ var $author$project$View$pbnStatus = function (ms) {
 							A2(
 							$elm$html$Html$ul,
 							_List_Nil,
-							A2(
-								$elm$core$List$indexedMap,
-								F2(
-									function (cellIndex, c) {
-										var choice = function () {
-											if (c.$ === 'Code') {
-												return false;
-											} else {
-												return true;
-											}
-										}();
-										return A2(
-											$elm$html$Html$li,
-											_List_Nil,
-											_Utils_ap(
-												choice ? _List_fromArray(
-													[
-														A2(
-														$elm$html$Html$span,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('card-reference'),
-																$elm$html$Html$Attributes$class('cell-choice')
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Choice')
-															])),
-														$elm$html$Html$text(' ')
-													]) : _List_Nil,
+							_Utils_ap(
+								A2(
+									$elm$core$List$indexedMap,
+									F2(
+										function (cellIndex, c) {
+											return A2(
+												$elm$html$Html$li,
+												_List_Nil,
 												_List_fromArray(
 													[
 														A2(
@@ -7651,14 +7765,82 @@ var $author$project$View$pbnStatus = function (ms) {
 																$elm$html$Html$Attributes$href(
 																'#' + $author$project$View$cellId(cellIndex))
 															]),
+														_Utils_ap(
+															$author$project$Cell$isChoice(c) ? _List_fromArray(
+																[
+																	A2(
+																	$elm$html$Html$span,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$Attributes$class('card-reference'),
+																			$elm$html$Html$Attributes$class('cell-choice')
+																		]),
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$text('Choice')
+																		])),
+																	$elm$html$Html$text(' ')
+																]) : _List_Nil,
+															_List_fromArray(
+																[
+																	$elm$html$Html$text(
+																	$author$project$View$cellTitle(c))
+																])))
+													]));
+										}),
+									cells),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('standout-button'),
+												$elm$html$Html$Attributes$class('post-popin-attention')
+											]),
+										_List_fromArray(
+											[
+												function () {
+												var _v2 = $author$project$View$nextChoice(cells);
+												if (_v2.$ === 'Just') {
+													var i = _v2.a;
+													return A2(
+														$elm$html$Html$a,
 														_List_fromArray(
 															[
-																$elm$html$Html$text(
-																$author$project$View$cellTitle(c))
-															]))
-													])));
-									}),
-								cells))
+																$elm$html$Html$Attributes$href(
+																'#' + $author$project$View$cellId(i))
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Next '),
+																A2(
+																$elm$html$Html$span,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$class('card-reference'),
+																		$elm$html$Html$Attributes$class('cell-choice')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Choice')
+																	]))
+															]));
+												} else {
+													return A2(
+														$elm$html$Html$a,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$href('#pbn-completed')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Go to download button!')
+															]));
+												}
+											}()
+											]))
+									])))
 						]))
 				]));
 		var downloadButton = function () {
@@ -7670,7 +7852,7 @@ var $author$project$View$pbnStatus = function (ms) {
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('pbn-completed')
+							$elm$html$Html$Attributes$id('pbn-completed')
 						]),
 					_List_fromArray(
 						[
@@ -7681,7 +7863,10 @@ var $author$project$View$pbnStatus = function (ms) {
 									$elm$html$Html$Attributes$class('standout-button'),
 									$elm$html$Html$Events$onClick(
 									$author$project$Update$UserRequestedDownload(
-										{filename: 'analysis.py', text: solutionString}))
+										{
+											filename: 'analysis.py',
+											text: _Utils_ap($author$project$View$solutionPrefix, solutionString)
+										}))
 								]),
 							_List_fromArray(
 								[
@@ -7690,85 +7875,108 @@ var $author$project$View$pbnStatus = function (ms) {
 						]));
 			}
 		}();
-		return _Utils_ap(
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$p,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('tip')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Just like in Jupyter notebooks, this interface consists of many '),
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card-reference'),
-									$elm$html$Html$Attributes$class('cell-code')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Code')
-								])),
-							$elm$html$Html$text(' cells. However, now there are also '),
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card-reference'),
-									$elm$html$Html$Attributes$class('cell-choice')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Choice')
-								])),
-							$elm$html$Html$text(' cells! When you see a '),
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card-reference'),
-									$elm$html$Html$Attributes$class('cell-choice')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Choice')
-								])),
-							$elm$html$Html$text(' cell, decide which analysis to run for that part of the code. When you make the selection, the '),
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card-reference'),
-									$elm$html$Html$Attributes$class('cell-choice')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Choice')
-								])),
-							$elm$html$Html$text(' cell will become a '),
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card-reference'),
-									$elm$html$Html$Attributes$class('cell-code')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Code')
-								])),
-							$elm$html$Html$text(' cell.')
-						])),
-					outline
-				]),
-			_Utils_ap(
-				$author$project$View$directManipulationPbn(cells),
+		return _List_fromArray(
+			[
+				A2(
+				$elm$html$Html$p,
 				_List_fromArray(
-					[downloadButton])));
+					[
+						$elm$html$Html$Attributes$class('tip')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Just like in Jupyter notebooks, this interface consists of many '),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('card-reference'),
+								$elm$html$Html$Attributes$class('cell-code')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Code')
+							])),
+						$elm$html$Html$text(' cells. However, now there are also '),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('card-reference'),
+								$elm$html$Html$Attributes$class('cell-choice')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Choice')
+							])),
+						$elm$html$Html$text(' cells! When you see a '),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('card-reference'),
+								$elm$html$Html$Attributes$class('cell-choice')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Choice')
+							])),
+						$elm$html$Html$text(' cell, decide which analysis to run for that part of the code. When you make the selection, the '),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('card-reference'),
+								$elm$html$Html$Attributes$class('cell-choice')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Choice')
+							])),
+						$elm$html$Html$text(' cell will become a '),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('card-reference'),
+								$elm$html$Html$Attributes$class('cell-code')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Code')
+							])),
+						$elm$html$Html$text(' cell.')
+					])),
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('tip')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Choosing between analyses in a '),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('card-reference'),
+								$elm$html$Html$Attributes$class('cell-choice')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Choice')
+							])),
+						$elm$html$Html$text(' cell can be quite challenging. Please take your time, read the information at each step, and search the Internet for resources that could help you make your decision!')
+					])),
+				outline,
+				A3(
+				$elm$html$Html$Keyed$node,
+				'pop-in',
+				_List_Nil,
+				$author$project$View$directManipulationPbn(cells)),
+				downloadButton
+			]);
 	}
 };
 var $author$project$Core$Goal = {$: 'Goal'};
@@ -7814,6 +8022,7 @@ var $author$project$View$groupHeading = F2(
 				attrs),
 			content);
 	});
+var $author$project$View$NotCollapsible = {$: 'NotCollapsible'};
 var $author$project$Update$UserClearedStep = function (a) {
 	return {$: 'UserClearedStep', a: a};
 };
@@ -7827,6 +8036,16 @@ var $author$project$Update$UserSetStep = F2(
 var $author$project$Update$UserSetArgument = F3(
 	function (a, b, c) {
 		return {$: 'UserSetArgument', a: a, b: b, c: c};
+	});
+var $author$project$Annotations$getAll = function (s) {
+	return $author$project$Annotations$split(s).a;
+};
+var $author$project$Annotations$contains = F2(
+	function (a, s) {
+		return A2(
+			$elm$core$List$member,
+			a,
+			$author$project$Annotations$getAll(s));
 	});
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$core$Dict$get = F2(
@@ -7915,7 +8134,10 @@ var $author$project$View$arg = F4(
 							A2(
 								$elm$core$Maybe$withDefault,
 								argName,
-								A2($elm$core$Dict$get, argName, argLabels)))
+								A2(
+									$elm$core$Maybe$map,
+									$author$project$Annotations$removeAll,
+									A2($elm$core$Dict$get, argName, argLabels))))
 						])),
 					A2(
 					$elm$html$Html$input,
@@ -7928,7 +8150,12 @@ var $author$project$View$arg = F4(
 							$elm$html$Html$Attributes$value(valueStr)
 						]),
 					_List_Nil),
-					$elm$core$List$isEmpty(suggestions) ? $elm$html$Html$text('') : A2(
+					($elm$core$List$isEmpty(suggestions) || _Utils_eq(
+					$elm$core$Maybe$Just(true),
+					A2(
+						$elm$core$Maybe$map,
+						$author$project$Annotations$contains($author$project$Annotations$NoSuggest),
+						A2($elm$core$Dict$get, argName, argLabels)))) ? $elm$html$Html$text('') : A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
@@ -7995,17 +8222,23 @@ var $author$project$View$step = F4(
 				return _Utils_eq(k, blankName) ? $author$project$Update$UserClearedStep(pi) : A2($author$project$Update$UserSetStep, pi, k);
 			});
 		var options = A2(
-			$elm$core$List$cons,
-			_Utils_Tuple2(blankName, blankName),
+			$elm$core$List$filter,
+			function (_v5) {
+				var displayName = _v5.b;
+				return !A2($author$project$Annotations$contains, $author$project$Annotations$Intermediate, displayName);
+			},
 			A2(
-				$author$project$Assoc$mapCollapse,
-				F2(
-					function (k, sig) {
-						return _Utils_Tuple2(
-							k,
-							A2($elm$core$Maybe$withDefault, k, sig.title));
-					}),
-				library));
+				$elm$core$List$cons,
+				_Utils_Tuple2(blankName, blankName),
+				A2(
+					$author$project$Assoc$mapCollapse,
+					F2(
+						function (k, sig) {
+							return _Utils_Tuple2(
+								k,
+								A2($elm$core$Maybe$withDefault, k, sig.title));
+						}),
+					library)));
 		var _v0 = function () {
 			if (s.$ === 'Nothing') {
 				return _Utils_Tuple2(blankName, _List_Nil);
@@ -8076,8 +8309,9 @@ var $author$project$View$step = F4(
 		var prefix = _v2.a;
 		var _class = _v2.b;
 		var deleteButton = _v2.c;
-		return A3(
+		return A4(
 			$author$project$View$card,
+			{collapse: $author$project$View$NotCollapsible},
 			_List_fromArray(
 				[
 					$elm$html$Html$Attributes$class(_class)
@@ -8152,6 +8386,12 @@ var $author$project$View$program = F2(
 					]))
 			]);
 	});
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
+};
 var $author$project$Update$UserStartedNavigation = function (a) {
 	return {$: 'UserStartedNavigation', a: a};
 };
@@ -8202,6 +8442,7 @@ var $author$project$View$startNavigationButton = function (prog) {
 		_Utils_ap(
 			_List_fromArray(
 				[
+					$elm$html$Html$Attributes$id('start-navigating'),
 					$elm$html$Html$Attributes$class('standout-button')
 				]),
 			attrs),
@@ -8210,7 +8451,6 @@ var $author$project$View$startNavigationButton = function (prog) {
 			$elm$html$Html$text('Start navigating'),
 			extras));
 };
-var $elm$html$Html$Attributes$title = $elm$html$Html$Attributes$stringProperty('title');
 var $author$project$View$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -8249,8 +8489,7 @@ var $author$project$View$view = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$Attributes$id('devmode'),
-								$elm$html$Html$Events$onClick($author$project$Update$UserClickedDevMode),
-								$elm$html$Html$Attributes$title('Set fun value to 65')
+								$elm$html$Html$Events$onClick($author$project$Update$UserClickedDevMode)
 							]),
 						_List_fromArray(
 							[
@@ -8264,7 +8503,7 @@ var $author$project$View$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(' version a54f895')
+								$elm$html$Html$text(' version ' + $author$project$Version$fullVersion)
 							]))
 					])),
 				A3(
@@ -8311,8 +8550,37 @@ var $author$project$View$view = function (model) {
 								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Then, Honeybee helps you work backward from your goal to write a program to analyze your experimental data.')
+										$elm$html$Html$text('Then, Honeybee helps you work '),
+										A2(
+										$elm$html$Html$b,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$text('backward')
+											])),
+										$elm$html$Html$text(' from your goal to write a program to analyze your experimental data.')
 									]))
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Once you finish Step 1 (filling out the details of your experiment), Step 2 (navigation) works like this:')
+							])),
+						A2(
+						$elm$html$Html$img,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$src('assets/navigation-overview.svg')
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('You’ll keep working backward until there are no steps left.')
 							]))
 					])),
 				A3(

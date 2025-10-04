@@ -4,7 +4,8 @@
   "collaborators": [
     "Justin Lubin <justin@jlubin.net>"
   ],
-  "version": "0.3.0",
+  "description": "Programming by Navigation with Honeybee",
+  "version": "0.4.0",
   "license": "BSD-3-Clause",
   "repository": {
     "type": "git",
@@ -13,7 +14,8 @@
   "files": [
     "honeybee_bg.wasm",
     "honeybee.js",
-    "honeybee.d.ts"
+    "honeybee.d.ts",
+    "LICENSE.txt"
   ],
   "main": "honeybee.js",
   "types": "honeybee.d.ts",

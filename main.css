@@ -4,7 +4,7 @@
     box-sizing: border-box;
 
     --bold: 600;
-    --shadow: 3px 3px 0px #000;
+    --shadow: 2px 2px 0px #333;
     --rounding: 5px;
     --ff: "Lucida Grande", "Lucida Sans Unicode", sans-serif;
 }
@@ -21,7 +21,8 @@ body {
 }
 
 p,
-li {
+li,
+img {
     margin-bottom: 10px;
 }
 
@@ -70,6 +71,12 @@ button {
     margin-bottom: 10px;
 }
 
+.markdown h2 {
+    font-weight: var(--bold);
+    font-size: 1.05em;
+    margin-bottom: 10px;
+}
+
 .markdown blockquote {
     color: #888;
     border-left: 5px solid #888;
@@ -103,6 +110,11 @@ button {
 
 .markdown ul li {
     list-style-type: disc;
+}
+
+.markdown code {
+    background-color: rgba(0, 0, 0, 0.05);
+    font-family: monospace;
 }
 
 /* || Tabbed menu */
@@ -231,12 +243,12 @@ button {
 /* || Panes */
 
 .pane {
-    max-width: 900px;
+    max-width: 800px;
     margin: 30px auto;
     scroll-margin-top: 10px;
 }
 
-@media (max-width: 910px) {
+@media (max-width: 810px) {
     .pane {
         width: calc(100% - 40px);
         margin-left: 20px;
@@ -254,20 +266,20 @@ button {
     font-size: 1.3em;
 
     background-color: #fff;
-    border: 1px solid black;
+    border: 2px solid black;
     border-bottom: none;
     padding: 5px 10px;
     border-top-left-radius: var(--rounding);
     border-top-right-radius: var(--rounding);
 
     position: relative;
-    top: 1px;
+    top: 2px;
     z-index: 1;
 }
 
 .pane-body {
     background-color: #fff;
-    border: 1px solid black;
+    border: 2px solid black;
     padding: 10px;
     box-shadow: var(--shadow);
     border-radius: var(--rounding);
@@ -310,8 +322,25 @@ button {
     margin-bottom: 10px;
     overflow: hidden;
     scroll-margin-top: 9px;
+    position: relative;
 
     --card-accent: #333;
+}
+
+.card summary {
+    display: block;
+    cursor: pointer;
+}
+
+.card details .card-heading-suffix::after {
+    content: "▼";
+    transform: rotate(90deg);
+    margin-right: 10px;
+    transition: transform 0.1s;
+}
+
+.card details[open] .card-heading-suffix::after {
+    transform: rotate(0deg);
 }
 
 .card-heading-wrapper {
@@ -543,7 +572,7 @@ button {
 
     padding: 5px;
 
-    border: 1px solid black;
+    border: 2px solid black;
     border-radius: var(--rounding);
     box-shadow: var(--shadow);
 
@@ -569,6 +598,16 @@ button {
     text-decoration: underline;
 }
 
+.outline .standout-button {
+    padding: 0;
+    margin-top: 10px;
+}
+
+.outline .standout-button a {
+    display: block;
+    padding: 15px;
+}
+
 /* || Custom Prism styles */
 
 .token.operator {
@@ -577,4 +616,49 @@ button {
 
 code[class*="language-"] {
     text-shadow: none;
+}
+
+/* || Animations */
+
+@keyframes just-added {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    70% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.just-added {
+    animation: just-added 0.5s ease-out 1 forwards;
+}
+
+@keyframes attention {
+    0% {
+        transform: scale(1);
+    }
+
+    30% {
+        transform: scale(0.88);
+    }
+
+    70% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.attention {
+    animation: attention 0.5s ease-out 1 forwards;
 }
