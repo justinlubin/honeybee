@@ -806,7 +806,9 @@ view model =
             , text " with "
             , b
                 []
-                [ text "Honeybee 🐝" ]
+                [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
+                , text " 🐝"
+                ]
             ]
             []
             [ button
