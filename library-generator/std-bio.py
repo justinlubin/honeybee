@@ -70,9 +70,7 @@ class P_SraRnaSeq:
     "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
 )
 def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
-    """Complete analysis!
-
-    """
+    """Complete analysis!"""
     return SraRnaSeq.D()
 
 
@@ -114,9 +112,7 @@ class P_LocalRnaSeq:
     "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
 )
 def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
-    """Complete analysis!
-
-    """
+    """Complete analysis!"""
     return LocalRnaSeq.D()
 
 
@@ -533,7 +529,7 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     SALMON_INDEX = "put the path to the Salmon index here"
     CORES = 4
 
-    raise NotImplementedError # Coming soon!
+    raise NotImplementedError  # Coming soon!
 
 
 ################################################################################
@@ -661,7 +657,7 @@ class DifferentialGeneExpression:
     The following image shows a _typical_ RNA-seq processing workflow,
     **but the details can vary a lot!**
 
-    ![An overview of the RNA-seq workflow.](assets/rna-seq.svg)
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)
 
     For example, sometimes you start with reads already quantified or trimmed,
     and sometimes you need to run additional processing steps like batch
@@ -742,8 +738,10 @@ def deseq2(
         path=outdir,
     )
 
+
 ################################################################################
 # %% Stubs
+
 
 @Function(
     "ret.label = data.label",
@@ -770,18 +768,18 @@ def sleuth(
     > uncertainty, Nature Methods (2017), advanced access
     > http://dx.doi.org/10.1038/nmeth.4324."""
 
-
     print("### Running sleuth... ###\n")
 
     outdir = f"output/{ret.label}/sleuth/"
     bash(f"mkdir -p {outdir}")
 
-    raise NotImplementedError # Coming soon!
+    raise NotImplementedError  # Coming soon!
 
     return DifferentialGeneExpression.D(
         sample_sheet=data.dynamic.sample_sheet,
         path=outdir,
     )
+
 
 # @Function(
 #     "ret.label = data.label",
@@ -796,42 +794,42 @@ def sleuth(
 # @Type
 # class Alignment:
 #     "Alignment to a reference genome"
-# 
+#
 #     class S:
 #         label: str
 #         "Label for data"
-# 
+#
 #     class D:
 #         sample_sheet: str
 #         path: str
-# 
-# 
+#
+#
 # @Function(
 #     "ret.label = data.label",
 #     "ret.bc = false", # TODO why does removing this crash HB?
 # )
 # def featureCounts(data: Alignment, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
 #     """featureCounts
-# 
+#
 #     # Summarize reads aligned to a reference genome using [featureCounts](https://subread.sourceforge.net/featureCounts.html)
-# 
+#
 #     featureCounts counts up reads mapped to genomic regions. When used with
 #     RNA-seq reads that have been aligned with a transcript aligner like
 #     [STAR](https://github.com/alexdobin/STAR), these counts correspond to
 #     transcript counts. Thus, using featureCounts **requires using an
 #     alignment-based approach for RNA-seq read quantification.**
-# 
+#
 #     ## Citation
-# 
+#
 #     If you use featureCounts, please cite it as:
-# 
+#
 #     >  Liao Y, Smyth GK and Shi W (2014). featureCounts: an efficient general
 #     > purpose program for assigning sequence reads to genomic features.
 #     > Bioinformatics, 30(7):923-30."""
-# 
+#
 #     raise NotImplementedError # Coming soon!
-# 
-# 
+#
+#
 # @Function(
 #     "data.qc = true",
 #     "ret.label = data.label",
@@ -839,70 +837,70 @@ def sleuth(
 # def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
 #     "STAR"
 #     pass
-# 
+#
 # @Prop
 # class CutAndRunProp:
 #     "CUT&RUN-seq"
-# 
+#
 #     label: str
 #     "Label for data"
-# 
+#
 #     sample_sheet: str
 #     "Path to sample sheet CSV"
-# 
+#
 #     raw_data: str
 #     "Path to raw FASTQ files"
-# 
-# 
+#
+#
 # @Prop
 # class EMSeqProp:
 #     "EM-seq"
-# 
+#
 #     label: str
 #     "Label for data"
-# 
+#
 #     sample_sheet: str
 #     "Path to sample sheet CSV"
-# 
+#
 #     raw_data: str
 #     "Path to raw FASTQ files"
-# 
-# 
+#
+#
 # @Prop
 # class FlowProp:
 #     "Flow cytometry"
-# 
+#
 #     label: str
 #     "Label for data"
-# 
+#
 #     sample_sheet: str
 #     "Path to sample sheet CSV"
-# 
+#
 #     raw_data: str
 #     "Path to raw FCS files"
-# 
-# 
+#
+#
 # @Prop
 # class SortProp:
 #     "Sort cells with FACS"
-# 
+#
 #     label: str
 #     "Label for data"
-# 
-# 
+#
+#
 # @Prop
 # class StainProp:
 #     "Stain cells with antibodies"
-# 
+#
 #     label: str
 #     "Label for data"
-# 
+#
 # @Prop
 # class TransfectProp:
 #     "Infect cells with CRISPR sgRNA guide library"
-# 
+#
 #     label: str
 #     "Label for data"
-# 
+#
 #     library: str
 #     "Path to the library file"

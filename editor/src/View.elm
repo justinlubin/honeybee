@@ -839,7 +839,7 @@ view model =
                     ]
                 ]
             , p [] [ text "Once you finish the first step (filling out the details of your experiment), the next step (navigating to an analysis program) works like this:" ]
-            , img [ A.src "assets/navigation-overview.svg" ] []
+            , img [ A.src "assets/navigation-overview.png" ] []
             , p [] [ text "You’ll keep working backward until there are no steps left." ]
             ]
         , pane
