@@ -26,6 +26,10 @@ img {
     margin-bottom: 10px;
 }
 
+img {
+    width: 100%;
+}
+
 ol li {
     list-style-type: decimal;
     margin-left: 30px;
@@ -241,11 +245,6 @@ button {
 .version-number {
     color: rgba(255, 255, 255, 0.25);
     margin-left: 10px;
-}
-
-#devmode {
-    opacity: 0.01;
-    font-size: 0.5em;
 }
 
 /* || Panes */

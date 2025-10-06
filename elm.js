@@ -6037,54 +6037,49 @@ var $author$project$Update$consistentSuggestions = F2(
 				}),
 			goalFact.args);
 	});
-var $author$project$Core$example = {
-	goal: $elm$core$Maybe$Just(
-		{
-			args: _List_fromArray(
-				[
-					_Utils_Tuple2(
-					'label',
-					_Utils_Tuple2('main', $author$project$Core$VTStr)),
-					_Utils_Tuple2(
-					'comparison_sheet',
-					_Utils_Tuple2('metadata/comparisons.csv', $author$project$Core$VTStr))
-				]),
-			name: 'DifferentialGeneExpression',
-			sig: {
-				paramLabels: $elm$core$Dict$empty,
-				params: _List_fromArray(
-					[
-						_Utils_Tuple2('label', $author$project$Core$VTStr),
-						_Utils_Tuple2('qc', $author$project$Core$VTStr)
-					]),
-				title: $elm$core$Maybe$Nothing
-			}
-		}),
-	props: _List_fromArray(
-		[
-			$elm$core$Maybe$Just(
-			{
-				args: _List_fromArray(
-					[
-						_Utils_Tuple2(
-						'label',
-						_Utils_Tuple2('main', $author$project$Core$VTStr)),
-						_Utils_Tuple2(
-						'sample_sheet',
-						_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr))
-					]),
-				name: 'P_SraRnaSeq',
-				sig: {
-					paramLabels: $elm$core$Dict$empty,
-					params: _List_fromArray(
+var $author$project$Core$example = function (library) {
+	var _v0 = _Utils_Tuple2(
+		A2($author$project$Assoc$get, 'P_LocalRnaSeq', library.props),
+		A2($author$project$Assoc$get, 'DifferentialGeneExpression', library.types));
+	if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
+		var propSig = _v0.a.a;
+		var typeSig = _v0.b.a;
+		return {
+			goal: $elm$core$Maybe$Just(
+				{
+					args: _List_fromArray(
 						[
-							_Utils_Tuple2('label', $author$project$Core$VTStr),
-							_Utils_Tuple2('sample_sheet', $author$project$Core$VTStr)
+							_Utils_Tuple2(
+							'label',
+							_Utils_Tuple2('main', $author$project$Core$VTStr)),
+							_Utils_Tuple2(
+							'comparison_sheet',
+							_Utils_Tuple2('metadata/comparisons.csv', $author$project$Core$VTStr))
 						]),
-					title: $elm$core$Maybe$Nothing
-				}
-			})
-		])
+					name: 'DifferentialGeneExpression',
+					sig: typeSig
+				}),
+			props: _List_fromArray(
+				[
+					$elm$core$Maybe$Just(
+					{
+						args: _List_fromArray(
+							[
+								_Utils_Tuple2(
+								'label',
+								_Utils_Tuple2('main', $author$project$Core$VTStr)),
+								_Utils_Tuple2(
+								'sample_sheet',
+								_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr))
+							]),
+						name: 'P_SraRnaSeq',
+						sig: propSig
+					})
+				])
+		};
+	} else {
+		return {goal: $elm$core$Maybe$Nothing, props: _List_Nil};
+	}
 };
 var $author$project$Core$fresh = F2(
 	function (name, sig) {
@@ -6732,11 +6727,13 @@ var $author$project$Update$update = F2(
 				return _Utils_Tuple2(
 					model,
 					$author$project$Outgoing$oDownload(x));
-			case 'UserClickedDevMode':
+			case 'UserClickedExample':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{program: $author$project$Core$example}),
+						{
+							program: $author$project$Core$example(model.library)
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'BackendSentPbnStatus':
 				var status = msg.a;
@@ -6765,10 +6762,8 @@ var $author$project$Update$update = F2(
 				}
 		}
 	});
-var $author$project$Update$UserClickedDevMode = {$: 'UserClickedDevMode'};
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$b = _VirtualDom_node('b');
-var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6805,7 +6800,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+60d61a6';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+005b0ea';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -6850,23 +6845,6 @@ var $author$project$View$menuBar = F4(
 				]));
 	});
 var $elm$html$Html$ol = _VirtualDom_node('ol');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$header = _VirtualDom_node('header');
 var $elm$html$Html$section = _VirtualDom_node('section');
@@ -6911,6 +6889,7 @@ var $author$project$View$paneHeading = F2(
 var $author$project$Update$UserRequestedDownload = function (a) {
 	return {$: 'UserRequestedDownload', a: a};
 };
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $author$project$View$cellId = function (cellIndex) {
 	return 'cell' + $elm$core$String$fromInt(cellIndex);
 };
@@ -7214,6 +7193,7 @@ var $elm$html$Html$Events$alwaysStop = function (x) {
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -7380,6 +7360,22 @@ var $author$project$View$functionChoice = F2(
 			heading: $elm$html$Html$text(fc.functionTitle)
 		};
 	});
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $elm$core$List$unzip = function (pairs) {
 	var step = F2(
 		function (_v0, _v1) {
@@ -7984,6 +7980,7 @@ var $author$project$Core$Prop = function (a) {
 	return {$: 'Prop', a: a};
 };
 var $author$project$Update$UserAddedBlankStep = {$: 'UserAddedBlankStep'};
+var $author$project$Update$UserClickedExample = {$: 'UserClickedExample'};
 var $author$project$View$group = F3(
 	function (attrs, headerContent, bodyContent) {
 		return A2(
@@ -8336,6 +8333,33 @@ var $author$project$View$program = F2(
 				A3(
 				$author$project$View$group,
 				_List_Nil,
+				$elm$html$Html$text(''),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$p,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('tip')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Fill out your experimental workflow below, or '),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Update$UserClickedExample)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('click here to try an example!')
+									]))
+							]))
+					])),
+				A3(
+				$author$project$View$group,
+				_List_Nil,
 				A2(
 					$author$project$View$groupHeading,
 					_List_Nil,
@@ -8495,17 +8519,6 @@ var $author$project$View$view = function (model) {
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('devmode'),
-								$elm$html$Html$Events$onClick($author$project$Update$UserClickedDevMode)
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('devmode')
-							])),
-						A2(
 						$elm$html$Html$span,
 						_List_fromArray(
 							[
@@ -8582,7 +8595,7 @@ var $author$project$View$view = function (model) {
 						$elm$html$Html$img,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$src('assets/navigation-overview.svg')
+								$elm$html$Html$Attributes$src('assets/navigation-overview.png')
 							]),
 						_List_Nil),
 						A2(
