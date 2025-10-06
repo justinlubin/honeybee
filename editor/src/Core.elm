@@ -271,39 +271,34 @@ empty =
     { props = [], goal = Nothing }
 
 
-example : WorkingProgram
-example =
-    { props =
-        [ Just
-            { name = "P_SraRnaSeq"
-            , args =
-                [ ( "label", ( "main", VTStr ) )
-                , ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
+example : Library -> WorkingProgram
+example library =
+    case ( Assoc.get "P_LocalRnaSeq" library.props, Assoc.get "DifferentialGeneExpression" library.types ) of
+        ( Just propSig, Just typeSig ) ->
+            { props =
+                [ Just
+                    { name = "P_SraRnaSeq"
+                    , args =
+                        [ ( "label", ( "main", VTStr ) )
+                        , ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
+                        ]
+                    , sig =
+                        propSig
+                    }
                 ]
-            , sig =
-                { params =
-                    [ ( "label", VTStr )
-                    , ( "sample_sheet", VTStr )
-                    ]
-                , paramLabels = Dict.empty
-                , title = Nothing
-                }
+            , goal =
+                Just
+                    { name = "DifferentialGeneExpression"
+                    , args =
+                        [ ( "label", ( "main", VTStr ) )
+                        , ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
+                        ]
+                    , sig =
+                        typeSig
+                    }
             }
-        ]
-    , goal =
-        Just
-            { name = "DifferentialGeneExpression"
-            , args =
-                [ ( "label", ( "main", VTStr ) )
-                , ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
-                ]
-            , sig =
-                { params =
-                    [ ( "label", VTStr )
-                    , ( "qc", VTStr )
-                    ]
-                , paramLabels = Dict.empty
-                , title = Nothing
-                }
+
+        _ ->
+            { props = []
+            , goal = Nothing
             }
-    }

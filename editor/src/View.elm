@@ -375,7 +375,17 @@ program :
     -> WorkingProgram
     -> List (Html Msg)
 program ctx prog =
-    [ group [] (groupHeading [] [ text "Experimental workflow" ]) <|
+    [ group []
+        (text "")
+        [ p
+            [ A.class "tip" ]
+            [ text "Fill out your experimental workflow below, or "
+            , button
+                [ E.onClick UserClickedExample ]
+                [ text "click here to try an example!" ]
+            ]
+        ]
+    , group [] (groupHeading [] [ text "Experimental workflow" ]) <|
         List.indexedMap
             (\i s -> step ctx.library.props [] (Prop i) s)
             prog.props
@@ -811,12 +821,7 @@ view model =
                 ]
             ]
             []
-            [ button
-                [ A.id "devmode"
-                , E.onClick UserClickedDevMode
-                ]
-                [ text "devmode" ]
-            , span
+            [ span
                 [ A.class "version-number" ]
                 [ text <| " version " ++ Version.fullVersion
                 ]

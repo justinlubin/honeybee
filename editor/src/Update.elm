@@ -32,7 +32,7 @@ type
     | UserSelectedMetadata { cellIndex : Int, functionIndex : Int } Int
     | UserMadePbnChoice Int
     | UserRequestedDownload Outgoing.DownloadMessage
-    | UserClickedDevMode
+    | UserClickedExample
       -- Backend actions
     | BackendSentPbnStatus Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
@@ -308,8 +308,8 @@ update msg model =
             , Outgoing.oDownload x
             )
 
-        UserClickedDevMode ->
-            ( { model | program = Core.example }
+        UserClickedExample ->
+            ( { model | program = Core.example model.library }
             , Cmd.none
             )
 

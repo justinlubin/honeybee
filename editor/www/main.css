@@ -243,11 +243,6 @@ button {
     margin-left: 10px;
 }
 
-#devmode {
-    opacity: 0.01;
-    font-size: 0.5em;
-}
-
 /* || Panes */
 
 .pane {
