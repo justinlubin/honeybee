@@ -36,5 +36,9 @@ toml = "0.8.19"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[profile.release]
+opt-level = "z"
+lto = true
+
 [lints.clippy]
 new_without_default = "allow"
