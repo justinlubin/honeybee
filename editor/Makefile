@@ -1,3 +1,11 @@
+# Requirements:
+#  - cargo
+#  - dot
+#  - elm
+#  - uglifyjs
+#  - uv
+#  - wasm-bindgen
+
 OPTIMIZE_ELM := false
 HERE_DIR := editor
 OUT_DIR := www
@@ -38,7 +46,7 @@ $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 	cd ../backend/ && \
 	cargo build --lib --target wasm32-unknown-unknown --release && \
 	wasm-bindgen target/wasm32-unknown-unknown/release/honeybee.wasm \
-		--out-dir ../$(HERE_DIR)/www/pkg \
+		--out-dir ../$(HERE_DIR)/$(OUT_DIR)/pkg \
 		--target web
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
