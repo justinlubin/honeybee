@@ -36,8 +36,10 @@ endif
 
 $(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
 	cd ../backend/ && \
-	cargo build && \
-	wasm-pack build --target web --out-dir ../$(HERE_DIR)/www/pkg
+	cargo build --lib --target wasm32-unknown-unknown --release && \
+	wasm-bindgen target/wasm32-unknown-unknown/release/honeybee.wasm \
+		--out-dir ../$(HERE_DIR)/www/pkg \
+		--target web
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
 	uv run \
