@@ -1,10 +1,13 @@
 # Requirements:
-#  - cargo
-#  - dot
-#  - elm
-#  - uglifyjs
-#  - uv
-#  - wasm-bindgen
+#   cargo
+#   dot
+#   elm
+#   uglifyjs
+#   uv
+#   wasm-bindgenP
+#     cargo install -f wasm-bindgen-cli --version 0.2.100
+#   wasm32-unknown-unknown Rust target
+#     rustup target add wasm32-unknown-unknown
 
 OPTIMIZE_ELM := false
 HERE_DIR := editor
