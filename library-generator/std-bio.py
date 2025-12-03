@@ -505,7 +505,7 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
 def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Salmon
 
-    # Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
+    # Quantify transcript abundances *without* alignment using [Salmon](https://salmon.readthedocs.io/en/latest/index.html)
 
     Salmon is a tool that estimates the number of times a transcript appears
     using a lightweight mapping technique that is much faster than a full
@@ -516,7 +516,7 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     In the code, please set the following parameters:
 
     - `SALMON_INDEX`: the location of the Salmon transcriptome index on your computer
-    - `CORES`: the number of cores that you want Salmon to use (default: 4)
+    - `SALMON_TYPE`: the type of sequencing library from which the reads come
 
     ## Citation
 
@@ -527,9 +527,30 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     > expression. Nature Methods."""
 
     SALMON_INDEX = "put the path to the Salmon index here"
-    CORES = 4
+    SALMON_TYPE = "A" # See https://salmon.readthedocs.io/en/latest/salmon.html#what-s-this-libtype, A means "infer type".
 
-    raise NotImplementedError  # Coming soon!
+    print("### Running salmon ###")
+    
+    outdir = f"output/{ret.label}/salmon"
+    bash(f"mkdir -p {outdir}")
+    
+    import polars as pl
+    
+    df = pl.read_csv(data.dynamic.sample_sheet)
+    
+    for sample_name in df["sample_name"]:
+        bash(f"""salmon quant \\
+                    -i {SALMON_INDEX} \\
+                    -l {SALMON_TYPE} \\
+                    -1 {data.dynamic.path}/{sample_name}_1.fastq.gz \\
+                    -2 {data.dynamic.path}/{sample_name}_2.fastq.gz \\
+                    --validateMappings
+                    -o {outdir}/{sample_name} \\""")
+    
+    return TranscriptMatrices.D(
+        sample_sheet=data.dynamic.sample_sheet,
+        path=outdir,
+    )
 
 
 ################################################################################
