@@ -13,6 +13,10 @@ Honeybee is based on our recent work on
 [Programming by Navigation](https://dl.acm.org/doi/10.1145/3729264)
 appearing in PLDI 2025.
 
+## Honeybee Editor video demo
+
+https://github.com/user-attachments/assets/e75636f7-d6ea-4498-9753-a0bf89e3447f
+
 ## Repository structure
 
 The main directories are:
