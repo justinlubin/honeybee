@@ -64,12 +64,13 @@ decodeMetadataChoice =
 
 decodeFunctionChoice : D.Decoder FunctionChoice
 decodeFunctionChoice =
-    D.map5 FunctionChoice
+    D.map6 FunctionChoice
         (D.field "function_title" D.string)
         (D.field "function_description" <| D.nullable D.string)
         (D.field "code" <| D.nullable D.string)
         (D.field "metadata_choices" <| D.list decodeMetadataChoice)
         (D.succeed 0)
+        (D.maybe <| D.field "google_scholar_id" D.string)
 
 
 decodeChoiceCell : D.Decoder ChoiceCell

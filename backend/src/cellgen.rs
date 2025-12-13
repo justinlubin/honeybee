@@ -28,6 +28,7 @@ pub struct FunctionChoice {
     pub function_description: Option<String>,
     pub code: Option<String>,
     pub metadata_choices: Vec<MetadataChoice>,
+    pub google_scholar_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -276,6 +277,8 @@ fn collate_choices(
                         function_description,
                         code: f_sig.info_string("code"),
                         metadata_choices: vec![],
+                        google_scholar_id: f_sig
+                            .info_string("google_scholar_id"),
                     }
                 });
 

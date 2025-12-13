@@ -63,6 +63,10 @@ button {
     margin-right: 7px;
 }
 
+a:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 /* || Markdown */
 
 .markdown {
@@ -419,7 +423,7 @@ button {
 
 .card-inner-heading {
     display: block;
-    font-size: 1em;
+    font-size: 1.1em;
     font-weight: var(--bold);
     margin-top: 8px;
     margin-bottom: 5px;
@@ -464,6 +468,22 @@ button {
     cursor: not-allowed;
     background-color: #ccc;
     color: #555;
+}
+
+.card.cell-choice .google-scholar-backreference {
+    text-align: left;
+    font-size: 0.8em;
+    margin-bottom: 5px;
+    font-style: italic;
+}
+
+.card.cell-choice .google-scholar-backreference img {
+    width: auto;
+    height: 1em;
+    margin-right: 6px;
+    vertical-align: top;
+    position: relative;
+    top: 2px;
 }
 
 /* Card reference */

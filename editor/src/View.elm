@@ -446,7 +446,19 @@ functionChoice ctx fc =
     { heading = text fc.functionTitle
     , body =
         div [] <|
-            [ Markdown.toHtml
+            [ case fc.googleScholarId of
+                Just gsid ->
+                    p
+                        [ A.class "google-scholar-backreference" ]
+                        [ img [ A.src "assets/google_scholar.png" ] []
+                        , a
+                            [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
+                            [ text "Browse papers that use this tool in Google Scholar" ]
+                        ]
+
+                Nothing ->
+                    text ""
+            , Markdown.toHtml
                 [ A.class "markdown" ]
                 (Maybe.withDefault "" fc.functionDescription)
             ]

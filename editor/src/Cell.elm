@@ -16,6 +16,7 @@ type alias FunctionChoice =
     , code : Maybe String
     , metadataChoices : List MetadataChoice
     , selectedMetadataChoice : Int
+    , googleScholarId : Maybe String
     }
 
 

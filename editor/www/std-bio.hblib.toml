@@ -383,6 +383,7 @@ This step also relies on FastQC. Please also cite it as:
 > Simon Andrews. FastQC: a quality control tool for high throughput
 > sequence data. (2010). Available online at:
 > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
+info.google_scholar_id = "15898044054356823756"
 info.code = '''def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """MultiQC
 
@@ -488,6 +489,7 @@ If you use cutadapt, please cite it as:
 > Marcel Martin. Cutadapt removes adapter sequences from high-throughput
 > sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011.
 > http://dx.doi.org/10.14806/ej.17.1.200"""
+info.google_scholar_id = "4180123542769751602"
 info.code = '''def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """cutadapt (Illumina)
 
@@ -624,6 +626,7 @@ If you use kallisto, please cite it as:
 
 > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
 > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."""
+info.google_scholar_id = "15817796957364212470"
 info.code = '''def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """kallisto
 
@@ -701,6 +704,7 @@ If you use Salmon, please cite it as:
 > Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C.
 > (2017). Salmon provides fast and bias-aware quantification of transcript
 > expression. Nature Methods."""
+info.google_scholar_id = "11462947284863466602"
 info.code = '''def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Salmon
 
@@ -838,6 +842,7 @@ If you use tximport, please cite it as:
 > Soneson C, Love MI, Robinson MD (2015). “Differential analyses for
 RNA-seq: transcript-level estimates improve gene-level inferences.”
 F1000Research, 4. doi:10.12688/f1000research.7563.1."""
+info.google_scholar_id = "5898741618830664005"
 info.code = '''def tximport(data: TranscriptMatrices, ret: GeneMatrices.S) -> GeneMatrices.D:
     """tximport
 
@@ -897,7 +902,7 @@ info.description = """The goal of this step is to assign a score (like a _p_-val
 that ranks how differentially expressed it is between two conditions.
 Among other uses, this information can be plotted in an
 [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
-[volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics)).
+[volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
 
 The following image shows a _typical_ RNA-seq processing workflow,
 **but the details can vary a lot!**
@@ -917,7 +922,7 @@ class DifferentialGeneExpression:
     that ranks how differentially expressed it is between two conditions.
     Among other uses, this information can be plotted in an
     [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
-    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics)).
+    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
 
     The following image shows a _typical_ RNA-seq processing workflow,
     **but the details can vary a lot!**
@@ -978,6 +983,7 @@ If you use DESeq, please cite it as:
 > Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change
 > and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550.
 > doi:10.1186/s13059-014-0550-8."""
+info.google_scholar_id = "16121678637925818947"
 info.code = '''def deseq2(
     data: GeneMatrices, ret: DifferentialGeneExpression.S
 ) -> DifferentialGeneExpression.D:
@@ -1056,6 +1062,7 @@ If you use sleuth, please cite it as:
 > Pachter, Differential analysis of RNA-Seq incorporating quantification
 > uncertainty, Nature Methods (2017), advanced access
 > http://dx.doi.org/10.1038/nmeth.4324."""
+info.google_scholar_id = "1639708055766929241"
 info.code = '''def sleuth(
     data: TranscriptMatrices, ret: DifferentialGeneExpression.S
 ) -> DifferentialGeneExpression.D:
