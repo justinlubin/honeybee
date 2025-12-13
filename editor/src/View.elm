@@ -407,12 +407,37 @@ program ctx prog =
 -- Direct manipulation Programming by Navigation
 
 
+type SearchEngine
+    = Google
+    | DuckDuckGo
+
+
+searchEngineUrl : SearchEngine -> String -> String
+searchEngineUrl se query =
+    let
+        prefix =
+            case se of
+                Google ->
+                    "https://google.com/search?q="
+
+                DuckDuckGo ->
+                    "https://duckduckgo.com/?q="
+
+        encodedQuery =
+            String.replace " " "+" query
+    in
+    prefix ++ encodedQuery
+
+
 functionChoice :
     { cellIndex : Int, functionIndex : Int }
     -> Cell.FunctionChoice
     -> { heading : Html Msg, body : Html Msg }
 functionChoice ctx fc =
     let
+        searchEngineQuery =
+            fc.functionTitle ++ " bioinformatics"
+
         selectAdditionalInformation =
             [ p
                 [ A.class "tabbed-menu-body-label" ]
@@ -446,18 +471,36 @@ functionChoice ctx fc =
     { heading = text fc.functionTitle
     , body =
         div [] <|
-            [ case fc.googleScholarId of
-                Just gsid ->
-                    p
-                        [ A.class "google-scholar-backreference" ]
-                        [ img [ A.src "assets/google_scholar.png" ] []
-                        , a
-                            [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
-                            [ text "Browse papers that use this tool in Google Scholar" ]
-                        ]
+            [ ul
+                [ A.class "tool-search-info" ]
+                [ li
+                    []
+                    [ text "Search for "
+                    , text fc.functionTitle
+                    , text " on "
+                    , img [ A.src "assets/google.webp" ] []
+                    , a
+                        [ A.href (searchEngineUrl Google searchEngineQuery) ]
+                        [ text "Google" ]
+                    , text " or "
+                    , img [ A.src "assets/duckduckgo.png" ] []
+                    , a
+                        [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
+                        [ text "DuckDuckGo" ]
+                    ]
+                , case fc.googleScholarId of
+                    Just gsid ->
+                        li [ A.class "google-scholar-backreference" ]
+                            [ text "Browse papers that use this tool in "
+                            , img [ A.src "assets/google_scholar.png" ] []
+                            , a
+                                [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
+                                [ text "Google Scholar" ]
+                            ]
 
-                Nothing ->
-                    text ""
+                    Nothing ->
+                        text ""
+                ]
             , Markdown.toHtml
                 [ A.class "markdown" ]
                 (Maybe.withDefault "" fc.functionDescription)
