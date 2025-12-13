@@ -63,6 +63,10 @@ button {
     margin-right: 7px;
 }
 
+a:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 /* || Markdown */
 
 .markdown {
@@ -419,7 +423,7 @@ button {
 
 .card-inner-heading {
     display: block;
-    font-size: 1em;
+    font-size: 1.1em;
     font-weight: var(--bold);
     margin-top: 8px;
     margin-bottom: 5px;
@@ -464,6 +468,30 @@ button {
     cursor: not-allowed;
     background-color: #ccc;
     color: #555;
+}
+
+/* Tool Search Info */
+
+.tool-search-info {
+    margin-bottom: 5px;
+}
+
+.tool-search-info li {
+    list-style-type: disc;
+    font-size: 0.8em;
+    font-style: italic;
+    text-align: left;
+    margin-left: 20px;
+    margin-bottom: 0px;
+}
+
+.tool-search-info img {
+    width: auto;
+    height: 1em;
+    margin-right: 2px;
+    vertical-align: top;
+    position: relative;
+    top: 2px;
 }
 
 /* Card reference */

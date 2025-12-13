@@ -274,6 +274,7 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     "data.qc = false",
     "ret.label = data.label",
     "ret.qc = true",
+    google_scholar_id="15898044054356823756",
 )
 def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """MultiQC
@@ -341,6 +342,7 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     "data.qc = true",
     "ret.label = data.label",
     "ret.qc = false",
+    google_scholar_id="4180123542769751602",
 )
 def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     """cutadapt (Illumina)
@@ -447,6 +449,7 @@ class TranscriptMatrices:
     "data.qc = true",
     "ret.label = data.label",
     "ret.bc = false",
+    google_scholar_id="15817796957364212470",
 )
 def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """kallisto
@@ -501,6 +504,7 @@ def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     "data.qc = true",
     "ret.label = data.label",
     "ret.bc = false",
+    google_scholar_id="11462947284863466602",
 )
 def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     """Salmon
@@ -586,6 +590,7 @@ class GeneMatrices:
     "ret.label = data.label",
     "data.bc = false",
     "ret.bc = true",
+    google_scholar_id="5898741618830664005",
 )
 def tximport(data: TranscriptMatrices, ret: GeneMatrices.S) -> GeneMatrices.D:
     """tximport
@@ -652,7 +657,7 @@ class DifferentialGeneExpression:
     that ranks how differentially expressed it is between two conditions.
     Among other uses, this information can be plotted in an
     [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
-    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics)).
+    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
 
     The following image shows a _typical_ RNA-seq processing workflow,
     **but the details can vary a lot!**
@@ -682,6 +687,7 @@ class DifferentialGeneExpression:
 
 @Function(
     "ret.label = data.label",
+    google_scholar_id="16121678637925818947",
 )
 def deseq2(
     data: GeneMatrices, ret: DifferentialGeneExpression.S
@@ -745,6 +751,7 @@ def deseq2(
 
 @Function(
     "ret.label = data.label",
+    google_scholar_id="1639708055766929241",
 )
 def sleuth(
     data: TranscriptMatrices, ret: DifferentialGeneExpression.S
