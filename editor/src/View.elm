@@ -793,37 +793,6 @@ pbnStatus ms =
                                             ]
                                     )
                                     cells
-                                    ++ [ button
-                                            [ A.class "standout-button"
-                                            , A.class "post-popin-attention"
-                                            ]
-                                            [ case nextChoice cells of
-                                                Just i ->
-                                                    a
-                                                        [ A.href ("#" ++ cellId i) ]
-                                                        [ text "Next "
-                                                        , span
-                                                            [ A.class "card-reference"
-                                                            , A.class "cell-choice"
-                                                            ]
-                                                            [ text "Choice"
-                                                            ]
-                                                        ]
-
-                                                Nothing ->
-                                                    a
-                                                        [ A.href "#pbn-completed" ]
-                                                        [ text "Go to download button!"
-                                                        ]
-                                            ]
-                                       , button
-                                            [ A.class "standout-button"
-                                            , A.disabled (not canUndo)
-                                            , E.onClick UserClickedUndo
-                                            ]
-                                            [ span [] [ text "Undo" ]
-                                            ]
-                                       ]
                             ]
                         ]
 
@@ -869,6 +838,38 @@ pbnStatus ms =
             , outline
             , Html.Keyed.node "pop-in" [] (directManipulationPbn cells)
             , downloadButton
+            , footer [ A.class "controls" ]
+                [ button
+                    [ A.class "standout-button"
+                    , A.disabled (not canUndo)
+                    , E.onClick UserClickedUndo
+                    ]
+                    [ span [] [ text "Undo" ]
+                    ]
+                , button
+                    [ A.class "standout-button"
+                    , A.class "post-popin-attention"
+                    ]
+                    [ case nextChoice cells of
+                        Just i ->
+                            a
+                                [ A.href ("#" ++ cellId i) ]
+                                [ text "Next "
+                                , span
+                                    [ A.class "card-reference"
+                                    , A.class "cell-choice"
+                                    ]
+                                    [ text "Choice"
+                                    ]
+                                ]
+
+                        Nothing ->
+                            a
+                                [ A.href "#pbn-completed" ]
+                                [ text "Go to download button!"
+                                ]
+                    ]
+                ]
             ]
 
 

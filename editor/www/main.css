@@ -603,7 +603,7 @@ a:hover {
 
 .outline {
     background-color: #fff;
-    font-size: 0.7em;
+    /* font-size: 0.7em; */
 
     padding: 5px;
 
@@ -620,7 +620,8 @@ a:hover {
 }
 
 .outline li {
-    margin: 5px 0 0 10px;
+    font-size: 0.9em;
+    margin: 5px 0 0 20px;
     list-style-type: disc;
 }
 
@@ -633,17 +634,42 @@ a:hover {
     text-decoration: underline;
 }
 
-.outline .standout-button {
+/* .outline .standout-button {
     padding: 0;
     margin-top: 10px;
+} */
+
+/* || Footer controls */
+
+footer.controls {
+    display: flex;
+    gap: 10px;
+    background-color: #fff;
+    padding: 10px;
+    border-top: 2px solid black;
+    margin-left: -10px;
+    margin-right: -10px;
+    position: sticky;
+    z-index: 10;
+    bottom: 0px;
 }
 
-.outline .standout-button > a,
-.outline .standout-button > span
+footer.controls a {
+    color: inherit;
+    text-decoration: none;
+}
+
+footer.controls .standout-button {
+    padding: 0;
+}
+
+footer.controls .standout-button > a,
+footer.controls .standout-button > span
 {
     display: block;
     padding: 15px;
 }
+
 
 /* || Custom Prism styles */
 
