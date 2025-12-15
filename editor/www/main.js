@@ -137,7 +137,6 @@ customElements.define(
                         document
                             .querySelectorAll(".post-popin-attention")
                             .forEach((x) => {
-                                console.log(x);
                                 x.classList.add("attention");
                                 window.setTimeout(() => {
                                     x.classList.remove("attention");
@@ -223,6 +222,16 @@ In any case, please feel free reach out to Justin at justinlubin@berkeley.edu wi
 app.ports.oPbnChoose.subscribe((msg) => {
     try {
         const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
+        app.ports.iPbnStatus_.send(pbnStatusMessage);
+    } catch (e) {
+        console.error(e);
+    }
+});
+
+app.ports.oPbnUndo.subscribe((_msg) => {
+    try {
+        console.log('clicked')
+        const pbnStatusMessage = elmify(Honeybee.pbn_undo());
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {
         console.error(e);

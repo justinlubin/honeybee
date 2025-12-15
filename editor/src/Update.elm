@@ -33,6 +33,7 @@ type
     | UserMadePbnChoice Int
     | UserRequestedDownload Outgoing.DownloadMessage
     | UserClickedExample
+    | UserClickedUndo
       -- Backend actions
     | BackendSentPbnStatus Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
@@ -313,6 +314,11 @@ update msg model =
             , Cmd.none
             )
 
+        UserClickedUndo ->
+            ( model
+            , Outgoing.oPbnUndo {}
+            )
+
         BackendSentPbnStatus status ->
             ( { model | pbnStatus = Just status }
             , Cmd.none
@@ -355,7 +361,11 @@ subscriptions _ =
                             _ =
                                 Debug.log "error" e
                         in
-                        BackendSentPbnStatus { cells = [], output = Nothing }
+                        BackendSentPbnStatus
+                            { cells = []
+                            , output = Nothing
+                            , canUndo = False
+                            }
         , Incoming.iValidGoalMetadata <|
             \vgmResult ->
                 case vgmResult of

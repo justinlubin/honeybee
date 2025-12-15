@@ -753,7 +753,7 @@ pbnStatus ms =
         Nothing ->
             []
 
-        Just { cells, output } ->
+        Just { cells, output, canUndo } ->
             let
                 outline =
                     div
@@ -810,6 +810,13 @@ pbnStatus ms =
                                                         [ A.href "#pbn-completed" ]
                                                         [ text "Go to download button!"
                                                         ]
+                                            ]
+                                       , button
+                                            [ A.class "standout-button"
+                                            , A.disabled (not canUndo)
+                                            , E.onClick UserClickedUndo
+                                            ]
+                                            [ span [] [ text "Undo" ]
                                             ]
                                        ]
                             ]
