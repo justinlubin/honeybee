@@ -1,6 +1,7 @@
-use crate::pbn::*;
 use crate::top_down::*;
-use crate::util::{self, EarlyCutoff, Timer};
+use crate::util;
+
+use pbn::*;
 
 use indexmap::IndexMap;
 
@@ -12,9 +13,9 @@ pub trait AnySynthesizer {
     type F: Function;
     fn provide_any(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Option<HoleFilling<Self::F>>, EarlyCutoff>;
+    ) -> Result<Option<HoleFilling<Self::F>>, util::EarlyCutoff>;
 }
 
 /// The type of synthesizers solving the traditional All task (for sketches).
@@ -22,23 +23,25 @@ pub trait AllSynthesizer {
     type F: Function;
     fn provide_all(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Vec<HoleFilling<Self::F>>, EarlyCutoff>;
+    ) -> Result<Vec<HoleFilling<Self::F>>, util::EarlyCutoff>;
 }
 
 /// A wrapper for solving the Programming By Navigation Synthesis Problem using
 /// a complete All synthesizer.
 pub struct AllBasedStepProvider<Synth: AllSynthesizer>(pub Synth);
 
-impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
+impl<Synth: AllSynthesizer> StepProvider<util::Timer>
+    for AllBasedStepProvider<Synth>
+{
     type Step = TopDownStep<Synth::F>;
 
     fn provide(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         e: &Sketch<Synth::F>,
-    ) -> Result<Vec<Self::Step>, EarlyCutoff> {
+    ) -> Result<Vec<Self::Step>, util::EarlyCutoff> {
         let mut steps = vec![];
         for solution in self.0.provide_all(timer, e)? {
             for (h, binding) in solution {
@@ -59,7 +62,7 @@ impl<Synth: AllSynthesizer> StepProvider for AllBasedStepProvider<Synth> {
 /// Navigation synthesizer.
 pub struct StepProviderBasedAnySynthesizer<
     F: Function,
-    SP: StepProvider<Step = TopDownStep<F>>,
+    SP: StepProvider<util::Timer, Step = TopDownStep<F>>,
     V: ValidityChecker<Exp = Sketch<F>>,
 > {
     provider: SP,
@@ -68,7 +71,7 @@ pub struct StepProviderBasedAnySynthesizer<
 
 impl<
         F: Function,
-        SP: StepProvider<Step = TopDownStep<F>>,
+        SP: StepProvider<util::Timer, Step = TopDownStep<F>>,
         V: ValidityChecker<Exp = Sketch<F>>,
     > StepProviderBasedAnySynthesizer<F, SP, V>
 {
@@ -79,7 +82,7 @@ impl<
 
 impl<
         F: Function,
-        SP: StepProvider<Step = TopDownStep<F>>,
+        SP: StepProvider<util::Timer, Step = TopDownStep<F>>,
         V: ValidityChecker<Exp = Sketch<F>>,
     > AnySynthesizer for StepProviderBasedAnySynthesizer<F, SP, V>
 {
@@ -87,13 +90,13 @@ impl<
 
     fn provide_any(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         start: &Sketch<Self::F>,
-    ) -> Result<Option<HoleFilling<Self::F>>, EarlyCutoff> {
+    ) -> Result<Option<HoleFilling<Self::F>>, util::EarlyCutoff> {
         let mut ret = start.clone();
         loop {
             if ret.size() > util::MAX_EXP_SIZE {
-                return Err(EarlyCutoff::OutOfMemory);
+                return Err(util::EarlyCutoff::OutOfMemory);
             }
 
             let options = self.provider.provide(timer, &ret)?;

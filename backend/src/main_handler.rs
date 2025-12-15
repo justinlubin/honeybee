@@ -83,7 +83,7 @@ pub fn interact(
     let gen = style.codegen(problem.library.clone())?;
 
     let timer = util::Timer::infinite();
-    let mut controller = algorithm.controller(timer, problem);
+    let mut controller = algorithm.controller(timer, problem, false);
 
     let mut round = 0;
     while !controller.valid() {

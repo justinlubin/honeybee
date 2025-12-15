@@ -11,10 +11,11 @@
 use crate::core::*;
 use crate::top_down::*;
 use crate::traditional_synthesis::*;
-use crate::util::{self, EarlyCutoff, Timer};
+use crate::util::{self, EarlyCutoff};
 use crate::{eval, typecheck};
 
 use indexmap::{IndexMap, IndexSet};
+use pbn::Timer;
 use std::collections::VecDeque;
 
 /// The domain of values to use; use to construct the "support" of various
@@ -51,7 +52,7 @@ impl Support {
 
     fn met_signature(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         sig: &MetSignature,
     ) -> Result<Vec<IndexMap<MetParam, Value>>, EarlyCutoff> {
         let choices = sig
@@ -72,7 +73,7 @@ impl Support {
 pub trait Prune {
     fn possible(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         problem: &Problem,
         support: &Support,
         e: &Exp,
@@ -85,7 +86,7 @@ pub struct NaivePruner;
 impl Prune for NaivePruner {
     fn possible(
         &self,
-        _: &Timer,
+        _: &util::Timer,
         _: &Problem,
         _: &Support,
         _: &Exp,
@@ -101,7 +102,7 @@ pub struct ExhaustivePruner;
 impl Prune for ExhaustivePruner {
     fn possible(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         problem: &Problem,
         support: &Support,
         e: &Exp,
@@ -180,7 +181,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 
     fn support_hole(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         typ: &Met<Value>,
     ) -> Result<Vec<ParameterizedFunction>, EarlyCutoff> {
         let mut funcs = vec![];
@@ -209,7 +210,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 
     fn support_fun(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         f: &ParameterizedFunction,
         args: &IndexMap<FunParam, Exp>,
     ) -> Result<IndexMap<HoleName, Vec<ParameterizedFunction>>, EarlyCutoff>
@@ -271,7 +272,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 
     fn enumerate_worklist(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         mut worklist: VecDeque<Exp>,
         max_solutions: usize,
     ) -> Result<Vec<Exp>, EarlyCutoff> {
@@ -324,7 +325,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
 
     fn enumerate(
         &self,
-        timer: &Timer,
+        timer: &util::Timer,
         start: &Exp,
         max_solutions: usize,
     ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
@@ -343,7 +344,7 @@ impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
 
     fn provide_any(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         start: &Exp,
     ) -> Result<Option<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
         Ok(self.enumerate(timer, start, 1)?.into_iter().next())
@@ -355,7 +356,7 @@ impl<P: Prune> AllSynthesizer for EnumerativeSynthesis<P> {
 
     fn provide_all(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         start: &Exp,
     ) -> Result<Vec<HoleFilling<ParameterizedFunction>>, EarlyCutoff> {
         self.enumerate(timer, start, usize::MAX)
@@ -368,7 +369,7 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
 
     fn expansions(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         e: &Sketch<Self::F>,
     ) -> Result<Vec<(HoleName, Self::F)>, EarlyCutoff> {
         let (top_f, top_args) = self.wrap(e);

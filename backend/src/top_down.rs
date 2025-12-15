@@ -10,7 +10,6 @@
 //! beyoned the requirement that functions be applied to the correct number of
 //! arguments (with the right keyword arguments).
 
-use crate::pbn;
 use crate::util::{self, EarlyCutoff, Timer};
 
 use indexmap::IndexMap;
@@ -302,7 +301,7 @@ impl<O: InhabitationOracle> ClassicalConstructiveSynthesis<O> {
     }
 }
 
-impl<O: InhabitationOracle> pbn::StepProvider
+impl<O: InhabitationOracle> pbn::StepProvider<util::Timer>
     for ClassicalConstructiveSynthesis<O>
 {
     type Step = TopDownStep<O::F>;

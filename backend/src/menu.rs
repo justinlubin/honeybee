@@ -39,7 +39,8 @@ impl Algorithm {
         &self,
         timer: util::Timer,
         problem: core::Problem,
-    ) -> pbn::Controller<core::Step> {
+        save_history: bool,
+    ) -> pbn::Controller<util::Timer, core::Step> {
         match self {
             Algorithm::PBNHoneybee => {
                 let engine = egglog::Egglog::new(true);
@@ -48,7 +49,13 @@ impl Algorithm {
                     top_down::ClassicalConstructiveSynthesis::new(oracle);
                 let start = top_down::Sketch::blank();
                 let checker = top_down::GroundChecker::new();
-                pbn::Controller::new(timer, provider, checker, start)
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
             }
             Algorithm::PBNHoneybeeNoMemo => {
                 let engine = egglog::Egglog::new(false);
@@ -57,7 +64,13 @@ impl Algorithm {
                     top_down::ClassicalConstructiveSynthesis::new(oracle);
                 let start = top_down::Sketch::blank();
                 let checker = top_down::GroundChecker::new();
-                pbn::Controller::new(timer, provider, checker, start)
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
             }
             Algorithm::PBNConstructiveOracle => {
                 let pruner = enumerate::ExhaustivePruner;
@@ -67,7 +80,13 @@ impl Algorithm {
                     top_down::ClassicalConstructiveSynthesis::new(oracle);
                 let start = top_down::Sketch::blank();
                 let checker = top_down::GroundChecker::new();
-                pbn::Controller::new(timer, provider, checker, start)
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
             }
             Algorithm::NaiveEnumeration => {
                 let pruner = enumerate::NaivePruner;
@@ -77,7 +96,13 @@ impl Algorithm {
                     traditional_synthesis::AllBasedStepProvider(all_synth);
                 let start = top_down::Sketch::blank();
                 let checker = top_down::GroundChecker::new();
-                pbn::Controller::new(timer, provider, checker, start)
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
             }
             Algorithm::PrunedEnumeration => {
                 let pruner = enumerate::ExhaustivePruner;
@@ -87,7 +112,13 @@ impl Algorithm {
                     traditional_synthesis::AllBasedStepProvider(all_synth);
                 let start = top_down::Sketch::blank();
                 let checker = top_down::GroundChecker::new();
-                pbn::Controller::new(timer, provider, checker, start)
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
             }
         }
     }

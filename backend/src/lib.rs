@@ -11,7 +11,6 @@ mod egglog;
 mod enumerate;
 mod eval;
 mod parse;
-mod pbn;
 mod top_down;
 mod traditional_synthesis;
 mod typecheck;
@@ -107,8 +106,10 @@ pub fn valid_goal_metadata(
 // PBN Interaction
 
 struct State {
-    controller:
-        pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
+    controller: pbn::Controller<
+        util::Timer,
+        top_down::TopDownStep<core::ParameterizedFunction>,
+    >,
     library: core::Library,
 }
 
@@ -167,7 +168,7 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
 
     set_state(State {
         library: problem.library.clone(),
-        controller: algorithm.controller(timer, problem),
+        controller: algorithm.controller(timer, problem, true),
     });
 
     send_message()
