@@ -603,7 +603,7 @@ a:hover {
 
 .outline {
     background-color: #fff;
-    font-size: 0.7em;
+    /* font-size: 0.7em; */
 
     padding: 5px;
 
@@ -620,7 +620,8 @@ a:hover {
 }
 
 .outline li {
-    margin: 5px 0 0 10px;
+    font-size: 0.9em;
+    margin: 5px 0 0 20px;
     list-style-type: disc;
 }
 
