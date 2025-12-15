@@ -44,6 +44,7 @@ iValidGoalMetadata f =
 type alias PbnStatusMessage =
     { cells : List Cell
     , output : Maybe String
+    , canUndo : Bool
     }
 
 
@@ -96,9 +97,10 @@ decodeCell =
 
 decodePbnStatus : D.Decoder PbnStatusMessage
 decodePbnStatus =
-    D.map2 PbnStatusMessage
+    D.map3 PbnStatusMessage
         (D.field "cells" <| D.list decodeCell)
         (D.field "output" <| D.nullable D.string)
+        (D.field "can_undo" <| D.bool)
 
 
 port iPbnStatus_ : (D.Value -> msg) -> Sub msg

@@ -48,3 +48,10 @@ type alias PbnChooseMessage =
 
 
 port oPbnChoose : PbnChooseMessage -> Cmd msg
+
+
+type alias PbnUndoMessage =
+    {}
+
+
+port oPbnUndo : PbnUndoMessage -> Cmd msg

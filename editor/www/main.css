@@ -638,7 +638,9 @@ a:hover {
     margin-top: 10px;
 }
 
-.outline .standout-button a {
+.outline .standout-button > a,
+.outline .standout-button > span
+{
     display: block;
     padding: 15px;
 }

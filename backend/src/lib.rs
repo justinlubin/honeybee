@@ -11,7 +11,6 @@ mod egglog;
 mod enumerate;
 mod eval;
 mod parse;
-mod pbn;
 mod top_down;
 mod traditional_synthesis;
 mod typecheck;
@@ -107,8 +106,10 @@ pub fn valid_goal_metadata(
 // PBN Interaction
 
 struct State {
-    controller:
-        pbn::Controller<top_down::TopDownStep<core::ParameterizedFunction>>,
+    controller: pbn::Controller<
+        util::Timer,
+        top_down::TopDownStep<core::ParameterizedFunction>,
+    >,
     library: core::Library,
 }
 
@@ -133,6 +134,7 @@ fn set_state(state: State) {
 struct PbnStatusMessage {
     cells: Vec<cellgen::Cell>,
     output: Option<String>,
+    can_undo: bool,
 }
 
 fn send_message() -> Result<JsValue, String> {
@@ -153,6 +155,7 @@ fn send_message() -> Result<JsValue, String> {
         } else {
             None
         },
+        can_undo: state.controller.can_undo(),
     };
 
     serde_wasm_bindgen::to_value(&msg)
@@ -167,7 +170,7 @@ pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
 
     set_state(State {
         library: problem.library.clone(),
-        controller: algorithm.controller(timer, problem),
+        controller: algorithm.controller(timer, problem, true),
     });
 
     send_message()
@@ -179,5 +182,15 @@ pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
     let mut options =
         state.controller.provide().map_err(|e| format!("{:?}", e))?;
     state.controller.decide(options.swap_remove(choice_index));
+    send_message()
+}
+
+#[wasm_bindgen]
+pub fn pbn_undo() -> Result<JsValue, String> {
+    let state = get_state()?;
+    if !state.controller.can_undo() {
+        return Err("cannot undo".to_owned());
+    }
+    state.controller.undo();
     send_message()
 }

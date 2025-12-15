@@ -6,11 +6,11 @@
 //! To use this code, create a [`Runner`] object using [`Runner::new`],
 //! then call [`Runner::suites`] to run a set of benchmark suits.
 
-use crate::pbn::Step;
 use crate::util::{EarlyCutoff, Timer};
 use crate::{core, menu, parse, top_down, typecheck};
 
 use instant::{Duration, Instant};
+use pbn::Step;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::io;
@@ -175,12 +175,10 @@ impl Runner {
         solution: core::Exp,
     ) -> Result<bool, EarlyCutoff> {
         let timer = Timer::finite(self.config.timeout);
-        let mut controller = algorithm.controller(timer, problem);
+        let mut controller = algorithm.controller(timer, problem, false);
 
         loop {
-            let working_expression = controller.working_expression();
-
-            if working_expression == solution {
+            if *controller.working_expression() == solution {
                 return Ok(true);
             }
 
@@ -190,7 +188,8 @@ impl Runner {
             }
 
             match options.into_iter().find(|opt| {
-                let tentative = opt.apply(&working_expression).unwrap();
+                let tentative =
+                    opt.apply(controller.working_expression()).unwrap();
                 tentative.pattern_match(&solution).is_some()
             }) {
                 Some(step) => controller.decide(step),

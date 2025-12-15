@@ -3,6 +3,7 @@
 use indexmap::IndexMap;
 use instant::Duration;
 use instant::Instant;
+use pbn::Timer as _;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Early cutoff
@@ -13,6 +14,17 @@ pub enum EarlyCutoff {
     TimerExpired,
     OutOfMemory,
 }
+
+impl std::fmt::Display for EarlyCutoff {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EarlyCutoff::TimerExpired => write!(f, "TimerExpired"),
+            EarlyCutoff::OutOfMemory => write!(f, "OutOfMemory"),
+        }
+    }
+}
+
+impl std::error::Error for EarlyCutoff {}
 
 /// The maximum size of an expression to consider to avoid stack overflows.
 /// (This number must be bigger than any expression that is to be synthesized.)
@@ -46,10 +58,14 @@ impl Timer {
     pub fn infinite() -> Self {
         Timer(TimerInner::Infinite)
     }
+}
+
+impl pbn::Timer for Timer {
+    type EarlyCutoff = EarlyCutoff;
 
     /// Tick the timer (cooperatively check to see if the computation needs to
     /// stop).
-    pub fn tick(&self) -> Result<(), EarlyCutoff> {
+    fn tick(&self) -> Result<(), Self::EarlyCutoff> {
         match self.0 {
             TimerInner::Finite { end } => {
                 if Instant::now() > end {

@@ -8,8 +8,10 @@ use crate::core::{self, *};
 use crate::datalog::{self, *};
 use crate::top_down::*;
 use crate::typecheck;
-use crate::util::{EarlyCutoff, Timer};
+use crate::util;
+
 use indexmap::IndexMap;
+use pbn::Timer;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Compilation to datalog
@@ -490,9 +492,9 @@ impl<Eng: Engine> InhabitationOracle for Oracle<Eng> {
 
     fn expansions(
         &mut self,
-        timer: &Timer,
+        timer: &util::Timer,
         e: &Sketch<Self::F>,
-    ) -> Result<Vec<Expansion<Self::F>>, EarlyCutoff> {
+    ) -> Result<Vec<Expansion<Self::F>>, util::EarlyCutoff> {
         let compile = CompileContext(typecheck::Context(&self.problem.library));
 
         let mut ret = vec![];

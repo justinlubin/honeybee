@@ -567,6 +567,7 @@ dependencies = [
  "instant",
  "ipynb",
  "log",
+ "pbn",
  "rayon",
  "serde",
  "serde-wasm-bindgen",
@@ -818,6 +819,12 @@ dependencies = [
  "rand",
  "serde",
 ]
+
+[[package]]
+name = "pbn"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51109f53dee7f39aa5b1fe47002e91a579cec42ded66127aaee880350f77ec0f"
 
 [[package]]
 name = "pest"
