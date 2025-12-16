@@ -606,6 +606,7 @@ a:hover {
     /* font-size: 0.7em; */
 
     padding: 5px;
+    padding-bottom: 10px;
 
     border: 2px solid black;
     border-radius: var(--rounding);
