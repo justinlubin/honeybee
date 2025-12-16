@@ -700,8 +700,11 @@ footer.controls {
     background-color: #fff;
     padding: 10px;
     border-top: 2px solid black;
+    border-bottom-left-radius: var(--rounding);
+    border-bottom-right-radius: var(--rounding);
     margin-left: -10px;
     margin-right: -10px;
+    margin-bottom: -10px;
     position: sticky;
     z-index: 10;
     bottom: 0px;
