@@ -696,7 +696,15 @@ def deseq2(
 
     # Find differentially-expressed protein-coding genes with [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
 
-    DESeq2 models gene expression using what is called a _negative binomial distribution_,
+    DESeq2 models gene expression using what is called a
+    <span class="more-info">
+        <span>
+            A <b>negative binomial distribution</b> is a statistical distribution
+            that models count data with unexplained variance, such as the
+            number of mRNA transcripts in a cell.  It looks like an off-center
+            normal distribution that is only defined for non-negative integers.
+        </span>
+        negative binomial distribution</span>,
     which is much more suitable for RNA-seq data than something like a _t_-test.
     DESeq2 has an
     [extensive guide](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
