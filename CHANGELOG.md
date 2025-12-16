@@ -7,7 +7,14 @@ of Honeybee.
 
 ### Added
 
+- Add hover text for complex concepts
+- Add "Undo" button to frontend
+- Add Honeybee citation to output script
 - Add citation backreferences via Google Scholar
 - Add tool search via Google and DuckDuckGo
 - Add GoatCounter private analytics
 - Add website (https://honeybee-lang.org), including video demo
+
+### Changed
+
+- Move "Next CHOICE" button (and new "Undo" button) to bottom of screen
