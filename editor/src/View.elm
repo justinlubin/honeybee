@@ -501,7 +501,12 @@ functionChoice ctx fc =
                     Nothing ->
                         text ""
                 ]
-            , Markdown.toHtml
+            , Markdown.toHtmlWith
+                { githubFlavored = Just { tables = False, breaks = False }
+                , defaultHighlighting = Nothing
+                , sanitize = False
+                , smartypants = True
+                }
                 [ A.class "markdown" ]
                 (Maybe.withDefault "" fc.functionDescription)
             ]

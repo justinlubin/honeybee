@@ -125,6 +125,58 @@ a:hover {
     font-family: monospace;
 }
 
+.markdown .more-info {
+    cursor: help;
+    text-decoration: underline;
+    text-decoration-style: dashed;
+    position: relative;
+}
+
+.markdown .more-info > span {
+    display: block;
+    visibility: hidden;
+    background-color: #fff;
+    width: 300px;
+    font-size: 0.8em;
+    padding: 10px;
+    border: 2px solid black;
+    border-radius: var(--rounding);
+    position: absolute;
+    bottom: 3em;
+    left: calc(50% - 150px);
+    z-index: 5;
+}
+
+.markdown .more-info:hover > span {
+    visibility: visible;
+}
+
+.markdown .more-info > span:before {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 12px solid #fff;
+    position: absolute;
+    bottom: -12px;
+    left: calc(50% - 12px);
+    z-index: 6;
+}
+
+.markdown .more-info > span:after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 15px solid black;
+    position: absolute;
+    bottom: -15px;
+    left: calc(50% - 15px);
+}
+
+
 /* || Tabbed menu */
 
 .tabbed-menu {
@@ -194,7 +246,7 @@ a:hover {
     background-color: #fff;
     padding: 10px;
     border: 2px solid black;
-    overflow: hidden;
+    /*overflow: hidden;*/
     border-top-right-radius: var(--rounding);
     border-bottom-left-radius: var(--rounding);
     border-bottom-right-radius: var(--rounding);
