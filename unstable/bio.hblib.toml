@@ -1,0 +1,118 @@
+### Raw inputs
+
+[Prop.RNAseq]
+params.sample = "Str"
+params.path = "Str"
+info.overview = "RNA-sequencing data"
+info.params.sample = "A label for the sample (you can choose anything you'd like)"
+info.params.path = "The path to the folder containing the raw FASTQ files for the sample"
+
+### Datatypes
+
+[Type.LoadedRNAseq]
+params.sample = "Str"
+params.path = "Str"
+
+[Type.Alignment]
+params.sample = "Str"
+
+[Type.ReadCountVector]
+params.sample = "Str"
+
+[Type.ReadCountMatrix]
+params.sample1 = "Str"
+params.sample2 = "Str"
+params.bc = "Bool"
+
+[Type.DifferentialGeneExpression]
+params.sample1 = "Str"
+params.sample2 = "Str"
+
+### Functions
+
+# Load
+
+[Function.load_rna_seq]
+params = {}
+ret = "LoadedRNAseq"
+condition = [
+    "RNAseq { sample = ret.sample, path = ret.path }"
+]
+
+# Quantifiers
+
+[Function.kallisto]
+params.in = "LoadedRNAseq"
+ret = "ReadCountVector"
+condition = [
+    "ret.sample = in.sample"
+]
+info.overview ="The kallisto RNAseq quantifier"
+
+[Function.salmon]
+params.in = "LoadedRNAseq"
+ret = "ReadCountVector"
+condition = [
+    "ret.sample = in.sample"
+]
+
+# Aligners
+
+[Function.bowtie2]
+params.in = "LoadedRNAseq"
+ret = "Alignment"
+condition = [
+    "ret.sample = in.sample"
+]
+
+[Function.STAR]
+params.in = "LoadedRNAseq"
+ret = "Alignment"
+condition = [
+    "ret.sample = in.sample"
+]
+
+
+# Read summarization
+
+[Function.featureCountVector]
+params.a = "Alignment"
+ret = "ReadCountVector"
+condition = [
+    "ret.sample = a.sample",
+]
+
+# Combine reads
+
+[Function.combine_reads]
+params.r1 = "ReadCountVector"
+params.r2 = "ReadCountVector"
+ret = "ReadCountMatrix"
+condition = [
+    "ret.sample1 = r1.sample",
+    "ret.sample2 = r2.sample",
+    "ret.bc = false",
+]
+
+# Batch correction
+
+[Function.combat_seq]
+params.rcm = "ReadCountMatrix"
+ret = "ReadCountMatrix"
+condition = [
+    "ret.sample1 = rcm.sample1",
+    "ret.sample2 = rcm.sample2",
+    "rcm.bc = false",
+    "ret.bc = true",
+]
+
+# Differential gene expression
+
+[Function.deseq2]
+params.rcm = "ReadCountMatrix"
+ret = "DifferentialGeneExpression"
+condition = [
+    "ret.sample1 = rcm.sample1",
+    "ret.sample2 = rcm.sample2",
+    "ret.sample1 != ret.sample2",
+]

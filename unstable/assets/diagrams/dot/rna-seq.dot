@@ -1,0 +1,28 @@
+digraph Flowchart {
+    // rankdir="LR"
+    node [shape=rectangle, height=0.75, margin="0.2,0"]
+
+    // LoadReads [label="Load reads"]
+    // QC1 [label="Quality control (QC)\ncheck"]
+    // AdapterTrim [label="Optionally trim adapters\nand poly(A) tails"]
+    // QC2 [label="Quality control (QC)\ncheck (again!)"]
+    Quantify [label="Quantify read\ncounts"]
+    Downstream [label="Perform dowstream\nanalyses"]
+
+    Here [label="", xlabel="You are here", shape=star]
+    Backward [label="Work backward!", shape=plaintext]
+    Blank [label="", shape=plaintext]
+
+    // Backward -> Here [dir=back]
+
+    {
+        rank=source
+        Backward -> Blank [style=invis]
+        Blank -> Here [style=invis]
+        Backward -> Here [dir=back, splines=true]
+    }
+    { rank = same; Quantify -> Downstream }
+    Here -> Downstream [style=invis]
+
+    // LoadReads -> QC1 -> AdapterTrim -> QC2 -> Quantify
+}
