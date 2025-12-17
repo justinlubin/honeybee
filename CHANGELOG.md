@@ -7,6 +7,7 @@ of Honeybee.
 
 ### Added
 
+- Add /unstable route for accessing latest unreleased version
 - Add hover text for complex concepts
 - Add "Undo" button to frontend
 - Add Honeybee citation to output script
