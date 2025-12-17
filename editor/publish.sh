@@ -6,6 +6,7 @@ make all
 shopt -s extglob
 
 TO="__gh-pages"
+UNSTABLE="unstable"
 
 git clone git@github.com:justinlubin/honeybee.git \
   --branch gh-pages \
@@ -14,16 +15,20 @@ git clone git@github.com:justinlubin/honeybee.git \
 
 cd "$TO"
 git checkout gh-pages
-rm -rf !(.git)
 
-cd ../
+if [ "$1" == "new-version" ]; then
+    rm -rf !(.git)
+    cp -r ../www/. .
+fi
 
-cp -r www/. $TO
+mkdir -p "$UNSTABLE"
+rm -rf "$UNSTABLE"
+mkdir "$UNSTABLE"
+cp -r ../www/. "$UNSTABLE"
 
-cd $TO
 git add * -f
 git commit -m "Upload"
 git push
 
 cd ../
-rm -rf $TO
+rm -rf "$TO"
