@@ -515,8 +515,8 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
 
     In the code, please set the following parameters:
 
-    - `SALMON_INDEX`: the location of the Salmon transcriptome index on your computer
-    - `SALMON_TYPE`: the type of sequencing library from which the reads come
+    - `SALMON_INDEX`: the location of the Salmon transcriptome index on your computer (default: salmon_sa_index)
+    - `CORES`: the number of cores that you want salmon to use (default: 4)
 
     ## Citation
 
@@ -526,8 +526,8 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     > (2017). Salmon provides fast and bias-aware quantification of transcript
     > expression. Nature Methods."""
 
-    SALMON_INDEX = "put the path to the Salmon index here"
-    SALMON_TYPE = "A" # See https://salmon.readthedocs.io/en/latest/salmon.html#what-s-this-libtype, A means "infer type".
+    SALMON_INDEX = "salmon_sa_index"
+    CORES = 4
 
     print("### Running salmon ###")
     
@@ -541,11 +541,11 @@ def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
     for sample_name in df["sample_name"]:
         bash(f"""salmon quant \\
                     -i {SALMON_INDEX} \\
-                    -l {SALMON_TYPE} \\
+                    -l A \\
+                    -p {CORES} \\
                     -1 {data.dynamic.path}/{sample_name}_1.fastq.gz \\
                     -2 {data.dynamic.path}/{sample_name}_2.fastq.gz \\
-                    --validateMappings
-                    -o {outdir}/{sample_name} \\""")
+                    -o {outdir}/{sample_name} """)
     
     return TranscriptMatrices.D(
         sample_sheet=data.dynamic.sample_sheet,
