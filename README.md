@@ -28,7 +28,9 @@ The main directories are:
   Honeybee and a working library for experimental biology. Written in Python.
 
 The `pldi25` directory contains materials for the PLDI 2025 artifact evaluation,
-including the benchmarks we used (in the `benchmark` subdirectory).
+including the benchmarks we used (in the `benchmark` subdirectory). The easiest
+way to run the artifact evaluation is to follow the steps on the pre-packaged
+[Zenodo archive](https://zenodo.org/records/15259161) for the project.
 
 ## Beyond Honeybee
 
