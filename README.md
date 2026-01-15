@@ -27,9 +27,8 @@ The main directories are:
 - `library-generator`: An ergonomic Python API to define building blocks for
   Honeybee and a working library for experimental biology. Written in Python.
 
-The `artifact-eval` directory contains materials for the PLDI 2025 artifact
-evaluation and the `benchmark` directory contains the benchmarks we used for
-our PLDI 2025 publication.
+The `pldi25` directory contains materials for the PLDI 2025 artifact evaluation,
+including the benchmarks we used (in the `benchmark` subdirectory).
 
 ## Beyond Honeybee
 

@@ -1,0 +1,6 @@
+suite_name	entry_name	solution_name	algorithm	replicate	completed	success	duration
+scal	b04d05	sample00001.json	PBNHoneybee	0	true	true	48
+fin	bio_crispr_screen	<ANY>	PBNHoneybee	0	true	true	70
+fin	bio_crispr_screen	<ANY>	PBNHoneybeeNoMemo	0	true	true	166
+scal	b04d05	sample00001.json	PBNHoneybeeNoMemo	0	true	true	258
+scal	b04d05	sample00001.json	NaiveEnumeration	0	true	true	2208
