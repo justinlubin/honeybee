@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/e75636f7-d6ea-4498-9753-a0bf89e3447f
 
 The main directories are:
 
-- `backend`: Programming by Navigation synthesis (all the algorithms behind
+- `engine`: Programming by Navigation synthesis (all the algorithms behind
   Honeybee). Written in Rust.
 - `editor`: Frontend code for the Honeybee Editor. Written in Elm.
 - `library-generator`: An ergonomic Python API to define building blocks for

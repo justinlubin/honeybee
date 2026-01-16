@@ -11,6 +11,8 @@
 
 OPTIMIZE_ELM := false
 HERE_DIR := editor
+ENGINE_DIR := ../engine
+GLUE_DIR := ../library-generator
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 
@@ -45,22 +47,22 @@ endif
 	sed "s/<<<COMMIT-SHORT-HASH>>>/$(CURRENT_COMMIT)/g" $(OUT_DIR)/elm.js > $(OUT_DIR)/elm.js.tmp
 	mv $(OUT_DIR)/elm.js.tmp $(OUT_DIR)/elm.js
 
-$(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
-	cd ../backend/ && \
+$(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
+	cd $(ENGINE_DIR) && \
 	cargo build --lib --target wasm32-unknown-unknown --release && \
 	wasm-bindgen target/wasm32-unknown-unknown/release/honeybee.wasm \
 		--out-dir ../$(HERE_DIR)/$(OUT_DIR)/pkg \
 		--target web
 
-$(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
+$(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(GLUE_DIR)/*.py)
 	uv run \
-		--project ../library-generator \
+		--project $(GLUE_DIR) \
 		ty check && \
 	uv run \
-		--project ../library-generator/ \
-		../library-generator/std-bio.py \
+		--project $(GLUE_DIR) \
+		$(GLUE_DIR)/std-bio.py \
 		> $(OUT_DIR)/std-bio.hblib.toml && \
-	cd ../backend/ && \
+	cd $(ENGINE_DIR) && \
 	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/std-bio.hblib.toml
 
 $(OUT_DIR)/assets/diagrams/svg/%.svg: $(OUT_DIR)/assets/diagrams/dot/%.dot
