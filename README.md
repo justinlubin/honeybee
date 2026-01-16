@@ -24,8 +24,9 @@ The main directories are:
 - `engine`: Programming by Navigation synthesis (all the algorithms behind
   Honeybee). Written in Rust.
 - `editor`: Frontend code for the Honeybee Editor. Written in Elm.
-- `library-generator`: An ergonomic Python API to define building blocks for
-  Honeybee and a working library for experimental biology. Written in Python.
+- `honey_lang`: An ergonomic Python API to define building blocks for
+  Honeybee. Written in Python.
+- `honey_libs`: Honeybee libraries (for now, just experimental biology).
 
 The `pldi25` directory contains materials for the PLDI 2025 artifact evaluation,
 including the benchmarks we used (in the `benchmark` subdirectory). The easiest

@@ -12,7 +12,7 @@
 OPTIMIZE_ELM := false
 HERE_DIR := editor
 ENGINE_DIR := ../engine
-GLUE_DIR := ../library-generator
+GLUE_DIR := ../honey_libs
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 

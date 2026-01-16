@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from lib import Function, Helper, Prop, Type
+from honey_lang import Function, Helper, Prop, Type
 
 
 @Helper
