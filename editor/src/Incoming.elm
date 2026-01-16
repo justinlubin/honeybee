@@ -3,12 +3,13 @@ port module Incoming exposing (..)
 import Assoc exposing (Assoc)
 import Cell exposing (..)
 import Core
+import Dict
 import Json.Decode as D
 
 
 
 --------------------------------------------------------------------------------
--- PBN
+-- Ports
 
 
 type alias ValidGoalMetadataMessage =
@@ -109,3 +110,54 @@ port iPbnStatus_ : (D.Value -> msg) -> Sub msg
 iPbnStatus : (Result D.Error PbnStatusMessage -> msg) -> Sub msg
 iPbnStatus f =
     iPbnStatus_ (D.decodeValue decodePbnStatus >> f)
+
+
+
+--------------------------------------------------------------------------------
+-- Other decoders
+
+
+valueType : D.Decoder Core.ValueType
+valueType =
+    D.string
+        |> D.andThen
+            (\s ->
+                case s of
+                    "Bool" ->
+                        D.succeed Core.VTBool
+
+                    "Int" ->
+                        D.succeed Core.VTInt
+
+                    "Str" ->
+                        D.succeed Core.VTStr
+
+                    _ ->
+                        D.fail "Unknown value type"
+            )
+
+
+factSignature : D.Decoder Core.FactSignature
+factSignature =
+    D.map3
+        (\p pl t ->
+            { params = p
+            , paramLabels = Dict.fromList (Maybe.withDefault [] pl)
+            , title = t
+            }
+        )
+        (D.field "params" <| D.keyValuePairs valueType)
+        (D.maybe <| D.at [ "info", "params" ] <| D.keyValuePairs D.string)
+        (D.maybe <| D.at [ "info", "title" ] D.string)
+
+
+factLibrary : D.Decoder Core.FactLibrary
+factLibrary =
+    D.keyValuePairs factSignature
+
+
+library : D.Decoder Core.Library
+library =
+    D.map2 (\p t -> { props = p, types = t })
+        (D.field "props" factLibrary)
+        (D.field "types" factLibrary)
