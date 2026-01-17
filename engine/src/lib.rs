@@ -182,6 +182,7 @@ pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
     let mut options =
         state.controller.provide().map_err(|e| format!("{:?}", e))?;
     state.controller.decide(options.swap_remove(choice_index));
+    // TODO: check if any auto-decisions need to be made here
     send_message()
 }
 
