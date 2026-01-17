@@ -91,36 +91,31 @@ impl<'a> Context<'a> {
     fn body_code(
         var_name: &str,
         type_name: &str,
-        function_name: &str,
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
     ) -> String {
-        let mut s = "".to_owned();
+        let mut s = format!("{} = {}(", var_name, type_name);
+        if !metadata.is_empty() {
+            s += &metadata
+                .into_iter()
+                .map(|(lhs, rhs)| format!("\n    {}={},", lhs, rhs))
+                .collect::<Vec<_>>()
+                .join("");
+            s += "\n";
+        }
+        s += ")";
 
         match implementation {
-            Some(imp) => s += &format!("{}\n\n", imp),
+            Some(imp) => {
+                let mut new_imp = imp.replace("__hb_ret", var_name);
+                for (lhs, rhs) in args {
+                    new_imp = new_imp.replace(&format!("__hb_{}", lhs), rhs)
+                }
+                s += &format!("\n\n{}", new_imp)
+            }
             None => (),
         };
-
-        let mut static_val = format!("{}.S(", type_name);
-        static_val += &metadata
-            .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
-            .collect::<Vec<_>>()
-            .join(", ");
-        static_val += ")";
-
-        s += &format!("{} = {}(\n    static=", var_name, type_name);
-        s += &static_val;
-        s += &format!(",\n    dynamic={}(", function_name);
-        s += &args
-            .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}, ", lhs, rhs))
-            .collect::<Vec<_>>()
-            .join("");
-        s += &format!("ret={}", static_val);
-        s += &format!("),\n)\n\n{}", var_name);
 
         s
     }
@@ -157,7 +152,6 @@ impl<'a> Context<'a> {
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
-                        &f.name.0,
                         &f.metadata
                             .iter()
                             .map(|(mp, v)| (mp.0.clone(), python_value(v)))

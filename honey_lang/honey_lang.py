@@ -92,16 +92,20 @@ def _emit_met_sig(kind, cls):
         hb_type = _python_to_honeybee(types[p])
         print(f"params.{p} = {hb_type}")
 
+    title = None
+
     if cls.__doc__ is not None:
         doc_lines = cls.__doc__.splitlines()
         if len(doc_lines) >= 3 and doc_lines[1].strip() == "":
-            first = doc_lines[0]
+            title = doc_lines[0]
             rest = "\n".join(doc_lines[2:])
-            print(f'info.title = "{first}"')
             if kind != "InputType":
                 print(f'info.description = """{rest}"""')
         else:
-            print(f'info.title = "{cls.__doc__}"')
+            title = cls.__doc__
+
+    if title is not None:
+        print(f'info.title = "{title}"')
 
     if kind != "InputType":
         for p in docs:
@@ -124,6 +128,8 @@ def _emit_met_sig(kind, cls):
         arg_string = ", ".join(f"{p} = ret.{p}" for p in types)
         print(f'    "P_{cls.__name__} {{ {arg_string} }}"')
         print("]")
+        if title is not None:
+            print(f'info.title = "{title}"')
 
     print()
 

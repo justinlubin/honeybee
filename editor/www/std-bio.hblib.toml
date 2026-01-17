@@ -85,6 +85,7 @@ ret = "SraRnaSeq"
 condition = [
     "P_SraRnaSeq { sample_sheet = ret.sample_sheet }"
 ]
+info.title = "RNA-seq (stored on remote Sequence Read Archive)"
 
 [Type.LocalRnaSeq]
 params.sample_sheet = "Str"
@@ -113,11 +114,11 @@ ret = "LocalRnaSeq"
 condition = [
     "P_LocalRnaSeq { sample_sheet = ret.sample_sheet, path = ret.path }"
 ]
+info.title = "RNA-seq (locally-saved)"
 
 [Type.RnaSeqReads]
 params.qc = "Bool"
 params.trimmed = "Bool"
-info.title = "@intermediate:RNA-seq reads"
 info.description = """The goal of this step is to get RNA-seq reads.
 
 These reads can either be raw data (that is, the direct output of a machine
@@ -131,6 +132,7 @@ require that the RNA-seq reads undergo _quality control_ (QC) checks using
 a tool like
 [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 before and after running the tool."""
+info.title = "@intermediate:RNA-seq reads"
 info.code = '''@dataclass
 class RnaSeqReads:
     """@intermediate:RNA-seq reads
@@ -344,7 +346,6 @@ for sample_name in sample_sheet["sample_name"]:
 
 [Type.TranscriptMatrices]
 params = {}
-info.title = "Transcript read counts (and TPM abundance) of RNA-seq samples"
 info.description = """The goal of this step is to calculate two transcript-by-sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
@@ -353,6 +354,7 @@ These matrices are usually computed by using a reference transcriptome
 (coding sequences) rather than a reference genome. Unless your scientific
 question relates specifically to transcript information, these matrices are
 often aggregated into **gene-level** read count and abundance information."""
+info.title = "Transcript read counts (and TPM abundance) of RNA-seq samples"
 info.code = '''@dataclass
 class TranscriptMatrices:
     """Transcript read counts (and TPM abundance) of RNA-seq samples
@@ -402,7 +404,6 @@ for sample_name in sample_sheet["sample_name"]:
 
 [Type.GeneMatrices]
 params = {}
-info.title = "Gene read counts (and TPM abundance) of RNA-seq samples"
 info.description = """The goal of this step is to calculate two gene-by-sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
@@ -426,6 +427,7 @@ read count matrices (Fig 2a and 2b are especially relevant):
 > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
 > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
 > https://doi.org/10.1186/s13059-016-0881-8"""
+info.title = "Gene read counts (and TPM abundance) of RNA-seq samples"
 info.code = '''@dataclass
 class GeneMatrices:
     """Gene read counts (and TPM abundance) of RNA-seq samples
@@ -493,7 +495,6 @@ bash(f"""
 
 [Type.DifferentialGeneExpression]
 params.comparison_sheet = "Str"
-info.title = "Differential gene expression"
 info.description = """The goal of this step is to assign a score (like a _p_-value) to each gene
 that ranks how differentially expressed it is between two conditions.
 Among other uses, this information can be plotted in an
@@ -508,6 +509,7 @@ The following image shows a _typical_ RNA-seq processing workflow,
 For example, sometimes you start with reads already quantified or trimmed,
 and sometimes you need to run additional processing steps like batch
 correction."""
+info.title = "Differential gene expression"
 info.params.comparison_sheet = "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 info.code = '''@dataclass
 class DifferentialGeneExpression:
