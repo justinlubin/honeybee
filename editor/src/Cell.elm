@@ -21,8 +21,7 @@ type alias FunctionChoice =
 
 
 type alias CodeCell =
-    { title : Maybe String
-    , functionTitle : Maybe String
+    { title : String
     , code : String
     }
 

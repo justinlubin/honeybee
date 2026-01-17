@@ -26,19 +26,9 @@ pub fn plain_text_notebook(lib: &Library, e: &Exp) -> String {
 
     for cell in cells {
         ret += &match cell {
-            cellgen::Cell::Code {
-                title,
-                function_title,
-                code,
-                ..
-            } => format!(
-                "# %%{}\n\n{}",
-                title
-                    .or(function_title)
-                    .map(|t| format!(" {}", t))
-                    .unwrap_or("".to_owned()),
-                code,
-            ),
+            cellgen::Cell::Code { title, code, .. } => {
+                format!("# %% {}\n\n{}", title, code)
+            }
             cellgen::Cell::Hole {
                 var_name,
                 hole_name,

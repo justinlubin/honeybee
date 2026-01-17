@@ -28,18 +28,13 @@ pub struct FunctionChoice {
     pub function_description: Option<String>,
     pub code: Option<String>,
     pub metadata_choices: Vec<MetadataChoice>,
-    pub google_scholar_id: Option<String>,
+    pub info: Option<toml::Table>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Cell {
     Code {
-        var_name: Option<String>,
-        type_title: Option<String>,
-        type_description: Option<String>,
-        function_title: Option<String>,
-        function_description: Option<String>,
-        title: Option<String>,
+        title: String,
         code: String,
     },
     Hole {
@@ -142,8 +137,6 @@ impl<'a> Context<'a> {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
                 self.used_types.insert(f_sig.ret.clone());
 
-                let ret_sig = self.library.types.get(&f_sig.ret).unwrap();
-
                 let mut arg_strings = vec![];
                 for (fp, arg) in args {
                     let mn = f_sig.params.get(fp).unwrap().clone();
@@ -158,18 +151,9 @@ impl<'a> Context<'a> {
                 }
 
                 self.cells.push(Cell::Code {
-                    var_name: Some(var_name.to_owned()),
-                    type_title: Some(
-                        ret_sig
-                            .info_string("title")
-                            .unwrap_or(f_sig.ret.0.clone()),
-                    ),
-                    type_description: ret_sig.info_string("description"),
-                    function_title: Some(
-                        f_sig.info_string("title").unwrap_or(f.name.0.clone()),
-                    ),
-                    function_description: f_sig.info_string("description"),
-                    title: None,
+                    title: f_sig
+                        .info_string("title")
+                        .unwrap_or(f.name.0.clone()),
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
@@ -212,12 +196,7 @@ impl<'a> Context<'a> {
         self.cells.insert(
             0,
             Cell::Code {
-                var_name: None,
-                type_title: None,
-                type_description: None,
-                function_title: None,
-                function_description: None,
-                title: Some("Helper code to hook things together".to_owned()),
+                title: "Initialization code".to_owned(),
                 code: code.trim().to_owned(),
             },
         );
@@ -277,8 +256,7 @@ fn collate_choices(
                         function_description,
                         code: f_sig.info_string("code"),
                         metadata_choices: vec![],
-                        google_scholar_id: f_sig
-                            .info_string("google_scholar_id"),
+                        info: f_sig.info.clone(),
                     }
                 });
 

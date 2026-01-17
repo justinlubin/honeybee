@@ -95,7 +95,6 @@ class RnaSeqReads:
 
 
 @Function(
-    "ret.sample_sheet = sra.sample_sheet",
     "ret.qc = false",
     "ret.trimmed = false",
 )
@@ -133,7 +132,6 @@ def from_sra_rna_seq(__hb_sra: SraRnaSeq, __hb_ret: RnaSeqReads):
 
 
 @Function(
-    "ret.sample_sheet = local.sample_sheet",
     "ret.qc = false",
     "ret.trimmed = false",
 )
@@ -153,7 +151,6 @@ def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: RnaSeqReads):
 
 
 @Function(
-    "ret.sample_sheet = reads.sample_sheet",
     "ret.trimmed = reads.trimmed",
     "ret.qc = true",
     "reads.qc = false",
@@ -189,7 +186,6 @@ def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
 
 
 @Function(
-    "ret.sample_sheet = reads.sample_sheet",
     "ret.trimmed = reads.trimmed",
     "ret.qc = true",
     "reads.qc = false",
@@ -240,7 +236,6 @@ def multiqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     "ret.qc = false",
     "reads.trimmed = false",
     "ret.trimmed = true",
-    "ret.sample_sheet = reads.sample_sheet",
     google_scholar_id="4180123542769751602",
     citation="Marcel Martin. Cutadapt removes adapter sequences from "
     "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "

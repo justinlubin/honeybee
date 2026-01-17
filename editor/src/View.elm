@@ -15,7 +15,6 @@ import Incoming
 import Json.Encode
 import Markdown
 import Model exposing (Model)
-import Regex
 import Update exposing (Msg(..))
 import Util
 import Version
@@ -520,23 +519,14 @@ functionChoice ctx fc =
                         Nothing ->
                             []
 
-                        Just c ->
-                            let
-                                cleanCode =
-                                    Regex.replaceAtMost 1
-                                        (Maybe.withDefault Regex.never <|
-                                            Regex.fromString "\"\"\"(.|\n)*?\"\"\"\\s*"
-                                        )
-                                        (\_ -> "")
-                                        c
-                            in
+                        Just code ->
                             [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
                             , div
                                 [ A.class "code-preview" ]
                                 [ fancyCode
                                     []
                                     { language = "python"
-                                    , code = cleanCode
+                                    , code = code
                                     }
                                 ]
                             ]
@@ -577,16 +567,8 @@ cellTitle : Cell.Cell -> String
 cellTitle c =
     Annotations.removeAll <|
         case c of
-            Cell.Code { title, functionTitle } ->
-                case ( title, functionTitle ) of
-                    ( Just t, _ ) ->
-                        t
-
-                    ( _, Just t ) ->
-                        t
-
-                    _ ->
-                        ""
+            Cell.Code { title } ->
+                title
 
             Cell.Choice { typeTitle } ->
                 typeTitle

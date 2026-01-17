@@ -66,12 +66,17 @@ def _parse_parameter(line: str, next_line: str) -> Parameter:
     )
 
 
-def _emit_met_sig(met_kind, cls):
-    print(f"[{met_kind}.{cls.__name__}]")
+def _emit_met_sig(kind, cls):
+    assert kind in {"InputProp", "InputType", "OutputType"}
+
+    if kind == "InputProp":
+        print(f"[Prop.P_{cls.__name__}]")
+    else:
+        print(f"[Type.{cls.__name__}]")
 
     types, docs = _attribute_info(cls)
 
-    if met_kind == "Type":
+    if kind == "OutputType":
         if "path" not in types:
             raise ValueError(f"Must have attribute 'path' in Output '{cls.__name__}'")
 
@@ -93,19 +98,32 @@ def _emit_met_sig(met_kind, cls):
             first = doc_lines[0]
             rest = "\n".join(doc_lines[2:])
             print(f'info.title = "{first}"')
-            print(f'info.description = """{rest}"""')
+            if kind != "InputType":
+                print(f'info.description = """{rest}"""')
         else:
             print(f'info.title = "{cls.__doc__}"')
 
-    for p in docs:
-        print(f'info.params.{p} = "{docs[p]}"')
+    if kind != "InputType":
+        for p in docs:
+            print(f'info.params.{p} = "{docs[p]}"')
 
-    code = ""
-    for line in inspect.getsource(cls).splitlines():
-        if line.startswith("@Input") or line.startswith("@Output"):
-            line = "@dataclass"
-        code += line + "\n"
-    print(f"info.code = '''{code.strip()}'''")
+    if kind != "InputProp":
+        code = ""
+        for line in inspect.getsource(cls).splitlines():
+            if line.startswith("@Input") or line.startswith("@Output"):
+                line = "@dataclass"
+            code += line + "\n"
+        print(f"info.code = '''{code.strip()}'''")
+
+    if kind == "InputProp":
+        print()
+        print(f"[Function.F_{cls.__name__}]")
+        print("params = {}")
+        print(f'ret = "{cls.__name__}"')
+        print("condition = [")
+        arg_string = ", ".join(f"{p} = ret.{p}" for p in types)
+        print(f'    "P_{cls.__name__} {{ {arg_string} }}"')
+        print("]")
 
     print()
 
@@ -217,14 +235,14 @@ def _emit_function_sig(f, condition, kwargs):
 
 
 def Input(cls):
-    # _emit_met_sig("Type", cls)
+    _emit_met_sig("InputType", cls)
+    _emit_met_sig("InputProp", cls)
     cls.__honeybee_type = True
-    # TODO: also emit a prop + function
     return cls
 
 
 def Output(cls):
-    _emit_met_sig("Type", cls)
+    _emit_met_sig("OutputType", cls)
     cls.__honeybee_type = True
     return cls
 
