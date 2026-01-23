@@ -23,3 +23,5 @@ of Honeybee.
   smoother editor experience
   ([#95](https://github.com/justinlubin/honeybee/pull/95))
 - Move "Next CHOICE" button (and new "Undo" button) to bottom of screen
+- Make variable names in generated code nicer (e.g. `TRANSCRIPT_MATRICES`,
+  not `TRANSCRIPTMATRICES`)

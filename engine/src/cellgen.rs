@@ -9,6 +9,7 @@
 use crate::core::*;
 use crate::top_down;
 
+use convert_case::Casing;
 use indexmap::{IndexMap, IndexSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -95,6 +96,10 @@ fn bashify(s: &str) -> String {
     return re.replace_all(&s, Bashify).into();
 }
 
+fn make_var_name(s: &str) -> String {
+    return s.to_case(convert_case::Case::Constant);
+}
+
 impl<'a> Context<'a> {
     fn fresh_var(&mut self, prefix: &str) -> String {
         let c = self.fresh_counter.entry(prefix.to_owned()).or_insert(1);
@@ -176,7 +181,7 @@ impl<'a> Context<'a> {
                     let arg_var = self.fresh_var(
                         &arg_sig
                             .info_string("var_name")
-                            .unwrap_or(mn.0.to_uppercase().to_owned()),
+                            .unwrap_or(make_var_name(&mn.0)),
                     );
                     self.exp(&arg_var, arg);
                     arg_strings.push((fp.0.clone(), arg_var));
