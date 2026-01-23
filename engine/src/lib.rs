@@ -200,7 +200,7 @@ pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
         }
         break;
     }
-    // TODO: check if any auto-decisions need to be made here
+
     send_message()
 }
 

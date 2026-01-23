@@ -235,7 +235,7 @@ This function calls FastQC on the necessary files then aggregates them with
 MultiQC."""
 info.google_scholar_id = "15898044054356823756"
 info.citation = "Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC: Summarize analysis results for multiple tools and samples in a single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. PMID: 27312411"
-info.additional_citations = "['Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc']"
+info.additional_citations = ["Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"]
 info.hyperparameters = [
 ]
 info.code = '''FASTQC_CORES = 4

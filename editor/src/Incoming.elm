@@ -5,6 +5,7 @@ import Cell exposing (..)
 import Core
 import Dict
 import Json.Decode as D
+import Json.Decode.Pipeline as P
 
 
 
@@ -63,15 +64,34 @@ decodeMetadataChoice =
         (D.field "choice_index" D.int)
 
 
+decodeHyperparameter : D.Decoder Hyperparameter
+decodeHyperparameter =
+    D.map3 Hyperparameter
+        (D.field "name" D.string)
+        (D.field "default" D.string)
+        (D.field "comment" D.string)
+
+
 decodeFunctionChoice : D.Decoder FunctionChoice
 decodeFunctionChoice =
-    D.map6 FunctionChoice
-        (D.field "function_title" D.string)
-        (D.field "function_description" <| D.nullable D.string)
-        (D.field "code" <| D.nullable D.string)
-        (D.field "metadata_choices" <| D.list decodeMetadataChoice)
-        (D.succeed 0)
-        (D.maybe <| D.field "google_scholar_id" D.string)
+    D.succeed FunctionChoice
+        |> P.required "function_title" D.string
+        |> P.required "function_description" (D.nullable D.string)
+        |> P.required "code" (D.nullable D.string)
+        |> P.required "metadata_choices" (D.list decodeMetadataChoice)
+        |> P.hardcoded 0
+        |> P.optionalAt [ "info", "google_scholar_id" ]
+            (D.nullable D.string)
+            Nothing
+        |> P.optionalAt [ "info", "citation" ]
+            (D.nullable D.string)
+            Nothing
+        |> P.optionalAt [ "info", "additional_citations" ]
+            (D.nullable <| D.list D.string)
+            Nothing
+        |> P.optionalAt [ "info", "hyperparameters" ]
+            (D.nullable <| D.list decodeHyperparameter)
+            Nothing
 
 
 decodeChoiceCell : D.Decoder ChoiceCell

@@ -192,7 +192,11 @@ def _emit_function_sig(f, condition, kwargs):
             raise ValueError(
                 f"Cannot use reserved keyword '{k}' in function '{f.__name__}'"
             )
-        print(f'info.{k} = "{kwargs[k]}"')
+        if isinstance(kwargs[k], list):
+            rhs = "[" + ", ".join('"' + entry + '"' for entry in kwargs[k]) + "]"
+            print(f"info.{k} = {rhs}")
+        else:
+            print(f'info.{k} = "{kwargs[k]}"')
 
     code = ""
     found_def = False
