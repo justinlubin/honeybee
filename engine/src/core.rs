@@ -211,6 +211,17 @@ impl FunctionSignature {
             None => None,
         }
     }
+
+    /// Retrieve info list
+    pub fn info_array(&self, key: &str) -> Option<Vec<toml::Value>> {
+        match &self.info {
+            Some(inf) => match inf.get(key) {
+                Some(toml::Value::Array(v)) => Some(v.clone()),
+                _ => None,
+            },
+            None => None,
+        }
+    }
 }
 
 impl PartialEq for FunctionSignature {

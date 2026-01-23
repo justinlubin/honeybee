@@ -10,6 +10,13 @@ type alias MetadataChoice =
     }
 
 
+type alias Hyperparameter =
+    { name : String
+    , default : String
+    , comment : String
+    }
+
+
 type alias FunctionChoice =
     { functionTitle : String
     , functionDescription : Maybe String
@@ -17,12 +24,14 @@ type alias FunctionChoice =
     , metadataChoices : List MetadataChoice
     , selectedMetadataChoice : Int
     , googleScholarId : Maybe String
+    , citation : Maybe String
+    , additionalCitations : Maybe (List String)
+    , hyperparameters : Maybe (List Hyperparameter)
     }
 
 
 type alias CodeCell =
-    { title : Maybe String
-    , functionTitle : Maybe String
+    { title : String
     , code : String
     }
 

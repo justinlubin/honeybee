@@ -1,5 +1,9 @@
 import ast
 import inspect
+import os
+import re
+import subprocess
+from dataclasses import dataclass
 
 
 def deindent(s):
@@ -48,65 +52,132 @@ def _python_to_honeybee(type_name: str) -> str:
         raise ValueError("Unable to convert to Honeybee type: " + type_name)
 
 
-def _emit_fact(fact_kind, cls, parent_cls, kwargs):
+@dataclass
+class Parameter:
+    name: str
+    default: str
+    comment: str
+
+
+def _parse_parameter(line: str, next_line: str) -> Parameter:
+    info = next_line.strip().split("=", 1)
+    return Parameter(
+        name=info[0].strip(),
+        default=info[1].strip(),
+        comment=line.strip()[len("# PARAMETER:") :].strip(),
+    )
+
+
+def _emit_met_sig(kind, cls):
+    assert kind in {"InputProp", "InputType", "OutputType"}
+
+    if kind == "InputProp":
+        print(f"[Prop.P_{cls.__name__}]")
+    else:
+        print(f"[Type.{cls.__name__}]")
+
     types, docs = _attribute_info(cls)
-    print(f"[{fact_kind}.{parent_cls.__name__}]")
+
+    if kind == "OutputType":
+        if "path" not in types:
+            raise ValueError(f"Must have attribute 'path' in Output '{cls.__name__}'")
+
+        if types.pop("path") != "str":
+            raise ValueError(
+                f"Attribute 'path' must be of type str in Output '{cls.__name__}'"
+            )
+
     if len(types) == 0:
         print("params = {}")
+
     for p in types:
         hb_type = _python_to_honeybee(types[p])
         print(f"params.{p} = {hb_type}")
-    if parent_cls.__doc__ is not None:
-        doc_lines = parent_cls.__doc__.splitlines()
+
+    title = None
+
+    if cls.__doc__ is not None:
+        doc_lines = cls.__doc__.splitlines()
         if len(doc_lines) >= 3 and doc_lines[1].strip() == "":
-            first = doc_lines[0]
+            title = doc_lines[0]
             rest = "\n".join(doc_lines[2:])
-            print(f'info.title = "{first}"')
-            print(f'info.description = """{rest}"""')
+            if kind != "InputType":
+                print(f'info.description = """{rest}"""')
         else:
-            print(f'info.title = "{parent_cls.__doc__}"')
-    for p in docs:
-        print(f'info.params.{p} = "{docs[p]}"')
-    for k in kwargs:
-        print(f'info.{k} = "{kwargs[k]}"')
-    code = inspect.getsource(parent_cls)
-    new_code = ""
-    for line in code.splitlines():
-        if line.startswith("@Type") or line.startswith("@Prop"):
-            continue
-        new_code += line + "\n"
-    print(f"info.code = '''{new_code.strip()}'''")
+            title = cls.__doc__
+
+    if title is not None:
+        print(f'info.title = "{title}"')
+
+    if kind != "InputType":
+        for p in docs:
+            print(f'info.params.{p} = "{docs[p]}"')
+
+    if kind != "InputProp":
+        code = ""
+        for line in inspect.getsource(cls).splitlines():
+            if line.startswith("@Input") or line.startswith("@Output"):
+                line = "@dataclass"
+            code += line + "\n"
+        print(f"info.code = '''{code.strip()}'''")
+
+    if kind == "InputProp":
+        print()
+        print(f"[Function.F_{cls.__name__}]")
+        print("params = {}")
+        print(f'ret = "{cls.__name__}"')
+        print("condition = [")
+        arg_string = ", ".join(f"{p} = ret.{p}" for p in types)
+        print(f'    "P_{cls.__name__} {{ {arg_string} }}"')
+        print("]")
+        if title is not None:
+            print(f'info.title = "{title}"')
+
     print()
 
 
-def _emit_function(f, condition, kwargs):
+def _emit_function_sig(f, condition, kwargs):
     print(f"[Function.{f.__name__}]")
-    params = f.__annotations__
-    return_cls = params.pop("return")
-    if return_cls.__name__ != "D" or not hasattr(return_cls, "__honeybee_parent"):
-        raise ValueError(
-            f"Must return dynamic Honeybee type in function '{f.__name__}'"
-        )
-    return_name = return_cls.__honeybee_parent.__name__
-    if len(params) == 0 or list(params)[-1] != "ret":
-        raise ValueError(f"Need 'ret' as final param in function '{f.__name__}'")
+
+    params = f.__annotations__.copy()
+
+    if "return" in params:
+        if params["return"] is not None:
+            raise ValueError(f"Must return nothing in function '{f.__name__}'")
+        params.pop("return")
+
+    if len(params) == 0 or list(params)[-1] != "__hb_ret":
+        raise ValueError(f"Need '__hb_ret' as final param in function '{f.__name__}'")
+
     if len(params) == 1:
         print("params = {}")
+
     for p in params:
         cls = params[p]
+
+        if not p.startswith("__hb_"):
+            raise ValueError(
+                f"Parameter '{p}' must start with '__hb_' in function '{f.__name__}'"
+            )
+
+        p = p[len("__hb_") :]
+
+        if not hasattr(cls, "__honeybee_type"):
+            raise ValueError(
+                f"Cannot use non-Honeybee type '{cls.__name__}' in function '{f.__name__}'"
+            )
+
         if p == "ret":
-            print(f'ret = "{return_name}"')
+            print(f'ret = "{cls.__name__}"')
         else:
-            if not hasattr(cls, "__honeybee_object") or cls.__honeybee_object != "Type":
-                raise ValueError(
-                    f"Cannot use non-Honeybee type '{cls.__name__}' in function '{f.__name__}'"
-                )
             print(f'params.{p} = "{cls.__name__}"')
+
     print("condition = [")
     for c in condition:
         c = c.replace('"', '\\"')
         print(f'    "{c}",')
     print("]")
+
     if f.__doc__ is not None:
         doc_lines = f.__doc__.splitlines()
         if len(doc_lines) >= 3 and doc_lines[1].strip() == "":
@@ -116,59 +187,81 @@ def _emit_function(f, condition, kwargs):
             print(f'info.description = """{rest}"""')
         else:
             print(f'info.description = """{f.__doc__}"""')
+
     for k in kwargs:
-        print(f'info.{k} = "{kwargs[k]}"')
-    code = inspect.getsource(f)
-    new_code = ""
+        if k in {"title", "description"}:
+            raise ValueError(
+                f"Cannot use reserved keyword '{k}' in function '{f.__name__}'"
+            )
+        if isinstance(kwargs[k], list):
+            rhs = "[" + ", ".join('"' + entry + '"' for entry in kwargs[k]) + "]"
+            print(f"info.{k} = {rhs}")
+        else:
+            print(f'info.{k} = "{kwargs[k]}"')
+
+    code = ""
     found_def = False
-    for line in code.splitlines():
-        if line.startswith("def"):
-            found_def = True
-        if not found_def:
-            continue
-        new_code += line + "\n"
-    print(f"info.code = '''{new_code.strip()}'''")
+    initial_indent = None
+
+    hyper_parameters = {}
+    it = iter(inspect.getsource(f).splitlines())
+    while True:
+        try:
+            line = next(it)
+
+            if line.startswith("def"):
+                found_def = True
+                continue
+
+            if not found_def:
+                continue
+
+            if initial_indent is None:
+                initial_indent = len(line) - len(line.lstrip())
+
+            if line.strip().startswith("# PARAMETER:"):
+                param = _parse_parameter(line, next(it))
+                hyper_parameters[param.name] = param
+                continue
+
+            code += line[initial_indent:] + "\n"
+        except StopIteration:
+            break
+
+    print("info.hyperparameters = [")
+    for param in hyper_parameters.values():
+        print(
+            f"    {{name = '{param.name}', default = '{param.default}', comment = '{param.comment}' }},"
+        )
+    print("]")
+
+    code = re.sub(
+        pattern='"""(.|\n)*?"""\\s*',
+        repl="",
+        string=code,
+        count=1,
+    ).strip()
+
+    print(f"info.code = '''{code}'''")
     print()
 
 
-# Based on https://stackoverflow.com/a/14412901
-def Prop(*args, **kwargs):
-    def wrap(cls):
-        _emit_fact("Prop", cls, cls, kwargs)
-        # cls = dataclasses.dataclass(cls)
-        cls.__honeybee_object = "Prop"
-        return cls
-
-    if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
-        return wrap(args[0])
-    else:
-        return wrap
+def Input(cls):
+    _emit_met_sig("InputType", cls)
+    _emit_met_sig("InputProp", cls)
+    cls.__honeybee_type = True
+    return cls
 
 
-# Based on https://stackoverflow.com/a/14412901
-def Type(*args, **kwargs):
-    def wrap(cls):
-        _emit_fact("Type", cls.S, cls, kwargs)
-        # cls.S = dataclasses.dataclass(cls.S)
-        # cls.D = dataclasses.dataclass(cls.D)
-        # cls.__annotations__["static"] = cls.S
-        # cls.__annotations__["dynamic"] = cls.D
-        # cls = dataclasses.dataclass(cls)
-        cls.S.__honeybee_parent = cls
-        cls.D.__honeybee_parent = cls
-        cls.__honeybee_object = "Type"
-        return cls
-
-    if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
-        return wrap(args[0])
-    else:
-        return wrap
+def Output(cls):
+    _emit_met_sig("OutputType", cls)
+    cls.__honeybee_type = True
+    return cls
 
 
 def Function(*condition, **kwargs):
     def wrap(f):
-        _emit_function(f, condition, kwargs)
-        f.__honeybee_object = "Function"
+        _emit_function_sig(f, condition, kwargs)
         return f
 
     return wrap
@@ -177,21 +270,44 @@ def Function(*condition, **kwargs):
 helper_ran = False
 
 
-def Helper(f):
+def Helper(obj):
     global helper_ran
-    if not helper_ran:
-        print("[[Preamble]]\ncontent = 'from dataclasses import dataclass'\n")
+    obj_file = inspect.getsourcefile(obj)
+    if obj_file is None:
+        raise ValueError("Unknown object file for " + str(obj))
+    if obj_file != __file__ and not helper_ran:
+        imports = []
+        with open(obj_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("import") or line.startswith("from"):
+                    imports.append(line)
+                else:
+                    break
+        for needed_import in ["from dataclasses import dataclass", "import os"]:
+            if needed_import not in imports:
+                imports.append(needed_import)
+        imports.sort()
+        print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}'''\n")
+
         helper_ran = True
 
-    code = inspect.getsource(f)
-    new_code = ""
-    found_def = False
-    for line in code.splitlines():
-        if line.startswith("def"):
-            found_def = True
-        if not found_def:
-            continue
-        new_code += line + "\n"
-    print(f"[[Preamble]]\ncontent='''{new_code.strip()}'''\n")
+    code = ""
+    for line in inspect.getsource(obj).splitlines()[1:]:
+        code += line + "\n"
+    print(f"[[Preamble]]\ncontent='''{code.strip()}'''\n")
 
-    return f
+    return obj
+
+
+def __hb_bash(command):
+    print(f"Running bash command:\n\n{command}\n")
+
+    p = subprocess.run(
+        command,
+        shell=True,
+        text=True,
+    )
+
+    if p.returncode != 0:
+        raise ValueError(f"Non-zero exit code: {p.returncode}")

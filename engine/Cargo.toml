@@ -33,6 +33,7 @@ rayon = "1.10.0"
 indexmap = { version = "2.7.0", features = ["serde"] }
 toml = "0.8.19"
 pbn = "0.1.1"
+regex = "1.12.2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -10,6 +10,7 @@ use crate::core::*;
 use crate::top_down;
 
 use indexmap::{IndexMap, IndexSet};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -28,18 +29,13 @@ pub struct FunctionChoice {
     pub function_description: Option<String>,
     pub code: Option<String>,
     pub metadata_choices: Vec<MetadataChoice>,
-    pub google_scholar_id: Option<String>,
+    pub info: Option<toml::Table>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Cell {
     Code {
-        var_name: Option<String>,
-        type_title: Option<String>,
-        type_description: Option<String>,
-        function_title: Option<String>,
-        function_description: Option<String>,
-        title: Option<String>,
+        title: String,
         code: String,
     },
     Hole {
@@ -75,6 +71,28 @@ struct Context<'a> {
     cells: Vec<Cell>,
     fresh_counter: HashMap<String, usize>,
     used_types: IndexSet<MetName>,
+    used_functions: IndexSet<BaseFunction>,
+}
+
+struct Bashify;
+
+impl regex::Replacer for Bashify {
+    fn replace_append(&mut self, caps: &regex::Captures<'_>, dst: &mut String) {
+        let overall = &caps[0];
+        let indent = overall.len() - overall.trim_start().len();
+        let base = &caps[1].replace(r#"\\"#, r#"\"#);
+        let base = format!("!{}", base.trim());
+        for (i, line) in base.split("\n").enumerate() {
+            let current_indent = if i == 0 { indent } else { indent + 4 };
+            let new_line = " ".repeat(current_indent) + line.trim() + "\n";
+            dst.push_str(&new_line);
+        }
+    }
+}
+
+fn bashify(s: &str) -> String {
+    let re = Regex::new(r#" *__hb_bash\(f"""((.|\n)*?)"""\)"#).unwrap();
+    return re.replace_all(&s, Bashify).into();
 }
 
 impl<'a> Context<'a> {
@@ -101,31 +119,39 @@ impl<'a> Context<'a> {
         args: &Vec<(String, String)>,
         implementation: Option<String>,
     ) -> String {
-        let mut s = "".to_owned();
+        let mut s = format!("{} = {}(", var_name, type_name);
+        let mut needs_newline = false;
+        if implementation.is_some() {
+            needs_newline = true;
+            s += &format!("\n    path=Dir.make(\"{}\"),", function_name);
+        }
+        if !metadata.is_empty() {
+            needs_newline = true;
+            s += &metadata
+                .into_iter()
+                .map(|(lhs, rhs)| format!("\n    {}={},", lhs, rhs))
+                .collect::<Vec<_>>()
+                .join("");
+        }
+        if needs_newline {
+            s += "\n";
+        }
+        s += ")";
 
         match implementation {
-            Some(imp) => s += &format!("{}\n\n", imp),
+            Some(imp) => {
+                let mut new_imp = imp.replace("__hb_ret", var_name);
+
+                for (lhs, rhs) in args {
+                    new_imp = new_imp.replace(&format!("__hb_{}", lhs), rhs)
+                }
+
+                let new_imp = bashify(&new_imp);
+
+                s += &format!("\n\n{}", new_imp)
+            }
             None => (),
         };
-
-        let mut static_val = format!("{}.S(", type_name);
-        static_val += &metadata
-            .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}", lhs, rhs))
-            .collect::<Vec<_>>()
-            .join(", ");
-        static_val += ")";
-
-        s += &format!("{} = {}(\n    static=", var_name, type_name);
-        s += &static_val;
-        s += &format!(",\n    dynamic={}(", function_name);
-        s += &args
-            .into_iter()
-            .map(|(lhs, rhs)| format!("{}={}, ", lhs, rhs))
-            .collect::<Vec<_>>()
-            .join("");
-        s += &format!("ret={}", static_val);
-        s += &format!("),\n)\n\n{}", var_name);
 
         s
     }
@@ -141,8 +167,7 @@ impl<'a> Context<'a> {
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
                 self.used_types.insert(f_sig.ret.clone());
-
-                let ret_sig = self.library.types.get(&f_sig.ret).unwrap();
+                self.used_functions.insert(f.name.clone());
 
                 let mut arg_strings = vec![];
                 for (fp, arg) in args {
@@ -158,18 +183,9 @@ impl<'a> Context<'a> {
                 }
 
                 self.cells.push(Cell::Code {
-                    var_name: Some(var_name.to_owned()),
-                    type_title: Some(
-                        ret_sig
-                            .info_string("title")
-                            .unwrap_or(f_sig.ret.0.clone()),
-                    ),
-                    type_description: ret_sig.info_string("description"),
-                    function_title: Some(
-                        f_sig.info_string("title").unwrap_or(f.name.0.clone()),
-                    ),
-                    function_description: f_sig.info_string("description"),
-                    title: None,
+                    title: f_sig
+                        .info_string("title")
+                        .unwrap_or(f.name.0.clone()),
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
@@ -188,6 +204,50 @@ impl<'a> Context<'a> {
 
     fn preamble(&mut self) {
         let mut code = "".to_owned();
+
+        let mut hyperparameters = IndexMap::new();
+        for f in self.used_functions.iter().rev() {
+            match self
+                .library
+                .functions
+                .get(f)
+                .unwrap()
+                .info_array("hyperparameters")
+            {
+                Some(hs) => {
+                    for value in hs {
+                        let map = value.as_table().unwrap();
+                        let name = map
+                            .get("name")
+                            .unwrap()
+                            .as_str()
+                            .unwrap()
+                            .to_owned();
+                        let default = map
+                            .get("default")
+                            .unwrap()
+                            .as_str()
+                            .unwrap()
+                            .to_owned();
+                        let comment = map
+                            .get("comment")
+                            .unwrap()
+                            .as_str()
+                            .unwrap()
+                            .to_owned();
+                        hyperparameters.insert(name, (default, comment));
+                    }
+                }
+                None => (),
+            }
+        }
+
+        for (name, (default, comment)) in hyperparameters {
+            code += &format!(
+                "# PARAMETER: {} (default: {})\n{} = {}\n\n",
+                comment, default, name, default
+            );
+        }
 
         match &self.library.preamble {
             Some(pre) => {
@@ -212,12 +272,7 @@ impl<'a> Context<'a> {
         self.cells.insert(
             0,
             Cell::Code {
-                var_name: None,
-                type_title: None,
-                type_description: None,
-                function_title: None,
-                function_description: None,
-                title: Some("Helper code to hook things together".to_owned()),
+                title: "Initialization code".to_owned(),
                 code: code.trim().to_owned(),
             },
         );
@@ -230,6 +285,7 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         cells: vec![],
         fresh_counter: HashMap::new(),
         used_types: IndexSet::new(),
+        used_functions: IndexSet::new(),
     };
 
     ctx.exp("GOAL", e);
@@ -277,8 +333,7 @@ fn collate_choices(
                         function_description,
                         code: f_sig.info_string("code"),
                         metadata_choices: vec![],
-                        google_scholar_id: f_sig
-                            .info_string("google_scholar_id"),
+                        info: f_sig.info.clone(),
                     }
                 });
 

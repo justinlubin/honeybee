@@ -1,105 +1,51 @@
-from dataclasses import dataclass
+import os
+import polars as pl
 
-from honey_lang import Function, Helper, Prop, Type
-
-
-@Helper
-def bash(command):
-    import subprocess
-
-    print(f"Running bash command:\n\n{command}\n")
-
-    p = subprocess.run(
-        command,
-        shell=True,
-        text=True,
-    )
-
-    if p.returncode != 0:
-        raise ValueError(f"Non-zero exit code: {p.returncode}")
+from honey_lang import Helper, Input, Output, Function, __hb_bash
 
 
 @Helper
-def capture_bash(command):
-    import subprocess
+class Dir:
+    stage = 1
 
-    print(f"Running bash command:\n\n{command}\n")
+    def make(name):
+        dir = f"output/{Dir.stage:03 * 10}-{name}"
+        os.makedirs(dir, exist_ok=True)
+        Dir.stage += 1
+        return dir
 
-    return subprocess.run(
-        command,
-        shell=True,
-        capture_output=True,
-        text=True,
-    ).stdout.split()
+
+@Helper
+def carry_over(src_object, dst_object, *, file=None):
+    def carry_one(file):
+        src = f"{src_object.path}/{file}"
+        dst = f"{dst_object.path}/{file}"
+        if os.path.islink(src):
+            src = os.readlink(src)
+        os.symlink(src=src, dst=dst)
+
+    if file is None:
+        for file in os.listdir(src_object.path):
+            carry_one(file)
+    else:
+        carry_one(file)
 
 
 ################################################################################
 # %% Raw RNA-seq data (reads)
 
 
-@Type
-@dataclass
+@Input
 class SraRnaSeq:
-    "@intermediate:Complete analysis!"
-
-    @dataclass
-    class S:
-        label: str
-        sample_sheet: str
-
-    @dataclass
-    class D:
-        pass
-
-    static: S
-    dynamic: D
-
-
-@Prop
-class P_SraRnaSeq:
     "RNA-seq (stored on remote Sequence Read Archive)"
 
-    label: str
-    "Personal label for data, like 'experiment006' or '2025-09-03_data'"
-
     sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata (columns: srr, condition, replicate)"
+    "Path to sample sheet CSV with SRA metadata (columns: sample_name, condition, replicate)"
 
 
-@Function(
-    "P_SraRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet }",
-)
-def F_SraRnaSeq(ret: SraRnaSeq.S) -> SraRnaSeq.D:
-    """Complete analysis!"""
-    return SraRnaSeq.D()
-
-
-@Type
-@dataclass
+@Input
 class LocalRnaSeq:
-    "@intermediate:Complete analysis!"
-
-    @dataclass
-    class S:
-        label: str
-        sample_sheet: str
-        path: str
-
-    @dataclass
-    class D:
-        pass
-
-    static: S
-    dynamic: D
-
-
-@Prop
-@dataclass
-class P_LocalRnaSeq:
     "RNA-seq (locally-saved)"
-
-    label: str
-    "Personal label for data, like 'experiment001' or '2025-09-03_data'"
 
     sample_sheet: str
     "Path to sample sheet CSV (columns: sample_name, condition, replicate)"
@@ -108,17 +54,8 @@ class P_LocalRnaSeq:
     "Path to the directory containing the RNA-seq data"
 
 
-@Function(
-    "P_LocalRnaSeq { label = ret.label, sample_sheet = ret.sample_sheet, path = ret.path }",
-)
-def F_LocalRnaSeq(ret: LocalRnaSeq.S) -> LocalRnaSeq.D:
-    """Complete analysis!"""
-    return LocalRnaSeq.D()
-
-
-@Type
-@dataclass
-class RnaSeq:
+@Output
+class RnaSeqReads:
     """@intermediate:RNA-seq reads
 
     The goal of this step is to get RNA-seq reads.
@@ -135,47 +72,17 @@ class RnaSeq:
     [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
     before and after running the tool."""
 
-    @dataclass
-    class S:
-        label: str
-        "Label for data"
+    path: str
 
-        qc: bool
-        "Whether or not quality checks have been run"
-
-    @dataclass
-    class D:
-        sample_sheet: str
-        path: str
-
-    static: S
-    dynamic: D
+    qc: bool
+    trimmed: bool
 
 
 @Function(
-    "ret.label = local.label",
     "ret.qc = false",
+    "ret.trimmed = false",
 )
-def from_local_rna_seq(local: LocalRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
-    """Load local data
-
-    # Load raw RNA-seq data already present on your computer
-
-    The raw RNA-seq files are typically in the .fastq.gz file format."""
-
-    print("### Loading local RNA-seq data files... ###\n")
-
-    return RnaSeq.D(
-        sample_sheet=local.static.sample_sheet,
-        path=local.static.path,
-    )
-
-
-@Function(
-    "ret.label = sra.label",
-    "ret.qc = false",
-)
-def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
+def from_sra_rna_seq(__hb_sra: SraRnaSeq, __hb_ret: RnaSeqReads):
     """Download from ENA
 
     # Download RNA-seq data from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by SRR accession identifiers
@@ -184,15 +91,9 @@ def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     filenames for the forward reads ending in _1.fastq.gz and the filenames for
     the reverse reads ending in _2.fastq.gz."""
 
-    print("### Downloading RNA-seq data files from ENA... ###\n")
+    sample_sheet = pl.read_csv(__hb_sra.sample_sheet)
 
-    import polars as pl
-
-    df = pl.read_csv(sra.static.sample_sheet)
-
-    outdir = f"output/{sra.static.label}/sra/"
-
-    for srr in df["srr"]:
+    for srr in sample_sheet["sample_name"]:
         base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
         base_url += srr[:6] + "/"
         base_url += srr[9:].zfill(3) + "/"
@@ -200,30 +101,48 @@ def from_sra_rna_seq(sra: SraRnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
         # Assumes forward (_1) and reverse (_2) reads exist
 
-        bash(f"""
-             wget -nc --directory-prefix={outdir} {base_url}{srr}_1.fastq.gz
+        __hb_bash(f"""
+             wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_1.fastq.gz
         """)
 
-        bash(f"""
-             wget -nc --directory-prefix={outdir} {base_url}{srr}_2.fastq.gz
+        __hb_bash(f"""
+             wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_2.fastq.gz
         """)
 
-    df.with_columns().rename({"srr": "sample_name"}).write_csv(
-        outdir + "sample_sheet.csv"
-    )
-
-    return RnaSeq.D(
-        sample_sheet=outdir + "sample_sheet.csv",
-        path=outdir,
+    os.symlink(
+        src=__hb_sra.sample_sheet,
+        dst=f"{__hb_ret.path}/sample_sheet.csv",
     )
 
 
 @Function(
-    "data.qc = false",
-    "ret.label = data.label",
-    "ret.qc = true",
+    "ret.qc = false",
+    "ret.trimmed = false",
 )
-def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
+def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: RnaSeqReads):
+    """Load local data
+
+    # Load raw RNA-seq data already present on your computer
+
+    The raw RNA-seq files are typically in the .fastq.gz file format."""
+
+    carry_over(__hb_local, __hb_ret)
+
+    os.symlink(
+        src=__hb_local.sample_sheet,
+        dst=f"{__hb_ret.path}/sample_sheet.csv",
+    )
+
+
+@Function(
+    "ret.trimmed = reads.trimmed",
+    "ret.qc = true",
+    "reads.qc = false",
+    citation="Simon Andrews. FastQC: a quality control tool for high "
+    "throughput sequence data. (2010). Available online at: "
+    "http://www.bioinformatics.babraham.ac.uk/projects/fastqc",
+)
+def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     """FastQC
 
     # Run quality control checks on RNA-seq data with [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
@@ -234,49 +153,38 @@ def fastqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
 
     The Harvard Chan Bioinformatics Core provides a
     [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
-    for assessing the outputs of FastQC.
+    for assessing the outputs of FastQC."""
 
-    ## Parameters to set
+    # PARAMETER: The number of cores that you want FastQC to use
+    FASTQC_CORES = 4
 
-    In the code, please set the following parameters:
+    carry_over(__hb_reads, __hb_ret)
 
-    - `CORES`: the number of cores that you want FastQC to use (default: 4)
-
-    ## Citation
-
-    If you use FastQC, please cite it as:
-
-    > Simon Andrews. FastQC: a quality control tool for high throughput
-    > sequence data. (2010). Available online at:
-    > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
-
-    CORES = 4
-
-    print("### Running FastQC... ###\n")
-
-    outdir = f"output/{ret.label}/fastqc/"
-    bash(f"mkdir -p {outdir}")
-
-    import polars as pl
-
-    df = pl.read_csv(data.dynamic.sample_sheet)
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
     fastqs = " ".join(
-        (data.dynamic.path + df["sample_name"] + "_1.fastq.gz ")
-        + (data.dynamic.path + df["sample_name"] + "_2.fastq.gz")
+        (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
+        + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
     )
 
-    bash(f"fastqc -t {CORES} -o {outdir} {fastqs}")
-
-    return data.dynamic
+    __hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
 
 
 @Function(
-    "data.qc = false",
-    "ret.label = data.label",
+    "ret.trimmed = reads.trimmed",
     "ret.qc = true",
+    "reads.qc = false",
     google_scholar_id="15898044054356823756",
+    citation="Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. "
+    "MultiQC: Summarize analysis results for multiple tools and samples in a "
+    "single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. "
+    "PMID: 27312411",
+    additional_citations=[
+        "Simon Andrews. FastQC: a quality control tool for high throughput "
+        "sequence data. (2010). Available online at: "
+        "http://www.bioinformatics.babraham.ac.uk/projects/fastqc",
+    ],
 )
-def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
+def multiqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     """MultiQC
 
     # Run quality control checks on RNA-seq data with [MultiQC](https://seqera.io/multiqc/)
@@ -291,60 +199,33 @@ def multiqc(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     the outputs of MultiQC.
 
     This function calls FastQC on the necessary files then aggregates them with
-    MultiQC.
+    MultiQC."""
 
-    ## Parameters to set
+    FASTQC_CORES = 4
 
-    In the code, please set the following parameters:
+    carry_over(__hb_reads, __hb_ret)
 
-    - `CORES`: the number of cores that you want FastQC to use (default: 4)
-
-    ## Citation
-
-    If you use MultiQC, please cite it as:
-
-    > Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC:
-    > Summarize analysis results for multiple tools and samples in a single
-    > report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354.
-    > PMID: 27312411
-
-    This step also relies on FastQC. Please also cite it as:
-
-    > Simon Andrews. FastQC: a quality control tool for high throughput
-    > sequence data. (2010). Available online at:
-    > http://www.bioinformatics.babraham.ac.uk/projects/fastqc"""
-
-    CORES = 4
-
-    print("### Running MultiQC (and pre-requisite FastQC commands)... ###")
-
-    fastqc_outdir = f"output/{ret.label}/fastqc/"
-    bash(f"mkdir -p {fastqc_outdir}")
-
-    import polars as pl
-
-    df = pl.read_csv(data.dynamic.sample_sheet)
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
     fastqs = " ".join(
-        (data.dynamic.path + df["sample_name"] + "_1.fastq.gz ")
-        + (data.dynamic.path + df["sample_name"] + "_2.fastq.gz")
+        (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
+        + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
     )
 
-    bash(f"fastqc -t {CORES} -o {fastqc_outdir} {fastqs}")
-
-    multiqc_outdir = f"output/{ret.label}/multiqc/"
-    bash(f"mkdir -p {multiqc_outdir}")
-    bash(f"uv run multiqc --filename {multiqc_outdir}multiqc.html {fastqc_outdir}")
-
-    return data.dynamic
+    __hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
+    __hb_bash(f"uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}")
 
 
 @Function(
-    "data.qc = true",
-    "ret.label = data.label",
+    "reads.qc = true",
     "ret.qc = false",
+    "reads.trimmed = false",
+    "ret.trimmed = true",
     google_scholar_id="4180123542769751602",
+    citation="Marcel Martin. Cutadapt removes adapter sequences from "
+    "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "
+    "http://dx.doi.org/10.14806/ej.17.1.200",
 )
-def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
+def cutadapt_illumina(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     """cutadapt (Illumina)
 
     # Remove Illumina universal adapter for RNA-seq and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
@@ -373,49 +254,30 @@ def cutadapt_illumina(data: RnaSeq, ret: RnaSeq.S) -> RnaSeq.D:
     > but often you don’t want them to be in your reads.
 
     > Cutadapt helps with these trimming tasks by finding the adapter or primer
-    > sequences in an error-tolerant way.
+    > sequences in an error-tolerant way."""
 
-    ## Citation
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
-    If you use cutadapt, please cite it as:
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
-    > Marcel Martin. Cutadapt removes adapter sequences from high-throughput
-    > sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011.
-    > http://dx.doi.org/10.14806/ej.17.1.200"""
-
-    print("### Running cutadapt (Illumina RNA-seq)... ###")
-
-    outdir = f"output/{ret.label}/cutadapt/"
-    bash(f"mkdir -p {outdir}")
-
-    import polars as pl
-
-    df = pl.read_csv(data.dynamic.sample_sheet)
-
-    for sample_name in df["sample_name"]:
-        bash(f"""uv run cutadapt \\
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""uv run cutadapt \\
                     --cores=0 \\
                     -m 1 \\
                     --poly-a \\
                     -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
                     -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
-                    -o {outdir}{sample_name}_1.fastq.gz \\
-                    -p {outdir}{sample_name}_2.fastq.gz \\
-                    {data.dynamic.path}{sample_name}_1.fastq.gz \\
-                    {data.dynamic.path}{sample_name}_2.fastq.gz""")
-
-    return RnaSeq.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=outdir,
-    )
+                    -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
+                    -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
 ################################################################################
 # %% Transcript matrices
 
 
-@Type
-@dataclass
+@Output
 class TranscriptMatrices:
     """Transcript read counts (and TPM abundance) of RNA-seq samples
 
@@ -428,120 +290,49 @@ class TranscriptMatrices:
     question relates specifically to transcript information, these matrices are
     often aggregated into **gene-level** read count and abundance information."""
 
-    @dataclass
-    class S:
-        label: str
-        "Label for RNA-seq data to analyze"
-
-        bc: bool
-        "Whether or not batch correction has been run"
-
-    @dataclass
-    class D:
-        sample_sheet: str
-        path: str
-
-    static: S
-    dynamic: D
+    path: str
 
 
 @Function(
-    "data.qc = true",
-    "ret.label = data.label",
-    "ret.bc = false",
+    "reads.qc = true",
     google_scholar_id="15817796957364212470",
+    citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
+    "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
+    "p 525--527 (2016).",
 )
-def kallisto(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
+def kallisto(__hb_reads: RnaSeqReads, __hb_ret: TranscriptMatrices):
     """kallisto
 
     # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/)
 
     kallisto is a tool that estimates the number of times a transcript appears
     using a technique called _pseudoalignment_ that is much faster than a full
-    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 
-    ## Parameters to set
-
-    In the code, please set the following parameters:
-
-    - `KALLISTO_INDEX`: the location of the kallisto transcriptome index on your computer (default: "ensembl115-hg38-kallisto.idx")
-    - `CORES`: the number of cores that you want kallisto to use (default: 4)
-
-    ## Citation
-
-    If you use kallisto, please cite it as:
-
-    > NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic
-    > RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."""
-
+    # PARAMETER: The location of the kallisto transcriptome index on your computer
     KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
-    CORES = 4
 
-    print("### Running kallisto ###")
+    # PARAMETER: The number of cores that you want kallisto to use
+    KALLISTO_CORES = 4
 
-    outdir = f"output/{ret.label}/kallisto"
-    bash(f"mkdir -p {outdir}")
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
-    import polars as pl
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
-    df = pl.read_csv(data.dynamic.sample_sheet)
-
-    for sample_name in df["sample_name"]:
-        bash(f"""kallisto quant \\
-                    -t {CORES} \\
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""kallisto quant \\
+                    -t {KALLISTO_CORES} \\
                     -i {KALLISTO_INDEX} \\
-                    -o {outdir}/{sample_name} \\
-                    {data.dynamic.path}/{sample_name}_1.fastq.gz \\
-                    {data.dynamic.path}/{sample_name}_2.fastq.gz""")
-
-    return TranscriptMatrices.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=outdir,
-    )
-
-
-@Function(
-    "data.qc = true",
-    "ret.label = data.label",
-    "ret.bc = false",
-    google_scholar_id="11462947284863466602",
-)
-def salmon(data: RnaSeq, ret: TranscriptMatrices.S) -> TranscriptMatrices.D:
-    """Salmon
-
-    # Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
-
-    Salmon is a tool that estimates the number of times a transcript appears
-    using a lightweight mapping technique that is much faster than a full
-    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
-
-    ## Parameters to set
-
-    In the code, please set the following parameters:
-
-    - `SALMON_INDEX`: the location of the Salmon transcriptome index on your computer
-    - `CORES`: the number of cores that you want Salmon to use (default: 4)
-
-    ## Citation
-
-    If you use Salmon, please cite it as:
-
-    > Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C.
-    > (2017). Salmon provides fast and bias-aware quantification of transcript
-    > expression. Nature Methods."""
-
-    SALMON_INDEX = "put the path to the Salmon index here"
-    CORES = 4
-
-    raise NotImplementedError  # Coming soon!
+                    -o {__hb_ret.path}/{sample_name} \\
+                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
 ################################################################################
 # %% Gene matrices
 
 
-@Type
-@dataclass
+@Output
 class GeneMatrices:
     """Gene read counts (and TPM abundance) of RNA-seq samples
 
@@ -569,30 +360,16 @@ class GeneMatrices:
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
     > https://doi.org/10.1186/s13059-016-0881-8"""
 
-    @dataclass
-    class S:
-        label: str
-        "Label for RNA-seq data to analyze"
-
-        bc: bool
-        "Whether or not batch correction has been run"
-
-    @dataclass
-    class D:
-        sample_sheet: str
-        path: str
-
-    static: S
-    dynamic: D
+    path: str
 
 
 @Function(
-    "ret.label = data.label",
-    "data.bc = false",
-    "ret.bc = true",
     google_scholar_id="5898741618830664005",
+    citation="Soneson C, Love MI, Robinson MD (2015). Differential analyses "
+    "for RNA-seq: transcript-level estimates improve gene-level inferences. "
+    "F1000Research, 4. doi:10.12688/f1000research.7563.1.",
 )
-def tximport(data: TranscriptMatrices, ret: GeneMatrices.S) -> GeneMatrices.D:
+def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     """tximport
 
     # Aggregate transcript-level estimated counts for gene-level analysis with [tximport](https://bioconductor.org/packages/release/bioc/html/tximport.html)
@@ -605,51 +382,30 @@ def tximport(data: TranscriptMatrices, ret: GeneMatrices.S) -> GeneMatrices.D:
 
     Salmon is a tool that estimates the number of times a transcript appears
     using a lightweight mapping technique that is much faster than a full
-    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 
-    ## Parameters to set
-
-    In the code, please set the following parameters:
-
-    - `ENSEMBL_VERSION`: the version of Ensembl to use for gene annotations (default: "115", released September 2025)
-    - `ENSEMBL_DATASET`: the Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
-
-    ## Citation
-
-    If you use tximport, please cite it as:
-
-    > Soneson C, Love MI, Robinson MD (2015). “Differential analyses for
-    RNA-seq: transcript-level estimates improve gene-level inferences.”
-    F1000Research, 4. doi:10.12688/f1000research.7563.1."""
-
+    # PARAMETER: The version of Ensembl to use for gene annotations
     ENSEMBL_VERSION = "115"
+
+    # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    print("### Running tximport... ###\n")
+    carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-    outdir = f"output/{ret.label}/tximport/"
-    bash(f"mkdir -p {outdir}")
-
-    bash(f"""
+    __hb_bash(f"""
         Rscript tximport.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {data.dynamic.sample_sheet} \\
-            {data.dynamic.path} \\
-            {outdir}""")
-
-    return GeneMatrices.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=outdir,
-    )
+            {__hb_data.path}/sample_sheet.csv \\
+            {__hb_data.path} \\
+            {__hb_ret.path}""")
 
 
 ################################################################################
 # %% Differential Gene Expression
 
 
-@Type
-@dataclass
+@Output
 class DifferentialGeneExpression:
     """Differential gene expression
 
@@ -668,30 +424,19 @@ class DifferentialGeneExpression:
     and sometimes you need to run additional processing steps like batch
     correction."""
 
-    @dataclass
-    class S:
-        label: str
-        "Label for data"
+    path: str
 
-        comparison_sheet: str
-        "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
-
-    @dataclass
-    class D:
-        sample_sheet: str
-        path: str
-
-    static: S
-    dynamic: D
+    comparison_sheet: str
+    "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 
 
 @Function(
-    "ret.label = data.label",
     google_scholar_id="16121678637925818947",
+    citation="Love MI, Huber W, Anders S (2014). Moderated estimation of fold change "
+    "and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. "
+    "doi:10.1186/s13059-014-0550-8.",
 )
-def deseq2(
-    data: GeneMatrices, ret: DifferentialGeneExpression.S
-) -> DifferentialGeneExpression.D:
+def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     """DESeq2
 
     # Find differentially-expressed protein-coding genes with [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
@@ -713,44 +458,24 @@ def deseq2(
     The above guide includes a very helpful
     [list of frequently-asked questions](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#frequently-asked-questions),
     including an explanation of why some adjusted _p_-values are `NA` and what
-    can be done to turn off that behavior.
+    can be done to turn off that behavior."""
 
-    ## Parameters to set
-
-    In the code, please set the following parameters:
-
-    - `ENSEMBL_VERSION`: the version of Ensembl to use for gene annotations (default: "115", released September 2025)
-    - `ENSEMBL_DATASET`: the Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
-
-    ## Citation
-
-    If you use DESeq, please cite it as:
-
-    > Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change
-    > and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550.
-    > doi:10.1186/s13059-014-0550-8."""
-
+    # PARAMETER: The version of Ensembl to use for gene annotations
     ENSEMBL_VERSION = "115"
+
+    # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    print("### Running DESeq2... ###\n")
+    carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-    outdir = f"output/{ret.label}/deseq2/"
-    bash(f"mkdir -p {outdir}")
-
-    bash(f"""
+    __hb_bash(f"""
         Rscript deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {data.dynamic.sample_sheet} \\
-            {ret.comparison_sheet} \\
-            {data.dynamic.path}counts.csv \\
-            {outdir}""")
-
-    return DifferentialGeneExpression.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=outdir,
-    )
+            {__hb_data.path}/sample_sheet.csv \\
+            {__hb_ret.comparison_sheet} \\
+            {__hb_data.path}/counts.csv \\
+            {__hb_ret.path}""")
 
 
 ################################################################################
@@ -758,12 +483,38 @@ def deseq2(
 
 
 @Function(
-    "ret.label = data.label",
-    google_scholar_id="1639708055766929241",
+    "reads.qc = true",
+    google_scholar_id="11462947284863466602",
+    citation="Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & "
+    "Kingsford, C. (2017). Salmon provides fast and bias-aware quantification "
+    "of transcript expression. Nature Methods.",
 )
-def sleuth(
-    data: TranscriptMatrices, ret: DifferentialGeneExpression.S
-) -> DifferentialGeneExpression.D:
+def salmon(__hb_reads: RnaSeqReads, __hb_ret: TranscriptMatrices):
+    """Salmon
+
+    # Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
+
+    Salmon is a tool that estimates the number of times a transcript appears
+    using a lightweight mapping technique that is much faster than a full
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
+
+    # PARAMETER: The location of the Salmon transcriptome index on your computer
+    SALMON_INDEX = "put the path to the Salmon index here"
+
+    # PARAMETER: The number of cores that you want Salmon to use
+    SALMON_CORES = 4
+
+    raise NotImplementedError  # Coming soon!
+
+
+@Function(
+    google_scholar_id="1639708055766929241",
+    citation="Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted "
+    "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
+    "quantification uncertainty, Nature Methods (2017), advanced access "
+    "http://dx.doi.org/10.1038/nmeth.4324.",
+)
+def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     """sleuth
 
     # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
@@ -772,28 +523,9 @@ def sleuth(
     incorporate measurements of uncertainty using "bootstrap estimates" from
     read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
     sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
-    that demonstrate how to use it to analyze RNA-seq datasets.
-
-    ## Citation
-
-    If you use sleuth, please cite it as:
-
-    > Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior
-    > Pachter, Differential analysis of RNA-Seq incorporating quantification
-    > uncertainty, Nature Methods (2017), advanced access
-    > http://dx.doi.org/10.1038/nmeth.4324."""
-
-    print("### Running sleuth... ###\n")
-
-    outdir = f"output/{ret.label}/sleuth/"
-    bash(f"mkdir -p {outdir}")
+    that demonstrate how to use it to analyze RNA-seq datasets."""
 
     raise NotImplementedError  # Coming soon!
-
-    return DifferentialGeneExpression.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=outdir,
-    )
 
 
 # @Function(
@@ -806,7 +538,7 @@ def sleuth(
 # ) -> TranscriptMatrices.D:
 #     raise NotImplementedError
 
-# @Type
+# @Output
 # class Alignment:
 #     "Alignment to a reference genome"
 #

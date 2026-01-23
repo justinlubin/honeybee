@@ -182,6 +182,25 @@ pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
     let mut options =
         state.controller.provide().map_err(|e| format!("{:?}", e))?;
     state.controller.decide(options.swap_remove(choice_index));
+
+    // Check for auto-decisions (F_* functions)
+    'fixpoint: loop {
+        let mut options =
+            state.controller.provide().map_err(|e| format!("{:?}", e))?;
+        for (i, option) in options.iter().enumerate() {
+            match option {
+                top_down::TopDownStep::Extend(_, f, _) => {
+                    if f.name.0.starts_with("F_") {
+                        state.controller.decide(options.swap_remove(i));
+                        continue 'fixpoint;
+                    }
+                }
+                _ => continue,
+            }
+        }
+        break;
+    }
+
     send_message()
 }
 

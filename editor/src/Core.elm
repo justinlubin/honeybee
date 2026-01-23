@@ -279,8 +279,7 @@ example library =
                 [ Just
                     { name = "P_SraRnaSeq"
                     , args =
-                        [ ( "label", ( "main", VTStr ) )
-                        , ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
+                        [ ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
                         ]
                     , sig =
                         propSig
@@ -290,8 +289,7 @@ example library =
                 Just
                     { name = "DifferentialGeneExpression"
                     , args =
-                        [ ( "label", ( "main", VTStr ) )
-                        , ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
+                        [ ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
                         ]
                     , sig =
                         typeSig

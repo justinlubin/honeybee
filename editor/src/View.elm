@@ -15,7 +15,6 @@ import Incoming
 import Json.Encode
 import Markdown
 import Model exposing (Model)
-import Regex
 import Update exposing (Msg(..))
 import Util
 import Version
@@ -491,7 +490,10 @@ functionChoice ctx fc =
                 , case fc.googleScholarId of
                     Just gsid ->
                         li [ A.class "google-scholar-backreference" ]
-                            [ text "Browse papers that use this tool in "
+                            [ text <|
+                                "Browse papers that use "
+                                    ++ fc.functionTitle
+                                    ++ " in "
                             , img [ A.src "assets/google_scholar.png" ] []
                             , a
                                 [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
@@ -510,6 +512,66 @@ functionChoice ctx fc =
                 [ A.class "markdown" ]
                 (Maybe.withDefault "" fc.functionDescription)
             ]
+                ++ (case fc.hyperparameters of
+                        Just hs ->
+                            [ div [ A.class "markdown" ]
+                                [ h2 [] [ text "Parameters to set" ]
+                                , p []
+                                    [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
+                                    ]
+                                , ul []
+                                    (List.map
+                                        (\h ->
+                                            li []
+                                                [ code [] [ text h.name ]
+                                                , text <|
+                                                    ": "
+                                                        ++ h.comment
+                                                        ++ " (default: "
+                                                        ++ h.default
+                                                        ++ ")"
+                                                ]
+                                        )
+                                        hs
+                                    )
+                                ]
+                            ]
+
+                        Nothing ->
+                            []
+                   )
+                ++ (case fc.citation of
+                        Just citation ->
+                            [ div [ A.class "markdown" ] <|
+                                [ h2 [] [ text "Citation" ]
+                                , p []
+                                    [ text <|
+                                        "If you use "
+                                            ++ fc.functionTitle
+                                            ++ ", please cite it as:"
+                                    ]
+                                , blockquote [] [ text citation ]
+                                ]
+                                    ++ (case fc.additionalCitations of
+                                            Just acs ->
+                                                [ p [] [ text "Please also cite:" ]
+                                                ]
+                                                    ++ List.map
+                                                        (\c ->
+                                                            blockquote
+                                                                []
+                                                                [ text c ]
+                                                        )
+                                                        acs
+
+                                            Nothing ->
+                                                []
+                                       )
+                            ]
+
+                        Nothing ->
+                            []
+                   )
                 ++ (if List.length fc.metadataChoices > 1 then
                         selectAdditionalInformation
 
@@ -520,23 +582,14 @@ functionChoice ctx fc =
                         Nothing ->
                             []
 
-                        Just c ->
-                            let
-                                cleanCode =
-                                    Regex.replaceAtMost 1
-                                        (Maybe.withDefault Regex.never <|
-                                            Regex.fromString "\"\"\"(.|\n)*?\"\"\"\\s*"
-                                        )
-                                        (\_ -> "")
-                                        c
-                            in
+                        Just code ->
                             [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
                             , div
                                 [ A.class "code-preview" ]
                                 [ fancyCode
                                     []
                                     { language = "python"
-                                    , code = cleanCode
+                                    , code = code
                                     }
                                 ]
                             ]
@@ -577,16 +630,8 @@ cellTitle : Cell.Cell -> String
 cellTitle c =
     Annotations.removeAll <|
         case c of
-            Cell.Code { title, functionTitle } ->
-                case ( title, functionTitle ) of
-                    ( Just t, _ ) ->
-                        t
-
-                    ( _, Just t ) ->
-                        t
-
-                    _ ->
-                        ""
+            Cell.Code { title } ->
+                title
 
             Cell.Choice { typeTitle } ->
                 typeTitle
