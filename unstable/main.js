@@ -230,7 +230,6 @@ app.ports.oPbnChoose.subscribe((msg) => {
 
 app.ports.oPbnUndo.subscribe((_msg) => {
     try {
-        console.log('clicked')
         const pbnStatusMessage = elmify(Honeybee.pbn_undo());
         app.ports.iPbnStatus_.send(pbnStatusMessage);
     } catch (e) {

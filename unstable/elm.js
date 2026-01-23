@@ -4372,107 +4372,6 @@ function _Browser_load(url)
 }
 
 
-// CREATE
-
-var _Regex_never = /.^/;
-
-var _Regex_fromStringWith = F2(function(options, string)
-{
-	var flags = 'g';
-	if (options.multiline) { flags += 'm'; }
-	if (options.caseInsensitive) { flags += 'i'; }
-
-	try
-	{
-		return $elm$core$Maybe$Just(new RegExp(string, flags));
-	}
-	catch(error)
-	{
-		return $elm$core$Maybe$Nothing;
-	}
-});
-
-
-// USE
-
-var _Regex_contains = F2(function(re, string)
-{
-	return string.match(re) !== null;
-});
-
-
-var _Regex_findAtMost = F3(function(n, re, str)
-{
-	var out = [];
-	var number = 0;
-	var string = str;
-	var lastIndex = re.lastIndex;
-	var prevLastIndex = -1;
-	var result;
-	while (number++ < n && (result = re.exec(string)))
-	{
-		if (prevLastIndex == re.lastIndex) break;
-		var i = result.length - 1;
-		var subs = new Array(i);
-		while (i > 0)
-		{
-			var submatch = result[i];
-			subs[--i] = submatch
-				? $elm$core$Maybe$Just(submatch)
-				: $elm$core$Maybe$Nothing;
-		}
-		out.push(A4($elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
-		prevLastIndex = re.lastIndex;
-	}
-	re.lastIndex = lastIndex;
-	return _List_fromArray(out);
-});
-
-
-var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
-{
-	var count = 0;
-	function jsReplacer(match)
-	{
-		if (count++ >= n)
-		{
-			return match;
-		}
-		var i = arguments.length - 3;
-		var submatches = new Array(i);
-		while (i > 0)
-		{
-			var submatch = arguments[i];
-			submatches[--i] = submatch
-				? $elm$core$Maybe$Just(submatch)
-				: $elm$core$Maybe$Nothing;
-		}
-		return replacer(A4($elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
-	}
-	return string.replace(re, jsReplacer);
-});
-
-var _Regex_splitAtMost = F3(function(n, re, str)
-{
-	var string = str;
-	var out = [];
-	var start = re.lastIndex;
-	var restoreLastIndex = re.lastIndex;
-	while (n--)
-	{
-		var result = re.exec(string);
-		if (!result) break;
-		out.push(string.slice(start, result.index));
-		start = re.lastIndex;
-	}
-	out.push(string.slice(start));
-	re.lastIndex = restoreLastIndex;
-	return _List_fromArray(out);
-});
-
-var _Regex_infinity = Infinity;
-
-
 
 
 // VIRTUAL-DOM WIDGETS
@@ -5509,7 +5408,7 @@ var $author$project$Core$VTInt = {$: 'VTInt'};
 var $author$project$Core$VTStr = {$: 'VTStr'};
 var $elm$json$Json$Decode$andThen = _Json_andThen;
 var $elm$json$Json$Decode$fail = _Json_fail;
-var $author$project$Decode$valueType = A2(
+var $author$project$Incoming$valueType = A2(
 	$elm$json$Json$Decode$andThen,
 	function (s) {
 		switch (s) {
@@ -5533,7 +5432,7 @@ var $elm$core$Maybe$withDefault = F2(
 			return _default;
 		}
 	});
-var $author$project$Decode$factSignature = A4(
+var $author$project$Incoming$factSignature = A4(
 	$elm$json$Json$Decode$map3,
 	F3(
 		function (p, pl, t) {
@@ -5547,7 +5446,7 @@ var $author$project$Decode$factSignature = A4(
 	A2(
 		$elm$json$Json$Decode$field,
 		'params',
-		$elm$json$Json$Decode$keyValuePairs($author$project$Decode$valueType)),
+		$elm$json$Json$Decode$keyValuePairs($author$project$Incoming$valueType)),
 	$elm$json$Json$Decode$maybe(
 		A2(
 			$elm$json$Json$Decode$at,
@@ -5560,15 +5459,15 @@ var $author$project$Decode$factSignature = A4(
 			_List_fromArray(
 				['info', 'title']),
 			$elm$json$Json$Decode$string)));
-var $author$project$Decode$factLibrary = $elm$json$Json$Decode$keyValuePairs($author$project$Decode$factSignature);
-var $author$project$Decode$library = A3(
+var $author$project$Incoming$factLibrary = $elm$json$Json$Decode$keyValuePairs($author$project$Incoming$factSignature);
+var $author$project$Incoming$library = A3(
 	$elm$json$Json$Decode$map2,
 	F2(
 		function (p, t) {
 			return {props: p, types: t};
 		}),
-	A2($elm$json$Json$Decode$field, 'props', $author$project$Decode$factLibrary),
-	A2($elm$json$Json$Decode$field, 'types', $author$project$Decode$factLibrary));
+	A2($elm$json$Json$Decode$field, 'props', $author$project$Incoming$factLibrary),
+	A2($elm$json$Json$Decode$field, 'types', $author$project$Incoming$factLibrary));
 var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Result$mapError = F2(
 	function (f, result) {
@@ -5610,10 +5509,20 @@ var $author$project$Cell$ChoiceCell = F5(
 	function (varName, typeTitle, typeDescription, functionChoices, selectedFunctionChoice) {
 		return {functionChoices: functionChoices, selectedFunctionChoice: selectedFunctionChoice, typeDescription: typeDescription, typeTitle: typeTitle, varName: varName};
 	});
-var $author$project$Cell$FunctionChoice = F6(
-	function (functionTitle, functionDescription, code, metadataChoices, selectedMetadataChoice, googleScholarId) {
-		return {code: code, functionDescription: functionDescription, functionTitle: functionTitle, googleScholarId: googleScholarId, metadataChoices: metadataChoices, selectedMetadataChoice: selectedMetadataChoice};
+var $author$project$Cell$FunctionChoice = F9(
+	function (functionTitle, functionDescription, code, metadataChoices, selectedMetadataChoice, googleScholarId, citation, additionalCitations, hyperparameters) {
+		return {additionalCitations: additionalCitations, citation: citation, code: code, functionDescription: functionDescription, functionTitle: functionTitle, googleScholarId: googleScholarId, hyperparameters: hyperparameters, metadataChoices: metadataChoices, selectedMetadataChoice: selectedMetadataChoice};
 	});
+var $author$project$Cell$Hyperparameter = F3(
+	function (name, _default, comment) {
+		return {comment: comment, _default: _default, name: name};
+	});
+var $author$project$Incoming$decodeHyperparameter = A4(
+	$elm$json$Json$Decode$map3,
+	$author$project$Cell$Hyperparameter,
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'default', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'comment', $elm$json$Json$Decode$string));
 var $author$project$Cell$MetadataChoice = F2(
 	function (metadata, choiceIndex) {
 		return {choiceIndex: choiceIndex, metadata: metadata};
@@ -5643,8 +5552,9 @@ var $author$project$Incoming$decodeMetadataChoice = A3(
 		'metadata',
 		$elm$json$Json$Decode$keyValuePairs($author$project$Incoming$decodeValue)),
 	A2($elm$json$Json$Decode$field, 'choice_index', $elm$json$Json$Decode$int));
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$hardcoded = A2($elm$core$Basics$composeR, $elm$json$Json$Decode$succeed, $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom);
 var $elm$json$Json$Decode$list = _Json_decodeList;
-var $elm$json$Json$Decode$map6 = _Json_map6;
 var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $elm$json$Json$Decode$nullable = function (decoder) {
 	return $elm$json$Json$Decode$oneOf(
@@ -5654,25 +5564,103 @@ var $elm$json$Json$Decode$nullable = function (decoder) {
 				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
 			]));
 };
-var $author$project$Incoming$decodeFunctionChoice = A7(
-	$elm$json$Json$Decode$map6,
-	$author$project$Cell$FunctionChoice,
-	A2($elm$json$Json$Decode$field, 'function_title', $elm$json$Json$Decode$string),
-	A2(
-		$elm$json$Json$Decode$field,
-		'function_description',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
-	A2(
-		$elm$json$Json$Decode$field,
-		'code',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
-	A2(
-		$elm$json$Json$Decode$field,
-		'metadata_choices',
-		$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice)),
-	$elm$json$Json$Decode$succeed(0),
-	$elm$json$Json$Decode$maybe(
-		A2($elm$json$Json$Decode$field, 'google_scholar_id', $elm$json$Json$Decode$string)));
+var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder = F3(
+	function (path, valDecoder, fallback) {
+		var nullOr = function (decoder) {
+			return $elm$json$Json$Decode$oneOf(
+				_List_fromArray(
+					[
+						decoder,
+						$elm$json$Json$Decode$null(fallback)
+					]));
+		};
+		var handleResult = function (input) {
+			var _v0 = A2(
+				$elm$json$Json$Decode$decodeValue,
+				A2($elm$json$Json$Decode$at, path, $elm$json$Json$Decode$value),
+				input);
+			if (_v0.$ === 'Ok') {
+				var rawValue = _v0.a;
+				var _v1 = A2(
+					$elm$json$Json$Decode$decodeValue,
+					nullOr(valDecoder),
+					rawValue);
+				if (_v1.$ === 'Ok') {
+					var finalResult = _v1.a;
+					return $elm$json$Json$Decode$succeed(finalResult);
+				} else {
+					return A2(
+						$elm$json$Json$Decode$at,
+						path,
+						nullOr(valDecoder));
+				}
+			} else {
+				return $elm$json$Json$Decode$succeed(fallback);
+			}
+		};
+		return A2($elm$json$Json$Decode$andThen, handleResult, $elm$json$Json$Decode$value);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt = F4(
+	function (path, valDecoder, fallback, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A3($NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder, path, valDecoder, fallback),
+			decoder);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
+	function (key, valDecoder, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A2($elm$json$Json$Decode$field, key, valDecoder),
+			decoder);
+	});
+var $author$project$Incoming$decodeFunctionChoice = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+	_List_fromArray(
+		['info', 'hyperparameters']),
+	$elm$json$Json$Decode$nullable(
+		$elm$json$Json$Decode$list($author$project$Incoming$decodeHyperparameter)),
+	$elm$core$Maybe$Nothing,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+		_List_fromArray(
+			['info', 'additional_citations']),
+		$elm$json$Json$Decode$nullable(
+			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
+		$elm$core$Maybe$Nothing,
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+			_List_fromArray(
+				['info', 'citation']),
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+			$elm$core$Maybe$Nothing,
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+				_List_fromArray(
+					['info', 'google_scholar_id']),
+				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+				$elm$core$Maybe$Nothing,
+				A2(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$hardcoded,
+					0,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'metadata_choices',
+						$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice),
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'code',
+							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+							A3(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+								'function_description',
+								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+								A3(
+									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+									'function_title',
+									$elm$json$Json$Decode$string,
+									$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice))))))))));
 var $elm$json$Json$Decode$map5 = _Json_map5;
 var $elm$core$List$sortBy = _List_sortBy;
 var $author$project$Incoming$decodeChoiceCell = A6(
@@ -5695,21 +5683,14 @@ var $author$project$Incoming$decodeChoiceCell = A6(
 				}),
 			$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice))),
 	$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing));
-var $author$project$Cell$CodeCell = F3(
-	function (title, functionTitle, code) {
-		return {code: code, functionTitle: functionTitle, title: title};
+var $author$project$Cell$CodeCell = F2(
+	function (title, code) {
+		return {code: code, title: title};
 	});
-var $author$project$Incoming$decodeCodeCell = A4(
-	$elm$json$Json$Decode$map3,
+var $author$project$Incoming$decodeCodeCell = A3(
+	$elm$json$Json$Decode$map2,
 	$author$project$Cell$CodeCell,
-	A2(
-		$elm$json$Json$Decode$field,
-		'title',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
-	A2(
-		$elm$json$Json$Decode$field,
-		'function_title',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
+	A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'code', $elm$json$Json$Decode$string));
 var $author$project$Incoming$decodeCell = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
@@ -5735,7 +5716,6 @@ var $author$project$Incoming$decodePbnStatus = A4(
 		'output',
 		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
 	A2($elm$json$Json$Decode$field, 'can_undo', $elm$json$Json$Decode$bool));
-var $elm$json$Json$Decode$value = _Json_decodeValue;
 var $author$project$Incoming$iPbnStatus_ = _Platform_incomingPort('iPbnStatus_', $elm$json$Json$Decode$value);
 var $author$project$Incoming$iPbnStatus = function (f) {
 	return $author$project$Incoming$iPbnStatus_(
@@ -6054,9 +6034,6 @@ var $author$project$Core$example = function (library) {
 					args: _List_fromArray(
 						[
 							_Utils_Tuple2(
-							'label',
-							_Utils_Tuple2('main', $author$project$Core$VTStr)),
-							_Utils_Tuple2(
 							'comparison_sheet',
 							_Utils_Tuple2('metadata/comparisons.csv', $author$project$Core$VTStr))
 						]),
@@ -6069,9 +6046,6 @@ var $author$project$Core$example = function (library) {
 					{
 						args: _List_fromArray(
 							[
-								_Utils_Tuple2(
-								'label',
-								_Utils_Tuple2('main', $author$project$Core$VTStr)),
 								_Utils_Tuple2(
 								'sample_sheet',
 								_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr))
@@ -6814,7 +6788,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+96265fd';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+a65e8b3';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -6959,19 +6933,7 @@ var $author$project$View$cellTitle = function (c) {
 		function () {
 			if (c.$ === 'Code') {
 				var title = c.a.title;
-				var functionTitle = c.a.functionTitle;
-				var _v1 = _Utils_Tuple2(title, functionTitle);
-				if (_v1.a.$ === 'Just') {
-					var t = _v1.a.a;
-					return t;
-				} else {
-					if (_v1.b.$ === 'Just') {
-						var t = _v1.b.a;
-						return t;
-					} else {
-						return '';
-					}
-				}
+				return title;
 			} else {
 				var typeTitle = c.a.typeTitle;
 				return typeTitle;
@@ -7192,18 +7154,9 @@ var $author$project$Update$UserSelectedMetadata = F2(
 	function (a, b) {
 		return {$: 'UserSelectedMetadata', a: a, b: b};
 	});
-var $elm$regex$Regex$Match = F4(
-	function (match, index, number, submatches) {
-		return {index: index, match: match, number: number, submatches: submatches};
-	});
-var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
-var $elm$regex$Regex$fromString = function (string) {
-	return A2(
-		$elm$regex$Regex$fromStringWith,
-		{caseInsensitive: false, multiline: false},
-		string);
-};
-var $elm$regex$Regex$never = _Regex_never;
+var $elm$html$Html$blockquote = _VirtualDom_node('blockquote');
+var $elm$html$Html$code = _VirtualDom_node('code');
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
@@ -7233,7 +7186,6 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$option = _VirtualDom_node('option');
-var $elm$regex$Regex$replaceAtMost = _Regex_replaceAtMost;
 var $elm$core$String$replace = F3(
 	function (before, after, string) {
 		return A2(
@@ -7293,9 +7245,9 @@ var $author$project$View$functionChoice = F2(
 						$elm$html$Html$Attributes$class('tabbed-menu-body-dropdown'),
 						$elm$html$Html$Events$onInput(
 						function (v) {
-							var _v3 = $elm$core$String$toInt(v);
-							if (_v3.$ === 'Just') {
-								var n = _v3.a;
+							var _v5 = $elm$core$String$toInt(v);
+							if (_v5.$ === 'Just') {
+								var n = _v5.a;
 								return A2($author$project$Update$UserSelectedMetadata, ctx, n);
 							} else {
 								return $author$project$Update$Nop;
@@ -7404,7 +7356,7 @@ var $author$project$View$functionChoice = F2(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text('Browse papers that use this tool in '),
+													$elm$html$Html$text('Browse papers that use ' + (fc.functionTitle + ' in ')),
 													A2(
 													$elm$html$Html$img,
 													_List_fromArray(
@@ -7444,52 +7396,172 @@ var $author$project$View$functionChoice = F2(
 							A2($elm$core$Maybe$withDefault, '', fc.functionDescription))
 						]),
 					_Utils_ap(
-						($elm$core$List$length(fc.metadataChoices) > 1) ? selectAdditionalInformation : _List_Nil,
 						function () {
-							var _v1 = fc.code;
-							if (_v1.$ === 'Nothing') {
-								return _List_Nil;
-							} else {
-								var c = _v1.a;
-								var cleanCode = A4(
-									$elm$regex$Regex$replaceAtMost,
-									1,
-									A2(
-										$elm$core$Maybe$withDefault,
-										$elm$regex$Regex$never,
-										$elm$regex$Regex$fromString('\"\"\"(.|\n)*?\"\"\"\\s*')),
-									function (_v2) {
-										return '';
-									},
-									c);
+							var _v1 = fc.hyperparameters;
+							if (_v1.$ === 'Just') {
+								var hs = _v1.a;
 								return _List_fromArray(
 									[
-										A2(
-										$elm$html$Html$p,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('tabbed-menu-body-label')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Code preview…')
-											])),
 										A2(
 										$elm$html$Html$div,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('code-preview')
+												$elm$html$Html$Attributes$class('markdown')
 											]),
 										_List_fromArray(
 											[
 												A2(
-												$author$project$View$fancyCode,
+												$elm$html$Html$h2,
 												_List_Nil,
-												{code: cleanCode, language: 'python'})
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Parameters to set')
+													])),
+												A2(
+												$elm$html$Html$p,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Once you download your script, you will need to set the following parameters at the top of the file:')
+													])),
+												A2(
+												$elm$html$Html$ul,
+												_List_Nil,
+												A2(
+													$elm$core$List$map,
+													function (h) {
+														return A2(
+															$elm$html$Html$li,
+															_List_Nil,
+															_List_fromArray(
+																[
+																	A2(
+																	$elm$html$Html$code,
+																	_List_Nil,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$text(h.name)
+																		])),
+																	$elm$html$Html$text(': ' + (h.comment + (' (default: ' + (h._default + ')'))))
+																]));
+													},
+													hs))
 											]))
 									]);
+							} else {
+								return _List_Nil;
 							}
-						}()))),
+						}(),
+						_Utils_ap(
+							function () {
+								var _v2 = fc.citation;
+								if (_v2.$ === 'Just') {
+									var citation = _v2.a;
+									return _List_fromArray(
+										[
+											A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('markdown')
+												]),
+											_Utils_ap(
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$h2,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Citation')
+															])),
+														A2(
+														$elm$html$Html$p,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text('If you use ' + (fc.functionTitle + ', please cite it as:'))
+															])),
+														A2(
+														$elm$html$Html$blockquote,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text(citation)
+															]))
+													]),
+												function () {
+													var _v3 = fc.additionalCitations;
+													if (_v3.$ === 'Just') {
+														var acs = _v3.a;
+														return _Utils_ap(
+															_List_fromArray(
+																[
+																	A2(
+																	$elm$html$Html$p,
+																	_List_Nil,
+																	_List_fromArray(
+																		[
+																			$elm$html$Html$text('Please also cite:')
+																		]))
+																]),
+															A2(
+																$elm$core$List$map,
+																function (c) {
+																	return A2(
+																		$elm$html$Html$blockquote,
+																		_List_Nil,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$text(c)
+																			]));
+																},
+																acs));
+													} else {
+														return _List_Nil;
+													}
+												}()))
+										]);
+								} else {
+									return _List_Nil;
+								}
+							}(),
+							_Utils_ap(
+								($elm$core$List$length(fc.metadataChoices) > 1) ? selectAdditionalInformation : _List_Nil,
+								function () {
+									var _v4 = fc.code;
+									if (_v4.$ === 'Nothing') {
+										return _List_Nil;
+									} else {
+										var code = _v4.a;
+										return _List_fromArray(
+											[
+												A2(
+												$elm$html$Html$p,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('tabbed-menu-body-label')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Code preview…')
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('code-preview')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$author$project$View$fancyCode,
+														_List_Nil,
+														{code: code, language: 'python'})
+													]))
+											]);
+									}
+								}()))))),
 			heading: $elm$html$Html$text(fc.functionTitle)
 		};
 	});
@@ -8173,7 +8245,6 @@ var $author$project$View$group = F3(
 					bodyContent)
 				]));
 	});
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $author$project$View$groupHeading = F2(
 	function (attrs, content) {
 		return A2(
@@ -8852,7 +8923,7 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 						A2(
 							$elm$core$Result$mapError,
 							$elm$core$Debug$log('error'),
-							A2($elm$json$Json$Decode$decodeValue, $author$project$Decode$library, v)))),
+							A2($elm$json$Json$Decode$decodeValue, $author$project$Incoming$library, v)))),
 				$elm$core$Platform$Cmd$none);
 		},
 		subscriptions: $author$project$Update$subscriptions,
