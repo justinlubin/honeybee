@@ -20,5 +20,6 @@ of Honeybee.
 
 - Overhaul glue annotations into the Honey language, resulting in much
   more ergnomic definitions for building blocks, better codegen, and a
-  smoother editor experience (#95)
+  smoother editor experience
+  ([#95](https://github.com/justinlubin/honeybee/pull/95))
 - Move "Next CHOICE" button (and new "Undo" button) to bottom of screen
