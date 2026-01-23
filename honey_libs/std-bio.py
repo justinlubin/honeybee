@@ -1,8 +1,18 @@
 import os
 import polars as pl
-import subprocess
 
 from honey_lang import Helper, Input, Output, Function, __hb_bash
+
+
+@Helper
+class Dir:
+    stage = 1
+
+    def make(name):
+        dir = f"output/{Dir.stage:03 * 10}-{name}"
+        os.makedirs(dir, exist_ok=True)
+        Dir.stage += 1
+        return dir
 
 
 @Helper
@@ -19,17 +29,6 @@ def carry_over(src_object, dst_object, *, file=None):
             carry_one(file)
     else:
         carry_one(file)
-
-
-@Helper
-class Dir:
-    stage = 1
-
-    def make(name):
-        dir = f"output/{Dir.stage:03 * 10}-{name}"
-        os.makedirs(dir, exist_ok=True)
-        Dir.stage += 1
-        return dir
 
 
 ################################################################################

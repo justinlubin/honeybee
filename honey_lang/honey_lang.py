@@ -1,8 +1,9 @@
-from dataclasses import dataclass
 import ast
 import inspect
+import os
 import re
 import subprocess
+from dataclasses import dataclass
 
 
 def deindent(s):
@@ -271,17 +272,23 @@ helper_ran = False
 
 def Helper(obj):
     global helper_ran
-    if not helper_ran:
-        imports = "from dataclasses import dataclass\n"
-        with open(inspect.getsourcefile(obj), "r") as f:  # type: ignore
+    obj_file = inspect.getsourcefile(obj)
+    if obj_file is None:
+        raise ValueError("Unknown object file for " + str(obj))
+    if obj_file != __file__ and not helper_ran:
+        imports = []
+        with open(obj_file, "r") as f:
             for line in f:
                 line = line.strip()
                 if line.startswith("import") or line.startswith("from"):
-                    imports += line + "\n"
+                    imports.append(line)
                 else:
                     break
-
-        print(f"[[Preamble]]\ncontent = '''{imports.strip()}'''\n")
+        for needed_import in ["from dataclasses import dataclass", "import os"]:
+            if needed_import not in imports:
+                imports.append(needed_import)
+        imports.sort()
+        print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}'''\n")
 
         helper_ran = True
 
