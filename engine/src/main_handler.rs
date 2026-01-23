@@ -65,17 +65,24 @@ pub fn interact(
     json: Option<PathBuf>,
     algorithm: menu::Algorithm,
 ) -> Result<(), String> {
+    // Quick check to prevent definitely failing to write later
     if let Some(path) = &json {
-        let ok = match path.parent() {
-            Some(parent) => parent.exists(),
-            None => false,
-        };
-        if !ok {
+        if path.is_dir() {
             return Err(format!(
-                "{} invalid json path '{}'",
+                "{} invalid json path '{}' (path is directory)",
                 Red.bold().paint("error:"),
                 path.to_str().unwrap()
             ));
+        }
+        if let Some(parent) = path.parent() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
+                return Err(format!(
+                    "{} invalid json path '{}' (parent '{}' does not exist)",
+                    Red.bold().paint("error:"),
+                    path.to_str().unwrap(),
+                    parent.to_str().unwrap(),
+                ));
+            }
         }
     }
 
