@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import ast
 import inspect
 import re
+import subprocess
 
 
 def deindent(s):
@@ -225,7 +226,7 @@ def _emit_function_sig(f, condition, kwargs):
     print("info.hyperparameters = [")
     for param in hyper_parameters.values():
         print(
-            f"    {{name = '{param.name}', default = '{param.default}', comment = '{param.comment}' }},\n"
+            f"    {{name = '{param.name}', default = '{param.default}', comment = '{param.comment}' }},"
         )
     print("]")
 
@@ -264,12 +265,11 @@ def Function(*condition, **kwargs):
 helper_ran = False
 
 
-# TODO: only include used parameters
 def Helper(obj):
     global helper_ran
     if not helper_ran:
         imports = "from dataclasses import dataclass\n"
-        with open(inspect.getsourcefile(obj), "r") as f:
+        with open(inspect.getsourcefile(obj), "r") as f:  # type: ignore
             for line in f:
                 line = line.strip()
                 if line.startswith("import") or line.startswith("from"):
@@ -279,25 +279,6 @@ def Helper(obj):
 
         print(f"[[Preamble]]\ncontent = '''{imports.strip()}'''\n")
 
-        parameters = {}
-        with open(inspect.getsourcefile(obj), "r") as f:
-            while True:
-                try:
-                    it = iter(f)
-                    line = next(it).strip()
-                    if line.startswith("# PARAMETER:"):
-                        param = _parse_parameter(line, next(it))
-                        parameters[param.name] = param
-
-                except StopIteration:
-                    break
-
-        parameters_string = ""
-        for param in parameters.values():
-            parameters_string += f"# PARAMETER: {param.comment} (default: {param.default})\n{param.name} = {param.default}\n\n"
-
-        print(f"[[Preamble]]\ncontent = '''{parameters_string.strip()}'''\n")
-
         helper_ran = True
 
     code = ""
@@ -306,3 +287,16 @@ def Helper(obj):
     print(f"[[Preamble]]\ncontent='''{code.strip()}'''\n")
 
     return obj
+
+
+def __hb_bash(command):
+    print(f"Running bash command:\n\n{command}\n")
+
+    p = subprocess.run(
+        command,
+        shell=True,
+        text=True,
+    )
+
+    if p.returncode != 0:
+        raise ValueError(f"Non-zero exit code: {p.returncode}")

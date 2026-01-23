@@ -1,43 +1,8 @@
 [[Preamble]]
 content = '''from dataclasses import dataclass
 import os
-import subprocess
-import polars as pl'''
-
-[[Preamble]]
-content = '''# PARAMETER: The number of cores that you want FastQC to use (default: 4)
-FASTQC_CORES = 4
-
-# PARAMETER: The location of the kallisto transcriptome index on your computer (default: "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx")
-KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
-
-# PARAMETER: The number of cores that you want kallisto to use (default: 4)
-KALLISTO_CORES = 4
-
-# PARAMETER: The version of Ensembl to use for gene annotations (default: "115", released September 2025) (default: "115")
-ENSEMBL_VERSION = "115"
-
-# PARAMETER: The Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl") (default: "hsapiens_gene_ensembl")
-ENSEMBL_DATASET = "hsapiens_gene_ensembl"
-
-# PARAMETER: The location of the Salmon transcriptome index on your computer (default: "put the path to the Salmon index here")
-SALMON_INDEX = "put the path to the Salmon index here"
-
-# PARAMETER: The number of cores that you want Salmon to use (default: 4)
-SALMON_CORES = 4'''
-
-[[Preamble]]
-content='''def bash(command):
-    print(f"Running bash command:\n\n{command}\n")
-
-    p = subprocess.run(
-        command,
-        shell=True,
-        text=True,
-    )
-
-    if p.returncode != 0:
-        raise ValueError(f"Non-zero exit code: {p.returncode}")'''
+import polars as pl
+import subprocess'''
 
 [[Preamble]]
 content='''def carry_over(src_object, dst_object, *, file=None):
@@ -60,7 +25,7 @@ content='''class Dir:
 
     def make(name):
         dir = f"output/{Dir.stage:03 * 10}-{name}"
-        bash(f"mkdir -p {dir}")
+        os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir'''
 
@@ -181,11 +146,11 @@ for srr in sample_sheet["sample_name"]:
 
     # Assumes forward (_1) and reverse (_2) reads exist
 
-    bash(f"""
+    __hb_bash(f"""
          wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_1.fastq.gz
     """)
 
-    bash(f"""
+    __hb_bash(f"""
          wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_2.fastq.gz
     """)
 
@@ -235,7 +200,6 @@ for assessing the outputs of FastQC."""
 info.citation = "Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"
 info.hyperparameters = [
     {name = 'FASTQC_CORES', default = '4', comment = 'The number of cores that you want FastQC to use' },
-
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret)
 
@@ -245,7 +209,7 @@ fastqs = " ".join(
     + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
 )
 
-bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")'''
+__hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")'''
 
 [Function.multiqc]
 params.reads = "RnaSeqReads"
@@ -284,8 +248,8 @@ fastqs = " ".join(
     + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
 )
 
-bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
-bash(f"uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}")'''
+__hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
+__hb_bash(f"uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}")'''
 
 [Function.cutadapt_illumina]
 params.reads = "RnaSeqReads"
@@ -333,7 +297,7 @@ info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
 for sample_name in sample_sheet["sample_name"]:
-    bash(f"""uv run cutadapt \\
+    __hb_bash(f"""uv run cutadapt \\
                 --cores=0 \\
                 -m 1 \\
                 --poly-a \\
@@ -386,17 +350,15 @@ info.google_scholar_id = "15817796957364212470"
 info.citation = "NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."
 info.hyperparameters = [
     {name = 'KALLISTO_INDEX', default = '"ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"', comment = 'The location of the kallisto transcriptome index on your computer' },
-
     {name = 'KALLISTO_CORES', default = '4', comment = 'The number of cores that you want kallisto to use' },
-
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
 sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
 for sample_name in sample_sheet["sample_name"]:
-    bash(f"""kallisto quant \\
-                -t {CORES} \\
+    __hb_bash(f"""kallisto quant \\
+                -t {KALLISTO_CORES} \\
                 -i {KALLISTO_INDEX} \\
                 -o {__hb_ret.path}/{sample_name} \\
                 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
@@ -478,14 +440,12 @@ alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 info.google_scholar_id = "5898741618830664005"
 info.citation = "Soneson C, Love MI, Robinson MD (2015). Differential analyses for RNA-seq: transcript-level estimates improve gene-level inferences. F1000Research, 4. doi:10.12688/f1000research.7563.1."
 info.hyperparameters = [
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations (default: "115", released September 2025)' },
-
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")' },
-
+    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
+    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-bash(f"""
+__hb_bash(f"""
     Rscript tximport.r \\
         {ENSEMBL_VERSION} \\
         {ENSEMBL_DATASET} \\
@@ -560,32 +520,16 @@ about how to use DESeq2 to analyze RNA-seq data.
 The above guide includes a very helpful
 [list of frequently-asked questions](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#frequently-asked-questions),
 including an explanation of why some adjusted _p_-values are `NA` and what
-can be done to turn off that behavior.
-
-## Parameters to set
-
-In the code, please set the following parameters:
-
-- `ENSEMBL_VERSION`: the version of Ensembl to use for gene annotations (default: "115", released September 2025)
-- `ENSEMBL_DATASET`: the Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
-
-## Citation
-
-If you use DESeq, please cite it as:
-
-> Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change
-> and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550.
-> doi:10.1186/s13059-014-0550-8."""
+can be done to turn off that behavior."""
 info.google_scholar_id = "16121678637925818947"
+info.citation = "Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. doi:10.1186/s13059-014-0550-8."
 info.hyperparameters = [
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations (default: "115", released September 2025)' },
-
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")' },
-
+    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
+    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-bash(f"""
+__hb_bash(f"""
     Rscript deseq2.r \\
         {ENSEMBL_VERSION} \\
         {ENSEMBL_DATASET} \\
@@ -610,9 +554,7 @@ info.google_scholar_id = "11462947284863466602"
 info.citation = "Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods."
 info.hyperparameters = [
     {name = 'SALMON_INDEX', default = '"put the path to the Salmon index here"', comment = 'The location of the Salmon transcriptome index on your computer' },
-
     {name = 'SALMON_CORES', default = '4', comment = 'The number of cores that you want Salmon to use' },
-
 ]
 info.code = '''raise NotImplementedError  # Coming soon!'''
 

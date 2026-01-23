@@ -1,23 +1,8 @@
 import os
-import subprocess
 import polars as pl
+import subprocess
 
-
-from honey_lang import Helper, Input, Output, Function
-
-
-@Helper
-def bash(command):
-    print(f"Running bash command:\n\n{command}\n")
-
-    p = subprocess.run(
-        command,
-        shell=True,
-        text=True,
-    )
-
-    if p.returncode != 0:
-        raise ValueError(f"Non-zero exit code: {p.returncode}")
+from honey_lang import Helper, Input, Output, Function, __hb_bash
 
 
 @Helper
@@ -42,7 +27,7 @@ class Dir:
 
     def make(name):
         dir = f"output/{Dir.stage:03 * 10}-{name}"
-        bash(f"mkdir -p {dir}")
+        os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir
 
@@ -117,11 +102,11 @@ def from_sra_rna_seq(__hb_sra: SraRnaSeq, __hb_ret: RnaSeqReads):
 
         # Assumes forward (_1) and reverse (_2) reads exist
 
-        bash(f"""
+        __hb_bash(f"""
              wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_1.fastq.gz
         """)
 
-        bash(f"""
+        __hb_bash(f"""
              wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_2.fastq.gz
         """)
 
@@ -182,7 +167,7 @@ def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
         + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
     )
 
-    bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
+    __hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
 
 
 @Function(
@@ -227,8 +212,8 @@ def multiqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
         + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
     )
 
-    bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
-    bash(f"uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}")
+    __hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
+    __hb_bash(f"uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}")
 
 
 @Function(
@@ -277,7 +262,7 @@ def cutadapt_illumina(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
     for sample_name in sample_sheet["sample_name"]:
-        bash(f"""uv run cutadapt \\
+        __hb_bash(f"""uv run cutadapt \\
                     --cores=0 \\
                     -m 1 \\
                     --poly-a \\
@@ -336,8 +321,8 @@ def kallisto(__hb_reads: RnaSeqReads, __hb_ret: TranscriptMatrices):
     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
     for sample_name in sample_sheet["sample_name"]:
-        bash(f"""kallisto quant \\
-                    -t {CORES} \\
+        __hb_bash(f"""kallisto quant \\
+                    -t {KALLISTO_CORES} \\
                     -i {KALLISTO_INDEX} \\
                     -o {__hb_ret.path}/{sample_name} \\
                     {__hb_reads.path}/{sample_name}_1.fastq.gz \\
@@ -400,15 +385,15 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     using a lightweight mapping technique that is much faster than a full
     alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 
-    # PARAMETER: The version of Ensembl to use for gene annotations (default: "115", released September 2025)
+    # PARAMETER: The version of Ensembl to use for gene annotations
     ENSEMBL_VERSION = "115"
 
-    # PARAMETER: The Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
+    # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-    bash(f"""
+    __hb_bash(f"""
         Rscript tximport.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
@@ -448,6 +433,9 @@ class DifferentialGeneExpression:
 
 @Function(
     google_scholar_id="16121678637925818947",
+    citation="Love MI, Huber W, Anders S (2014). Moderated estimation of fold change "
+    "and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. "
+    "doi:10.1186/s13059-014-0550-8.",
 )
 def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     """DESeq2
@@ -471,32 +459,17 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     The above guide includes a very helpful
     [list of frequently-asked questions](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#frequently-asked-questions),
     including an explanation of why some adjusted _p_-values are `NA` and what
-    can be done to turn off that behavior.
+    can be done to turn off that behavior."""
 
-    ## Parameters to set
-
-    In the code, please set the following parameters:
-
-    - `ENSEMBL_VERSION`: the version of Ensembl to use for gene annotations (default: "115", released September 2025)
-    - `ENSEMBL_DATASET`: the Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
-
-    ## Citation
-
-    If you use DESeq, please cite it as:
-
-    > Love MI, Huber W, Anders S (2014). “Moderated estimation of fold change
-    > and dispersion for RNA-seq data with DESeq2.” Genome Biology, 15, 550.
-    > doi:10.1186/s13059-014-0550-8."""
-
-    # PARAMETER: The version of Ensembl to use for gene annotations (default: "115", released September 2025)
+    # PARAMETER: The version of Ensembl to use for gene annotations
     ENSEMBL_VERSION = "115"
 
-    # PARAMETER: The Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
+    # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-    bash(f"""
+    __hb_bash(f"""
         Rscript deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
