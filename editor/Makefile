@@ -4,7 +4,7 @@
 #   elm
 #   uglifyjs
 #   uv
-#   wasm-bindgenP
+#   wasm-bindgen
 #     cargo install -f wasm-bindgen-cli --version 0.2.100
 #   wasm32-unknown-unknown Rust target
 #     rustup target add wasm32-unknown-unknown
@@ -45,7 +45,9 @@ ifeq ($(OPTIMIZE_ELM),true)
 else
 	elm make src/Main.elm --output=$(OUT_DIR)/elm.js || touch $(OUT_DIR)/elm.js
 endif
-	sed "s/<<<COMMIT-SHORT-HASH>>>/$(CURRENT_COMMIT)/g" $(OUT_DIR)/elm.js > $(OUT_DIR)/elm.js.tmp
+	sed "s/<<<COMMIT-SHORT-HASH>>>/$(CURRENT_COMMIT)/g" $(OUT_DIR)/elm.js \
+	| if [ -n "${PUBLISH_STABLE}" ]; then sed "s/<<<UNSTABLE-INDICATOR>>>/STABLE/g"; else sed "s/<<<UNSTABLE-INDICATOR>>>/UNSTABLE/g"; fi \
+	> $(OUT_DIR)/elm.js.tmp
 	mv $(OUT_DIR)/elm.js.tmp $(OUT_DIR)/elm.js
 
 $(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)

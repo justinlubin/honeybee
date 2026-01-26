@@ -942,6 +942,11 @@ view model =
             [ span
                 [ A.class "version-number" ]
                 [ text <| " version " ++ Version.fullVersion
+                , if not Version.stable then
+                    span [ A.class "unstable-indicator" ] [ text " UNSTABLE" ]
+
+                  else
+                    text ""
                 ]
             ]
         , pane
