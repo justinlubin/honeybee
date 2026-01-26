@@ -191,7 +191,9 @@ pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
             match option {
                 top_down::TopDownStep::Extend(_, f, _) => {
                     if f.name.0.starts_with("F_") {
-                        state.controller.decide(options.swap_remove(i));
+                        state
+                            .controller
+                            .decide_without_history(options.swap_remove(i));
                         continue 'fixpoint;
                     }
                 }

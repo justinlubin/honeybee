@@ -32,7 +32,7 @@ csv = "1.3.0"
 rayon = "1.10.0"
 indexmap = { version = "2.7.0", features = ["serde"] }
 toml = "0.8.19"
-pbn = "0.1.1"
+pbn = "0.3.0"
 regex = "1.12.2"
 convert_case = "0.10.0"
 
