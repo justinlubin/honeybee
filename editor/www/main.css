@@ -787,6 +787,40 @@ code[class*="language-"] {
     text-shadow: none;
 }
 
+/* __hb_* support */
+
+code .hb-argument {
+    text-transform: uppercase;
+    cursor: help;
+    position: relative;
+    bottom: -4px;
+    /* vertical-align: sub; */
+    font-size: 0.7em; 
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    display: inline-block;
+    line-height: 1;
+    padding: 5px 4px 0 4px;
+    border-radius: var(--rounding);
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #333;
+}
+
+code .hb-argument:before {
+    content: "○";
+    position: relative;
+    top: -4px;
+    font-size: 1.42857143em;
+    margin-right: 1px;
+    /* vertical-align: baseline; */
+    /* position: relative; */
+    /* top: -3px; */
+    /* font-size: 1.5em; */
+}
+
+code .hb-argument[data-hb-name="ret"] {
+    color: white;
+}
+
 /* || Animations */
 
 @keyframes just-added {

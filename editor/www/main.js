@@ -86,6 +86,24 @@ customElements.define(
 
             Prism.highlightElement(codeElement);
 
+            codeElement.innerHTML = codeElement.innerHTML.replaceAll(
+                 /__hb_ret/g,
+                 `<span
+                     class='hb-argument'
+                     data-hb-name='$1'
+                     title='This is a placeholder that will get filled with information about the current step.'
+                >current_step</span>`
+            );
+
+            codeElement.innerHTML = codeElement.innerHTML.replaceAll(
+                 /__hb_([A-Za-z][A-Za-z_]*)/g,
+                 `<span
+                     class='hb-argument'
+                     data-hb-name='$1'
+                     title='This is a placeholder that will get filled by some of the next steps you select.'
+                >$1</span>`
+            );
+
             this.textContent = "";
             preElement.appendChild(codeElement);
             this.appendChild(preElement);
