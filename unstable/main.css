@@ -12,6 +12,7 @@
 body {
     background-image: url("assets/bg.png");
     background-repeat: repeat;
+    background-attachment: fixed;
 
     color: #000000;
     font-family: var(--ff);
@@ -287,7 +288,7 @@ a:hover {
     justify-content: space-between;
     background-color: #333;
     color: #fff;
-    padding: 10px;
+    padding: 6px;
 }
 
 .menu-bar a {
@@ -301,6 +302,15 @@ a:hover {
 .version-number {
     color: rgba(255, 255, 255, 0.25);
     margin-left: 10px;
+}
+
+.unstable-indicator {
+    display: inline-block;
+    background-color: red;
+    color: white;
+    font-weight: bold;
+    margin-left: 5px;
+    padding: 0 2px;
 }
 
 /* || Panes */
@@ -640,6 +650,14 @@ a:hover {
 .standout-button .subtitle {
     display: block;
     font-size: 0.7em;
+}
+
+.standout-button.extra-standout {
+    background-color: #ff4d37;
+}
+
+.standout-button.extra-standout:hover {
+    background-color: #ff624e;
 }
 
 /* || Outline */

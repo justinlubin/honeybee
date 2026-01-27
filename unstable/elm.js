@@ -6788,7 +6788,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+10cf211';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+6a26554';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -8000,38 +8000,6 @@ var $author$project$View$pbnStatus = function (ms) {
 								cells))
 						]))
 				]));
-		var downloadButton = function () {
-			if (output.$ === 'Nothing') {
-				return $elm$html$Html$text('');
-			} else {
-				var solutionString = output.a;
-				return A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$id('pbn-completed')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('standout-button'),
-									$elm$html$Html$Events$onClick(
-									$author$project$Update$UserRequestedDownload(
-										{
-											filename: 'analysis.py',
-											text: _Utils_ap($author$project$View$solutionPrefix, solutionString)
-										}))
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Download analysis script')
-								]))
-						]));
-			}
-		}();
 		return _List_fromArray(
 			[
 				A2(
@@ -8132,7 +8100,6 @@ var $author$project$View$pbnStatus = function (ms) {
 				'pop-in',
 				_List_Nil,
 				$author$project$View$directManipulationPbn(cells)),
-				downloadButton,
 				A2(
 				$elm$html$Html$footer,
 				_List_fromArray(
@@ -8159,20 +8126,22 @@ var $author$project$View$pbnStatus = function (ms) {
 										$elm$html$Html$text('Undo')
 									]))
 							])),
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('standout-button'),
-								$elm$html$Html$Attributes$class('post-popin-attention')
-							]),
-						_List_fromArray(
-							[
-								function () {
-								var _v1 = $author$project$View$nextChoice(cells);
-								if (_v1.$ === 'Just') {
-									var i = _v1.a;
-									return A2(
+						function () {
+						var _v1 = _Utils_Tuple2(
+							$author$project$View$nextChoice(cells),
+							output);
+						if (_v1.a.$ === 'Just') {
+							var i = _v1.a.a;
+							return A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('standout-button'),
+										$elm$html$Html$Attributes$class('post-popin-attention')
+									]),
+								_List_fromArray(
+									[
+										A2(
 										$elm$html$Html$a,
 										_List_fromArray(
 											[
@@ -8193,21 +8162,37 @@ var $author$project$View$pbnStatus = function (ms) {
 													[
 														$elm$html$Html$text('Choice')
 													]))
-											]));
-								} else {
-									return A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href('#pbn-completed')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Go to download button!')
-											]));
-								}
-							}()
-							]))
+											]))
+									]));
+						} else {
+							if (_v1.b.$ === 'Just') {
+								var _v2 = _v1.a;
+								var solutionString = _v1.b.a;
+								return A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('standout-button'),
+											$elm$html$Html$Attributes$class('post-popin-attention'),
+											$elm$html$Html$Attributes$class('extra-standout'),
+											$elm$html$Html$Events$onClick(
+											$author$project$Update$UserRequestedDownload(
+												{
+													filename: 'analysis.py',
+													text: _Utils_ap($author$project$View$solutionPrefix, solutionString)
+												}))
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Download analysis script')
+										]));
+							} else {
+								var _v3 = _v1.a;
+								var _v4 = _v1.b;
+								return $elm$html$Html$text('');
+							}
+						}
+					}()
 					]))
 			]);
 	}
@@ -8646,6 +8631,7 @@ var $author$project$View$program = F2(
 					]))
 			]);
 	});
+var $author$project$Version$stable = 'UNSTABLE' === 'STABLE';
 var $author$project$Update$UserStartedNavigation = function (a) {
 	return {$: 'UserStartedNavigation', a: a};
 };
@@ -8756,7 +8742,17 @@ var $author$project$View$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(' version ' + $author$project$Version$fullVersion)
+								$elm$html$Html$text(' version ' + $author$project$Version$fullVersion),
+								(!$author$project$Version$stable) ? A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('unstable-indicator')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(' UNSTABLE')
+									])) : $elm$html$Html$text('')
 							]))
 					])),
 				A3(
