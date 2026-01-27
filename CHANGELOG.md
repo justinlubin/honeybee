@@ -7,6 +7,8 @@ of Honeybee.
 
 ### Added
 
+- Add "use hints" that allow for quick comparison between tools
+  ([#101](https://github.com/justinlubin/honeybee/pull/101))
 - Add /unstable route for accessing latest pushed unreleased version
 - Add hover text for complex concepts
 - Add "Undo" button to frontend
