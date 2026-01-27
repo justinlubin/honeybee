@@ -845,25 +845,6 @@ pbnStatus ms =
                                     cells
                             ]
                         ]
-
-                downloadButton =
-                    case output of
-                        Nothing ->
-                            text ""
-
-                        Just solutionString ->
-                            div [ A.id "pbn-completed" ]
-                                [ button
-                                    [ A.class "standout-button"
-                                    , E.onClick
-                                        (UserRequestedDownload
-                                            { filename = "analysis.py"
-                                            , text = solutionPrefix ++ solutionString
-                                            }
-                                        )
-                                    ]
-                                    [ text "Download analysis script" ]
-                                ]
             in
             [ p
                 [ A.class "tip" ]
@@ -887,7 +868,6 @@ pbnStatus ms =
                 ]
             , outline
             , Html.Keyed.node "pop-in" [] (directManipulationPbn cells)
-            , downloadButton
             , footer [ A.class "controls" ]
                 [ button
                     [ A.class "standout-button"
@@ -896,13 +876,13 @@ pbnStatus ms =
                     ]
                     [ span [] [ text "Undo" ]
                     ]
-                , button
-                    [ A.class "standout-button"
-                    , A.class "post-popin-attention"
-                    ]
-                    [ case nextChoice cells of
-                        Just i ->
-                            a
+                , case ( nextChoice cells, output ) of
+                    ( Just i, _ ) ->
+                        button
+                            [ A.class "standout-button"
+                            , A.class "post-popin-attention"
+                            ]
+                            [ a
                                 [ A.href ("#" ++ cellId i) ]
                                 [ text "Next "
                                 , span
@@ -912,13 +892,26 @@ pbnStatus ms =
                                     [ text "Choice"
                                     ]
                                 ]
+                            ]
 
-                        Nothing ->
-                            a
-                                [ A.href "#pbn-completed" ]
-                                [ text "Go to download button!"
-                                ]
-                    ]
+                    ( Nothing, Just solutionString ) ->
+                        button
+                            [ A.class "standout-button"
+                            , A.class "post-popin-attention"
+                            , A.class "extra-standout"
+                            , E.onClick
+                                (UserRequestedDownload
+                                    { filename = "analysis.py"
+                                    , text = solutionPrefix ++ solutionString
+                                    }
+                                )
+                            ]
+                            [ text "Download analysis script" ]
+
+                    -- TODO: Should never happen! Maybe enforce via type system
+                    -- somehow?
+                    ( Nothing, Nothing ) ->
+                        text ""
                 ]
             ]
 

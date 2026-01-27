@@ -652,6 +652,14 @@ a:hover {
     font-size: 0.7em;
 }
 
+.standout-button.extra-standout {
+    background-color: #ff4d37;
+}
+
+.standout-button.extra-standout:hover {
+    background-color: #ff624e;
+}
+
 /* || Outline */
 
 .outline-wrapper {
