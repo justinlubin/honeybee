@@ -15,6 +15,7 @@ of Honeybee.
 - Add Honeybee citation to output script
 - Add citation backreferences via Google Scholar
 - Add tool search via Google and DuckDuckGo
+- Add reference to PubMed entry for each tool
 - Add GoatCounter private analytics
 - Add website (https://honeybee-lang.org), including video demo
 
