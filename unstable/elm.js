@@ -5509,10 +5509,29 @@ var $author$project$Cell$ChoiceCell = F5(
 	function (varName, typeTitle, typeDescription, functionChoices, selectedFunctionChoice) {
 		return {functionChoices: functionChoices, selectedFunctionChoice: selectedFunctionChoice, typeDescription: typeDescription, typeTitle: typeTitle, varName: varName};
 	});
-var $author$project$Cell$FunctionChoice = F9(
-	function (functionTitle, functionDescription, code, metadataChoices, selectedMetadataChoice, googleScholarId, citation, additionalCitations, hyperparameters) {
-		return {additionalCitations: additionalCitations, citation: citation, code: code, functionDescription: functionDescription, functionTitle: functionTitle, googleScholarId: googleScholarId, hyperparameters: hyperparameters, metadataChoices: metadataChoices, selectedMetadataChoice: selectedMetadataChoice};
-	});
+var $author$project$Cell$FunctionChoice = function (functionTitle) {
+	return function (functionDescription) {
+		return function (code) {
+			return function (metadataChoices) {
+				return function (selectedMetadataChoice) {
+					return function (googleScholarId) {
+						return function (citation) {
+							return function (additionalCitations) {
+								return function (hyperparameters) {
+									return function (use) {
+										return function (pmid) {
+											return {additionalCitations: additionalCitations, citation: citation, code: code, functionDescription: functionDescription, functionTitle: functionTitle, googleScholarId: googleScholarId, hyperparameters: hyperparameters, metadataChoices: metadataChoices, pmid: pmid, selectedMetadataChoice: selectedMetadataChoice, use: use};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
 var $author$project$Cell$Hyperparameter = F3(
 	function (name, _default, comment) {
 		return {comment: comment, _default: _default, name: name};
@@ -5618,49 +5637,61 @@ var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
 var $author$project$Incoming$decodeFunctionChoice = A4(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 	_List_fromArray(
-		['info', 'hyperparameters']),
-	$elm$json$Json$Decode$nullable(
-		$elm$json$Json$Decode$list($author$project$Incoming$decodeHyperparameter)),
+		['info', 'pmid']),
+	$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 	$elm$core$Maybe$Nothing,
 	A4(
 		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 		_List_fromArray(
-			['info', 'additional_citations']),
-		$elm$json$Json$Decode$nullable(
-			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
+			['info', 'use']),
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 		$elm$core$Maybe$Nothing,
 		A4(
 			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 			_List_fromArray(
-				['info', 'citation']),
-			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+				['info', 'hyperparameters']),
+			$elm$json$Json$Decode$nullable(
+				$elm$json$Json$Decode$list($author$project$Incoming$decodeHyperparameter)),
 			$elm$core$Maybe$Nothing,
 			A4(
 				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 				_List_fromArray(
-					['info', 'google_scholar_id']),
-				$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					['info', 'additional_citations']),
+				$elm$json$Json$Decode$nullable(
+					$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
 				$elm$core$Maybe$Nothing,
-				A2(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$hardcoded,
-					0,
-					A3(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-						'metadata_choices',
-						$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice),
-						A3(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-							'code',
-							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+					_List_fromArray(
+						['info', 'citation']),
+					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+					$elm$core$Maybe$Nothing,
+					A4(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+						_List_fromArray(
+							['info', 'google_scholar_id']),
+						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+						$elm$core$Maybe$Nothing,
+						A2(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$hardcoded,
+							0,
 							A3(
 								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-								'function_description',
-								$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+								'metadata_choices',
+								$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice),
 								A3(
 									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'function_title',
-									$elm$json$Json$Decode$string,
-									$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice))))))))));
+									'code',
+									$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+									A3(
+										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+										'function_description',
+										$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+										A3(
+											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+											'function_title',
+											$elm$json$Json$Decode$string,
+											$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice))))))))))));
 var $elm$json$Json$Decode$map5 = _Json_map5;
 var $elm$core$List$sortBy = _List_sortBy;
 var $author$project$Incoming$decodeChoiceCell = A6(
@@ -6788,7 +6819,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+6a26554';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+13f472e';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -7157,6 +7188,31 @@ var $author$project$Update$UserSelectedMetadata = F2(
 var $elm$html$Html$blockquote = _VirtualDom_node('blockquote');
 var $elm$html$Html$code = _VirtualDom_node('code');
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$core$Maybe$isJust = function (maybe) {
+	if (maybe.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm_explorations$markdown$Markdown$toHtmlWith = _Markdown_toHtml;
+var $author$project$View$markdown = F2(
+	function (attrs, s) {
+		return A3(
+			$elm_explorations$markdown$Markdown$toHtmlWith,
+			{
+				defaultHighlighting: $elm$core$Maybe$Nothing,
+				githubFlavored: $elm$core$Maybe$Just(
+					{breaks: false, tables: false}),
+				sanitize: false,
+				smartypants: true
+			},
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('markdown'),
+				attrs),
+			s);
+	});
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
@@ -7214,14 +7270,6 @@ var $elm$html$Html$Attributes$src = function (url) {
 };
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$core$Maybe$isJust = function (maybe) {
-	if (maybe.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm_explorations$markdown$Markdown$toHtmlWith = _Markdown_toHtml;
 var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$View$functionChoice = F2(
@@ -7245,9 +7293,9 @@ var $author$project$View$functionChoice = F2(
 						$elm$html$Html$Attributes$class('tabbed-menu-body-dropdown'),
 						$elm$html$Html$Events$onInput(
 						function (v) {
-							var _v5 = $elm$core$String$toInt(v);
-							if (_v5.$ === 'Just') {
-								var n = _v5.a;
+							var _v6 = $elm$core$String$toInt(v);
+							if (_v6.$ === 'Just') {
+								var n = _v6.a;
 								return A2($author$project$Update$UserSelectedMetadata, ctx, n);
 							} else {
 								return $author$project$Update$Nop;
@@ -7345,15 +7393,44 @@ var $author$project$View$functionChoice = F2(
 												]))
 										])),
 									function () {
-									var _v0 = fc.googleScholarId;
+									var _v0 = fc.pmid;
 									if (_v0.$ === 'Just') {
-										var gsid = _v0.a;
+										var pmid = _v0.a;
 										return A2(
 											$elm$html$Html$li,
+											_List_Nil,
 											_List_fromArray(
 												[
-													$elm$html$Html$Attributes$class('google-scholar-backreference')
-												]),
+													$elm$html$Html$text('Read the ' + (fc.functionTitle + ' paper via ')),
+													A2(
+													$elm$html$Html$img,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$src('assets/nih.png')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$a,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$href('https://pubmed.ncbi.nlm.nih.gov/' + (pmid + '/'))
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('PubMed')
+														]))
+												]));
+									} else {
+										return $elm$html$Html$text('');
+									}
+								}(),
+									function () {
+									var _v1 = fc.googleScholarId;
+									if (_v1.$ === 'Just') {
+										var gsid = _v1.a;
+										return A2(
+											$elm$html$Html$li,
+											_List_Nil,
 											_List_fromArray(
 												[
 													$elm$html$Html$text('Browse papers that use ' + (fc.functionTitle + ' in ')),
@@ -7380,26 +7457,16 @@ var $author$project$View$functionChoice = F2(
 									}
 								}()
 								])),
-							A3(
-							$elm_explorations$markdown$Markdown$toHtmlWith,
-							{
-								defaultHighlighting: $elm$core$Maybe$Nothing,
-								githubFlavored: $elm$core$Maybe$Just(
-									{breaks: false, tables: false}),
-								sanitize: false,
-								smartypants: true
-							},
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('markdown')
-								]),
+							A2(
+							$author$project$View$markdown,
+							_List_Nil,
 							A2($elm$core$Maybe$withDefault, '', fc.functionDescription))
 						]),
 					_Utils_ap(
 						function () {
-							var _v1 = fc.hyperparameters;
-							if (_v1.$ === 'Just') {
-								var hs = _v1.a;
+							var _v2 = fc.hyperparameters;
+							if (_v2.$ === 'Just') {
+								var hs = _v2.a;
 								return _List_fromArray(
 									[
 										A2(
@@ -7454,9 +7521,9 @@ var $author$project$View$functionChoice = F2(
 						}(),
 						_Utils_ap(
 							function () {
-								var _v2 = fc.citation;
-								if (_v2.$ === 'Just') {
-									var citation = _v2.a;
+								var _v3 = fc.citation;
+								if (_v3.$ === 'Just') {
+									var citation = _v3.a;
 									return _List_fromArray(
 										[
 											A2(
@@ -7491,9 +7558,9 @@ var $author$project$View$functionChoice = F2(
 															]))
 													]),
 												function () {
-													var _v3 = fc.additionalCitations;
-													if (_v3.$ === 'Just') {
-														var acs = _v3.a;
+													var _v4 = fc.additionalCitations;
+													if (_v4.$ === 'Just') {
+														var acs = _v4.a;
 														return _Utils_ap(
 															_List_fromArray(
 																[
@@ -7529,11 +7596,11 @@ var $author$project$View$functionChoice = F2(
 							_Utils_ap(
 								($elm$core$List$length(fc.metadataChoices) > 1) ? selectAdditionalInformation : _List_Nil,
 								function () {
-									var _v4 = fc.code;
-									if (_v4.$ === 'Nothing') {
+									var _v5 = fc.code;
+									if (_v5.$ === 'Nothing') {
 										return _List_Nil;
 									} else {
-										var code = _v4.a;
+										var code = _v5.a;
 										return _List_fromArray(
 											[
 												A2(
@@ -7703,14 +7770,16 @@ var $author$project$View$functionChoices = F2(
 					}),
 				fcs));
 	});
-var $elm_explorations$markdown$Markdown$defaultOptions = {
-	defaultHighlighting: $elm$core$Maybe$Nothing,
-	githubFlavored: $elm$core$Maybe$Just(
-		{breaks: false, tables: false}),
-	sanitize: true,
-	smartypants: false
-};
-var $elm_explorations$markdown$Markdown$toHtml = $elm_explorations$markdown$Markdown$toHtmlWith($elm_explorations$markdown$Markdown$defaultOptions);
+var $author$project$View$inlineMarkdown = F2(
+	function (attrs, s) {
+		return A2(
+			$author$project$View$markdown,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('inline'),
+				attrs),
+			s);
+	});
 var $author$project$View$cell = F2(
 	function (ctx, c) {
 		if (c.$ === 'Code') {
@@ -7796,11 +7865,8 @@ var $author$project$View$cell = F2(
 				_List_fromArray(
 					[
 						A2(
-						$elm_explorations$markdown$Markdown$toHtml,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('markdown')
-							]),
+						$author$project$View$markdown,
+						_List_Nil,
 						A2($elm$core$Maybe$withDefault, '', x.typeDescription)),
 						A2(
 						$author$project$View$cardInnerHeading,
@@ -7809,6 +7875,53 @@ var $author$project$View$cell = F2(
 							[
 								$elm$html$Html$text('Choices' + suffix)
 							])),
+						($elm$core$List$length(x.functionChoices) > 1) ? A2(
+						$elm$html$Html$ul,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('use-hints')
+							]),
+						A2(
+							$elm$core$List$filterMap,
+							function (fc) {
+								var _v1 = fc.use;
+								if (_v1.$ === 'Just') {
+									var use = _v1.a;
+									return $elm$core$Maybe$Just(
+										A2(
+											$elm$html$Html$li,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$b,
+													_List_Nil,
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Tip:')
+														])),
+													A2(
+													$elm$html$Html$i,
+													_List_Nil,
+													_List_fromArray(
+														[
+															$elm$html$Html$text(' You may like '),
+															A2(
+															$elm$html$Html$b,
+															_List_Nil,
+															_List_fromArray(
+																[
+																	$elm$html$Html$text(fc.functionTitle)
+																])),
+															$elm$html$Html$text(' if you want… ')
+														])),
+													A2($author$project$View$inlineMarkdown, _List_Nil, use)
+												])));
+								} else {
+									return $elm$core$Maybe$Nothing;
+								}
+							},
+							x.functionChoices)) : $elm$html$Html$text(''),
 						A2(
 						$author$project$View$functionChoices,
 						{cellIndex: ctx.cellIndex, selectedFunctionChoice: x.selectedFunctionChoice},
