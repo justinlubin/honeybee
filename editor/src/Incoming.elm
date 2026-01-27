@@ -92,6 +92,9 @@ decodeFunctionChoice =
         |> P.optionalAt [ "info", "hyperparameters" ]
             (D.nullable <| D.list decodeHyperparameter)
             Nothing
+        |> P.optionalAt [ "info", "use" ]
+            (D.nullable <| D.string)
+            Nothing
 
 
 decodeChoiceCell : D.Decoder ChoiceCell

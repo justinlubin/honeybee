@@ -197,6 +197,7 @@ The Harvard Chan Bioinformatics Core provides a
 [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
 for assessing the outputs of FastQC."""
 info.citation = "Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"
+info.use = "a widely-used quality control tool for high throughput sequence data."
 info.hyperparameters = [
     {name = 'FASTQC_CORES', default = '4', comment = 'The number of cores that you want FastQC to use' },
 ]
@@ -235,6 +236,7 @@ MultiQC."""
 info.google_scholar_id = "15898044054356823756"
 info.citation = "Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC: Summarize analysis results for multiple tools and samples in a single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. PMID: 27312411"
 info.additional_citations = ["Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"]
+info.use = "a wrapper around FastQC that also combines all results into a single page."
 info.hyperparameters = [
 ]
 info.code = '''FASTQC_CORES = 4
@@ -522,6 +524,7 @@ including an explanation of why some adjusted _p_-values are `NA` and what
 can be done to turn off that behavior."""
 info.google_scholar_id = "16121678637925818947"
 info.citation = "Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. doi:10.1186/s13059-014-0550-8."
+info.use = "a **widely-used tool** that does **not** give you error bars."
 info.hyperparameters = [
     {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
@@ -572,6 +575,7 @@ sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleu
 that demonstrate how to use it to analyze RNA-seq datasets."""
 info.google_scholar_id = "1639708055766929241"
 info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
+info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
 info.hyperparameters = [
 ]
 info.code = '''raise NotImplementedError  # Coming soon!'''

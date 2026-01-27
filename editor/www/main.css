@@ -74,6 +74,14 @@ a:hover {
     line-height: 1.4;
 }
 
+.markdown.inline {
+    display: inline-block;
+}
+
+.markdown.inline > * {
+    display: inline;
+}
+
 .markdown h1 {
     font-weight: var(--bold);
     font-size: 1.1em;
@@ -530,6 +538,19 @@ a:hover {
     cursor: not-allowed;
     background-color: #ccc;
     color: #555;
+}
+
+/* Use hints */
+
+.use-hints {
+        margin-bottom: 10px;
+}
+
+.use-hints li {
+    list-style-type: disc;
+    font-size: 0.8em;
+    margin-bottom: 5px;
+    margin-left: 20px;
 }
 
 /* Tool Search Info */
