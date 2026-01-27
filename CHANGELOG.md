@@ -20,8 +20,10 @@ of Honeybee.
 
 - Overhaul glue annotations into the Honey language, resulting in much
   more ergnomic definitions for building blocks, better codegen, and a
-  smoother editor experience
+  smoother editor experience, including auto-selecting the "functions" that
+  declare the user's workflow
   ([#95](https://github.com/justinlubin/honeybee/pull/95))
 - Move "Next CHOICE" button (and new "Undo" button) to bottom of screen
 - Make variable names in generated code nicer (e.g. `TRANSCRIPT_MATRICES`,
   not `TRANSCRIPTMATRICES`)
+- Make "Go to download" button simply a "Download" button
