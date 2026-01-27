@@ -25,6 +25,23 @@ import Version
 -- Generic
 
 
+markdown : List (Attribute msg) -> String -> Html msg
+markdown attrs s =
+    Markdown.toHtmlWith
+        { githubFlavored = Just { tables = False, breaks = False }
+        , defaultHighlighting = Nothing
+        , sanitize = False
+        , smartypants = True
+        }
+        (A.class "markdown" :: attrs)
+        s
+
+
+inlineMarkdown : List (Attribute msg) -> String -> Html msg
+inlineMarkdown attrs s =
+    markdown (A.class "inline" :: attrs) s
+
+
 circled : Attribute msg
 circled =
     A.class "circled"
@@ -503,14 +520,7 @@ functionChoice ctx fc =
                     Nothing ->
                         text ""
                 ]
-            , Markdown.toHtmlWith
-                { githubFlavored = Just { tables = False, breaks = False }
-                , defaultHighlighting = Nothing
-                , sanitize = False
-                , smartypants = True
-                }
-                [ A.class "markdown" ]
-                (Maybe.withDefault "" fc.functionDescription)
+            , markdown [] (Maybe.withDefault "" fc.functionDescription)
             ]
                 ++ (case fc.hyperparameters of
                         Just hs ->
@@ -685,13 +695,36 @@ cell ctx c =
                     [ text (cellTitle c) ]
                     []
                 )
-                [ Markdown.toHtml
-                    [ A.class "markdown" ]
-                    (Maybe.withDefault "" x.typeDescription)
+                [ markdown [] (Maybe.withDefault "" x.typeDescription)
 
                 -- , cardInnerHeading [] [ text "Notes" ]
                 -- , textarea [] []
                 , cardInnerHeading [] [ text ("Choices" ++ suffix) ]
+                , if List.length x.functionChoices > 1 then
+                    ul [ A.class "use-hints" ]
+                        (List.filterMap
+                            (\fc ->
+                                case fc.use of
+                                    Just use ->
+                                        Just <|
+                                            li []
+                                                [ b [] [ text "Tip:" ]
+                                                , i []
+                                                    [ text " You may like "
+                                                    , b [] [ text fc.functionTitle ]
+                                                    , text " if you want… "
+                                                    ]
+                                                , inlineMarkdown [] use
+                                                ]
+
+                                    Nothing ->
+                                        Nothing
+                            )
+                            x.functionChoices
+                        )
+
+                  else
+                    text ""
                 , functionChoices
                     { cellIndex = ctx.cellIndex
                     , selectedFunctionChoice = x.selectedFunctionChoice

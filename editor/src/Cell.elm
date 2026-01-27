@@ -27,6 +27,7 @@ type alias FunctionChoice =
     , citation : Maybe String
     , additionalCitations : Maybe (List String)
     , hyperparameters : Maybe (List Hyperparameter)
+    , use : Maybe String
     }
 
 

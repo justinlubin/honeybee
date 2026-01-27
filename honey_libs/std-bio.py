@@ -141,6 +141,7 @@ def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: RnaSeqReads):
     citation="Simon Andrews. FastQC: a quality control tool for high "
     "throughput sequence data. (2010). Available online at: "
     "http://www.bioinformatics.babraham.ac.uk/projects/fastqc",
+    use="a widely-used quality control tool for high throughput sequence data.",
 )
 def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     """FastQC
@@ -183,6 +184,7 @@ def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
         "sequence data. (2010). Available online at: "
         "http://www.bioinformatics.babraham.ac.uk/projects/fastqc",
     ],
+    use="a wrapper around FastQC that also combines all results into a single page.",
 )
 def multiqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     """MultiQC
@@ -435,6 +437,7 @@ class DifferentialGeneExpression:
     citation="Love MI, Huber W, Anders S (2014). Moderated estimation of fold change "
     "and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. "
     "doi:10.1186/s13059-014-0550-8.",
+    use="a **widely-used tool** that does **not** give you error bars.",
 )
 def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     """DESeq2
@@ -513,6 +516,7 @@ def salmon(__hb_reads: RnaSeqReads, __hb_ret: TranscriptMatrices):
     "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
     "quantification uncertainty, Nature Methods (2017), advanced access "
     "http://dx.doi.org/10.1038/nmeth.4324.",
+    use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
 )
 def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     """sleuth
