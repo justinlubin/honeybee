@@ -95,6 +95,9 @@ decodeFunctionChoice =
         |> P.optionalAt [ "info", "use" ]
             (D.nullable <| D.string)
             Nothing
+        |> P.optionalAt [ "info", "pmid" ]
+            (D.nullable D.string)
+            Nothing
 
 
 decodeChoiceCell : D.Decoder ChoiceCell

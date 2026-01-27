@@ -234,6 +234,7 @@ the outputs of MultiQC.
 This function calls FastQC on the necessary files then aggregates them with
 MultiQC."""
 info.google_scholar_id = "15898044054356823756"
+info.pmid = "27312411"
 info.citation = "Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC: Summarize analysis results for multiple tools and samples in a single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. PMID: 27312411"
 info.additional_citations = ["Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"]
 info.use = "a wrapper around FastQC that also combines all results into a single page."
@@ -348,6 +349,7 @@ kallisto is a tool that estimates the number of times a transcript appears
 using a technique called _pseudoalignment_ that is much faster than a full
 alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 info.google_scholar_id = "15817796957364212470"
+info.pmid = "27043002"
 info.citation = "NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal probabilistic RNA-seq quantification, Nature Biotechnology 34, p 525--527 (2016)."
 info.hyperparameters = [
     {name = 'KALLISTO_INDEX', default = '"ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"', comment = 'The location of the kallisto transcriptome index on your computer' },
@@ -439,6 +441,7 @@ Salmon is a tool that estimates the number of times a transcript appears
 using a lightweight mapping technique that is much faster than a full
 alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 info.google_scholar_id = "5898741618830664005"
+info.pmid = "26925227"
 info.citation = "Soneson C, Love MI, Robinson MD (2015). Differential analyses for RNA-seq: transcript-level estimates improve gene-level inferences. F1000Research, 4. doi:10.12688/f1000research.7563.1."
 info.hyperparameters = [
     {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
@@ -524,6 +527,7 @@ including an explanation of why some adjusted _p_-values are `NA` and what
 can be done to turn off that behavior."""
 info.google_scholar_id = "16121678637925818947"
 info.citation = "Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. doi:10.1186/s13059-014-0550-8."
+info.pmid = "25516281"
 info.use = "a **widely-used tool** that does **not** give you error bars."
 info.hyperparameters = [
     {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
@@ -553,6 +557,7 @@ Salmon is a tool that estimates the number of times a transcript appears
 using a lightweight mapping technique that is much faster than a full
 alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 info.google_scholar_id = "11462947284863466602"
+info.pmid = "28263959"
 info.citation = "Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods."
 info.hyperparameters = [
     {name = 'SALMON_INDEX', default = '"put the path to the Salmon index here"', comment = 'The location of the Salmon transcriptome index on your computer' },
@@ -574,6 +579,7 @@ read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
 sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
 that demonstrate how to use it to analyze RNA-seq datasets."""
 info.google_scholar_id = "1639708055766929241"
+info.pmid = "28581496"
 info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
 info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
 info.hyperparameters = [

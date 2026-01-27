@@ -175,6 +175,7 @@ def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
     "ret.qc = true",
     "reads.qc = false",
     google_scholar_id="15898044054356823756",
+    pmid="27312411",
     citation="Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. "
     "MultiQC: Summarize analysis results for multiple tools and samples in a "
     "single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. "
@@ -298,6 +299,7 @@ class TranscriptMatrices:
 @Function(
     "reads.qc = true",
     google_scholar_id="15817796957364212470",
+    pmid="27043002",
     citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
     "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
     "p 525--527 (2016).",
@@ -367,6 +369,7 @@ class GeneMatrices:
 
 @Function(
     google_scholar_id="5898741618830664005",
+    pmid="26925227",
     citation="Soneson C, Love MI, Robinson MD (2015). Differential analyses "
     "for RNA-seq: transcript-level estimates improve gene-level inferences. "
     "F1000Research, 4. doi:10.12688/f1000research.7563.1.",
@@ -437,6 +440,7 @@ class DifferentialGeneExpression:
     citation="Love MI, Huber W, Anders S (2014). Moderated estimation of fold change "
     "and dispersion for RNA-seq data with DESeq2. Genome Biology, 15, 550. "
     "doi:10.1186/s13059-014-0550-8.",
+    pmid="25516281",
     use="a **widely-used tool** that does **not** give you error bars.",
 )
 def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
@@ -488,6 +492,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
 @Function(
     "reads.qc = true",
     google_scholar_id="11462947284863466602",
+    pmid="28263959",
     citation="Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & "
     "Kingsford, C. (2017). Salmon provides fast and bias-aware quantification "
     "of transcript expression. Nature Methods.",
@@ -512,6 +517,7 @@ def salmon(__hb_reads: RnaSeqReads, __hb_ret: TranscriptMatrices):
 
 @Function(
     google_scholar_id="1639708055766929241",
+    pmid="28581496",
     citation="Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted "
     "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
     "quantification uncertainty, Nature Methods (2017), advanced access "

@@ -504,9 +504,28 @@ functionChoice ctx fc =
                         [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
                         [ text "DuckDuckGo" ]
                     ]
+                , case fc.pmid of
+                    Just pmid ->
+                        li []
+                            [ text <|
+                                "Read the "
+                                    ++ fc.functionTitle
+                                    ++ " paper via "
+                            , img [ A.src "assets/nih.png" ] []
+                            , a
+                                [ A.href <|
+                                    "https://pubmed.ncbi.nlm.nih.gov/"
+                                        ++ pmid
+                                        ++ "/"
+                                ]
+                                [ text "PubMed" ]
+                            ]
+
+                    Nothing ->
+                        text ""
                 , case fc.googleScholarId of
                     Just gsid ->
-                        li [ A.class "google-scholar-backreference" ]
+                        li []
                             [ text <|
                                 "Browse papers that use "
                                     ++ fc.functionTitle
