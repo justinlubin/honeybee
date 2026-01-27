@@ -193,7 +193,7 @@ a:hover {
 }
 
 .tabbed-menu.closed::after {
-    content: "Choose a step above to see more details.";
+    content: "Choose a step above to see more details. (They’re in alphabetical order.)";
     display: block;
 
     background-color: #ddd;
