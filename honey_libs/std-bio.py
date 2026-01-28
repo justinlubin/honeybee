@@ -42,6 +42,8 @@ class SraRnaSeq:
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
 
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+
     Here's an example of what the CSV should contain (the headers must
     match the following exactly):
 

@@ -226,10 +226,11 @@ arg :
     ProgramIndex
     -> Dict String String
     -> Dict String String
+    -> Dict String String
     -> String
     -> ( ( String, ValueType ), List Value )
     -> Html Msg
-arg pi argTitles argDescriptions argName ( ( valueStr, _ ), suggestions ) =
+arg pi argTitles argDescriptions argExamples argName ( ( valueStr, _ ), suggestions ) =
     let
         id =
             "step-argument"
@@ -258,7 +259,13 @@ arg pi argTitles argDescriptions argName ( ( valueStr, _ ), suggestions ) =
         , input
             [ E.onInput (UserSetArgument pi argName)
             , A.id id
-            , A.placeholder "Enter value here…"
+            , A.placeholder <|
+                case argExamples |> Dict.get argName of
+                    Just ex ->
+                        "Enter value here, for example: " ++ ex
+
+                    Nothing ->
+                        "Enter value here…"
             , A.value valueStr
             ]
             []
@@ -302,10 +309,11 @@ args :
     ProgramIndex
     -> Dict String String
     -> Dict String String
+    -> Dict String String
     -> Assoc String ( ( String, ValueType ), List Value )
     -> List (Html Msg)
-args pi argTitles argDescriptions a =
-    Assoc.mapCollapse (arg pi argTitles argDescriptions) a
+args pi argTitles argDescriptions argExamples a =
+    Assoc.mapCollapse (arg pi argTitles argDescriptions argExamples) a
 
 
 step :
@@ -355,6 +363,7 @@ step library suggestions pi s =
                         pi
                         f.sig.paramTitles
                         f.sig.paramDescriptions
+                        f.sig.paramExamples
                         (Assoc.leftMergeWith [] f.args suggestions)
                     )
 

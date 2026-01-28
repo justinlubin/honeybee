@@ -68,12 +68,21 @@ def _parse_parameter(line: str, next_line: str) -> Parameter:
     )
 
 
-def _parse_title_description(s: str) -> tuple[str, str | None]:
+def _parse_title_description_example(s: str) -> tuple[str, str | None, str | None]:
     lines = s.splitlines()
     if len(lines) >= 3 and lines[1].strip() == "":
-        return lines[0], "\n".join(line.strip() for line in lines[2:])
+        title = lines[0]
+        description_lines = []
+        example = None
+        for line in lines[2:]:
+            line = line.strip()
+            if example is None and line.startswith("@example:"):
+                example = line[len("@example:") :]
+            else:
+                description_lines.append(line)
+        return title, "\n".join(description_lines), example
     else:
-        return s, None
+        return s, None, None
 
 
 def _emit_met_sig(kind, cls):
@@ -106,7 +115,7 @@ def _emit_met_sig(kind, cls):
     description = None
 
     if cls.__doc__ is not None:
-        title, description = _parse_title_description(cls.__doc__)
+        title, description, _ = _parse_title_description_example(cls.__doc__)
 
     if title is not None:
         print(f'info.title = "{title}"')
@@ -115,10 +124,12 @@ def _emit_met_sig(kind, cls):
         print(f'info.description = """{description}"""')
 
     for p in docs:
-        p_title, p_description = _parse_title_description(docs[p])
+        p_title, p_description, p_example = _parse_title_description_example(docs[p])
         print(f'info.param_titles.{p} = "{p_title}"')
         if p_description is not None:
             print(f'info.param_descriptions.{p} = """{p_description}"""')
+        if p_example is not None:
+            print(f'info.param_examples.{p} = """{p_example}"""')
 
     if kind == "InputProp":
         print()
@@ -185,7 +196,7 @@ def _emit_function_sig(f, condition, kwargs):
     print("]")
 
     if f.__doc__ is not None:
-        title, description = _parse_title_description(f.__doc__)
+        title, description, _ = _parse_title_description_example(f.__doc__)
         if description is None:
             # "title" becomes "description"
             print(f'info.description = "{title}"')

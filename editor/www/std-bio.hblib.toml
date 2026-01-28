@@ -32,7 +32,8 @@ content='''def carry_over(src_object, dst_object, *, file=None):
 params.sample_sheet = "Str"
 info.title = "RNA-seq (stored on remote Sequence Read Archive)"
 info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
-info.param_descriptions.sample_sheet = """Here's an example of what the CSV should contain (the headers must
+info.param_descriptions.sample_sheet = """
+Here's an example of what the CSV should contain (the headers must
 match the following exactly):
 
 | sample_name | condition | replicate |
@@ -41,12 +42,15 @@ match the following exactly):
 | JPL002      | control   | 2         |
 | JPL003      | treatment | 1         |
 | JPL004      | treatment | 2         |"""
+info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 info.code = '''@dataclass
 class SraRnaSeq:
     "RNA-seq (stored on remote Sequence Read Archive)"
 
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
+
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
 
     Here's an example of what the CSV should contain (the headers must
     match the following exactly):
@@ -62,7 +66,8 @@ class SraRnaSeq:
 params.sample_sheet = "Str"
 info.title = "RNA-seq (stored on remote Sequence Read Archive)"
 info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
-info.param_descriptions.sample_sheet = """Here's an example of what the CSV should contain (the headers must
+info.param_descriptions.sample_sheet = """
+Here's an example of what the CSV should contain (the headers must
 match the following exactly):
 
 | sample_name | condition | replicate |
@@ -71,6 +76,7 @@ match the following exactly):
 | JPL002      | control   | 2         |
 | JPL003      | treatment | 1         |
 | JPL004      | treatment | 2         |"""
+info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 
 [Function.F_SraRnaSeq]
 params = {}

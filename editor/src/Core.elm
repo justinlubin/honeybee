@@ -118,6 +118,7 @@ type alias FactSignature =
     { params : Assoc String ValueType
     , paramTitles : Dict String String
     , paramDescriptions : Dict String String
+    , paramExamples : Dict String String
     , title : Maybe String
     }
 
