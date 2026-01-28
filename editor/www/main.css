@@ -555,7 +555,8 @@ a:hover {
 .card-body input {
     width: 100%;
     margin-bottom: 10px;
-    padding: 3px;
+    padding: 5px;
+    font-size: 1em;
 }
 
 .card-inner-heading {
@@ -564,7 +565,7 @@ a:hover {
     font-weight: var(--bold);
     margin-top: 8px;
     margin-bottom: 5px;
-    margin-left: 5px;
+    margin-left: 2px;
 }
 
 /* Specific cards */
@@ -708,6 +709,14 @@ a:hover {
     border-radius: 50%;
     background-color: #eee;
     margin-right: 8px;
+}
+
+.step-arg .markdown {
+    margin: 0 30px;
+}
+
+.step-arg:not(:last-child) .markdown {
+    margin-bottom: 30px;
 }
 
 /* || Standout button */

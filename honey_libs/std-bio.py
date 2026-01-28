@@ -36,34 +36,54 @@ def carry_over(src_object, dst_object, *, file=None):
 
 
 @Input
-class SraRnaSeq:
-    "RNA-seq (stored on remote Sequence Read Archive)"
+class LocalRnaSeq:
+    "RNA-seq (stored on your own hard drive)"
 
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
 
     @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
 
-    Here's an example of what the CSV should contain (the headers must
-    match the following exactly):
+    Here is an example CSV file (the headers must match exactly):
 
     | sample_name | condition | replicate |
     |-------------|-----------|-----------|
-    | JPL001      | control   | 1         |
-    | JPL002      | control   | 2         |
-    | JPL003      | treatment | 1         |
-    | JPL004      | treatment | 2         |"""
+    | JPL001_t1   | treated   | 1         |
+    | JPL002_t2   | treated   | 2         |
+    | JPL003_u1   | untreated | 1         |
+    | JPL004_u2   | untreated | 2         |
+
+    The `sample_name` column can contain whatever you'd like."""
+
+    path: str
+    """Path to the directory containing the RNA-seq data
+
+    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
 
 
 @Input
-class LocalRnaSeq:
-    "RNA-seq (locally-saved)"
+class SraRnaSeq:
+    "RNA-seq (stored on the Sequence Read Archive)"
 
     sample_sheet: str
-    "Path to sample sheet CSV (columns: sample_name, condition, replicate)"
+    """Path to sample sheet CSV with SRA metadata
 
-    path: str
-    "Path to the directory containing the RNA-seq data"
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+
+    Here is an example CSV file (the headers must match exactly):
+
+    | sample_name | condition | replicate |
+    |-------------|-----------|-----------|
+    | SRR34323945 | treated   | 1         |
+    | SRR34323944 | treated   | 2         |
+    | SRR34323943 | untreated | 1         |
+    | SRR34323942 | untreated | 2         |
+
+    **Important:** The `sample_name` column must contain valid SRA "run
+    accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
+    digit."""
 
 
 @Output
