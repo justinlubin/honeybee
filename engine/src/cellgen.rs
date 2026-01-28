@@ -52,7 +52,7 @@ pub enum Cell {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Basic helpers
+// Helpers
 
 /// Translate a value to a Python string
 pub fn python_value(v: &Value) -> String {
@@ -62,17 +62,6 @@ pub fn python_value(v: &Value) -> String {
         Value::Int(i) => i.to_string(),
         Value::Str(s) => format!("\"{}\"", s).to_owned(),
     }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Cell generation
-
-struct Context<'a> {
-    library: &'a Library,
-    cells: Vec<Cell>,
-    fresh_counter: HashMap<String, usize>,
-    used_types: IndexSet<MetName>,
-    used_functions: IndexSet<BaseFunction>,
 }
 
 struct Bashify;
@@ -98,6 +87,21 @@ fn bashify(s: &str) -> String {
 
 fn make_var_name(s: &str) -> String {
     return s.to_case(convert_case::Case::Constant);
+}
+
+fn make_code_preview(code: &str) -> String {
+    return bashify(code);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Cell generation
+
+struct Context<'a> {
+    library: &'a Library,
+    cells: Vec<Cell>,
+    fresh_counter: HashMap<String, usize>,
+    used_types: IndexSet<MetName>,
+    used_functions: IndexSet<BaseFunction>,
 }
 
 impl<'a> Context<'a> {
@@ -336,7 +340,9 @@ fn collate_choices(
                     FunctionChoice {
                         function_title,
                         function_description,
-                        code: f_sig.info_string("code"),
+                        code: f_sig
+                            .info_string("code")
+                            .map(|s| make_code_preview(&s)),
                         metadata_choices: vec![],
                         info: f_sig.info.clone(),
                     }

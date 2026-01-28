@@ -86,6 +86,22 @@ customElements.define(
 
             Prism.highlightElement(codeElement);
 
+            codeElement.innerHTML = codeElement.innerHTML.replaceAll(
+                 /__hb_ret/g,
+                 `<span
+                     class='hb-argument'
+                     title='PLACEHOLDER: Will get filled with data from the current step.'
+                >current</span>`
+            );
+
+            codeElement.innerHTML = codeElement.innerHTML.replaceAll(
+                 /__hb_[A-Za-z][A-Za-z_]*/g,
+                 `<span
+                     class='hb-argument'
+                     title='PLACEHOLDER: Will get filled with data from upstream steps in the pipeline.'
+                >previous</span>`
+            );
+
             this.textContent = "";
             preElement.appendChild(codeElement);
             this.appendChild(preElement);
