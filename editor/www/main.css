@@ -7,6 +7,7 @@
     --shadow: 2px 2px 0px #333;
     --rounding: 5px;
     --ff: "Lucida Grande", "Lucida Sans Unicode", sans-serif;
+    --menu-bar-height: 30px;
 }
 
 body {
@@ -299,14 +300,17 @@ a:hover {
     justify-content: space-between;
     background-color: #333;
     color: #fff;
-    padding: 6px;
+    padding: 0 6px;
     border-bottom: 1px solid #000;
+
+    line-height: var(--menu-bar-height);
 
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 100;
+
 }
 
 .menu-bar a {
@@ -329,6 +333,7 @@ a:hover {
     font-weight: bold;
     margin-left: 5px;
     padding: 0 2px;
+    line-height: 1.3;
 }
 
 /* || Panes */
@@ -715,7 +720,7 @@ a:hover {
     box-shadow: var(--shadow);
 
     position: sticky;
-    top: 10px;
+    top: calc(10px + var(--menu-bar-height));
 }
 
 .outline .outline-heading {
