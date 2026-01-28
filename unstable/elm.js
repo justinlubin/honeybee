@@ -6069,9 +6069,11 @@ var $author$project$Update$consistentSuggestions = F2(
 			goalFact.args);
 	});
 var $author$project$Core$example = function (library) {
+	var propName = 'P_SraRnaSeq';
+	var goalName = 'DifferentialGeneExpression';
 	var _v0 = _Utils_Tuple2(
-		A2($author$project$Assoc$get, 'P_LocalRnaSeq', library.props),
-		A2($author$project$Assoc$get, 'DifferentialGeneExpression', library.types));
+		A2($author$project$Assoc$get, propName, library.props),
+		A2($author$project$Assoc$get, goalName, library.types));
 	if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
 		var propSig = _v0.a.a;
 		var typeSig = _v0.b.a;
@@ -6084,7 +6086,7 @@ var $author$project$Core$example = function (library) {
 							'comparison_sheet',
 							_Utils_Tuple2('metadata/comparisons.csv', $author$project$Core$VTStr))
 						]),
-					name: 'DifferentialGeneExpression',
+					name: goalName,
 					sig: typeSig
 				}),
 			props: _List_fromArray(
@@ -6097,7 +6099,7 @@ var $author$project$Core$example = function (library) {
 								'sample_sheet',
 								_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr))
 							]),
-						name: 'P_SraRnaSeq',
+						name: propName,
 						sig: propSig
 					})
 				])
@@ -6835,7 +6837,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+dcd3c66';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+7d9e53f';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
