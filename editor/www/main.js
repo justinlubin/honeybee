@@ -90,18 +90,16 @@ customElements.define(
                  /__hb_ret/g,
                  `<span
                      class='hb-argument'
-                     data-hb-name='$1'
-                     title='This is a placeholder that will get filled with information about the current step.'
-                >current_step</span>`
+                     title='PLACEHOLDER: Will get filled with data from the current step.'
+                >current</span>`
             );
 
             codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-                 /__hb_([A-Za-z][A-Za-z_]*)/g,
+                 /__hb_[A-Za-z][A-Za-z_]*/g,
                  `<span
                      class='hb-argument'
-                     data-hb-name='$1'
-                     title='This is a placeholder that will get filled by some of the next steps you select.'
-                >$1</span>`
+                     title='PLACEHOLDER: Will get filled with data from upstream steps in the pipeline.'
+                >previous</span>`
             );
 
             this.textContent = "";
