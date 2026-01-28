@@ -5392,7 +5392,7 @@ var $elm$core$Dict$fromList = function (assocs) {
 		assocs);
 };
 var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
-var $elm$json$Json$Decode$map3 = _Json_map3;
+var $elm$json$Json$Decode$map5 = _Json_map5;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$maybe = function (decoder) {
 	return $elm$json$Json$Decode$oneOf(
@@ -5432,13 +5432,17 @@ var $elm$core$Maybe$withDefault = F2(
 			return _default;
 		}
 	});
-var $author$project$Incoming$factSignature = A4(
-	$elm$json$Json$Decode$map3,
-	F3(
-		function (p, pl, t) {
+var $author$project$Incoming$factSignature = A6(
+	$elm$json$Json$Decode$map5,
+	F5(
+		function (p, pt, pd, pe, t) {
 			return {
-				paramLabels: $elm$core$Dict$fromList(
-					A2($elm$core$Maybe$withDefault, _List_Nil, pl)),
+				paramDescriptions: $elm$core$Dict$fromList(
+					A2($elm$core$Maybe$withDefault, _List_Nil, pd)),
+				paramExamples: $elm$core$Dict$fromList(
+					A2($elm$core$Maybe$withDefault, _List_Nil, pe)),
+				paramTitles: $elm$core$Dict$fromList(
+					A2($elm$core$Maybe$withDefault, _List_Nil, pt)),
 				params: p,
 				title: t
 			};
@@ -5451,7 +5455,19 @@ var $author$project$Incoming$factSignature = A4(
 		A2(
 			$elm$json$Json$Decode$at,
 			_List_fromArray(
-				['info', 'params']),
+				['info', 'param_titles']),
+			$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string))),
+	$elm$json$Json$Decode$maybe(
+		A2(
+			$elm$json$Json$Decode$at,
+			_List_fromArray(
+				['info', 'param_descriptions']),
+			$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string))),
+	$elm$json$Json$Decode$maybe(
+		A2(
+			$elm$json$Json$Decode$at,
+			_List_fromArray(
+				['info', 'param_examples']),
 			$elm$json$Json$Decode$keyValuePairs($elm$json$Json$Decode$string))),
 	$elm$json$Json$Decode$maybe(
 		A2(
@@ -5536,6 +5552,7 @@ var $author$project$Cell$Hyperparameter = F3(
 	function (name, _default, comment) {
 		return {comment: comment, _default: _default, name: name};
 	});
+var $elm$json$Json$Decode$map3 = _Json_map3;
 var $author$project$Incoming$decodeHyperparameter = A4(
 	$elm$json$Json$Decode$map3,
 	$author$project$Cell$Hyperparameter,
@@ -5692,7 +5709,6 @@ var $author$project$Incoming$decodeFunctionChoice = A4(
 											'function_title',
 											$elm$json$Json$Decode$string,
 											$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice))))))))))));
-var $elm$json$Json$Decode$map5 = _Json_map5;
 var $elm$core$List$sortBy = _List_sortBy;
 var $author$project$Incoming$decodeChoiceCell = A6(
 	$elm$json$Json$Decode$map5,
@@ -6819,7 +6835,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+f95ad57';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+d4fcb95';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -7203,7 +7219,7 @@ var $author$project$View$markdown = F2(
 			{
 				defaultHighlighting: $elm$core$Maybe$Nothing,
 				githubFlavored: $elm$core$Maybe$Just(
-					{breaks: false, tables: false}),
+					{breaks: false, tables: true}),
 				sanitize: false,
 				smartypants: true
 			},
@@ -8431,8 +8447,8 @@ var $elm$core$List$intersperse = F2(
 	});
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $author$project$View$arg = F4(
-	function (pi, argLabels, argName, _v0) {
+var $author$project$View$arg = F6(
+	function (pi, argTitles, argDescriptions, argExamples, argName, _v0) {
 		var _v1 = _v0.a;
 		var valueStr = _v1.a;
 		var suggestions = _v0.b;
@@ -8468,7 +8484,7 @@ var $author$project$View$arg = F4(
 								A2(
 									$elm$core$Maybe$map,
 									$author$project$Annotations$removeAll,
-									A2($elm$core$Dict$get, argName, argLabels))))
+									A2($elm$core$Dict$get, argName, argTitles))))
 						])),
 					A2(
 					$elm$html$Html$input,
@@ -8477,7 +8493,16 @@ var $author$project$View$arg = F4(
 							$elm$html$Html$Events$onInput(
 							A2($author$project$Update$UserSetArgument, pi, argName)),
 							$elm$html$Html$Attributes$id(id),
-							$elm$html$Html$Attributes$placeholder('Enter value here…'),
+							$elm$html$Html$Attributes$placeholder(
+							function () {
+								var _v2 = A2($elm$core$Dict$get, argName, argExamples);
+								if (_v2.$ === 'Just') {
+									var ex = _v2.a;
+									return 'Enter value here, for example: ' + ex;
+								} else {
+									return 'Enter value here…';
+								}
+							}()),
 							$elm$html$Html$Attributes$value(valueStr)
 						]),
 					_List_Nil),
@@ -8486,7 +8511,7 @@ var $author$project$View$arg = F4(
 					A2(
 						$elm$core$Maybe$map,
 						$author$project$Annotations$contains($author$project$Annotations$NoSuggest),
-						A2($elm$core$Dict$get, argName, argLabels)))) ? $elm$html$Html$text('') : A2(
+						A2($elm$core$Dict$get, argName, argTitles)))) ? $elm$html$Html$text('') : A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
@@ -8514,14 +8539,23 @@ var $author$project$View$arg = F4(
 												$elm$html$Html$text(s)
 											]));
 								},
-								suggestions))))
+								suggestions)))),
+					function () {
+					var _v3 = A2($elm$core$Dict$get, argName, argDescriptions);
+					if (_v3.$ === 'Just') {
+						var desc = _v3.a;
+						return A2($author$project$View$markdown, _List_Nil, desc);
+					} else {
+						return $elm$html$Html$text('');
+					}
+				}()
 				]));
 	});
-var $author$project$View$args = F3(
-	function (pi, argLabels, a) {
+var $author$project$View$args = F5(
+	function (pi, argTitles, argDescriptions, argExamples, a) {
 		return A2(
 			$author$project$Assoc$mapCollapse,
-			A2($author$project$View$arg, pi, argLabels),
+			A4($author$project$View$arg, pi, argTitles, argDescriptions, argExamples),
 			a);
 	});
 var $author$project$Assoc$leftMergeWith = F3(
@@ -8577,10 +8611,12 @@ var $author$project$View$step = F4(
 				var f = s.a;
 				return _Utils_Tuple2(
 					f.name,
-					A3(
+					A5(
 						$author$project$View$args,
 						pi,
-						f.sig.paramLabels,
+						f.sig.paramTitles,
+						f.sig.paramDescriptions,
+						f.sig.paramExamples,
 						A3($author$project$Assoc$leftMergeWith, _List_Nil, f.args, suggestions)));
 			}
 		}();
