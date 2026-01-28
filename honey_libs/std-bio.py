@@ -40,7 +40,17 @@ class SraRnaSeq:
     "RNA-seq (stored on remote Sequence Read Archive)"
 
     sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata (columns: sample_name, condition, replicate)"
+    """Path to sample sheet CSV with SRA metadata
+
+    Here's an example of what the CSV should contain (the headers must
+    match the following exactly):
+
+    | sample_name | condition | replicate |
+    |-------------|-----------|-----------|
+    | JPL001      | control   | 1         |
+    | JPL002      | control   | 2         |
+    | JPL003      | treatment | 1         |
+    | JPL004      | treatment | 2         |"""
 
 
 @Input

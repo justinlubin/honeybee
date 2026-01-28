@@ -28,7 +28,7 @@ import Version
 markdown : List (Attribute msg) -> String -> Html msg
 markdown attrs s =
     Markdown.toHtmlWith
-        { githubFlavored = Just { tables = False, breaks = False }
+        { githubFlavored = Just { tables = True, breaks = False }
         , defaultHighlighting = Nothing
         , sanitize = False
         , smartypants = True
@@ -225,10 +225,11 @@ tabbedMenu attrs { selectionEvent, deselectionEvent, selectedIndex } content =
 arg :
     ProgramIndex
     -> Dict String String
+    -> Dict String String
     -> String
     -> ( ( String, ValueType ), List Value )
     -> Html Msg
-arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
+arg pi argTitles argDescriptions argName ( ( valueStr, _ ), suggestions ) =
     let
         id =
             "step-argument"
@@ -248,7 +249,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             [ A.for id
             , A.class "card-inner-heading"
             ]
-            [ argLabels
+            [ argTitles
                 |> Dict.get argName
                 |> Maybe.map Annotations.removeAll
                 |> Maybe.withDefault argName
@@ -263,7 +264,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             []
         , if
             List.isEmpty suggestions
-                || (argLabels
+                || (argTitles
                         |> Dict.get argName
                         |> Maybe.map (Annotations.contains Annotations.NoSuggest)
                         |> (==) (Just True)
@@ -288,16 +289,23 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
                             )
                             suggestions
                         )
+        , case argDescriptions |> Dict.get argName of
+            Just desc ->
+                markdown [] desc
+
+            Nothing ->
+                text ""
         ]
 
 
 args :
     ProgramIndex
     -> Dict String String
+    -> Dict String String
     -> Assoc String ( ( String, ValueType ), List Value )
     -> List (Html Msg)
-args pi argLabels a =
-    Assoc.mapCollapse (arg pi argLabels) a
+args pi argTitles argDescriptions a =
+    Assoc.mapCollapse (arg pi argTitles argDescriptions) a
 
 
 step :
@@ -345,7 +353,8 @@ step library suggestions pi s =
                     ( f.name
                     , args
                         pi
-                        f.sig.paramLabels
+                        f.sig.paramTitles
+                        f.sig.paramDescriptions
                         (Assoc.leftMergeWith [] f.args suggestions)
                     )
 

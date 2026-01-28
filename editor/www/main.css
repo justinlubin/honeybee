@@ -138,6 +138,58 @@ a:hover {
     font-family: monospace;
 }
 
+.markdown table {
+    width: 100%;
+
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--rounding);
+    overflow: hidden;
+
+    margin-bottom: 10px;
+}
+
+.markdown td,
+.markdown th {
+    padding: 5px 10px;
+    border: 1px solid black;
+    border-style: none solid solid none;
+}
+
+.markdown th {
+    font-weight: bold;
+    background-color: rgba(0, 0, 0, 0.1);
+
+    border-top-style: solid;
+}
+
+.markdown td {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+
+.markdown th:first-child {
+    border-left-style: solid;
+    border-top-left-radius: var(--rounding);
+}
+
+.markdown th:last-child {
+    border-top-right-radius: var(--rounding);
+}
+
+.markdown td:first-child {
+    border-left-style: solid;
+}
+
+.markdown tbody tr:last-child td:first-child {
+    border-bottom-left-radius: var(--rounding);
+}
+
+.markdown tbody tr:last-child td:last-child {
+    border-bottom-right-radius: var(--rounding);
+}
+
+
 .markdown .more-info {
     cursor: help;
     text-decoration: underline;
