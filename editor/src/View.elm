@@ -262,10 +262,10 @@ arg pi argTitles argDescriptions argExamples argName ( ( valueStr, _ ), suggesti
             , A.placeholder <|
                 case argExamples |> Dict.get argName of
                     Just ex ->
-                        "Enter value here, for example: " ++ ex
+                        "Enter information here, for example: " ++ ex
 
                     Nothing ->
-                        "Enter value here…"
+                        "Enter information here…"
             , A.value valueStr
             ]
             []
