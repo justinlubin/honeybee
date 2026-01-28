@@ -53,7 +53,8 @@ class LocalRnaSeq:
     | JPL003_u1   | untreated | 1         |
     | JPL004_u2   | untreated | 2         |
 
-    The `sample_name` column can contain whatever you'd like."""
+    The `sample_name` column can contain whatever you'd like, as long as each
+    row is unique."""
 
     path: str
     """Path to the directory containing the RNA-seq data
