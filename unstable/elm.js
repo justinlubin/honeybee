@@ -6835,7 +6835,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+d4fcb95';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+5b8092b';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -8498,9 +8498,9 @@ var $author$project$View$arg = F6(
 								var _v2 = A2($elm$core$Dict$get, argName, argExamples);
 								if (_v2.$ === 'Just') {
 									var ex = _v2.a;
-									return 'Enter value here, for example: ' + ex;
+									return 'Enter information here, for example: ' + ex;
 								} else {
-									return 'Enter value here…';
+									return 'Enter information here…';
 								}
 							}()),
 							$elm$html$Html$Attributes$value(valueStr)
