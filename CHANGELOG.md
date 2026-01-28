@@ -7,6 +7,9 @@ of Honeybee.
 
 ### Added
 
+- Add additional UI + information to help fill out information in the first
+  phase of Honeybee
+  ([#109](https://github.com/justinlubin/honeybee/pull/109))
 - Add "use hints" that allow for quick comparison between tools
   ([#101](https://github.com/justinlubin/honeybee/pull/101))
 - Add /unstable route for accessing latest pushed unreleased version
