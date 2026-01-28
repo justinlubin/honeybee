@@ -15,7 +15,8 @@ of Honeybee.
 - Add Honeybee citation to output script
 - Add citation backreferences via Google Scholar
 - Add tool search via Google and DuckDuckGo
-- Add reference to PubMed entry for each tool
+- Add reference to PubMed entry (PMID) for each tool
+  ([#102](https://github.com/justinlubin/honeybee/pull/102))
 - Add GoatCounter private analytics
 - Add website (https://honeybee-lang.org), including video demo
 
@@ -30,3 +31,8 @@ of Honeybee.
 - Make variable names in generated code nicer (e.g. `TRANSCRIPT_MATRICES`,
   not `TRANSCRIPTMATRICES`)
 - Make "Go to download" button simply a "Download" button
+- Make code preview nicer (shows holes as circles)
+  ([#107](https://github.com/justinlubin/honeybee/pull/107))
+- Made the menu bar sticky
+  ([#103](https://github.com/justinlubin/honeybee/pull/103),
+  [#108](https://github.com/justinlubin/honeybee/pull/108))
