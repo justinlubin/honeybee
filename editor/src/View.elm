@@ -28,7 +28,7 @@ import Version
 markdown : List (Attribute msg) -> String -> Html msg
 markdown attrs s =
     Markdown.toHtmlWith
-        { githubFlavored = Just { tables = False, breaks = False }
+        { githubFlavored = Just { tables = True, breaks = False }
         , defaultHighlighting = Nothing
         , sanitize = False
         , smartypants = True
@@ -225,10 +225,12 @@ tabbedMenu attrs { selectionEvent, deselectionEvent, selectedIndex } content =
 arg :
     ProgramIndex
     -> Dict String String
+    -> Dict String String
+    -> Dict String String
     -> String
     -> ( ( String, ValueType ), List Value )
     -> Html Msg
-arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
+arg pi argTitles argDescriptions argExamples argName ( ( valueStr, _ ), suggestions ) =
     let
         id =
             "step-argument"
@@ -248,7 +250,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             [ A.for id
             , A.class "card-inner-heading"
             ]
-            [ argLabels
+            [ argTitles
                 |> Dict.get argName
                 |> Maybe.map Annotations.removeAll
                 |> Maybe.withDefault argName
@@ -257,13 +259,19 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
         , input
             [ E.onInput (UserSetArgument pi argName)
             , A.id id
-            , A.placeholder "Enter value here…"
+            , A.placeholder <|
+                case argExamples |> Dict.get argName of
+                    Just ex ->
+                        "Enter value here, for example: " ++ ex
+
+                    Nothing ->
+                        "Enter value here…"
             , A.value valueStr
             ]
             []
         , if
             List.isEmpty suggestions
-                || (argLabels
+                || (argTitles
                         |> Dict.get argName
                         |> Maybe.map (Annotations.contains Annotations.NoSuggest)
                         |> (==) (Just True)
@@ -288,16 +296,24 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
                             )
                             suggestions
                         )
+        , case argDescriptions |> Dict.get argName of
+            Just desc ->
+                markdown [] desc
+
+            Nothing ->
+                text ""
         ]
 
 
 args :
     ProgramIndex
     -> Dict String String
+    -> Dict String String
+    -> Dict String String
     -> Assoc String ( ( String, ValueType ), List Value )
     -> List (Html Msg)
-args pi argLabels a =
-    Assoc.mapCollapse (arg pi argLabels) a
+args pi argTitles argDescriptions argExamples a =
+    Assoc.mapCollapse (arg pi argTitles argDescriptions argExamples) a
 
 
 step :
@@ -345,7 +361,9 @@ step library suggestions pi s =
                     ( f.name
                     , args
                         pi
-                        f.sig.paramLabels
+                        f.sig.paramTitles
+                        f.sig.paramDescriptions
+                        f.sig.paramExamples
                         (Assoc.leftMergeWith [] f.args suggestions)
                     )
 

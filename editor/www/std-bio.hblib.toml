@@ -28,49 +28,75 @@ content='''def carry_over(src_object, dst_object, *, file=None):
     else:
         carry_one(file)'''
 
-[Type.SraRnaSeq]
-params.sample_sheet = "Str"
-info.title = "RNA-seq (stored on remote Sequence Read Archive)"
-info.code = '''@dataclass
-class SraRnaSeq:
-    "RNA-seq (stored on remote Sequence Read Archive)"
-
-    sample_sheet: str
-    "Path to sample sheet CSV with SRA metadata (columns: sample_name, condition, replicate)"'''
-
-[Prop.P_SraRnaSeq]
-params.sample_sheet = "Str"
-info.title = "RNA-seq (stored on remote Sequence Read Archive)"
-info.params.sample_sheet = "Path to sample sheet CSV with SRA metadata (columns: sample_name, condition, replicate)"
-
-[Function.F_SraRnaSeq]
-params = {}
-ret = "SraRnaSeq"
-condition = [
-    "P_SraRnaSeq { sample_sheet = ret.sample_sheet }"
-]
-info.title = "RNA-seq (stored on remote Sequence Read Archive)"
-
 [Type.LocalRnaSeq]
 params.sample_sheet = "Str"
 params.path = "Str"
-info.title = "RNA-seq (locally-saved)"
+info.title = "RNA-seq (stored on your own hard drive)"
+info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
+info.param_descriptions.sample_sheet = """
+Here is an example CSV file (the headers must match exactly):
+
+| sample_name | condition | replicate |
+|-------------|-----------|-----------|
+| JPL001_t1   | treated   | 1         |
+| JPL002_t2   | treated   | 2         |
+| JPL003_u1   | untreated | 1         |
+| JPL004_u2   | untreated | 2         |
+
+The `sample_name` column can contain whatever you'd like."""
+info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.param_titles.path = "Path to the directory containing the RNA-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
 info.code = '''@dataclass
 class LocalRnaSeq:
-    "RNA-seq (locally-saved)"
+    "RNA-seq (stored on your own hard drive)"
 
     sample_sheet: str
-    "Path to sample sheet CSV (columns: sample_name, condition, replicate)"
+    """Path to sample sheet CSV with SRA metadata
+
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+
+    Here is an example CSV file (the headers must match exactly):
+
+    | sample_name | condition | replicate |
+    |-------------|-----------|-----------|
+    | JPL001_t1   | treated   | 1         |
+    | JPL002_t2   | treated   | 2         |
+    | JPL003_u1   | untreated | 1         |
+    | JPL004_u2   | untreated | 2         |
+
+    The `sample_name` column can contain whatever you'd like."""
 
     path: str
-    "Path to the directory containing the RNA-seq data"'''
+    """Path to the directory containing the RNA-seq data
+
+    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""'''
 
 [Prop.P_LocalRnaSeq]
 params.sample_sheet = "Str"
 params.path = "Str"
-info.title = "RNA-seq (locally-saved)"
-info.params.sample_sheet = "Path to sample sheet CSV (columns: sample_name, condition, replicate)"
-info.params.path = "Path to the directory containing the RNA-seq data"
+info.title = "RNA-seq (stored on your own hard drive)"
+info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
+info.param_descriptions.sample_sheet = """
+Here is an example CSV file (the headers must match exactly):
+
+| sample_name | condition | replicate |
+|-------------|-----------|-----------|
+| JPL001_t1   | treated   | 1         |
+| JPL002_t2   | treated   | 2         |
+| JPL003_u1   | untreated | 1         |
+| JPL004_u2   | untreated | 2         |
+
+The `sample_name` column can contain whatever you'd like."""
+info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.param_titles.path = "Path to the directory containing the RNA-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
 
 [Function.F_LocalRnaSeq]
 params = {}
@@ -78,11 +104,79 @@ ret = "LocalRnaSeq"
 condition = [
     "P_LocalRnaSeq { sample_sheet = ret.sample_sheet, path = ret.path }"
 ]
-info.title = "RNA-seq (locally-saved)"
+info.title = "RNA-seq (stored on your own hard drive)"
+
+[Type.SraRnaSeq]
+params.sample_sheet = "Str"
+info.title = "RNA-seq (stored on the Sequence Read Archive)"
+info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
+info.param_descriptions.sample_sheet = """
+Here is an example CSV file (the headers must match exactly):
+
+| sample_name | condition | replicate |
+|-------------|-----------|-----------|
+| SRR34323945 | treated   | 1         |
+| SRR34323944 | treated   | 2         |
+| SRR34323943 | untreated | 1         |
+| SRR34323942 | untreated | 2         |
+
+**Important:** The `sample_name` column must contain valid SRA "run
+accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
+digit."""
+info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.code = '''@dataclass
+class SraRnaSeq:
+    "RNA-seq (stored on the Sequence Read Archive)"
+
+    sample_sheet: str
+    """Path to sample sheet CSV with SRA metadata
+
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+
+    Here is an example CSV file (the headers must match exactly):
+
+    | sample_name | condition | replicate |
+    |-------------|-----------|-----------|
+    | SRR34323945 | treated   | 1         |
+    | SRR34323944 | treated   | 2         |
+    | SRR34323943 | untreated | 1         |
+    | SRR34323942 | untreated | 2         |
+
+    **Important:** The `sample_name` column must contain valid SRA "run
+    accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
+    digit."""'''
+
+[Prop.P_SraRnaSeq]
+params.sample_sheet = "Str"
+info.title = "RNA-seq (stored on the Sequence Read Archive)"
+info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
+info.param_descriptions.sample_sheet = """
+Here is an example CSV file (the headers must match exactly):
+
+| sample_name | condition | replicate |
+|-------------|-----------|-----------|
+| SRR34323945 | treated   | 1         |
+| SRR34323944 | treated   | 2         |
+| SRR34323943 | untreated | 1         |
+| SRR34323942 | untreated | 2         |
+
+**Important:** The `sample_name` column must contain valid SRA "run
+accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
+digit."""
+info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+
+[Function.F_SraRnaSeq]
+params = {}
+ret = "SraRnaSeq"
+condition = [
+    "P_SraRnaSeq { sample_sheet = ret.sample_sheet }"
+]
+info.title = "RNA-seq (stored on the Sequence Read Archive)"
 
 [Type.RnaSeqReads]
 params.qc = "Bool"
 params.trimmed = "Bool"
+info.title = "@intermediate:RNA-seq reads"
 info.description = """The goal of this step is to get RNA-seq reads.
 
 These reads can either be raw data (that is, the direct output of a machine
@@ -96,7 +190,6 @@ require that the RNA-seq reads undergo _quality control_ (QC) checks using
 a tool like
 [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 before and after running the tool."""
-info.title = "@intermediate:RNA-seq reads"
 info.code = '''@dataclass
 class RnaSeqReads:
     """@intermediate:RNA-seq reads
@@ -312,6 +405,7 @@ for sample_name in sample_sheet["sample_name"]:
 
 [Type.TranscriptMatrices]
 params = {}
+info.title = "Transcript read counts (and TPM abundance) of RNA-seq samples"
 info.description = """The goal of this step is to calculate two transcript-by-sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
@@ -320,7 +414,6 @@ These matrices are usually computed by using a reference transcriptome
 (coding sequences) rather than a reference genome. Unless your scientific
 question relates specifically to transcript information, these matrices are
 often aggregated into **gene-level** read count and abundance information."""
-info.title = "Transcript read counts (and TPM abundance) of RNA-seq samples"
 info.code = '''@dataclass
 class TranscriptMatrices:
     """Transcript read counts (and TPM abundance) of RNA-seq samples
@@ -369,6 +462,7 @@ for sample_name in sample_sheet["sample_name"]:
 
 [Type.GeneMatrices]
 params = {}
+info.title = "Gene read counts (and TPM abundance) of RNA-seq samples"
 info.description = """The goal of this step is to calculate two gene-by-sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
@@ -392,7 +486,6 @@ read count matrices (Fig 2a and 2b are especially relevant):
 > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
 > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
 > https://doi.org/10.1186/s13059-016-0881-8"""
-info.title = "Gene read counts (and TPM abundance) of RNA-seq samples"
 info.code = '''@dataclass
 class GeneMatrices:
     """Gene read counts (and TPM abundance) of RNA-seq samples
@@ -459,6 +552,7 @@ __hb_bash(f"""
 
 [Type.DifferentialGeneExpression]
 params.comparison_sheet = "Str"
+info.title = "Differential gene expression"
 info.description = """The goal of this step is to assign a score (like a _p_-value) to each gene
 that ranks how differentially expressed it is between two conditions.
 Among other uses, this information can be plotted in an
@@ -473,8 +567,7 @@ The following image shows a _typical_ RNA-seq processing workflow,
 For example, sometimes you start with reads already quantified or trimmed,
 and sometimes you need to run additional processing steps like batch
 correction."""
-info.title = "Differential gene expression"
-info.params.comparison_sheet = "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
+info.param_titles.comparison_sheet = "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
 info.code = '''@dataclass
 class DifferentialGeneExpression:
     """Differential gene expression
@@ -509,13 +602,13 @@ info.description = """# Find differentially-expressed protein-coding genes with 
 
 DESeq2 models gene expression using what is called a
 <span class="more-info">
-    <span>
-        A <b>negative binomial distribution</b> is a statistical distribution
-        that models count data with unexplained variance, such as the
-        number of mRNA transcripts in a cell.  It looks like an off-center
-        normal distribution that is only defined for non-negative integers.
-    </span>
-    negative binomial distribution</span>,
+<span>
+A <b>negative binomial distribution</b> is a statistical distribution
+that models count data with unexplained variance, such as the
+number of mRNA transcripts in a cell.  It looks like an off-center
+normal distribution that is only defined for non-negative integers.
+</span>
+negative binomial distribution</span>,
 which is much more suitable for RNA-seq data than something like a _t_-test.
 DESeq2 has an
 [extensive guide](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)

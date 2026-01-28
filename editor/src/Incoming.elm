@@ -164,15 +164,19 @@ valueType =
 
 factSignature : D.Decoder Core.FactSignature
 factSignature =
-    D.map3
-        (\p pl t ->
+    D.map5
+        (\p pt pd pe t ->
             { params = p
-            , paramLabels = Dict.fromList (Maybe.withDefault [] pl)
+            , paramTitles = Dict.fromList (Maybe.withDefault [] pt)
+            , paramDescriptions = Dict.fromList (Maybe.withDefault [] pd)
+            , paramExamples = Dict.fromList (Maybe.withDefault [] pe)
             , title = t
             }
         )
         (D.field "params" <| D.keyValuePairs valueType)
-        (D.maybe <| D.at [ "info", "params" ] <| D.keyValuePairs D.string)
+        (D.maybe <| D.at [ "info", "param_titles" ] <| D.keyValuePairs D.string)
+        (D.maybe <| D.at [ "info", "param_descriptions" ] <| D.keyValuePairs D.string)
+        (D.maybe <| D.at [ "info", "param_examples" ] <| D.keyValuePairs D.string)
         (D.maybe <| D.at [ "info", "title" ] D.string)
 
 

@@ -68,6 +68,23 @@ def _parse_parameter(line: str, next_line: str) -> Parameter:
     )
 
 
+def _parse_title_description_example(s: str) -> tuple[str, str | None, str | None]:
+    lines = s.splitlines()
+    if len(lines) >= 3 and lines[1].strip() == "":
+        title = lines[0]
+        description_lines = []
+        example = None
+        for line in lines[2:]:
+            line = line.strip()
+            if example is None and line.startswith("@example:"):
+                example = line[len("@example:") :]
+            else:
+                description_lines.append(line)
+        return title, "\n".join(description_lines), example
+    else:
+        return s, None, None
+
+
 def _emit_met_sig(kind, cls):
     assert kind in {"InputProp", "InputType", "OutputType"}
 
@@ -95,31 +112,24 @@ def _emit_met_sig(kind, cls):
         print(f"params.{p} = {hb_type}")
 
     title = None
+    description = None
 
     if cls.__doc__ is not None:
-        doc_lines = cls.__doc__.splitlines()
-        if len(doc_lines) >= 3 and doc_lines[1].strip() == "":
-            title = doc_lines[0]
-            rest = "\n".join(doc_lines[2:])
-            if kind != "InputType":
-                print(f'info.description = """{rest}"""')
-        else:
-            title = cls.__doc__
+        title, description, _ = _parse_title_description_example(cls.__doc__)
 
     if title is not None:
         print(f'info.title = "{title}"')
 
-    if kind != "InputType":
-        for p in docs:
-            print(f'info.params.{p} = "{docs[p]}"')
+    if description is not None:
+        print(f'info.description = """{description}"""')
 
-    if kind != "InputProp":
-        code = ""
-        for line in inspect.getsource(cls).splitlines():
-            if line.startswith("@Input") or line.startswith("@Output"):
-                line = "@dataclass"
-            code += line + "\n"
-        print(f"info.code = '''{code.strip()}'''")
+    for p in docs:
+        p_title, p_description, p_example = _parse_title_description_example(docs[p])
+        print(f'info.param_titles.{p} = "{p_title}"')
+        if p_description is not None:
+            print(f'info.param_descriptions.{p} = """{p_description}"""')
+        if p_example is not None:
+            print(f'info.param_examples.{p} = """{p_example}"""')
 
     if kind == "InputProp":
         print()
@@ -132,6 +142,13 @@ def _emit_met_sig(kind, cls):
         print("]")
         if title is not None:
             print(f'info.title = "{title}"')
+    else:
+        code = ""
+        for line in inspect.getsource(cls).splitlines():
+            if line.startswith("@Input") or line.startswith("@Output"):
+                line = "@dataclass"
+            code += line + "\n"
+        print(f"info.code = '''{code.strip()}'''")
 
     print()
 
@@ -179,14 +196,13 @@ def _emit_function_sig(f, condition, kwargs):
     print("]")
 
     if f.__doc__ is not None:
-        doc_lines = f.__doc__.splitlines()
-        if len(doc_lines) >= 3 and doc_lines[1].strip() == "":
-            first = doc_lines[0]
-            rest = "\n".join(doc_lines[2:])
-            print(f'info.title = "{first}"')
-            print(f'info.description = """{rest}"""')
+        title, description, _ = _parse_title_description_example(f.__doc__)
+        if description is None:
+            # "title" becomes "description"
+            print(f'info.description = "{title}"')
         else:
-            print(f'info.description = """{f.__doc__}"""')
+            print(f'info.title = "{title}"')
+            print(f'info.description = """{description}"""')
 
     for k in kwargs:
         if k in {"title", "description"}:

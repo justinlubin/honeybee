@@ -116,7 +116,9 @@ parse vt str =
 
 type alias FactSignature =
     { params : Assoc String ValueType
-    , paramLabels : Dict String String
+    , paramTitles : Dict String String
+    , paramDescriptions : Dict String String
+    , paramExamples : Dict String String
     , title : Maybe String
     }
 
