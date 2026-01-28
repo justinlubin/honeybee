@@ -43,7 +43,8 @@ Here is an example CSV file (the headers must match exactly):
 | JPL003_u1   | untreated | 1         |
 | JPL004_u2   | untreated | 2         |
 
-The `sample_name` column can contain whatever you'd like."""
+The `sample_name` column can contain whatever you'd like, as long as each
+row is unique."""
 info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 info.param_titles.path = "Path to the directory containing the RNA-seq data"
 info.param_descriptions.path = """
@@ -67,7 +68,8 @@ class LocalRnaSeq:
     | JPL003_u1   | untreated | 1         |
     | JPL004_u2   | untreated | 2         |
 
-    The `sample_name` column can contain whatever you'd like."""
+    The `sample_name` column can contain whatever you'd like, as long as each
+    row is unique."""
 
     path: str
     """Path to the directory containing the RNA-seq data
@@ -91,7 +93,8 @@ Here is an example CSV file (the headers must match exactly):
 | JPL003_u1   | untreated | 1         |
 | JPL004_u2   | untreated | 2         |
 
-The `sample_name` column can contain whatever you'd like."""
+The `sample_name` column can contain whatever you'd like, as long as each
+row is unique."""
 info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 info.param_titles.path = "Path to the directory containing the RNA-seq data"
 info.param_descriptions.path = """
