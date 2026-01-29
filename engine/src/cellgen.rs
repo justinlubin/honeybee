@@ -70,13 +70,14 @@ impl regex::Replacer for Bashify {
     fn replace_append(&mut self, caps: &regex::Captures<'_>, dst: &mut String) {
         let overall = &caps[0];
         let indent = overall.len() - overall.trim_start().len();
-        let base = &caps[1].replace(r#"\\"#, r#"\"#);
-        let base = format!("!{}", base.trim());
-        for (i, line) in base.split("\n").enumerate() {
-            let current_indent = if i == 0 { indent } else { indent + 4 };
-            let new_line = " ".repeat(current_indent) + line.trim() + "\n";
-            dst.push_str(&new_line);
+        let base = format!("!{}", &caps[1].replace(r#"\\"#, r#"\"#).trim());
+        let mut lines = vec![];
+        let mut current_indent = indent;
+        for line in base.split("\n") {
+            lines.push(" ".repeat(current_indent) + line.trim());
+            current_indent = indent + 4;
         }
+        dst.push_str(&lines.join("\n"))
     }
 }
 

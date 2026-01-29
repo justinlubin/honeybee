@@ -1,6 +1,6 @@
 ################################################################################
 # Script originally created using:
-#     Honeybee (https://honeybee-lang.org), version 0.4.0+7d9e53f
+#     Honeybee (https://honeybee-lang.org), version 0.4.0+f5ebbe7
 #
 # Please cite:
 #     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025.
@@ -26,117 +26,16 @@ ENSEMBL_VERSION = "115"
 ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
 from dataclasses import dataclass
+import datetime
 import os
 import polars as pl
 
-SRA_RNA_SEQ = SraRnaSeq(
-    sample_sheet="metadata/samples.csv",
-)
-
-# %% Download from ENA
-
-RNA_SEQ_READS2 = RnaSeqReads(
-    path=Dir.make("from_sra_rna_seq"),
-    qc=False,
-    trimmed=False,
-)
-
-sample_sheet = pl.read_csv(SRA_RNA_SEQ.sample_sheet)
-
-for srr in sample_sheet["sample_name"]:
-    base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
-    base_url += srr[:6] + "/"
-    base_url += srr[9:].zfill(3) + "/"
-    base_url += srr + "/"
-
-    # Assumes forward (_1) and reverse (_2) reads exist
-
-    !wget -nc --directory-prefix={RNA_SEQ_READS2.path} {base_url}{srr}_1.fastq.gz
-
-
-    !wget -nc --directory-prefix={RNA_SEQ_READS2.path} {base_url}{srr}_2.fastq.gz
-
-
-os.symlink(
-    src=SRA_RNA_SEQ.sample_sheet,
-    dst=f"{RNA_SEQ_READS2.path}/sample_sheet.csv",
-)
-
-# %% FastQC
-
-RNA_SEQ_READS = RnaSeqReads(
-    path=Dir.make("fastqc"),
-    qc=True,
-    trimmed=False,
-)
-
-carry_over(RNA_SEQ_READS2, RNA_SEQ_READS)
-
-sample_sheet = pl.read_csv(f"{RNA_SEQ_READS2.path}/sample_sheet.csv")
-fastqs = " ".join(
-    (RNA_SEQ_READS2.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
-    + (RNA_SEQ_READS2.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
-)
-
-__hb_bash(f"""fastqc -t {FASTQC_CORES} -o {RNA_SEQ_READS.path} {fastqs}""")
-
-# %% kallisto
-
-TRANSCRIPT_MATRICES = TranscriptMatrices(
-    path=Dir.make("kallisto"),
-)
-
-carry_over(RNA_SEQ_READS, TRANSCRIPT_MATRICES, file="sample_sheet.csv")
-
-sample_sheet = pl.read_csv(f"{RNA_SEQ_READS.path}/sample_sheet.csv")
-
-for sample_name in sample_sheet["sample_name"]:
-    !kallisto quant \
-        -t {KALLISTO_CORES} \
-        -i {KALLISTO_INDEX} \
-        -o {TRANSCRIPT_MATRICES.path}/{sample_name} \
-        {RNA_SEQ_READS.path}/{sample_name}_1.fastq.gz \
-        {RNA_SEQ_READS.path}/{sample_name}_2.fastq.gz
-
-
-# %% tximport
-
-GENE_MATRICES = GeneMatrices(
-    path=Dir.make("tximport"),
-)
-
-carry_over(TRANSCRIPT_MATRICES, GENE_MATRICES, file="sample_sheet.csv")
-
-!Rscript tximport.r \
-    {ENSEMBL_VERSION} \
-    {ENSEMBL_DATASET} \
-    {TRANSCRIPT_MATRICES.path}/sample_sheet.csv \
-    {TRANSCRIPT_MATRICES.path} \
-    {GENE_MATRICES.path}
-
-
-# %% DESeq2
-
-GOAL = DifferentialGeneExpression(
-    path=Dir.make("deseq2"),
-    comparison_sheet="metadata/comparisons.csv",
-)
-
-carry_over(GENE_MATRICES, GOAL, file="sample_sheet.csv")
-
-!Rscript deseq2.r \
-    {ENSEMBL_VERSION} \
-    {ENSEMBL_DATASET} \
-    {GENE_MATRICES.path}/sample_sheet.csv \
-    {GOAL.comparison_sheet} \
-    {GENE_MATRICES.path}/counts.csv \
-    {GOAL.path}
 class Dir:
     stage = 1
 
-    @staticmethod
     def make(name):
-        dir = f"output/{Dir.stage * 10:03d}-{name}"
+        time = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
+        dir = f"output-{time}/{Dir.stage * 10:03d}-{name}"
         os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir
@@ -271,3 +170,101 @@ class DifferentialGeneExpression:
 
 # %% RNA-seq (stored on the Sequence Read Archive)
 
+SRA_RNA_SEQ = SraRnaSeq(
+    sample_sheet="metadata/samples.csv",
+)
+
+# %% Download from ENA
+
+RNA_SEQ_READS2 = RnaSeqReads(
+    path=Dir.make("from_sra_rna_seq"),
+    qc=False,
+    trimmed=False,
+)
+
+sample_sheet = pl.read_csv(SRA_RNA_SEQ.sample_sheet)
+
+for srr in sample_sheet["sample_name"]:
+    base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
+    base_url += srr[:6] + "/"
+    base_url += srr[9:].zfill(3) + "/"
+    base_url += srr + "/"
+
+    # Assumes forward (_1) and reverse (_2) reads exist
+
+    !wget -nc --directory-prefix={RNA_SEQ_READS2.path} {base_url}{srr}_1.fastq.gz
+
+    !wget -nc --directory-prefix={RNA_SEQ_READS2.path} {base_url}{srr}_2.fastq.gz
+
+os.symlink(
+    src=SRA_RNA_SEQ.sample_sheet,
+    dst=f"{RNA_SEQ_READS2.path}/sample_sheet.csv",
+)
+
+# %% FastQC
+
+RNA_SEQ_READS = RnaSeqReads(
+    path=Dir.make("fastqc"),
+    qc=True,
+    trimmed=False,
+)
+
+carry_over(RNA_SEQ_READS2, RNA_SEQ_READS)
+
+sample_sheet = pl.read_csv(f"{RNA_SEQ_READS2.path}/sample_sheet.csv")
+fastqs = " ".join(
+    (RNA_SEQ_READS2.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
+    + (RNA_SEQ_READS2.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
+)
+
+!fastqc -t {FASTQC_CORES} -o {RNA_SEQ_READS.path} {fastqs}
+
+# %% kallisto
+
+TRANSCRIPT_MATRICES = TranscriptMatrices(
+    path=Dir.make("kallisto"),
+)
+
+carry_over(RNA_SEQ_READS, TRANSCRIPT_MATRICES, file="sample_sheet.csv")
+
+sample_sheet = pl.read_csv(f"{RNA_SEQ_READS.path}/sample_sheet.csv")
+
+for sample_name in sample_sheet["sample_name"]:
+    !kallisto quant \
+        -t {KALLISTO_CORES} \
+        -i {KALLISTO_INDEX} \
+        -o {TRANSCRIPT_MATRICES.path}/{sample_name} \
+        {RNA_SEQ_READS.path}/{sample_name}_1.fastq.gz \
+        {RNA_SEQ_READS.path}/{sample_name}_2.fastq.gz
+
+# %% tximport
+
+GENE_MATRICES = GeneMatrices(
+    path=Dir.make("tximport"),
+)
+
+carry_over(TRANSCRIPT_MATRICES, GENE_MATRICES, file="sample_sheet.csv")
+
+!Rscript tximport.r \
+    {ENSEMBL_VERSION} \
+    {ENSEMBL_DATASET} \
+    {TRANSCRIPT_MATRICES.path}/sample_sheet.csv \
+    {TRANSCRIPT_MATRICES.path} \
+    {GENE_MATRICES.path}
+
+# %% DESeq2
+
+GOAL = DifferentialGeneExpression(
+    path=Dir.make("deseq2"),
+    comparison_sheet="metadata/comparisons.csv",
+)
+
+carry_over(GENE_MATRICES, GOAL, file="sample_sheet.csv")
+
+!Rscript deseq2.r \
+    {ENSEMBL_VERSION} \
+    {ENSEMBL_DATASET} \
+    {GENE_MATRICES.path}/sample_sheet.csv \
+    {GOAL.comparison_sheet} \
+    {GENE_MATRICES.path}/counts.csv \
+    {GOAL.path}

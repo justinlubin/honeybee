@@ -1,4 +1,5 @@
 import os
+import datetime
 import polars as pl
 
 from honey_lang import Helper, Input, Output, Function, __hb_bash
@@ -9,7 +10,8 @@ class Dir:
     stage = 1
 
     def make(name):
-        dir = f"output/{Dir.stage * 10:03d}-{name}"
+        time = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
+        dir = f"output-{time}/{Dir.stage * 10:03d}-{name}"
         os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir
@@ -200,7 +202,7 @@ def fastqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
         + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
     )
 
-    __hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
+    __hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
 
 
 @Function(
@@ -247,8 +249,10 @@ def multiqc(__hb_reads: RnaSeqReads, __hb_ret: RnaSeqReads):
         + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
     )
 
-    __hb_bash(f"fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}")
-    __hb_bash(f"uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}")
+    __hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
+    __hb_bash(
+        f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}"""
+    )
 
 
 @Function(
