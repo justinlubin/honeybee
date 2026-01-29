@@ -8,7 +8,7 @@ content='''class Dir:
     stage = 1
 
     def make(name):
-        dir = f"output/{Dir.stage:03 * 10}-{name}"
+        dir = f"output/{Dir.stage * 10:03d}-{name}"
         os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir'''

@@ -971,7 +971,7 @@ pbnStatus ms =
                             , A.class "extra-standout"
                             , E.onClick
                                 (UserRequestedDownload
-                                    { filename = "analysis.py"
+                                    { filename = "analysis.ipy"
                                     , text = solutionPrefix ++ solutionString
                                     }
                                 )
