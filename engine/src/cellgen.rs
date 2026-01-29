@@ -367,7 +367,18 @@ fn collate_choices(
     Ok(ret
         .into_iter()
         .map(|(h, (t, d, fmap))| {
-            (h, (t, d, fmap.into_values().collect::<Vec<_>>()))
+            (
+                h,
+                (t, d, {
+                    let mut v = fmap.into_values().collect::<Vec<_>>();
+                    v.sort_by(|fc1, fc2| {
+                        fc1.function_title
+                            .to_lowercase()
+                            .cmp(&fc2.function_title.to_lowercase())
+                    });
+                    v
+                }),
+            )
         })
         .collect::<HashMap<_, _>>())
 }
