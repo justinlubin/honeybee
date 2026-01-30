@@ -1,5 +1,6 @@
 import ast
 import datetime
+import glob
 import inspect
 import os
 import re
@@ -115,8 +116,14 @@ def _emit_met_sig(kind, cls):
     title = None
     description = None
 
-    if cls.__doc__ is not None:
-        title, description, _ = _parse_title_description_example(cls.__doc__)
+    doc = cls.__doc__
+    if kind == "InputType":
+        if doc is None:
+            doc = ""
+        doc = "@intermediate:" + doc
+
+    if doc is not None:
+        title, description, _ = _parse_title_description_example(doc)
 
     if title is not None:
         print(f'info.title = "{title}"')
@@ -192,6 +199,7 @@ def _emit_function_sig(f, condition, kwargs):
 
     print("condition = [")
     for c in condition:
+        c = c.replace("'", '"')
         c = c.replace('"', '\\"')
         print(f'    "{c}",')
     print("]")
@@ -276,12 +284,17 @@ def Output(cls):
     return cls
 
 
-def Function(*condition, **kwargs):
+def Function(*args, **kwargs):
     def wrap(f):
-        _emit_function_sig(f, condition, kwargs)
+        _emit_function_sig(f, args, kwargs)
         return f
 
-    return wrap
+    if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+        f = args[0]
+        args = []
+        return wrap(f)
+    else:
+        return wrap
 
 
 helper_ran = False

@@ -26,7 +26,7 @@ type alias FunctionChoice =
     , googleScholarId : Maybe String
     , citation : Maybe String
     , additionalCitations : Maybe (List String)
-    , hyperparameters : Maybe (List Hyperparameter)
+    , hyperparameters : List Hyperparameter
     , use : Maybe String
     , pmid : Maybe String
     }

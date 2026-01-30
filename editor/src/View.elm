@@ -386,15 +386,16 @@ step library suggestions pi s =
                 [ A.class "step-title"
                 , inputEvent
                 ]
-                (List.map
-                    (\( name, displayName ) ->
-                        option
-                            [ A.selected (name == selectedName)
-                            , A.value name
-                            ]
-                            [ text displayName ]
-                    )
-                    options
+                (options
+                    |> List.sortBy (\( _, displayName ) -> displayName)
+                    |> List.map
+                        (\( name, displayName ) ->
+                            option
+                                [ A.selected (name == selectedName)
+                                , A.value name
+                                ]
+                                [ text displayName ]
+                        )
                 )
     in
     card
@@ -559,33 +560,32 @@ functionChoice ctx fc =
                 ]
             , markdown [] (Maybe.withDefault "" fc.functionDescription)
             ]
-                ++ (case fc.hyperparameters of
-                        Just hs ->
-                            [ div [ A.class "markdown" ]
-                                [ h2 [] [ text "Parameters to set" ]
-                                , p []
-                                    [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
-                                    ]
-                                , ul []
-                                    (List.map
-                                        (\h ->
-                                            li []
-                                                [ code [] [ text h.name ]
-                                                , text <|
-                                                    ": "
-                                                        ++ h.comment
-                                                        ++ " (default: "
-                                                        ++ h.default
-                                                        ++ ")"
-                                                ]
-                                        )
-                                        hs
-                                    )
-                                ]
-                            ]
+                ++ (if List.isEmpty fc.hyperparameters then
+                        []
 
-                        Nothing ->
-                            []
+                    else
+                        [ div [ A.class "markdown" ]
+                            [ h2 [] [ text "Parameters to set" ]
+                            , p []
+                                [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
+                                ]
+                            , ul []
+                                (List.map
+                                    (\h ->
+                                        li []
+                                            [ code [] [ text h.name ]
+                                            , text <|
+                                                ": "
+                                                    ++ h.comment
+                                                    ++ " (default: "
+                                                    ++ h.default
+                                                    ++ ")"
+                                            ]
+                                    )
+                                    fc.hyperparameters
+                                )
+                            ]
+                        ]
                    )
                 ++ (case fc.citation of
                         Just citation ->

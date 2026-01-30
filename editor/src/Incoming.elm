@@ -90,8 +90,8 @@ decodeFunctionChoice =
             (D.nullable <| D.list D.string)
             Nothing
         |> P.optionalAt [ "info", "hyperparameters" ]
-            (D.nullable <| D.list decodeHyperparameter)
-            Nothing
+            (D.list decodeHyperparameter)
+            []
         |> P.optionalAt [ "info", "use" ]
             (D.nullable <| D.string)
             Nothing
