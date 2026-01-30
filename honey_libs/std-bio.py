@@ -364,14 +364,9 @@ def kallisto(__hb_reads: RnaSeqReads, __hb_ret: TranscriptMatrices):
         __hb_bash(f"""kallisto quant \\
                     -t {KALLISTO_CORES} \\
                     -i {KALLISTO_INDEX} \\
-                    -o {outdir}/{sample_name} \\
-                    {data.dynamic.path}/{sample_name}_1.fastq.gz \\
-                    {data.dynamic.path}/{sample_name}_2.fastq.gz""")
-
-    return TranscriptMatrices.D(
-        sample_sheet=data.dynamic.sample_sheet,
-        path=outdir,
-    )
+                    -o {__hb_ret.path}/{sample_name} \\
+                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
 @Function(
