@@ -572,7 +572,22 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
     that demonstrate how to use it to analyze RNA-seq datasets."""
 
-    raise NotImplementedError  # Coming soon!
+    # PARAMETER: The version of Ensembl to use for gene annotations
+    ENSEMBL_VERSION = "115"
+
+    # PARAMETER: The Ensembl gene annotation dataset to use
+    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+
+    carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+
+    __hb_bash(f"""
+        Rscript sleuth.r \\
+            {ENSEMBL_VERSION} \\
+            {ENSEMBL_DATASET} \\
+            {__hb_data.path}/sample_sheet.csv \\
+            {__hb_ret.comparison_sheet} \\
+            {__hb_data.path} \\
+            {__hb_ret.path}""")
 
 
 # @Function(
