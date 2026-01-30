@@ -386,15 +386,16 @@ step library suggestions pi s =
                 [ A.class "step-title"
                 , inputEvent
                 ]
-                (List.map
-                    (\( name, displayName ) ->
-                        option
-                            [ A.selected (name == selectedName)
-                            , A.value name
-                            ]
-                            [ text displayName ]
-                    )
-                    options
+                (options
+                    |> List.sortBy (\( _, displayName ) -> displayName)
+                    |> List.map
+                        (\( name, displayName ) ->
+                            option
+                                [ A.selected (name == selectedName)
+                                , A.value name
+                                ]
+                                [ text displayName ]
+                        )
                 )
     in
     card
