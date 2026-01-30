@@ -705,6 +705,50 @@ for sample_name in sample_sheet["sample_name"]:
                 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
                 {__hb_reads.path}/{sample_name}_2.fastq.gz""")'''
 
+[Function.salmon]
+params.reads = "SeqReads"
+ret = "TranscriptMatrices"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = \"rna\"",
+]
+info.title = "Salmon"
+info.description = """# Quantify transcript abundances *without* alignment using [Salmon](https://salmon.readthedocs.io/en/latest/index.html)
+
+Salmon is a tool that estimates the number of times a transcript appears
+using a lightweight mapping technique that is much faster than a full
+alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
+info.google_scholar_id = "11462947284863466602"
+info.pmid = "28263959"
+info.citation = "Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods."
+info.hyperparameters = [
+    {name = 'SALMON_INDEX', default = '"salmon_sa_index"', comment = 'The location of the Salmon transcriptome index on your computer' },
+    {name = 'CORES', default = '4', comment = 'The number of cores that you want Salmon to use' },
+]
+info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+for sample_name in sample_sheet["sample_name"]:
+    __hb_bash(f"""salmon quant \\
+                -i {SALMON_INDEX} \\
+                -l A \\
+                -p {CORES} \\
+                -1 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                -2 {__hb_reads.path}/{sample_name}_2.fastq.gz \\
+                -o {__hb_ret.path}/{sample_name}""")
+
+    # Convert Salmon's quant.sf to kallisto's abundance.tsv format
+    pl.read_csv(f"{__hb_ret.path}/{sample_name}/quant.sf", separator="\t").select(
+        pl.col("Name").alias("target_id"),
+        pl.col("Length").alias("length"),
+        pl.col("EffectiveLength").alias("eff_length"),
+        pl.col("NumReads").alias("est_counts"),
+        pl.col("TPM").alias("tpm"),
+    ).write_csv(f"{__hb_ret.path}/{sample_name}/abundance.tsv", separator="\t")'''
+
 [Function.tximport]
 params.data = "TranscriptMatrices"
 ret = "GeneMatrices"
@@ -913,30 +957,6 @@ info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
             --bam "{path}" \
             --tsv "{__hb_ret.path}/{sample_name}.tsv"
     """)'''
-
-[Function.salmon]
-params.reads = "SeqReads"
-ret = "TranscriptMatrices"
-condition = [
-    "reads.qc = true",
-    "reads.trimmed = true",
-    "reads.long = false",
-    "reads.type = \"rna\"",
-]
-info.title = "Salmon"
-info.description = """# Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
-
-Salmon is a tool that estimates the number of times a transcript appears
-using a lightweight mapping technique that is much faster than a full
-alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
-info.google_scholar_id = "11462947284863466602"
-info.pmid = "28263959"
-info.citation = "Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods."
-info.hyperparameters = [
-    {name = 'SALMON_INDEX', default = '"put the path to the Salmon index here"', comment = 'The location of the Salmon transcriptome index on your computer' },
-    {name = 'SALMON_CORES', default = '4', comment = 'The number of cores that you want Salmon to use' },
-]
-info.code = '''raise NotImplementedError  # Coming soon!'''
 
 [Function.sleuth]
 params.data = "TranscriptMatrices"
