@@ -763,19 +763,58 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
 def salmon(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     """Salmon
 
-    # Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
+    # Quantify transcript abundances *without* alignment using [Salmon](https://salmon.readthedocs.io/en/latest/index.html)
 
     Salmon is a tool that estimates the number of times a transcript appears
     using a lightweight mapping technique that is much faster than a full
-    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+
+    ## Parameters to set
+
+    In the code, please set the following parameters:
+
+    - `SALMON_INDEX`: the location of the Salmon transcriptome index on your computer (default: salmon_sa_index)
+    - `CORES`: the number of cores that you want salmon to use (default: 4)
+
+    ## Citation
+
+    If you use Salmon, please cite it as:
+
+    > Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C.
+    > (2017). Salmon provides fast and bias-aware quantification of transcript
+    > expression. Nature Methods."""
 
     # PARAMETER: The location of the Salmon transcriptome index on your computer
-    SALMON_INDEX = "put the path to the Salmon index here"
+    SALMON_INDEX = "salmon_sa_index"
 
     # PARAMETER: The number of cores that you want Salmon to use
-    SALMON_CORES = 4
+    CORES = 4
 
-    raise NotImplementedError  # Coming soon!
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""salmon quant \\
+                    -i {SALMON_INDEX} \\
+                    -l A \\
+                    -p {CORES} \\
+                    -1 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                    -2 {__hb_reads.path}/{sample_name}_2.fastq.gz \\
+                    -o {__hb_ret.path}/{sample_name}""")
+
+        # Convert Salmon's quant.sf to Kallisto's abundance.tsv format
+        pl.read_csv(
+            f"{__hb_ret.path}/{sample_name}/quant.sf", separator="\t"
+        ).select(
+            pl.col("Name").alias("target_id"),
+            pl.col("Length").alias("length"),
+            pl.col("EffectiveLength").alias("eff_length"),
+            pl.col("NumReads").alias("est_counts"),
+            pl.col("TPM").alias("tpm"),
+        ).write_csv(
+            f"{__hb_ret.path}/{sample_name}/abundance.tsv", separator="\t"
+        )
 
 
 @Function(
