@@ -30,7 +30,12 @@ factBody name args =
     "name = \""
         ++ name
         ++ "\"\n"
-        ++ String.join "\n" (Assoc.mapCollapse arg args)
+        ++ (if List.isEmpty args then
+                "args = {}"
+
+            else
+                String.join "\n" (Assoc.mapCollapse arg args)
+           )
 
 
 fact : String -> Fact Value -> String
