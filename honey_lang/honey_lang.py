@@ -115,8 +115,14 @@ def _emit_met_sig(kind, cls):
     title = None
     description = None
 
-    if cls.__doc__ is not None:
-        title, description, _ = _parse_title_description_example(cls.__doc__)
+    doc = cls.__doc__
+    if kind == "InputType":
+        if doc is None:
+            doc = ""
+        doc = "@intermediate:" + doc
+
+    if doc is not None:
+        title, description, _ = _parse_title_description_example(doc)
 
     if title is not None:
         print(f'info.title = "{title}"')
