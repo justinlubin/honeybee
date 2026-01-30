@@ -1,0 +1,21 @@
+name: Engine tests
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "engine/**" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build engine
+      working-directory: ./engine
+      run: cargo build --verbose
+    - name: Run engine tests
+      working-directory: ./engine
+      run: cargo test --verbose

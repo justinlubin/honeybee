@@ -15,7 +15,6 @@ import Incoming
 import Json.Encode
 import Markdown
 import Model exposing (Model)
-import Regex
 import Update exposing (Msg(..))
 import Util
 import Version
@@ -24,6 +23,23 @@ import Version
 
 --------------------------------------------------------------------------------
 -- Generic
+
+
+markdown : List (Attribute msg) -> String -> Html msg
+markdown attrs s =
+    Markdown.toHtmlWith
+        { githubFlavored = Just { tables = True, breaks = False }
+        , defaultHighlighting = Nothing
+        , sanitize = False
+        , smartypants = True
+        }
+        (A.class "markdown" :: attrs)
+        s
+
+
+inlineMarkdown : List (Attribute msg) -> String -> Html msg
+inlineMarkdown attrs s =
+    markdown (A.class "inline" :: attrs) s
 
 
 circled : Attribute msg
@@ -209,10 +225,12 @@ tabbedMenu attrs { selectionEvent, deselectionEvent, selectedIndex } content =
 arg :
     ProgramIndex
     -> Dict String String
+    -> Dict String String
+    -> Dict String String
     -> String
     -> ( ( String, ValueType ), List Value )
     -> Html Msg
-arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
+arg pi argTitles argDescriptions argExamples argName ( ( valueStr, _ ), suggestions ) =
     let
         id =
             "step-argument"
@@ -232,7 +250,7 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
             [ A.for id
             , A.class "card-inner-heading"
             ]
-            [ argLabels
+            [ argTitles
                 |> Dict.get argName
                 |> Maybe.map Annotations.removeAll
                 |> Maybe.withDefault argName
@@ -241,13 +259,19 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
         , input
             [ E.onInput (UserSetArgument pi argName)
             , A.id id
-            , A.placeholder "Enter value here…"
+            , A.placeholder <|
+                case argExamples |> Dict.get argName of
+                    Just ex ->
+                        "Enter information here, for example: " ++ ex
+
+                    Nothing ->
+                        "Enter information here…"
             , A.value valueStr
             ]
             []
         , if
             List.isEmpty suggestions
-                || (argLabels
+                || (argTitles
                         |> Dict.get argName
                         |> Maybe.map (Annotations.contains Annotations.NoSuggest)
                         |> (==) (Just True)
@@ -272,16 +296,24 @@ arg pi argLabels argName ( ( valueStr, _ ), suggestions ) =
                             )
                             suggestions
                         )
+        , case argDescriptions |> Dict.get argName of
+            Just desc ->
+                markdown [] desc
+
+            Nothing ->
+                text ""
         ]
 
 
 args :
     ProgramIndex
     -> Dict String String
+    -> Dict String String
+    -> Dict String String
     -> Assoc String ( ( String, ValueType ), List Value )
     -> List (Html Msg)
-args pi argLabels a =
-    Assoc.mapCollapse (arg pi argLabels) a
+args pi argTitles argDescriptions argExamples a =
+    Assoc.mapCollapse (arg pi argTitles argDescriptions argExamples) a
 
 
 step :
@@ -329,7 +361,9 @@ step library suggestions pi s =
                     ( f.name
                     , args
                         pi
-                        f.sig.paramLabels
+                        f.sig.paramTitles
+                        f.sig.paramDescriptions
+                        f.sig.paramExamples
                         (Assoc.leftMergeWith [] f.args suggestions)
                     )
 
@@ -407,12 +441,37 @@ program ctx prog =
 -- Direct manipulation Programming by Navigation
 
 
+type SearchEngine
+    = Google
+    | DuckDuckGo
+
+
+searchEngineUrl : SearchEngine -> String -> String
+searchEngineUrl se query =
+    let
+        prefix =
+            case se of
+                Google ->
+                    "https://google.com/search?q="
+
+                DuckDuckGo ->
+                    "https://duckduckgo.com/?q="
+
+        encodedQuery =
+            String.replace " " "+" query
+    in
+    prefix ++ encodedQuery
+
+
 functionChoice :
     { cellIndex : Int, functionIndex : Int }
     -> Cell.FunctionChoice
     -> { heading : Html Msg, body : Html Msg }
 functionChoice ctx fc =
     let
+        searchEngineQuery =
+            fc.functionTitle ++ " bioinformatics"
+
         selectAdditionalInformation =
             [ p
                 [ A.class "tabbed-menu-body-label" ]
@@ -446,10 +505,120 @@ functionChoice ctx fc =
     { heading = text fc.functionTitle
     , body =
         div [] <|
-            [ Markdown.toHtml
-                [ A.class "markdown" ]
-                (Maybe.withDefault "" fc.functionDescription)
+            [ ul
+                [ A.class "tool-search-info" ]
+                [ li
+                    []
+                    [ text "Search for "
+                    , text fc.functionTitle
+                    , text " on "
+                    , img [ A.src "assets/google.webp" ] []
+                    , a
+                        [ A.href (searchEngineUrl Google searchEngineQuery) ]
+                        [ text "Google" ]
+                    , text " or "
+                    , img [ A.src "assets/duckduckgo.png" ] []
+                    , a
+                        [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
+                        [ text "DuckDuckGo" ]
+                    ]
+                , case fc.pmid of
+                    Just pmid ->
+                        li []
+                            [ text <|
+                                "Read the "
+                                    ++ fc.functionTitle
+                                    ++ " paper via "
+                            , img [ A.src "assets/nih.png" ] []
+                            , a
+                                [ A.href <|
+                                    "https://pubmed.ncbi.nlm.nih.gov/"
+                                        ++ pmid
+                                        ++ "/"
+                                ]
+                                [ text "PubMed" ]
+                            ]
+
+                    Nothing ->
+                        text ""
+                , case fc.googleScholarId of
+                    Just gsid ->
+                        li []
+                            [ text <|
+                                "Browse papers that use "
+                                    ++ fc.functionTitle
+                                    ++ " in "
+                            , img [ A.src "assets/google_scholar.png" ] []
+                            , a
+                                [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
+                                [ text "Google Scholar" ]
+                            ]
+
+                    Nothing ->
+                        text ""
+                ]
+            , markdown [] (Maybe.withDefault "" fc.functionDescription)
             ]
+                ++ (case fc.hyperparameters of
+                        Just hs ->
+                            [ div [ A.class "markdown" ]
+                                [ h2 [] [ text "Parameters to set" ]
+                                , p []
+                                    [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
+                                    ]
+                                , ul []
+                                    (List.map
+                                        (\h ->
+                                            li []
+                                                [ code [] [ text h.name ]
+                                                , text <|
+                                                    ": "
+                                                        ++ h.comment
+                                                        ++ " (default: "
+                                                        ++ h.default
+                                                        ++ ")"
+                                                ]
+                                        )
+                                        hs
+                                    )
+                                ]
+                            ]
+
+                        Nothing ->
+                            []
+                   )
+                ++ (case fc.citation of
+                        Just citation ->
+                            [ div [ A.class "markdown" ] <|
+                                [ h2 [] [ text "Citation" ]
+                                , p []
+                                    [ text <|
+                                        "If you use "
+                                            ++ fc.functionTitle
+                                            ++ ", please cite it as:"
+                                    ]
+                                , blockquote [] [ text citation ]
+                                ]
+                                    ++ (case fc.additionalCitations of
+                                            Just acs ->
+                                                [ p [] [ text "Please also cite:" ]
+                                                ]
+                                                    ++ List.map
+                                                        (\c ->
+                                                            blockquote
+                                                                []
+                                                                [ text c ]
+                                                        )
+                                                        acs
+
+                                            Nothing ->
+                                                []
+                                       )
+                            ]
+
+                        Nothing ->
+                            []
+                   )
                 ++ (if List.length fc.metadataChoices > 1 then
                         selectAdditionalInformation
 
@@ -460,23 +629,14 @@ functionChoice ctx fc =
                         Nothing ->
                             []
 
-                        Just c ->
-                            let
-                                cleanCode =
-                                    Regex.replaceAtMost 1
-                                        (Maybe.withDefault Regex.never <|
-                                            Regex.fromString "\"\"\"(.|\n)*?\"\"\"\\s*"
-                                        )
-                                        (\_ -> "")
-                                        c
-                            in
+                        Just code ->
                             [ p [ A.class "tabbed-menu-body-label" ] [ text "Code preview…" ]
                             , div
                                 [ A.class "code-preview" ]
                                 [ fancyCode
                                     []
                                     { language = "python"
-                                    , code = cleanCode
+                                    , code = code
                                     }
                                 ]
                             ]
@@ -517,16 +677,8 @@ cellTitle : Cell.Cell -> String
 cellTitle c =
     Annotations.removeAll <|
         case c of
-            Cell.Code { title, functionTitle } ->
-                case ( title, functionTitle ) of
-                    ( Just t, _ ) ->
-                        t
-
-                    ( _, Just t ) ->
-                        t
-
-                    _ ->
-                        ""
+            Cell.Code { title } ->
+                title
 
             Cell.Choice { typeTitle } ->
                 typeTitle
@@ -580,13 +732,36 @@ cell ctx c =
                     [ text (cellTitle c) ]
                     []
                 )
-                [ Markdown.toHtml
-                    [ A.class "markdown" ]
-                    (Maybe.withDefault "" x.typeDescription)
+                [ markdown [] (Maybe.withDefault "" x.typeDescription)
 
                 -- , cardInnerHeading [] [ text "Notes" ]
                 -- , textarea [] []
                 , cardInnerHeading [] [ text ("Choices" ++ suffix) ]
+                , if List.length x.functionChoices > 1 then
+                    ul [ A.class "use-hints" ]
+                        (List.filterMap
+                            (\fc ->
+                                case fc.use of
+                                    Just use ->
+                                        Just <|
+                                            li []
+                                                [ b [] [ text "Tip:" ]
+                                                , i []
+                                                    [ text " You may like "
+                                                    , b [] [ text fc.functionTitle ]
+                                                    , text " if you want… "
+                                                    ]
+                                                , inlineMarkdown [] use
+                                                ]
+
+                                    Nothing ->
+                                        Nothing
+                            )
+                            x.functionChoices
+                        )
+
+                  else
+                    text ""
                 , functionChoices
                     { cellIndex = ctx.cellIndex
                     , selectedFunctionChoice = x.selectedFunctionChoice
@@ -686,10 +861,15 @@ nextChoice cells =
 solutionPrefix : String
 solutionPrefix =
     "################################################################################\n"
-        ++ "# Script originally created using\n"
+        ++ "# Script originally created using:\n"
         ++ "#     Honeybee (https://honeybee-lang.org), version "
         ++ Version.fullVersion
-        ++ "\n\n"
+        ++ "\n#"
+        ++ "\n# Please cite:"
+        ++ "\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025."
+        ++ "\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,"
+        ++ "\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264"
+        ++ "\n################################################################################\n\n"
 
 
 pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
@@ -698,7 +878,7 @@ pbnStatus ms =
         Nothing ->
             []
 
-        Just { cells, output } ->
+        Just { cells, output, canUndo } ->
             let
                 outline =
                     div
@@ -733,51 +913,8 @@ pbnStatus ms =
                                             ]
                                     )
                                     cells
-                                    ++ [ button
-                                            [ A.class "standout-button"
-                                            , A.class "post-popin-attention"
-                                            ]
-                                            [ case nextChoice cells of
-                                                Just i ->
-                                                    a
-                                                        [ A.href ("#" ++ cellId i) ]
-                                                        [ text "Next "
-                                                        , span
-                                                            [ A.class "card-reference"
-                                                            , A.class "cell-choice"
-                                                            ]
-                                                            [ text "Choice"
-                                                            ]
-                                                        ]
-
-                                                Nothing ->
-                                                    a
-                                                        [ A.href "#pbn-completed" ]
-                                                        [ text "Go to download button!"
-                                                        ]
-                                            ]
-                                       ]
                             ]
                         ]
-
-                downloadButton =
-                    case output of
-                        Nothing ->
-                            text ""
-
-                        Just solutionString ->
-                            div [ A.id "pbn-completed" ]
-                                [ button
-                                    [ A.class "standout-button"
-                                    , E.onClick
-                                        (UserRequestedDownload
-                                            { filename = "analysis.py"
-                                            , text = solutionPrefix ++ solutionString
-                                            }
-                                        )
-                                    ]
-                                    [ text "Download analysis script" ]
-                                ]
             in
             [ p
                 [ A.class "tip" ]
@@ -801,7 +938,51 @@ pbnStatus ms =
                 ]
             , outline
             , Html.Keyed.node "pop-in" [] (directManipulationPbn cells)
-            , downloadButton
+            , footer [ A.class "controls" ]
+                [ button
+                    [ A.class "standout-button"
+                    , A.disabled (not canUndo)
+                    , E.onClick UserClickedUndo
+                    ]
+                    [ span [] [ text "Undo" ]
+                    ]
+                , case ( nextChoice cells, output ) of
+                    ( Just i, _ ) ->
+                        button
+                            [ A.class "standout-button"
+                            , A.class "post-popin-attention"
+                            ]
+                            [ a
+                                [ A.href ("#" ++ cellId i) ]
+                                [ text "Next "
+                                , span
+                                    [ A.class "card-reference"
+                                    , A.class "cell-choice"
+                                    ]
+                                    [ text "Choice"
+                                    ]
+                                ]
+                            ]
+
+                    ( Nothing, Just solutionString ) ->
+                        button
+                            [ A.class "standout-button"
+                            , A.class "post-popin-attention"
+                            , A.class "extra-standout"
+                            , E.onClick
+                                (UserRequestedDownload
+                                    { filename = "analysis.ipy"
+                                    , text = solutionPrefix ++ solutionString
+                                    }
+                                )
+                            ]
+                            [ text "Download analysis script" ]
+
+                    -- TODO: Should never happen! Maybe enforce via type system
+                    -- somehow?
+                    ( Nothing, Nothing ) ->
+                        text ""
+                ]
             ]
 
 
@@ -824,6 +1005,11 @@ view model =
             [ span
                 [ A.class "version-number" ]
                 [ text <| " version " ++ Version.fullVersion
+                , if not Version.stable then
+                    span [ A.class "unstable-indicator" ] [ text " UNSTABLE" ]
+
+                  else
+                    text ""
                 ]
             ]
         , pane

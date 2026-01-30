@@ -116,7 +116,9 @@ parse vt str =
 
 type alias FactSignature =
     { params : Assoc String ValueType
-    , paramLabels : Dict String String
+    , paramTitles : Dict String String
+    , paramDescriptions : Dict String String
+    , paramExamples : Dict String String
     , title : Maybe String
     }
 
@@ -273,14 +275,20 @@ empty =
 
 example : Library -> WorkingProgram
 example library =
-    case ( Assoc.get "P_LocalRnaSeq" library.props, Assoc.get "DifferentialGeneExpression" library.types ) of
+    let
+        propName =
+            "P_SraRnaSeq"
+
+        goalName =
+            "DifferentialGeneExpression"
+    in
+    case ( Assoc.get propName library.props, Assoc.get goalName library.types ) of
         ( Just propSig, Just typeSig ) ->
             { props =
                 [ Just
-                    { name = "P_SraRnaSeq"
+                    { name = propName
                     , args =
-                        [ ( "label", ( "main", VTStr ) )
-                        , ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
+                        [ ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
                         ]
                     , sig =
                         propSig
@@ -288,10 +296,9 @@ example library =
                 ]
             , goal =
                 Just
-                    { name = "DifferentialGeneExpression"
+                    { name = goalName
                     , args =
-                        [ ( "label", ( "main", VTStr ) )
-                        , ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
+                        [ ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
                         ]
                     , sig =
                         typeSig

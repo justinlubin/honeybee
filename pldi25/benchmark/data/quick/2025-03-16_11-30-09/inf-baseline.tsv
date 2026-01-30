@@ -1,0 +1,17 @@
+suite_name	entry_name	solution_name	algorithm	replicate	completed	success	duration
+inf	gen_big_three	<ANY>	NaiveEnumeration	0	true	true	1
+inf	gen_big_three	<ANY>	PrunedEnumeration	0	true	true	2
+inf	gen_small_three	<ANY>	NaiveEnumeration	0	true	true	3
+inf	gen_staged_cycles	<ANY>	NaiveEnumeration	0	true	true	5
+inf	gen_small_three	<ANY>	PrunedEnumeration	0	true	true	6
+inf	gen_staged_cycles	<ANY>	PrunedEnumeration	0	true	true	2
+inf	gen_infinite_bin	<ANY>	NaiveEnumeration	0	true	true	13
+inf	gen_infinite_bin	<ANY>	PrunedEnumeration	0	true	true	25
+inf	gen_eventually_stabilize	<ANY>	PrunedEnumeration	0	true	true	84
+inf	gen_eventually_stabilize	<ANY>	NaiveEnumeration	0	true	true	248
+inf	geo_clip	<ANY>	PrunedEnumeration	0	false	false	120441
+inf	geo_mosaic	<ANY>	PrunedEnumeration	0	false	false	121344
+inf	geo_ndvi	<ANY>	PrunedEnumeration	0	false	false	122151
+inf	geo_ndvi	<ANY>	NaiveEnumeration	0	false	false	184176
+inf	geo_mosaic	<ANY>	NaiveEnumeration	0	false	false	186112
+inf	geo_clip	<ANY>	NaiveEnumeration	0	false	false	190817

@@ -1,0 +1,5 @@
+sample_name,condition,replicate
+SRR34323945,treated,1
+SRR34323944,treated,2
+SRR34323943,untreated,1
+SRR34323942,untreated,2

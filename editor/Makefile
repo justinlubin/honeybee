@@ -4,13 +4,16 @@
 #   elm
 #   uglifyjs
 #   uv
-#   wasm-bindgenP
+#   wasm-bindgen
 #     cargo install -f wasm-bindgen-cli --version 0.2.100
 #   wasm32-unknown-unknown Rust target
 #     rustup target add wasm32-unknown-unknown
 
 OPTIMIZE_ELM := false
 HERE_DIR := editor
+ENGINE_DIR := ../engine
+LANG_DIR := ../honey_lang
+GLUE_DIR := ../honey_libs
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 
@@ -42,25 +45,27 @@ ifeq ($(OPTIMIZE_ELM),true)
 else
 	elm make src/Main.elm --output=$(OUT_DIR)/elm.js || touch $(OUT_DIR)/elm.js
 endif
-	sed "s/<<<COMMIT-SHORT-HASH>>>/$(CURRENT_COMMIT)/g" $(OUT_DIR)/elm.js > $(OUT_DIR)/elm.js.tmp
+	sed "s/<<<COMMIT-SHORT-HASH>>>/$(CURRENT_COMMIT)/g" $(OUT_DIR)/elm.js \
+	| if [ -n "${PUBLISH_STABLE}" ]; then sed "s/<<<UNSTABLE-INDICATOR>>>/STABLE/g"; else sed "s/<<<UNSTABLE-INDICATOR>>>/UNSTABLE/g"; fi \
+	> $(OUT_DIR)/elm.js.tmp
 	mv $(OUT_DIR)/elm.js.tmp $(OUT_DIR)/elm.js
 
-$(OUT_DIR)/pkg/honeybee.js: $(wildcard ../backend/src/*.rs)
-	cd ../backend/ && \
+$(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
+	cd $(ENGINE_DIR) && \
 	cargo build --lib --target wasm32-unknown-unknown --release && \
 	wasm-bindgen target/wasm32-unknown-unknown/release/honeybee.wasm \
 		--out-dir ../$(HERE_DIR)/$(OUT_DIR)/pkg \
 		--target web
 
-$(OUT_DIR)/std-bio.hblib.toml: $(wildcard ../library-generator/*.py)
+$(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
 	uv run \
-		--project ../library-generator \
+		--project $(GLUE_DIR) \
 		ty check && \
 	uv run \
-		--project ../library-generator/ \
-		../library-generator/std-bio.py \
+		--project $(GLUE_DIR) \
+		$(GLUE_DIR)/std-bio.py \
 		> $(OUT_DIR)/std-bio.hblib.toml && \
-	cd ../backend/ && \
+	cd $(ENGINE_DIR) && \
 	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/std-bio.hblib.toml
 
 $(OUT_DIR)/assets/diagrams/svg/%.svg: $(OUT_DIR)/assets/diagrams/dot/%.dot

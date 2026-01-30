@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Decode
+import Incoming
 import Json.Decode
 import Model
 import Update
@@ -14,7 +14,7 @@ main =
         { init =
             \v ->
                 ( v
-                    |> Json.Decode.decodeValue Decode.library
+                    |> Json.Decode.decodeValue Incoming.library
                     |> Result.mapError (Debug.log "error")
                     |> Result.withDefault { props = [], types = [] }
                     |> Model.init

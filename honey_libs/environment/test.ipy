@@ -1,0 +1,273 @@
+################################################################################
+# Script originally created using:
+#     Honeybee (https://honeybee-lang.org), version 0.4.0+7d9e53f
+#
+# Please cite:
+#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025.
+#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,
+#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264
+################################################################################
+
+# %% Initialization code
+
+# PARAMETER: The number of cores that you want FastQC to use (default: 4)
+FASTQC_CORES = 4
+
+# PARAMETER: The location of the kallisto transcriptome index on your computer (default: "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx")
+KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+
+# PARAMETER: The number of cores that you want kallisto to use (default: 4)
+KALLISTO_CORES = 4
+
+# PARAMETER: The version of Ensembl to use for gene annotations (default: "115")
+ENSEMBL_VERSION = "115"
+
+# PARAMETER: The Ensembl gene annotation dataset to use (default: "hsapiens_gene_ensembl")
+ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+
+from dataclasses import dataclass
+import os
+import polars as pl
+
+SRA_RNA_SEQ = SraRnaSeq(
+    sample_sheet="metadata/samples.csv",
+)
+
+# %% Download from ENA
+
+RNA_SEQ_READS2 = RnaSeqReads(
+    path=Dir.make("from_sra_rna_seq"),
+    qc=False,
+    trimmed=False,
+)
+
+sample_sheet = pl.read_csv(SRA_RNA_SEQ.sample_sheet)
+
+for srr in sample_sheet["sample_name"]:
+    base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
+    base_url += srr[:6] + "/"
+    base_url += srr[9:].zfill(3) + "/"
+    base_url += srr + "/"
+
+    # Assumes forward (_1) and reverse (_2) reads exist
+
+    !wget -nc --directory-prefix={RNA_SEQ_READS2.path} {base_url}{srr}_1.fastq.gz
+
+
+    !wget -nc --directory-prefix={RNA_SEQ_READS2.path} {base_url}{srr}_2.fastq.gz
+
+
+os.symlink(
+    src=SRA_RNA_SEQ.sample_sheet,
+    dst=f"{RNA_SEQ_READS2.path}/sample_sheet.csv",
+)
+
+# %% FastQC
+
+RNA_SEQ_READS = RnaSeqReads(
+    path=Dir.make("fastqc"),
+    qc=True,
+    trimmed=False,
+)
+
+carry_over(RNA_SEQ_READS2, RNA_SEQ_READS)
+
+sample_sheet = pl.read_csv(f"{RNA_SEQ_READS2.path}/sample_sheet.csv")
+fastqs = " ".join(
+    (RNA_SEQ_READS2.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
+    + (RNA_SEQ_READS2.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
+)
+
+__hb_bash(f"""fastqc -t {FASTQC_CORES} -o {RNA_SEQ_READS.path} {fastqs}""")
+
+# %% kallisto
+
+TRANSCRIPT_MATRICES = TranscriptMatrices(
+    path=Dir.make("kallisto"),
+)
+
+carry_over(RNA_SEQ_READS, TRANSCRIPT_MATRICES, file="sample_sheet.csv")
+
+sample_sheet = pl.read_csv(f"{RNA_SEQ_READS.path}/sample_sheet.csv")
+
+for sample_name in sample_sheet["sample_name"]:
+    !kallisto quant \
+        -t {KALLISTO_CORES} \
+        -i {KALLISTO_INDEX} \
+        -o {TRANSCRIPT_MATRICES.path}/{sample_name} \
+        {RNA_SEQ_READS.path}/{sample_name}_1.fastq.gz \
+        {RNA_SEQ_READS.path}/{sample_name}_2.fastq.gz
+
+
+# %% tximport
+
+GENE_MATRICES = GeneMatrices(
+    path=Dir.make("tximport"),
+)
+
+carry_over(TRANSCRIPT_MATRICES, GENE_MATRICES, file="sample_sheet.csv")
+
+!Rscript tximport.r \
+    {ENSEMBL_VERSION} \
+    {ENSEMBL_DATASET} \
+    {TRANSCRIPT_MATRICES.path}/sample_sheet.csv \
+    {TRANSCRIPT_MATRICES.path} \
+    {GENE_MATRICES.path}
+
+
+# %% DESeq2
+
+GOAL = DifferentialGeneExpression(
+    path=Dir.make("deseq2"),
+    comparison_sheet="metadata/comparisons.csv",
+)
+
+carry_over(GENE_MATRICES, GOAL, file="sample_sheet.csv")
+
+!Rscript deseq2.r \
+    {ENSEMBL_VERSION} \
+    {ENSEMBL_DATASET} \
+    {GENE_MATRICES.path}/sample_sheet.csv \
+    {GOAL.comparison_sheet} \
+    {GENE_MATRICES.path}/counts.csv \
+    {GOAL.path}
+class Dir:
+    stage = 1
+
+    @staticmethod
+    def make(name):
+        dir = f"output/{Dir.stage * 10:03d}-{name}"
+        os.makedirs(dir, exist_ok=True)
+        Dir.stage += 1
+        return dir
+
+def carry_over(src_object, dst_object, *, file=None):
+    def carry_one(file):
+        src = f"{src_object.path}/{file}"
+        dst = f"{dst_object.path}/{file}"
+        if os.path.islink(src):
+            src = os.readlink(src)
+        os.symlink(src=src, dst=dst)
+
+    if file is None:
+        for file in os.listdir(src_object.path):
+            carry_one(file)
+    else:
+        carry_one(file)
+
+@dataclass
+class SraRnaSeq:
+    "RNA-seq (stored on the Sequence Read Archive)"
+
+    sample_sheet: str
+    """Path to sample sheet CSV with SRA metadata
+
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+
+    Here is an example CSV file (the headers must match exactly):
+
+    | sample_name | condition | replicate |
+    |-------------|-----------|-----------|
+    | SRR34323945 | treated   | 1         |
+    | SRR34323944 | treated   | 2         |
+    | SRR34323943 | untreated | 1         |
+    | SRR34323942 | untreated | 2         |
+
+    **Important:** The `sample_name` column must contain valid SRA "run
+    accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
+    digit."""
+
+@dataclass
+class RnaSeqReads:
+    """@intermediate:RNA-seq reads
+
+    The goal of this step is to get RNA-seq reads.
+
+    These reads can either be raw data (that is, the direct output of a machine
+    like an
+    [Illumina sequencer](https://www.illumina.com/systems/sequencing-platforms.html), or
+    can be the result of pre-processing that raw data.
+
+    Many pre-processing techniques (like
+    [adapter trimming](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002905))
+    require that the RNA-seq reads undergo _quality control_ (QC) checks using
+    a tool like
+    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+    before and after running the tool."""
+
+    path: str
+
+    qc: bool
+    trimmed: bool
+
+@dataclass
+class TranscriptMatrices:
+    """Transcript read counts (and TPM abundance) of RNA-seq samples
+
+    The goal of this step is to calculate two transcript-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices are usually computed by using a reference transcriptome
+    (coding sequences) rather than a reference genome. Unless your scientific
+    question relates specifically to transcript information, these matrices are
+    often aggregated into **gene-level** read count and abundance information."""
+
+    path: str
+
+@dataclass
+class GeneMatrices:
+    """Gene read counts (and TPM abundance) of RNA-seq samples
+
+    The goal of this step is to calculate two gene-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices can be created using an alignment-based approach that aligns
+    transcripts to a reference genome in a splice-aware fashion or using
+    an alignment-free approach that matches transcripts against a reference
+    transcriptome.
+
+    If you have a reference transcriptome already available that you trust and
+    you are not specifically interested in scientifically studying the
+    alignment of your RNA-seq to the genome, then a tool that performs
+    quantification without alignment is generally a good choice due to their
+    orders-of-magnitude speedup over alignment-based procedures.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices (Fig 2a and 2b are especially relevant):
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
+
+    path: str
+
+@dataclass
+class DifferentialGeneExpression:
+    """Differential gene expression
+
+    The goal of this step is to assign a score (like a _p_-value) to each gene
+    that ranks how differentially expressed it is between two conditions.
+    Among other uses, this information can be plotted in an
+    [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
+    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
+
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)
+
+    For example, sometimes you start with reads already quantified or trimmed,
+    and sometimes you need to run additional processing steps like batch
+    correction."""
+
+    path: str
+
+    comparison_sheet: str
+    "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
+
+# %% RNA-seq (stored on the Sequence Read Archive)
+

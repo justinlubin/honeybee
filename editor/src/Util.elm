@@ -1,6 +1,11 @@
 module Util exposing (..)
 
 
+justs : List (Maybe a) -> List a
+justs xs =
+    List.filterMap identity xs
+
+
 findFirst : (a -> Bool) -> List a -> Maybe a
 findFirst f xs =
     List.head (List.filter f xs)
