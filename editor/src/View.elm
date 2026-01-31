@@ -508,21 +508,25 @@ functionChoice ctx fc =
         div [] <|
             [ ul
                 [ A.class "tool-search-info" ]
-                [ li
-                    []
-                    [ text "Search for "
-                    , text fc.functionTitle
-                    , text " on "
-                    , img [ A.src "assets/google.webp" ] []
-                    , a
-                        [ A.href (searchEngineUrl Google searchEngineQuery) ]
-                        [ text "Google" ]
-                    , text " or "
-                    , img [ A.src "assets/duckduckgo.png" ] []
-                    , a
-                        [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
-                        [ text "DuckDuckGo" ]
-                    ]
+                [ if fc.search then
+                    li
+                        []
+                        [ text "Search for "
+                        , text fc.functionTitle
+                        , text " on "
+                        , img [ A.src "assets/google.webp" ] []
+                        , a
+                            [ A.href (searchEngineUrl Google searchEngineQuery) ]
+                            [ text "Google" ]
+                        , text " or "
+                        , img [ A.src "assets/duckduckgo.png" ] []
+                        , a
+                            [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
+                            [ text "DuckDuckGo" ]
+                        ]
+
+                  else
+                    text ""
                 , case fc.pmid of
                     Just pmid ->
                         li []
@@ -736,7 +740,7 @@ cell ctx c =
 
                 -- , cardInnerHeading [] [ text "Notes" ]
                 -- , textarea [] []
-                , cardInnerHeading [] [ text ("Choices" ++ suffix) ]
+                , cardInnerHeading [] [ text ("Choices for possible next steps" ++ suffix) ]
                 , if List.length x.functionChoices > 1 then
                     ul [ A.class "use-hints" ]
                         (List.filterMap
@@ -747,7 +751,7 @@ cell ctx c =
                                             li []
                                                 [ b [] [ text "Tip:" ]
                                                 , i []
-                                                    [ text " You may like "
+                                                    [ text " You may want to use "
                                                     , b [] [ text fc.functionTitle ]
                                                     , text " if you want… "
                                                     ]

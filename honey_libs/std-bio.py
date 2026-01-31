@@ -52,7 +52,7 @@ def save(src, dst):
 class SeqReads:
     """@intermediate:Sequencing reads
 
-    The goal of this step is to process sequencing "reads".
+    The goal of this step is to process sequencing "reads."
 
     A "read" is either a short (a few hundred base pairs) or long (a few
     thousand base pairs) snippet of DNA produced by a sequencer. This DNA can
@@ -86,7 +86,7 @@ class SeqAlignment:
 
 @Output
 class SortedIndexBAM:
-    "Sorted and indexed BAM files"
+    "Sequence alignment (sorted and indexed BAM files)"
 
     path: str
 
@@ -191,6 +191,7 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "ret.long = reads.long",
     "ret.type = reads.type",
     use="to skip adapter trimming (because your sequencing provider already did adapter trimming for you)",
+    search=False,
 )
 def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     """Skip adapter trimming
@@ -229,6 +230,7 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
 @Function(
     "ret.type = align.type",
+    search=False,
 )
 def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SortedIndexBAM):
     """Convert to sorted BAM and index"""
@@ -304,7 +306,7 @@ class SraRnaSeq:
 
 @Output
 class TranscriptMatrices:
-    """Transcript read counts (and TPM abundance) of RNA-seq samples
+    """RNA-seq transcript read counts
 
     The goal of this step is to calculate two transcript-by-sample matrices:
     - One with (estimated) read counts.
@@ -320,7 +322,7 @@ class TranscriptMatrices:
 
 @Output
 class GeneMatrices:
-    """Gene read counts (and TPM abundance) of RNA-seq samples
+    """RNA-seq gene read counts
 
     The goal of this step is to calculate two gene-by-sample matrices:
     - One with (estimated) read counts.
@@ -351,7 +353,7 @@ class GeneMatrices:
 
 @Output
 class DifferentialGeneExpression:
-    """Differential gene expression
+    """RNA-seq differential gene expression
 
     The goal of this step is to assign a score (like a _p_-value) to each gene
     that ranks how differentially expressed it is between two conditions.
@@ -392,6 +394,7 @@ class DifferentialGeneExpression:
     "ret.trimmed = false",
     "ret.long = false",
     "ret.type = 'rna'",
+    search=False,
 )
 def load_sra_rna_seq(__hb_sra: SraRnaSeq, __hb_ret: SeqReads):
     """Download from ENA
@@ -431,13 +434,15 @@ def load_sra_rna_seq(__hb_sra: SraRnaSeq, __hb_ret: SeqReads):
     "ret.trimmed = false",
     "ret.long = false",
     "ret.type = 'rna'",
+    search=False,
 )
 def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: SeqReads):
-    """Load local data
+    """Load RNA-seq data from hard drive
 
     # Load raw RNA-seq data already present on your computer
 
-    The raw RNA-seq files are typically in the .fastq.gz file format."""
+    The raw RNA-seq files are typically in the `.fastq` or `.fastq.gz` file
+    format."""
 
     carry_over(__hb_local, __hb_ret)
 
@@ -693,7 +698,19 @@ class LocalLemonSeq:
     "LEMONmethyl-seq"
 
     path: str
+    """Path to the directory containing the LEMONmethyl-seq data
+
+    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
     reference: str
+    """Path to the reference genome to align the LEMONmethyl-seq data to
+
+    @example:/Users/jlubin/Desktop/MyExperiment/reference.fasta
+
+    The path should be to a `.fasta` file containing one entry (for the
+    reference genome)."""
 
 
 @Output
@@ -710,13 +727,14 @@ class CalledMethylation:
     path: str
 
 
-@Function
+@Function(
+    search=False,
+)
 def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSeq):
-    """Load local data
+    """Load LEMONmethyl-seq data from hard drive
 
-    # Load raw LEMONmethyl-seq data already present on your computer
-
-    The raw LEMONmethyl-seq files are typically in the .fastq.gz file format."""
+    The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
+    file format."""
 
     carry_over(__hb_local, __hb_ret)
 
@@ -731,20 +749,28 @@ def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSe
     "ret.trimmed = true",
     "ret.long = true",
     "ret.type = 'lemon'",
+    use="to make a new EM-converted reference",
+    search=False,
 )
 def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
-    """In silico EM-convert reference
+    """EM-convert provided reference
 
-    # Make EM-converted reference genome.
+    # (In silico) EM-convert the provided reference
 
-    This is the reference genome that is used for alignment in LEMONmethyl-seq."""
+    In order to perform alignment of LEMONmethyl-seq reads, we need a version of
+    the reference genome that has undergone _in silico EM conversion_; or, in
+    other words, that has all Cs converted to Ts in the `.fasta`
+    (computationally).
+
+    _This preprocessing step performs the in silico EM conversion._"""
 
     carry_over(__hb_data, __hb_ret)
 
     __hb_bash(f"""
         cat "{__hb_ret.path}/unconverted_reference.fasta" \
-            | sed '/^>/s/$/ (in silico C -> G converted)/' \
+            | sed '/^>/s/$/ (in silico C -> T converted)/' \
             | sed '/^[^>]/s/C/T/g' \
+            | sed '/^[^>]/s/c/t/g' \
             > "{__hb_ret.path}/reference/reference.fasta"
     """)
 
@@ -754,18 +780,26 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
     "ret.trimmed = true",
     "ret.long = true",
     "ret.type = 'lemon'",
+    use="to reuse an existing EM-converted reference",
+    search=False,
 )
 def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
-    """Use an existing EM-converted reference
+    """Use existing EM-converted reference
 
     # Use an existing (in silico) EM-converted reference genome
+
+    In order to perform alignment of LEMONmethyl-seq reads, we need a version of
+    the reference genome that has undergone _in silico EM conversion_; or, in
+    other words, that has all Cs converted to Ts in the `.fasta`
+    (computationally).
 
     If you already have a reference genome that has undergone in silico EM
     conversion, you don't need to redo that step! After downloading the
     completed script, simply put in the path to where that reference genome is
     stored in the parameter below.
 
-    _Crucially, this genome must have had all Cs converted to Ts!_"""
+    _Crucially, this genome must have all Cs converted to Ts
+    computationally!_"""
 
     # PARAMETER: The path to the (in silico) EM-converted reference genome
     EM_REFERENCE_PATH = "/Users/jlubin/Documents/genomes/converted.fasta"
@@ -782,7 +816,20 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
     "bam.type = 'lemon'",
 )
 def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
-    """Call methylation"""
+    """LEMONmC.py
+
+    LEMONmC.py is a lightweight tool to call methylation sites on a reference
+    genome given a set of LEMONmethyl-seq reads aligned to an in silico
+    converted version of the reference genome.
+
+    For each C in the reference, if there is a C in the aligned read, we know
+    that site was methylated (it was protected in the wet lab EM conversion
+    process). If there is a T in the aligned read, we know that the site must
+    not have been methylated!
+
+    LEMONmC.py counts up the per-site methylated and unmethylated alignments
+    and collects the results into a single table, with one entry per cytosine
+    in the reference genome."""
 
     for path in glob.glob(f"{__hb_bam.path}/*.bam"):
         sample_name = os.path.splitext(os.path.basename(path))[0]

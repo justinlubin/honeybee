@@ -29,6 +29,7 @@ type alias FunctionChoice =
     , hyperparameters : List Hyperparameter
     , use : Maybe String
     , pmid : Maybe String
+    , search : Bool
     }
 
 

@@ -221,6 +221,11 @@ def _emit_function_sig(f, condition, kwargs):
         if isinstance(kwargs[k], list):
             rhs = "[" + ", ".join('"' + entry + '"' for entry in kwargs[k]) + "]"
             print(f"info.{k} = {rhs}")
+        elif isinstance(kwargs[k], bool):
+            if kwargs[k]:
+                print(f"info.{k} = true")
+            else:
+                print(f"info.{k} = false")
         else:
             print(f'info.{k} = "{kwargs[k]}"')
 

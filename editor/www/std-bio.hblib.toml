@@ -43,7 +43,7 @@ params.trimmed = "Bool"
 params.long = "Bool"
 params.type = "Str"
 info.title = "@intermediate:Sequencing reads"
-info.description = """The goal of this step is to process sequencing "reads".
+info.description = """The goal of this step is to process sequencing "reads."
 
 A "read" is either a short (a few hundred base pairs) or long (a few
 thousand base pairs) snippet of DNA produced by a sequencer. This DNA can
@@ -61,7 +61,7 @@ info.code = '''@dataclass
 class SeqReads:
     """@intermediate:Sequencing reads
 
-    The goal of this step is to process sequencing "reads".
+    The goal of this step is to process sequencing "reads."
 
     A "read" is either a short (a few hundred base pairs) or long (a few
     thousand base pairs) snippet of DNA produced by a sequencer. This DNA can
@@ -96,10 +96,10 @@ class SeqAlignment:
 
 [Type.SortedIndexBAM]
 params.type = "Str"
-info.title = "Sorted and indexed BAM files"
+info.title = "Sequence alignment (sorted and indexed BAM files)"
 info.code = '''@dataclass
 class SortedIndexBAM:
-    "Sorted and indexed BAM files"
+    "Sequence alignment (sorted and indexed BAM files)"
 
     path: str
 
@@ -202,6 +202,7 @@ info.description = """If the provider of your sequencing results has said that a
 have already been removed, then you don't need to run any processing to
 try to remove them again."""
 info.use = "to skip adapter trimming (because your sequencing provider already did adapter trimming for you)"
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")'''
@@ -239,6 +240,7 @@ condition = [
     "ret.type = align.type",
 ]
 info.description = "Convert to sorted BAM and index"
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_align, __hb_ret, file="reference")
@@ -403,7 +405,7 @@ info.title = "RNA-seq (stored on the Sequence Read Archive)"
 
 [Type.TranscriptMatrices]
 params = {}
-info.title = "Transcript read counts (and TPM abundance) of RNA-seq samples"
+info.title = "RNA-seq transcript read counts"
 info.description = """The goal of this step is to calculate two transcript-by-sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
@@ -414,7 +416,7 @@ question relates specifically to transcript information, these matrices are
 often aggregated into **gene-level** read count and abundance information."""
 info.code = '''@dataclass
 class TranscriptMatrices:
-    """Transcript read counts (and TPM abundance) of RNA-seq samples
+    """RNA-seq transcript read counts
 
     The goal of this step is to calculate two transcript-by-sample matrices:
     - One with (estimated) read counts.
@@ -429,7 +431,7 @@ class TranscriptMatrices:
 
 [Type.GeneMatrices]
 params = {}
-info.title = "Gene read counts (and TPM abundance) of RNA-seq samples"
+info.title = "RNA-seq gene read counts"
 info.description = """The goal of this step is to calculate two gene-by-sample matrices:
 - One with (estimated) read counts.
 - One with TPM (transcripts-per-million) abundance.
@@ -455,7 +457,7 @@ read count matrices (Fig 2a and 2b are especially relevant):
 > https://doi.org/10.1186/s13059-016-0881-8"""
 info.code = '''@dataclass
 class GeneMatrices:
-    """Gene read counts (and TPM abundance) of RNA-seq samples
+    """RNA-seq gene read counts
 
     The goal of this step is to calculate two gene-by-sample matrices:
     - One with (estimated) read counts.
@@ -485,7 +487,7 @@ class GeneMatrices:
 
 [Type.DifferentialGeneExpression]
 params.comparison_sheet = "Str"
-info.title = "Differential gene expression"
+info.title = "RNA-seq differential gene expression"
 info.description = """The goal of this step is to assign a score (like a _p_-value) to each gene
 that ranks how differentially expressed it is between two conditions.
 Among other uses, this information can be plotted in an
@@ -515,7 +517,7 @@ conditions you want to compare to each other."""
 info.param_examples.comparison_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/comparisons.csv"""
 info.code = '''@dataclass
 class DifferentialGeneExpression:
-    """Differential gene expression
+    """RNA-seq differential gene expression
 
     The goal of this step is to assign a score (like a _p_-value) to each gene
     that ranks how differentially expressed it is between two conditions.
@@ -565,6 +567,7 @@ info.description = """# Download RNA-seq data from the [European Nucleotide Arch
 The downloaded files will be in the .fastq.gz file format, with the
 filenames for the forward reads ending in _1.fastq.gz and the filenames for
 the reverse reads ending in _2.fastq.gz."""
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''sample_sheet = pl.read_csv(__hb_sra.sample_sheet)
@@ -599,10 +602,12 @@ condition = [
     "ret.long = false",
     "ret.type = \"rna\"",
 ]
-info.title = "Load local data"
+info.title = "Load RNA-seq data from hard drive"
 info.description = """# Load raw RNA-seq data already present on your computer
 
-The raw RNA-seq files are typically in the .fastq.gz file format."""
+The raw RNA-seq files are typically in the `.fastq` or `.fastq.gz` file
+format."""
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_local, __hb_ret)
@@ -832,17 +837,47 @@ __hb_bash(f"""
 params.path = "Str"
 params.reference = "Str"
 info.title = "@intermediate:LEMONmethyl-seq"
+info.param_titles.path = "Path to the directory containing the LEMONmethyl-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
+info.param_descriptions.reference = """
+The path should be to a `.fasta` file containing one entry (for the
+reference genome)."""
+info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
 info.code = '''@dataclass
 class LocalLemonSeq:
     "LEMONmethyl-seq"
 
     path: str
-    reference: str'''
+    """Path to the directory containing the LEMONmethyl-seq data
+
+    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
+    reference: str
+    """Path to the reference genome to align the LEMONmethyl-seq data to
+
+    @example:/Users/jlubin/Desktop/MyExperiment/reference.fasta
+
+    The path should be to a `.fasta` file containing one entry (for the
+    reference genome)."""'''
 
 [Prop.P_LocalLemonSeq]
 params.path = "Str"
 params.reference = "Str"
 info.title = "LEMONmethyl-seq"
+info.param_titles.path = "Path to the directory containing the LEMONmethyl-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
+info.param_descriptions.reference = """
+The path should be to a `.fasta` file containing one entry (for the
+reference genome)."""
+info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
 
 [Function.F_LocalLemonSeq]
 params = {}
@@ -875,10 +910,10 @@ params.local = "LocalLemonSeq"
 ret = "UnconvertedLemonSeq"
 condition = [
 ]
-info.title = "Load local data"
-info.description = """# Load raw LEMONmethyl-seq data already present on your computer
-
-The raw LEMONmethyl-seq files are typically in the .fastq.gz file format."""
+info.title = "Load LEMONmethyl-seq data from hard drive"
+info.description = """The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
+file format."""
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_local, __hb_ret)
@@ -897,18 +932,26 @@ condition = [
     "ret.long = true",
     "ret.type = \"lemon\"",
 ]
-info.title = "In silico EM-convert reference"
-info.description = """# Make EM-converted reference genome.
+info.title = "EM-convert provided reference"
+info.description = """# (In silico) EM-convert the provided reference
 
-This is the reference genome that is used for alignment in LEMONmethyl-seq."""
+In order to perform alignment of LEMONmethyl-seq reads, we need a version of
+the reference genome that has undergone _in silico EM conversion_; or, in
+other words, that has all Cs converted to Ts in the `.fasta`
+(computationally).
+
+_This preprocessing step performs the in silico EM conversion._"""
+info.use = "to make a new EM-converted reference"
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_data, __hb_ret)
 
 __hb_bash(f"""
     cat "{__hb_ret.path}/unconverted_reference.fasta" \
-        | sed '/^>/s/$/ (in silico C -> G converted)/' \
+        | sed '/^>/s/$/ (in silico C -> T converted)/' \
         | sed '/^[^>]/s/C/T/g' \
+        | sed '/^[^>]/s/c/t/g' \
         > "{__hb_ret.path}/reference/reference.fasta"
 """)'''
 
@@ -921,15 +964,23 @@ condition = [
     "ret.long = true",
     "ret.type = \"lemon\"",
 ]
-info.title = "Use an existing EM-converted reference"
+info.title = "Use existing EM-converted reference"
 info.description = """# Use an existing (in silico) EM-converted reference genome
+
+In order to perform alignment of LEMONmethyl-seq reads, we need a version of
+the reference genome that has undergone _in silico EM conversion_; or, in
+other words, that has all Cs converted to Ts in the `.fasta`
+(computationally).
 
 If you already have a reference genome that has undergone in silico EM
 conversion, you don't need to redo that step! After downloading the
 completed script, simply put in the path to where that reference genome is
 stored in the parameter below.
 
-_Crucially, this genome must have had all Cs converted to Ts!_"""
+_Crucially, this genome must have all Cs converted to Ts
+computationally!_"""
+info.use = "to reuse an existing EM-converted reference"
+info.search = false
 info.hyperparameters = [
     {name = 'EM_REFERENCE_PATH', default = '"/Users/jlubin/Documents/genomes/converted.fasta"', comment = 'The path to the (in silico) EM-converted reference genome' },
 ]
@@ -946,7 +997,19 @@ ret = "CalledMethylation"
 condition = [
     "bam.type = \"lemon\"",
 ]
-info.description = "Call methylation"
+info.title = "LEMONmC.py"
+info.description = """LEMONmC.py is a lightweight tool to call methylation sites on a reference
+genome given a set of LEMONmethyl-seq reads aligned to an in silico
+converted version of the reference genome.
+
+For each C in the reference, if there is a C in the aligned read, we know
+that site was methylated (it was protected in the wet lab EM conversion
+process). If there is a T in the aligned read, we know that the site must
+not have been methylated!
+
+LEMONmC.py counts up the per-site methylated and unmethylated alignments
+and collects the results into a single table, with one entry per cytosine
+in the reference genome."""
 info.hyperparameters = [
 ]
 info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
