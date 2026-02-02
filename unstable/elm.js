@@ -5536,7 +5536,9 @@ var $author$project$Cell$FunctionChoice = function (functionTitle) {
 								return function (hyperparameters) {
 									return function (use) {
 										return function (pmid) {
-											return {additionalCitations: additionalCitations, citation: citation, code: code, functionDescription: functionDescription, functionTitle: functionTitle, googleScholarId: googleScholarId, hyperparameters: hyperparameters, metadataChoices: metadataChoices, pmid: pmid, selectedMetadataChoice: selectedMetadataChoice, use: use};
+											return function (search) {
+												return {additionalCitations: additionalCitations, citation: citation, code: code, functionDescription: functionDescription, functionTitle: functionTitle, googleScholarId: googleScholarId, hyperparameters: hyperparameters, metadataChoices: metadataChoices, pmid: pmid, search: search, selectedMetadataChoice: selectedMetadataChoice, use: use};
+											};
 										};
 									};
 								};
@@ -5654,62 +5656,66 @@ var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
 var $author$project$Incoming$decodeFunctionChoice = A4(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 	_List_fromArray(
-		['info', 'pmid']),
-	$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
-	$elm$core$Maybe$Nothing,
+		['info', 'search']),
+	$elm$json$Json$Decode$bool,
+	true,
 	A4(
 		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 		_List_fromArray(
-			['info', 'use']),
+			['info', 'pmid']),
 		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 		$elm$core$Maybe$Nothing,
 		A4(
 			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 			_List_fromArray(
-				['info', 'hyperparameters']),
-			$elm$json$Json$Decode$nullable(
-				$elm$json$Json$Decode$list($author$project$Incoming$decodeHyperparameter)),
+				['info', 'use']),
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 			$elm$core$Maybe$Nothing,
 			A4(
 				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 				_List_fromArray(
-					['info', 'additional_citations']),
-				$elm$json$Json$Decode$nullable(
-					$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
-				$elm$core$Maybe$Nothing,
+					['info', 'hyperparameters']),
+				$elm$json$Json$Decode$list($author$project$Incoming$decodeHyperparameter),
+				_List_Nil,
 				A4(
 					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 					_List_fromArray(
-						['info', 'citation']),
-					$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+						['info', 'additional_citations']),
+					$elm$json$Json$Decode$nullable(
+						$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
 					$elm$core$Maybe$Nothing,
 					A4(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
 						_List_fromArray(
-							['info', 'google_scholar_id']),
+							['info', 'citation']),
 						$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 						$elm$core$Maybe$Nothing,
-						A2(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$hardcoded,
-							0,
-							A3(
-								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-								'metadata_choices',
-								$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice),
+						A4(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+							_List_fromArray(
+								['info', 'google_scholar_id']),
+							$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+							$elm$core$Maybe$Nothing,
+							A2(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$hardcoded,
+								0,
 								A3(
 									$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-									'code',
-									$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+									'metadata_choices',
+									$elm$json$Json$Decode$list($author$project$Incoming$decodeMetadataChoice),
 									A3(
 										$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-										'function_description',
+										'code',
 										$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
 										A3(
 											$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-											'function_title',
-											$elm$json$Json$Decode$string,
-											$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice))))))))))));
-var $elm$core$List$sortBy = _List_sortBy;
+											'function_description',
+											$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string),
+											A3(
+												$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+												'function_title',
+												$elm$json$Json$Decode$string,
+												$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice)))))))))))));
 var $author$project$Incoming$decodeChoiceCell = A6(
 	$elm$json$Json$Decode$map5,
 	$author$project$Cell$ChoiceCell,
@@ -5722,13 +5728,7 @@ var $author$project$Incoming$decodeChoiceCell = A6(
 	A2(
 		$elm$json$Json$Decode$field,
 		'function_choices',
-		A2(
-			$elm$json$Json$Decode$map,
-			$elm$core$List$sortBy(
-				function (x) {
-					return x.functionTitle;
-				}),
-			$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice))),
+		$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice)),
 	$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing));
 var $author$project$Cell$CodeCell = F2(
 	function (title, code) {
@@ -5993,6 +5993,7 @@ var $author$project$Assoc$map = function (f) {
 				A2(f, x, y));
 		});
 };
+var $elm$core$List$sortBy = _List_sortBy;
 var $elm$core$List$member = F2(
 	function (x, xs) {
 		return A2(
@@ -6440,6 +6441,13 @@ var $author$project$Compile$arg = F2(
 		var v = _v0.a;
 		return 'args.' + (argName + (' = ' + $author$project$Compile$value(v)));
 	});
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var $author$project$Assoc$mapCollapse = function (f) {
 	return $elm$core$List$map(
 		function (_v0) {
@@ -6450,10 +6458,10 @@ var $author$project$Assoc$mapCollapse = function (f) {
 };
 var $author$project$Compile$factBody = F2(
 	function (name, args) {
-		return 'name = \"' + (name + ('\"\n' + A2(
+		return 'name = \"' + (name + ('\"\n' + ($elm$core$List$isEmpty(args) ? 'args = {}' : A2(
 			$elm$core$String$join,
 			'\n',
-			A2($author$project$Assoc$mapCollapse, $author$project$Compile$arg, args))));
+			A2($author$project$Assoc$mapCollapse, $author$project$Compile$arg, args)))));
 	});
 var $author$project$Compile$fact = F2(
 	function (prefix, f) {
@@ -6463,13 +6471,6 @@ var $author$project$Compile$fact = F2(
 	});
 var $author$project$Compile$goal = function (f) {
 	return A2($author$project$Compile$fact, '[Goal]\n', f);
-};
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
 };
 var $author$project$Compile$prop = function (f) {
 	return A2($author$project$Compile$fact, '[[Prop]]\n', f);
@@ -6837,7 +6838,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+7d9e53f';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+1631524';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -7311,9 +7312,9 @@ var $author$project$View$functionChoice = F2(
 						$elm$html$Html$Attributes$class('tabbed-menu-body-dropdown'),
 						$elm$html$Html$Events$onInput(
 						function (v) {
-							var _v6 = $elm$core$String$toInt(v);
-							if (_v6.$ === 'Just') {
-								var n = _v6.a;
+							var _v5 = $elm$core$String$toInt(v);
+							if (_v5.$ === 'Just') {
+								var n = _v5.a;
 								return A2($author$project$Update$UserSelectedMetadata, ctx, n);
 							} else {
 								return $author$project$Update$Nop;
@@ -7364,7 +7365,7 @@ var $author$project$View$functionChoice = F2(
 								]),
 							_List_fromArray(
 								[
-									A2(
+									fc.search ? A2(
 									$elm$html$Html$li,
 									_List_Nil,
 									_List_fromArray(
@@ -7409,7 +7410,7 @@ var $author$project$View$functionChoice = F2(
 												[
 													$elm$html$Html$text('DuckDuckGo')
 												]))
-										])),
+										])) : $elm$html$Html$text(''),
 									function () {
 									var _v0 = fc.pmid;
 									if (_v0.$ === 'Just') {
@@ -7481,67 +7482,59 @@ var $author$project$View$functionChoice = F2(
 							A2($elm$core$Maybe$withDefault, '', fc.functionDescription))
 						]),
 					_Utils_ap(
-						function () {
-							var _v2 = fc.hyperparameters;
-							if (_v2.$ === 'Just') {
-								var hs = _v2.a;
-								return _List_fromArray(
+						$elm$core$List$isEmpty(fc.hyperparameters) ? _List_Nil : _List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('markdown')
+									]),
+								_List_fromArray(
 									[
 										A2(
-										$elm$html$Html$div,
+										$elm$html$Html$h2,
+										_List_Nil,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('markdown')
-											]),
+												$elm$html$Html$text('Parameters to set')
+											])),
+										A2(
+										$elm$html$Html$p,
+										_List_Nil,
 										_List_fromArray(
 											[
-												A2(
-												$elm$html$Html$h2,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Parameters to set')
-													])),
-												A2(
-												$elm$html$Html$p,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Once you download your script, you will need to set the following parameters at the top of the file:')
-													])),
-												A2(
-												$elm$html$Html$ul,
-												_List_Nil,
-												A2(
-													$elm$core$List$map,
-													function (h) {
-														return A2(
-															$elm$html$Html$li,
+												$elm$html$Html$text('Once you download your script, you will need to set the following parameters at the top of the file:')
+											])),
+										A2(
+										$elm$html$Html$ul,
+										_List_Nil,
+										A2(
+											$elm$core$List$map,
+											function (h) {
+												return A2(
+													$elm$html$Html$li,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$code,
 															_List_Nil,
 															_List_fromArray(
 																[
-																	A2(
-																	$elm$html$Html$code,
-																	_List_Nil,
-																	_List_fromArray(
-																		[
-																			$elm$html$Html$text(h.name)
-																		])),
-																	$elm$html$Html$text(': ' + (h.comment + (' (default: ' + (h._default + ')'))))
-																]));
-													},
-													hs))
-											]))
-									]);
-							} else {
-								return _List_Nil;
-							}
-						}(),
+																	$elm$html$Html$text(h.name)
+																])),
+															$elm$html$Html$text(': ' + (h.comment + (' (default: ' + (h._default + ')'))))
+														]));
+											},
+											fc.hyperparameters))
+									]))
+							]),
 						_Utils_ap(
 							function () {
-								var _v3 = fc.citation;
-								if (_v3.$ === 'Just') {
-									var citation = _v3.a;
+								var _v2 = fc.citation;
+								if (_v2.$ === 'Just') {
+									var citation = _v2.a;
 									return _List_fromArray(
 										[
 											A2(
@@ -7576,9 +7569,9 @@ var $author$project$View$functionChoice = F2(
 															]))
 													]),
 												function () {
-													var _v4 = fc.additionalCitations;
-													if (_v4.$ === 'Just') {
-														var acs = _v4.a;
+													var _v3 = fc.additionalCitations;
+													if (_v3.$ === 'Just') {
+														var acs = _v3.a;
 														return _Utils_ap(
 															_List_fromArray(
 																[
@@ -7614,11 +7607,11 @@ var $author$project$View$functionChoice = F2(
 							_Utils_ap(
 								($elm$core$List$length(fc.metadataChoices) > 1) ? selectAdditionalInformation : _List_Nil,
 								function () {
-									var _v5 = fc.code;
-									if (_v5.$ === 'Nothing') {
+									var _v4 = fc.code;
+									if (_v4.$ === 'Nothing') {
 										return _List_Nil;
 									} else {
-										var code = _v5.a;
+										var code = _v4.a;
 										return _List_fromArray(
 											[
 												A2(
@@ -7891,7 +7884,7 @@ var $author$project$View$cell = F2(
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Choices' + suffix)
+								$elm$html$Html$text('Choices for possible next steps' + suffix)
 							])),
 						($elm$core$List$length(x.functionChoices) > 1) ? A2(
 						$elm$html$Html$ul,
@@ -7923,7 +7916,7 @@ var $author$project$View$cell = F2(
 													_List_Nil,
 													_List_fromArray(
 														[
-															$elm$html$Html$text(' You may like '),
+															$elm$html$Html$text(' You may want to use '),
 															A2(
 															$elm$html$Html$b,
 															_List_Nil,
@@ -8052,7 +8045,7 @@ var $elm$virtual_dom$VirtualDom$keyedNode = function (tag) {
 		_VirtualDom_noScript(tag));
 };
 var $elm$html$Html$Keyed$node = $elm$virtual_dom$VirtualDom$keyedNode;
-var $author$project$View$solutionPrefix = '################################################################################\n' + ('# Script originally created using:\n' + ('#     Honeybee (https://honeybee-lang.org), version ' + ($author$project$Version$fullVersion + ('\n#' + ('\n# Please cite:' + ('\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025.' + ('\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,' + ('\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264' + '\n################################################################################\n\n'))))))));
+var $author$project$View$solutionPrefix = '# Script originally created using:\n' + ('#     Honeybee (https://honeybee-lang.org), version ' + ($author$project$Version$fullVersion + ('\n#' + ('\n# Please cite:' + ('\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025.' + ('\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,' + ('\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264' + '\n\n')))))));
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
 		return _List_Nil;
@@ -8309,7 +8302,7 @@ var $author$project$View$pbnStatus = function (ms) {
 											$elm$html$Html$Events$onClick(
 											$author$project$Update$UserRequestedDownload(
 												{
-													filename: 'analysis.py',
+													filename: 'analysis.ipy',
 													text: _Utils_ap($author$project$View$solutionPrefix, solutionString)
 												}))
 										]),
@@ -8590,8 +8583,8 @@ var $author$project$View$step = F4(
 			});
 		var options = A2(
 			$elm$core$List$filter,
-			function (_v5) {
-				var displayName = _v5.b;
+			function (_v6) {
+				var displayName = _v6.b;
 				return !A2($author$project$Annotations$contains, $author$project$Annotations$Intermediate, displayName);
 			},
 			A2(
@@ -8633,9 +8626,9 @@ var $author$project$View$step = F4(
 				]),
 			A2(
 				$elm$core$List$map,
-				function (_v4) {
-					var name = _v4.a;
-					var displayName = _v4.b;
+				function (_v5) {
+					var name = _v5.a;
+					var displayName = _v5.b;
 					return A2(
 						$elm$html$Html$option,
 						_List_fromArray(
@@ -8649,7 +8642,13 @@ var $author$project$View$step = F4(
 								$elm$html$Html$text(displayName)
 							]));
 				},
-				options));
+				A2(
+					$elm$core$List$sortBy,
+					function (_v4) {
+						var displayName = _v4.b;
+						return displayName;
+					},
+					options)));
 		var _v2 = function () {
 			if (pi.$ === 'Prop') {
 				var i = pi.a;
