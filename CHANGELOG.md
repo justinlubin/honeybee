@@ -22,6 +22,7 @@ of Honeybee.
   ([#102](https://github.com/justinlubin/honeybee/pull/102))
 - Add GoatCounter private analytics
 - Add website (https://honeybee-lang.org), including video demo
+- Add link to Zulip chat
 
 ### Changed
 
