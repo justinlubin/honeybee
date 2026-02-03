@@ -5730,15 +5730,16 @@ var $author$project$Incoming$decodeChoiceCell = A6(
 		'function_choices',
 		$elm$json$Json$Decode$list($author$project$Incoming$decodeFunctionChoice)),
 	$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing));
-var $author$project$Cell$CodeCell = F2(
-	function (title, code) {
-		return {code: code, title: title};
+var $author$project$Cell$CodeCell = F3(
+	function (title, code, openWhenEditing) {
+		return {code: code, openWhenEditing: openWhenEditing, title: title};
 	});
-var $author$project$Incoming$decodeCodeCell = A3(
-	$elm$json$Json$Decode$map2,
+var $author$project$Incoming$decodeCodeCell = A4(
+	$elm$json$Json$Decode$map3,
 	$author$project$Cell$CodeCell,
 	A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'code', $elm$json$Json$Decode$string));
+	A2($elm$json$Json$Decode$field, 'code', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'open_when_editing', $elm$json$Json$Decode$bool));
 var $author$project$Incoming$decodeCell = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[
@@ -6838,7 +6839,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+1631524';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+f73f9a3';
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -7795,11 +7796,12 @@ var $author$project$View$cell = F2(
 	function (ctx, c) {
 		if (c.$ === 'Code') {
 			var code = c.a.code;
+			var openWhenEditing = c.a.openWhenEditing;
 			return A4(
 				$author$project$View$card,
 				{
 					collapse: $author$project$View$Collapsible(
-						{openByDefault: !(!ctx.cellIndex)})
+						{openByDefault: openWhenEditing})
 				},
 				_Utils_ap(
 					_List_fromArray(
@@ -7808,7 +7810,7 @@ var $author$project$View$cell = F2(
 							$elm$html$Html$Attributes$id(
 							$author$project$View$cellId(ctx.cellIndex))
 						]),
-					(!(!ctx.cellIndex)) ? _List_fromArray(
+					openWhenEditing ? _List_fromArray(
 						[
 							A2($elm$html$Html$Attributes$attribute, 'data-popinkey', code)
 						]) : _List_Nil),
@@ -7827,7 +7829,17 @@ var $author$project$View$cell = F2(
 					_List_Nil),
 				_List_fromArray(
 					[
-						A2(
+						$elm$core$String$isEmpty(
+						$elm$core$String$trim(code)) ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('nothing-here')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('There\'s nothing here just yet!')
+							])) : A2(
 						$author$project$View$fancyCode,
 						_List_Nil,
 						{code: code, language: 'python'})
@@ -8045,7 +8057,7 @@ var $elm$virtual_dom$VirtualDom$keyedNode = function (tag) {
 		_VirtualDom_noScript(tag));
 };
 var $elm$html$Html$Keyed$node = $elm$virtual_dom$VirtualDom$keyedNode;
-var $author$project$View$solutionPrefix = '# Script originally created using:\n' + ('#     Honeybee (https://honeybee-lang.org), version ' + ($author$project$Version$fullVersion + ('\n#' + ('\n# Please cite:' + ('\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025.' + ('\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,' + ('\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264' + '\n\n')))))));
+var $author$project$View$solutionPrefix = '';
 var $author$project$View$pbnStatus = function (ms) {
 	if (ms.$ === 'Nothing') {
 		return _List_Nil;
@@ -8302,13 +8314,13 @@ var $author$project$View$pbnStatus = function (ms) {
 											$elm$html$Html$Events$onClick(
 											$author$project$Update$UserRequestedDownload(
 												{
-													filename: 'analysis.ipy',
+													filename: 'pipeline.ipynb',
 													text: _Utils_ap($author$project$View$solutionPrefix, solutionString)
 												}))
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text('Download analysis script')
+											$elm$html$Html$text('Download notebook')
 										]));
 							} else {
 								var _v3 = _v1.a;
