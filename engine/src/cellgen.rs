@@ -37,7 +37,10 @@ pub struct FunctionChoice {
 pub enum Cell {
     Code {
         title: String,
+        description: String,
         code: String,
+        open_when_editing: bool,
+        open_when_exporting: bool,
     },
     Hole {
         var_name: String,
@@ -121,6 +124,44 @@ impl<'a> Context<'a> {
         s
     }
 
+    fn description(f_sig: &FunctionSignature) -> String {
+        let mut ret = "".to_owned();
+
+        match f_sig.info_string("description") {
+            Some(desc) => ret += &format!("{}\n\n", desc),
+            None => (),
+        }
+
+        let mut citations = vec![];
+
+        match f_sig.info_string("citation") {
+            Some(cit) => citations.push(cit),
+            None => (),
+        }
+
+        match f_sig.info_array("additional_citations") {
+            Some(cits) => {
+                for cit in cits {
+                    match cit.as_str() {
+                        Some(cit_str) => citations.push(cit_str.to_owned()),
+                        None => (),
+                    }
+                }
+            }
+            None => (),
+        }
+
+        if !citations.is_empty() {
+            let plural_suffix = if citations.len() == 1 { "" } else { "s" };
+            ret += &format!("### Citation{}\n\n", plural_suffix);
+            for cit in citations {
+                ret += &format!("- {}\n", cit);
+            }
+        }
+
+        ret.trim().to_owned()
+    }
+
     fn body_code(
         var_name: &str,
         type_name: &str,
@@ -194,8 +235,9 @@ impl<'a> Context<'a> {
 
                 self.cells.push(Cell::Code {
                     title: f_sig
-                        .info_string("title")
+                        .info_string("tite")
                         .unwrap_or(f.name.0.clone()),
+                    description: Self::description(f_sig),
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
@@ -207,13 +249,15 @@ impl<'a> Context<'a> {
                         &arg_strings,
                         f_sig.info_string("code"),
                     ),
+                    open_when_editing: true,
+                    open_when_exporting: true,
                 });
             }
         }
     }
 
     fn preamble(&mut self) {
-        let mut code = "".to_owned();
+        // Hyperparameters
 
         let mut hyperparameters = IndexMap::new();
         for f in self.used_functions.iter().rev() {
@@ -252,12 +296,29 @@ impl<'a> Context<'a> {
             }
         }
 
+        let mut hp_code = "".to_owned();
+
         for (name, (default, comment)) in hyperparameters {
-            code += &format!(
+            hp_code += &format!(
                 "# PARAMETER: {} (default: {})\n{} = {}\n\n",
                 comment, default, name, default
             );
         }
+
+        self.cells.insert(
+            0,
+            Cell::Code {
+                title: "Parameters".to_owned(),
+                code: hp_code.trim().to_owned(),
+                description: "Before running your code, please set the following parameters!".to_owned(),
+                open_when_editing: false,
+                open_when_exporting: true,
+            },
+        );
+
+        // Preamble
+
+        let mut pr_code = "".to_owned();
 
         match &self.library.preamble {
             Some(pre) => {
@@ -266,7 +327,7 @@ impl<'a> Context<'a> {
                         Some(c) => c,
                         None => continue,
                     };
-                    code += &format!("{}\n\n", content)
+                    pr_code += &format!("{}\n\n", content)
                 }
             }
             None => (),
@@ -274,16 +335,19 @@ impl<'a> Context<'a> {
 
         for t in self.used_types.iter().rev() {
             match self.library.types.get(t).unwrap().info_string("code") {
-                Some(type_code) => code += &format!("{}\n\n", type_code),
+                Some(type_code) => pr_code += &format!("{}\n\n", type_code),
                 None => (),
             }
         }
 
         self.cells.insert(
-            0,
+            1,
             Cell::Code {
                 title: "Initialization code".to_owned(),
-                code: code.trim().to_owned(),
+                code: pr_code.trim().to_owned(),
+                description: "".to_owned(),
+                open_when_editing: false,
+                open_when_exporting: false,
             },
         );
     }

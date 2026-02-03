@@ -198,7 +198,7 @@ a:hover {
 }
 
 .markdown .more-info > span {
-    display: block;
+    display: block !important;
     visibility: hidden;
     background-color: #fff;
     width: 300px;
@@ -566,6 +566,11 @@ a:hover {
     margin-top: 8px;
     margin-bottom: 5px;
     margin-left: 2px;
+}
+
+.card .nothing-here {
+    color: #555;
+    font-style: italic;
 }
 
 /* Specific cards */

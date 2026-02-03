@@ -36,6 +36,7 @@ type alias FunctionChoice =
 type alias CodeCell =
     { title : String
     , code : String
+    , openWhenEditing : Bool
     }
 
 

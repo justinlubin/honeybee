@@ -647,7 +647,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
 
     DESeq2 models gene expression using what is called a
     <span class="more-info">
-        <span>
+        <span style="display: none">
             A <b>negative binomial distribution</b> is a statistical distribution
             that models count data with unexplained variance, such as the
             number of mRNA transcripts in a cell.  It looks like an off-center
