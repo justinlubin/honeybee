@@ -994,12 +994,28 @@ view model =
         ]
         [ menuBar
             []
-            [ b [] [ text "Programming by Navigation" ]
-            , text " with "
-            , b
-                []
-                [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
-                , text " 🐝"
+            [ span []
+                [ text "🐝 "
+                , b
+                    []
+                    [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
+                    ]
+                , text " (homepage)"
+                ]
+            , span []
+                [ img
+                    [ A.src "assets/zulip-icon-circle.svg"
+                    , A.width 20
+                    , A.height 20
+                    ]
+                    []
+                , text " "
+                , b []
+                    [ a
+                        [ A.href "https://chat.honeybee-lang.org" ]
+                        [ text "Zulip" ]
+                    ]
+                , text " (say hi, ask for help)"
                 ]
             ]
             []

@@ -365,6 +365,17 @@ a:hover {
 
 }
 
+.menu-bar-left > span {
+    margin-right: 30px;
+}
+
+.menu-bar img {
+    width: calc(var(--menu-bar-height) - 12px);
+    height: calc(var(--menu-bar-height) - 12px);
+    margin-bottom: 0;
+    vertical-align: sub;
+}
+
 .menu-bar a {
     color: inherit;
 }
