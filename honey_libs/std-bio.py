@@ -13,9 +13,10 @@ from honey_lang import Helper, Input, Output, Function, __hb_bash
 class Dir:
     stage = 1
 
+    @staticmethod
     def make(name):
         time = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
-        dir = f"output-{time}/{Dir.stage * 10:03d}-{name}"
+        dir = f"output/{time}/{Dir.stage * 10:03d}-{name}"
         os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir
@@ -24,7 +25,7 @@ class Dir:
 @Helper
 def carry_over(src_object, dst_object, *, file=None):
     def carry_one(f):
-        src = f"{src_object.path}/{f}"
+        src = f"../../../{src_object.path}/{f}"  # relative to dst
         dst = f"{dst_object.path}/{f}"
         if os.path.islink(src):
             src = os.readlink(src)
@@ -41,7 +42,7 @@ def carry_over(src_object, dst_object, *, file=None):
 def save(src, dst):
     dir = os.path.dirname(dst)
     os.makedirs(dir, exist_ok=True)
-    os.symlink(src=src, dst=dst)
+    os.symlink(src=os.path.abspath(src), dst=dst)
 
 
 ################################################################################
@@ -122,11 +123,7 @@ def fastqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
     carry_over(__hb_reads, __hb_ret)
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
-    fastqs = " ".join(
-        (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
-        + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
-    )
+    fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
 
     __hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
 
@@ -171,11 +168,7 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
     carry_over(__hb_reads, __hb_ret)
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
-    fastqs = " ".join(
-        (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
-        + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
-    )
+    fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
 
     __hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
     __hb_bash(
