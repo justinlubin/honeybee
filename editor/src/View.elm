@@ -710,7 +710,13 @@ cell ctx c =
                     [ text (cellTitle c) ]
                     []
                 )
-                [ fancyCode [] { language = "python", code = code }
+                [ if code |> String.trim |> String.isEmpty then
+                    div
+                        [ A.class "nothing-here" ]
+                        [ text "There's nothing here just yet!" ]
+
+                  else
+                    fancyCode [] { language = "python", code = code }
                 ]
 
         Cell.Choice x ->

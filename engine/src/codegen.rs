@@ -80,34 +80,38 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                 open_when_exporting,
                 open_when_editing: _,
             } => {
-                let header = if description.starts_with("# ") {
-                    format!("#{}", description)
+                if code.trim().is_empty() {
+                    vec![]
                 } else {
-                    format!("## {}\n\n{}", title, description)
-                };
+                    let header = if description.starts_with("# ") {
+                        format!("#{}", description)
+                    } else {
+                        format!("## {}\n\n{}", title, description)
+                    };
 
-                vec![
-                    ipynb::Cell::Markdown(ipynb::MarkdownCell {
-                        metadata: HashMap::new(),
-                        source: vec![header],
-                        id: Some(format!("{}", 2 * i)),
-                        attachments: Some(HashMap::new()),
-                    }),
-                    ipynb::Cell::Code(ipynb::CodeCell {
-                        metadata: if open_when_exporting {
-                            HashMap::new()
-                        } else {
-                            HashMap::from([(
-                                "jupyter".to_owned(),
-                                json!({ "source_hidden": true }),
-                            )])
-                        },
-                        source: vec![code],
-                        id: Some(format!("{}", 2 * i + 1)),
-                        execution_count: None,
-                        outputs: vec![],
-                    }),
-                ]
+                    vec![
+                        ipynb::Cell::Markdown(ipynb::MarkdownCell {
+                            metadata: HashMap::new(),
+                            source: vec![header],
+                            id: Some(format!("{}", 2 * i)),
+                            attachments: Some(HashMap::new()),
+                        }),
+                        ipynb::Cell::Code(ipynb::CodeCell {
+                            metadata: if open_when_exporting {
+                                HashMap::new()
+                            } else {
+                                HashMap::from([(
+                                    "jupyter".to_owned(),
+                                    json!({ "source_hidden": true }),
+                                )])
+                            },
+                            source: vec![code],
+                            id: Some(format!("{}", 2 * i + 1)),
+                            execution_count: None,
+                            outputs: vec![],
+                        }),
+                    ]
+                }
             }
             cellgen::Cell::Hole {
                 var_name,

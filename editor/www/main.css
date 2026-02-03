@@ -568,6 +568,11 @@ a:hover {
     margin-left: 2px;
 }
 
+.card .nothing-here {
+    color: #555;
+    font-style: italic;
+}
+
 /* Specific cards */
 
 .cell-code {
