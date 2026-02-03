@@ -7,6 +7,8 @@ use crate::cellgen;
 use crate::core::*;
 use crate::top_down;
 
+use std::collections::HashMap;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Core types
 
@@ -59,6 +61,89 @@ impl PlainTextNotebook {
 impl Codegen for PlainTextNotebook {
     fn exp(&self, e: &Exp) -> Result<String, String> {
         Ok(plain_text_notebook(&self.library, &e))
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Jupyter Notebook style
+
+// metadata: { "jupyter": { "source_hidden": true } }
+
+pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
+    let cells = cellgen::exp(lib, e)
+        .into_iter()
+        .enumerate()
+        .flat_map(|(i, cell)| match cell {
+            cellgen::Cell::Code { title, code } => {
+                // format!("# %% {}\n\n{}", title, code)
+                vec![
+                    ipynb::Cell::Markdown(ipynb::MarkdownCell {
+                        metadata: HashMap::new(),
+                        source: vec![format!("## {}", title)],
+                        id: Some(format!("{}", 2 * i)),
+                        attachments: Some(HashMap::new()),
+                    }),
+                    ipynb::Cell::Code(ipynb::CodeCell {
+                        metadata: HashMap::new(),
+                        source: vec![code],
+                        id: Some(format!("{}", 2 * i + 1)),
+                        execution_count: None,
+                        outputs: vec![],
+                    }),
+                ]
+            }
+            cellgen::Cell::Hole {
+                var_name,
+                hole_name,
+            } => {
+                vec![ipynb::Cell::Code(ipynb::CodeCell {
+                    metadata: HashMap::new(),
+                    source: vec![format!(
+                        "{} = raise ValueError(\"Hole cell {}\")",
+                        var_name, hole_name
+                    )],
+                    id: Some(format!("{}", 2 * i)),
+                    execution_count: None,
+                    outputs: vec![],
+                })]
+            }
+            cellgen::Cell::Choice { var_name, .. } => {
+                vec![ipynb::Cell::Code(ipynb::CodeCell {
+                    metadata: HashMap::new(),
+                    source: vec![format!(
+                        "{} = raise ValueError(\"Choice cell\")",
+                        var_name
+                    )],
+                    id: Some(format!("{}", 2 * i)),
+                    execution_count: None,
+                    outputs: vec![],
+                })]
+            }
+        })
+        .collect();
+
+    serde_json::to_string(&ipynb::Notebook {
+        cells,
+        metadata: HashMap::new(),
+        nbformat: 4,
+        nbformat_minor: 5,
+    })
+    .unwrap()
+}
+
+pub struct JupyterNotebook {
+    library: Library,
+}
+
+impl JupyterNotebook {
+    pub fn new(library: Library) -> Self {
+        JupyterNotebook { library }
+    }
+}
+
+impl Codegen for JupyterNotebook {
+    fn exp(&self, e: &Exp) -> Result<String, String> {
+        Ok(jupyter_notebook(&self.library, &e))
     }
 }
 

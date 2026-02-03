@@ -864,15 +864,19 @@ nextChoice cells =
 
 solutionPrefix : String
 solutionPrefix =
-    "# Script originally created using:\n"
-        ++ "#     Honeybee (https://honeybee-lang.org), version "
-        ++ Version.fullVersion
-        ++ "\n#"
-        ++ "\n# Please cite:"
-        ++ "\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025."
-        ++ "\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,"
-        ++ "\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264"
-        ++ "\n\n"
+    ""
+
+
+
+-- "# Script originally created using:\n"
+-- ++ "#     Honeybee (https://honeybee-lang.org), version "
+-- ++ Version.fullVersion
+-- ++ "\n#"
+-- ++ "\n# Please cite:"
+-- ++ "\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025."
+-- ++ "\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,"
+-- ++ "\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264"
+-- ++ "\n\n"
 
 
 pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
@@ -974,7 +978,7 @@ pbnStatus ms =
                             , A.class "extra-standout"
                             , E.onClick
                                 (UserRequestedDownload
-                                    { filename = "analysis.ipy"
+                                    { filename = "pipeline.ipynb"
                                     , text = solutionPrefix ++ solutionString
                                     }
                                 )
