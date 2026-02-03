@@ -52,9 +52,10 @@ type alias PbnStatusMessage =
 
 decodeCodeCell : D.Decoder CodeCell
 decodeCodeCell =
-    D.map2 CodeCell
+    D.map3 CodeCell
         (D.field "title" D.string)
         (D.field "code" D.string)
+        (D.field "open_when_editing" D.bool)
 
 
 decodeMetadataChoice : D.Decoder MetadataChoice

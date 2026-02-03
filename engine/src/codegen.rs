@@ -7,6 +7,7 @@ use crate::cellgen;
 use crate::core::*;
 use crate::top_down;
 
+use serde_json::json;
 use std::collections::HashMap;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,24 +68,40 @@ impl Codegen for PlainTextNotebook {
 ////////////////////////////////////////////////////////////////////////////////
 // Jupyter Notebook style
 
-// metadata: { "jupyter": { "source_hidden": true } }
-
 pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
-    let cells = cellgen::exp(lib, e)
+    let mut cells: Vec<ipynb::Cell> = cellgen::exp(lib, e)
         .into_iter()
         .enumerate()
         .flat_map(|(i, cell)| match cell {
-            cellgen::Cell::Code { title, code } => {
-                // format!("# %% {}\n\n{}", title, code)
+            cellgen::Cell::Code {
+                title,
+                description,
+                code,
+                open_when_exporting,
+                open_when_editing: _,
+            } => {
+                let header = if description.starts_with("# ") {
+                    format!("#{}", description)
+                } else {
+                    format!("## {}\n\n{}", title, description)
+                };
+
                 vec![
                     ipynb::Cell::Markdown(ipynb::MarkdownCell {
                         metadata: HashMap::new(),
-                        source: vec![format!("## {}", title)],
+                        source: vec![header],
                         id: Some(format!("{}", 2 * i)),
                         attachments: Some(HashMap::new()),
                     }),
                     ipynb::Cell::Code(ipynb::CodeCell {
-                        metadata: HashMap::new(),
+                        metadata: if open_when_exporting {
+                            HashMap::new()
+                        } else {
+                            HashMap::from([(
+                                "jupyter".to_owned(),
+                                json!({ "source_hidden": true }),
+                            )])
+                        },
                         source: vec![code],
                         id: Some(format!("{}", 2 * i + 1)),
                         execution_count: None,
@@ -121,6 +138,20 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
             }
         })
         .collect();
+
+    cells.insert(
+        0,
+        ipynb::Cell::Markdown(ipynb::MarkdownCell {
+            metadata: HashMap::new(),
+            id: Some("start".to_owned()),
+            attachments: Some(HashMap::new()),
+            source: vec![
+                "# Analysis pipeline\n".to_owned(),
+                format!("Script originally created using [Honeybee](https://honeybee-lang.org) (version {}).\n", env!("CARGO_PKG_VERSION")),
+                "Please cite:\n".to_owned(),
+                "- Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
+        }),
+    );
 
     serde_json::to_string(&ipynb::Notebook {
         cells,

@@ -691,13 +691,13 @@ cellTitle c =
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
 cell ctx c =
     case c of
-        Cell.Code { code } ->
+        Cell.Code { code, openWhenEditing } ->
             card
-                { collapse = Collapsible { openByDefault = ctx.cellIndex /= 0 } }
+                { collapse = Collapsible { openByDefault = openWhenEditing } }
                 ([ A.class "cell-code"
                  , A.id (cellId ctx.cellIndex)
                  ]
-                    ++ (if ctx.cellIndex /= 0 then
+                    ++ (if openWhenEditing then
                             [ A.attribute "data-popinkey" code
                             ]
 
@@ -867,18 +867,6 @@ solutionPrefix =
     ""
 
 
-
--- "# Script originally created using:\n"
--- ++ "#     Honeybee (https://honeybee-lang.org), version "
--- ++ Version.fullVersion
--- ++ "\n#"
--- ++ "\n# Please cite:"
--- ++ "\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025."
--- ++ "\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,"
--- ++ "\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264"
--- ++ "\n\n"
-
-
 pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
 pbnStatus ms =
     case ms of
@@ -983,7 +971,7 @@ pbnStatus ms =
                                     }
                                 )
                             ]
-                            [ text "Download analysis script" ]
+                            [ text "Download notebook" ]
 
                     -- TODO: Should never happen! Maybe enforce via type system
                     -- somehow?

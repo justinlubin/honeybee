@@ -198,7 +198,7 @@ a:hover {
 }
 
 .markdown .more-info > span {
-    display: block;
+    display: block !important;
     visibility: hidden;
     background-color: #fff;
     width: 300px;
