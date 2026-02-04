@@ -312,6 +312,19 @@ class TranscriptMatrices:
 
     path: str
 
+@Output
+class BootstrappedTranscriptMatrices:
+    """Transcript read counts (and TPM abundance) of RNA-seq samples, with bootstrap estimates
+
+    The goal of this step is to calculate two transcript-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    Additionally, bootstrap resampling estimates are included, which allow
+    downstream tools like [sleuth](https://pachterlab.github.io/sleuth/) to
+    incorporate measurement uncertainty into differential expression analysis."""
+
+    path: str
 
 @Output
 class GeneMatrices:
@@ -506,36 +519,6 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
 
 # %% Transcript matrices
-
-@Output
-class TranscriptMatrices:
-    """Transcript read counts (and TPM abundance) of RNA-seq samples
-
-    The goal of this step is to calculate two transcript-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
-
-    These matrices are usually computed by using a reference transcriptome
-    (coding sequences) rather than a reference genome. Unless your scientific
-    question relates specifically to transcript information, these matrices are
-    often aggregated into **gene-level** read count and abundance information."""
-
-    path: str
-
-
-@Output
-class BootstrappedTranscriptMatrices:
-    """Transcript read counts (and TPM abundance) of RNA-seq samples, with bootstrap estimates
-
-    The goal of this step is to calculate two transcript-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
-
-    Additionally, bootstrap resampling estimates are included, which allow
-    downstream tools like [sleuth](https://pachterlab.github.io/sleuth/) to
-    incorporate measurement uncertainty into differential expression analysis."""
-
-    path: str
 
 @Function(
     "reads.qc = true",
