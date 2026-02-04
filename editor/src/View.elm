@@ -386,15 +386,16 @@ step library suggestions pi s =
                 [ A.class "step-title"
                 , inputEvent
                 ]
-                (List.map
-                    (\( name, displayName ) ->
-                        option
-                            [ A.selected (name == selectedName)
-                            , A.value name
-                            ]
-                            [ text displayName ]
-                    )
-                    options
+                (options
+                    |> List.sortBy (\( _, displayName ) -> displayName)
+                    |> List.map
+                        (\( name, displayName ) ->
+                            option
+                                [ A.selected (name == selectedName)
+                                , A.value name
+                                ]
+                                [ text displayName ]
+                        )
                 )
     in
     card
@@ -507,21 +508,25 @@ functionChoice ctx fc =
         div [] <|
             [ ul
                 [ A.class "tool-search-info" ]
-                [ li
-                    []
-                    [ text "Search for "
-                    , text fc.functionTitle
-                    , text " on "
-                    , img [ A.src "assets/google.webp" ] []
-                    , a
-                        [ A.href (searchEngineUrl Google searchEngineQuery) ]
-                        [ text "Google" ]
-                    , text " or "
-                    , img [ A.src "assets/duckduckgo.png" ] []
-                    , a
-                        [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
-                        [ text "DuckDuckGo" ]
-                    ]
+                [ if fc.search then
+                    li
+                        []
+                        [ text "Search for "
+                        , text fc.functionTitle
+                        , text " on "
+                        , img [ A.src "assets/google.webp" ] []
+                        , a
+                            [ A.href (searchEngineUrl Google searchEngineQuery) ]
+                            [ text "Google" ]
+                        , text " or "
+                        , img [ A.src "assets/duckduckgo.png" ] []
+                        , a
+                            [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
+                            [ text "DuckDuckGo" ]
+                        ]
+
+                  else
+                    text ""
                 , case fc.pmid of
                     Just pmid ->
                         li []
@@ -559,33 +564,32 @@ functionChoice ctx fc =
                 ]
             , markdown [] (Maybe.withDefault "" fc.functionDescription)
             ]
-                ++ (case fc.hyperparameters of
-                        Just hs ->
-                            [ div [ A.class "markdown" ]
-                                [ h2 [] [ text "Parameters to set" ]
-                                , p []
-                                    [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
-                                    ]
-                                , ul []
-                                    (List.map
-                                        (\h ->
-                                            li []
-                                                [ code [] [ text h.name ]
-                                                , text <|
-                                                    ": "
-                                                        ++ h.comment
-                                                        ++ " (default: "
-                                                        ++ h.default
-                                                        ++ ")"
-                                                ]
-                                        )
-                                        hs
-                                    )
-                                ]
-                            ]
+                ++ (if List.isEmpty fc.hyperparameters then
+                        []
 
-                        Nothing ->
-                            []
+                    else
+                        [ div [ A.class "markdown" ]
+                            [ h2 [] [ text "Parameters to set" ]
+                            , p []
+                                [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
+                                ]
+                            , ul []
+                                (List.map
+                                    (\h ->
+                                        li []
+                                            [ code [] [ text h.name ]
+                                            , text <|
+                                                ": "
+                                                    ++ h.comment
+                                                    ++ " (default: "
+                                                    ++ h.default
+                                                    ++ ")"
+                                            ]
+                                    )
+                                    fc.hyperparameters
+                                )
+                            ]
+                        ]
                    )
                 ++ (case fc.citation of
                         Just citation ->
@@ -687,13 +691,13 @@ cellTitle c =
 cell : { cellIndex : Int } -> Cell.Cell -> Html Msg
 cell ctx c =
     case c of
-        Cell.Code { code } ->
+        Cell.Code { code, openWhenEditing } ->
             card
-                { collapse = Collapsible { openByDefault = ctx.cellIndex /= 0 } }
+                { collapse = Collapsible { openByDefault = openWhenEditing } }
                 ([ A.class "cell-code"
                  , A.id (cellId ctx.cellIndex)
                  ]
-                    ++ (if ctx.cellIndex /= 0 then
+                    ++ (if openWhenEditing then
                             [ A.attribute "data-popinkey" code
                             ]
 
@@ -706,7 +710,13 @@ cell ctx c =
                     [ text (cellTitle c) ]
                     []
                 )
-                [ fancyCode [] { language = "python", code = code }
+                [ if code |> String.trim |> String.isEmpty then
+                    div
+                        [ A.class "nothing-here" ]
+                        [ text "There's nothing here just yet!" ]
+
+                  else
+                    fancyCode [] { language = "python", code = code }
                 ]
 
         Cell.Choice x ->
@@ -736,7 +746,7 @@ cell ctx c =
 
                 -- , cardInnerHeading [] [ text "Notes" ]
                 -- , textarea [] []
-                , cardInnerHeading [] [ text ("Choices" ++ suffix) ]
+                , cardInnerHeading [] [ text ("Choices for possible next steps" ++ suffix) ]
                 , if List.length x.functionChoices > 1 then
                     ul [ A.class "use-hints" ]
                         (List.filterMap
@@ -747,7 +757,7 @@ cell ctx c =
                                             li []
                                                 [ b [] [ text "Tip:" ]
                                                 , i []
-                                                    [ text " You may like "
+                                                    [ text " You may want to use "
                                                     , b [] [ text fc.functionTitle ]
                                                     , text " if you want… "
                                                     ]
@@ -860,16 +870,7 @@ nextChoice cells =
 
 solutionPrefix : String
 solutionPrefix =
-    "################################################################################\n"
-        ++ "# Script originally created using:\n"
-        ++ "#     Honeybee (https://honeybee-lang.org), version "
-        ++ Version.fullVersion
-        ++ "\n#"
-        ++ "\n# Please cite:"
-        ++ "\n#     Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025."
-        ++ "\n#     Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI,"
-        ++ "\n#     Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264"
-        ++ "\n################################################################################\n\n"
+    ""
 
 
 pbnStatus : Maybe Incoming.PbnStatusMessage -> List (Html Msg)
@@ -971,12 +972,12 @@ pbnStatus ms =
                             , A.class "extra-standout"
                             , E.onClick
                                 (UserRequestedDownload
-                                    { filename = "analysis.ipy"
+                                    { filename = "pipeline.ipynb"
                                     , text = solutionPrefix ++ solutionString
                                     }
                                 )
                             ]
-                            [ text "Download analysis script" ]
+                            [ text "Download notebook" ]
 
                     -- TODO: Should never happen! Maybe enforce via type system
                     -- somehow?
@@ -993,12 +994,28 @@ view model =
         ]
         [ menuBar
             []
-            [ b [] [ text "Programming by Navigation" ]
-            , text " with "
-            , b
-                []
-                [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
-                , text " 🐝"
+            [ span []
+                [ text "🐝 "
+                , b
+                    []
+                    [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
+                    ]
+                , text " (homepage)"
+                ]
+            , span []
+                [ img
+                    [ A.src "assets/zulip-icon-circle.svg"
+                    , A.width 20
+                    , A.height 20
+                    ]
+                    []
+                , text " "
+                , b []
+                    [ a
+                        [ A.href "https://chat.honeybee-lang.org" ]
+                        [ text "Zulip" ]
+                    ]
+                , text " (say hi, ask for help)"
                 ]
             ]
             []

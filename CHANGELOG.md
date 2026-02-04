@@ -22,9 +22,12 @@ of Honeybee.
   ([#102](https://github.com/justinlubin/honeybee/pull/102))
 - Add GoatCounter private analytics
 - Add website (https://honeybee-lang.org), including video demo
+- Add link to Zulip chat
 
 ### Changed
 
+- Emit Jupyter Notebooks instead of Python files
+  ([#115](https://github.com/justinlubin/honeybee/pull/115))
 - Overhaul glue annotations into the Honey language, resulting in much
   more ergnomic definitions for building blocks, better codegen, and a
   smoother editor experience, including auto-selecting the "functions" that

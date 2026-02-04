@@ -198,7 +198,7 @@ a:hover {
 }
 
 .markdown .more-info > span {
-    display: block;
+    display: block !important;
     visibility: hidden;
     background-color: #fff;
     width: 300px;
@@ -363,6 +363,17 @@ a:hover {
     right: 0;
     z-index: 100;
 
+}
+
+.menu-bar-left > span {
+    margin-right: 30px;
+}
+
+.menu-bar img {
+    width: calc(var(--menu-bar-height) - 12px);
+    height: calc(var(--menu-bar-height) - 12px);
+    margin-bottom: 0;
+    vertical-align: sub;
 }
 
 .menu-bar a {
@@ -566,6 +577,11 @@ a:hover {
     margin-top: 8px;
     margin-bottom: 5px;
     margin-left: 2px;
+}
+
+.card .nothing-here {
+    color: #555;
+    font-style: italic;
 }
 
 /* Specific cards */

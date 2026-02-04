@@ -151,7 +151,7 @@ fn send_message() -> Result<JsValue, String> {
             cellgen::exp(&state.library, &work_exp),
         )?,
         output: if state.controller.valid() {
-            Some(codegen::plain_text_notebook(&state.library, &work_exp))
+            Some(codegen::jupyter_notebook(&state.library, &work_exp))
         } else {
             None
         },

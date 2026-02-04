@@ -1,6 +1,7 @@
 [[Preamble]]
 content = '''from dataclasses import dataclass
 import datetime
+import glob
 import os
 import polars as pl'''
 
@@ -8,18 +9,19 @@ import polars as pl'''
 content='''class Dir:
     stage = 1
 
+    @staticmethod
     def make(name):
         time = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
-        dir = f"output-{time}/{Dir.stage * 10:03d}-{name}"
+        dir = f"output/{time}/{Dir.stage * 10:03d}-{name}"
         os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir'''
 
 [[Preamble]]
 content='''def carry_over(src_object, dst_object, *, file=None):
-    def carry_one(file):
-        src = f"{src_object.path}/{file}"
-        dst = f"{dst_object.path}/{file}"
+    def carry_one(f):
+        src = f"../../../{src_object.path}/{f}"  # relative to dst
+        dst = f"{dst_object.path}/{f}"
         if os.path.islink(src):
             src = os.readlink(src)
         os.symlink(src=src, dst=dst)
@@ -30,10 +32,226 @@ content='''def carry_over(src_object, dst_object, *, file=None):
     else:
         carry_one(file)'''
 
+[[Preamble]]
+content='''def save(src, dst):
+    dir = os.path.dirname(dst)
+    os.makedirs(dir, exist_ok=True)
+    os.symlink(src=os.path.abspath(src), dst=dst)'''
+
+[Type.SeqReads]
+params.qc = "Bool"
+params.trimmed = "Bool"
+params.long = "Bool"
+params.type = "Str"
+info.title = "@intermediate:Sequencing reads"
+info.description = """The goal of this step is to process sequencing "reads."
+
+A "read" is either a short (a few hundred base pairs) or long (a few
+thousand base pairs) snippet of DNA produced by a sequencer. This DNA can
+be genomic DNA (perhaps that has undergone some processing, such as in
+[ATAC-seq](https://www.nature.com/articles/nmeth.2688)), or it can be
+derived from RNA in a cell (as in RNA-sequencing).
+
+Reads are stored typically stored in the `.fastq` (uncompressed) or
+`.fastq.gz` (compressed) file format. Before being able to get a table of
+information (e.g. about chromatin accessibility, methylation status, or
+transcription levels), reads first need to be _preprocessed_. Most
+preprocessing is method-specific, but some methods share commonalities, such
+as _quality control_ (QC) checks."""
+info.code = '''@dataclass
+class SeqReads:
+    """@intermediate:Sequencing reads
+
+    The goal of this step is to process sequencing "reads."
+
+    A "read" is either a short (a few hundred base pairs) or long (a few
+    thousand base pairs) snippet of DNA produced by a sequencer. This DNA can
+    be genomic DNA (perhaps that has undergone some processing, such as in
+    [ATAC-seq](https://www.nature.com/articles/nmeth.2688)), or it can be
+    derived from RNA in a cell (as in RNA-sequencing).
+
+    Reads are stored typically stored in the `.fastq` (uncompressed) or
+    `.fastq.gz` (compressed) file format. Before being able to get a table of
+    information (e.g. about chromatin accessibility, methylation status, or
+    transcription levels), reads first need to be _preprocessed_. Most
+    preprocessing is method-specific, but some methods share commonalities, such
+    as _quality control_ (QC) checks."""
+
+    path: str
+
+    qc: bool
+    trimmed: bool
+    long: bool
+    type: str'''
+
+[Type.SeqAlignment]
+params.type = "Str"
+info.title = "Sequence alignment (SAM)"
+info.code = '''@dataclass
+class SeqAlignment:
+    """Sequence alignment (SAM)"""
+
+    path: str
+
+    type: str'''
+
+[Type.SortedIndexBAM]
+params.type = "Str"
+info.title = "Sequence alignment (sorted and indexed BAM files)"
+info.code = '''@dataclass
+class SortedIndexBAM:
+    "Sequence alignment (sorted and indexed BAM files)"
+
+    path: str
+
+    type: str'''
+
+[Function.fastqc]
+params.reads = "SeqReads"
+ret = "SeqReads"
+condition = [
+    "reads.qc = false",
+    "ret.trimmed = reads.trimmed",
+    "ret.qc = true",
+    "ret.long = reads.long",
+    "ret.type = reads.type",
+]
+info.title = "FastQC"
+info.description = """# Run quality control checks on RNA-seq data with [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+
+FastQC produces two HTML reports for each sample: one for the forward reads
+and one for the reverse reads. These HTML reports can be individually opened
+and inspected in your web browser.
+
+The Harvard Chan Bioinformatics Core provides a
+[useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+for assessing the outputs of FastQC."""
+info.citation = "Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"
+info.use = "a widely-used quality control tool for high throughput sequence data."
+info.hyperparameters = [
+    {name = 'FASTQC_CORES', default = '4', comment = 'The number of cores that you want FastQC to use' },
+]
+info.code = '''carry_over(__hb_reads, __hb_ret)
+
+fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+
+__hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")'''
+
+[Function.multiqc]
+params.reads = "SeqReads"
+ret = "SeqReads"
+condition = [
+    "reads.qc = false",
+    "ret.trimmed = reads.trimmed",
+    "ret.qc = true",
+    "ret.long = reads.long",
+    "ret.type = reads.type",
+]
+info.title = "MultiQC"
+info.description = """# Run quality control checks on RNA-seq data with [MultiQC](https://seqera.io/multiqc/)
+
+MultiQC aggregates the output of
+[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+quality-control checks into a single page viewable in a web browser.
+
+The Harvard Chan Bioinformatics Core provides a
+[useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
+for assessing the outputs of FastQC that can also be used to understand
+the outputs of MultiQC.
+
+This function calls FastQC on the necessary files then aggregates them with
+MultiQC."""
+info.google_scholar_id = "15898044054356823756"
+info.pmid = "27312411"
+info.citation = "Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC: Summarize analysis results for multiple tools and samples in a single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. PMID: 27312411"
+info.additional_citations = ["Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"]
+info.use = "a wrapper around FastQC that also combines all results into a single page."
+info.hyperparameters = [
+]
+info.code = '''FASTQC_CORES = 4
+
+carry_over(__hb_reads, __hb_ret)
+
+fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+
+__hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
+__hb_bash(
+    f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}"""
+)'''
+
+[Function.skip_trimming]
+params.reads = "SeqReads"
+ret = "SeqReads"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = false",
+    "ret.qc = false",
+    "ret.trimmed = true",
+    "ret.long = reads.long",
+    "ret.type = reads.type",
+]
+info.title = "Skip adapter trimming"
+info.description = """If the provider of your sequencing results has said that adapter sequences
+have already been removed, then you don't need to run any processing to
+try to remove them again."""
+info.use = "to skip adapter trimming (because your sequencing provider already did adapter trimming for you)"
+info.search = false
+info.hyperparameters = [
+]
+info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")'''
+
+[Function.minimap2]
+params.reads = "SeqReads"
+ret = "SeqAlignment"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = true",
+    "ret.type = reads.type",
+]
+info.title = "minimap2"
+info.description = """# Align noisy long reads (~10% error rate) to a reference genome with [minimap2](https://lh3.github.io/minimap2/)"""
+info.hyperparameters = [
+]
+info.code = '''carry_over(__hb_reads, __hb_ret, file="reference")
+
+for path in glob.glob(f"{__hb_reads.path}/*.fastq"):
+    sample_name = os.path.splitext(os.path.basename(path))[0]
+    __hb_bash(f"""
+        minimap2 -a \\
+            -x map-ont \\
+            --sam-hit-only \\
+            "{__hb_reads.path}/reference/reference.fasta" \\
+            "{path}" \\
+            > "${sample_name}.sam"
+    """)'''
+
+[Function.bam_sort_index]
+params.align = "SeqAlignment"
+ret = "SortedIndexBAM"
+condition = [
+    "ret.type = align.type",
+]
+info.description = "Convert to sorted BAM and index"
+info.search = false
+info.hyperparameters = [
+]
+info.code = '''carry_over(__hb_align, __hb_ret, file="reference")
+
+for path in glob.glob(f"{__hb_align.path}/*.sam"):
+    sample_name = os.path.splitext(os.path.basename(path))[0]
+    __hb_bash(f"""
+        samtools view -bS "{path}" \
+        | samtools sort -o "{__hb_ret.path}/{sample_name}.bam"
+    """)
+    __hb_bash(f"""
+        samtools index "{__hb_ret.path}/{sample_name}.bam"
+    """)'''
+
 [Type.LocalRnaSeq]
 params.sample_sheet = "Str"
 params.path = "Str"
-info.title = "RNA-seq (stored on your own hard drive)"
+info.title = "@intermediate:RNA-seq (stored on your own hard drive)"
 info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
 info.param_descriptions.sample_sheet = """
 Here is an example CSV file (the headers must match exactly):
@@ -113,7 +331,7 @@ info.title = "RNA-seq (stored on your own hard drive)"
 
 [Type.SraRnaSeq]
 params.sample_sheet = "Str"
-info.title = "RNA-seq (stored on the Sequence Read Archive)"
+info.title = "@intermediate:RNA-seq (stored on the Sequence Read Archive)"
 info.param_titles.sample_sheet = "Path to sample sheet CSV with SRA metadata"
 info.param_descriptions.sample_sheet = """
 Here is an example CSV file (the headers must match exactly):
@@ -178,52 +396,163 @@ condition = [
 ]
 info.title = "RNA-seq (stored on the Sequence Read Archive)"
 
-[Type.RnaSeqReads]
-params.qc = "Bool"
-params.trimmed = "Bool"
-info.title = "@intermediate:RNA-seq reads"
-info.description = """The goal of this step is to get RNA-seq reads.
+[Type.TranscriptMatrices]
+params = {}
+info.title = "RNA-seq transcript read counts"
+info.description = """The goal of this step is to calculate two transcript-by-sample matrices:
+- One with (estimated) read counts.
+- One with TPM (transcripts-per-million) abundance.
 
-These reads can either be raw data (that is, the direct output of a machine
-like an
-[Illumina sequencer](https://www.illumina.com/systems/sequencing-platforms.html), or
-can be the result of pre-processing that raw data.
-
-Many pre-processing techniques (like
-[adapter trimming](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002905))
-require that the RNA-seq reads undergo _quality control_ (QC) checks using
-a tool like
-[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-before and after running the tool."""
+These matrices are usually computed by using a reference transcriptome
+(coding sequences) rather than a reference genome. Unless your scientific
+question relates specifically to transcript information, these matrices are
+often aggregated into **gene-level** read count and abundance information."""
 info.code = '''@dataclass
-class RnaSeqReads:
-    """@intermediate:RNA-seq reads
+class TranscriptMatrices:
+    """RNA-seq transcript read counts
 
-    The goal of this step is to get RNA-seq reads.
+    The goal of this step is to calculate two transcript-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
 
-    These reads can either be raw data (that is, the direct output of a machine
-    like an
-    [Illumina sequencer](https://www.illumina.com/systems/sequencing-platforms.html), or
-    can be the result of pre-processing that raw data.
+    These matrices are usually computed by using a reference transcriptome
+    (coding sequences) rather than a reference genome. Unless your scientific
+    question relates specifically to transcript information, these matrices are
+    often aggregated into **gene-level** read count and abundance information."""
 
-    Many pre-processing techniques (like
-    [adapter trimming](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002905))
-    require that the RNA-seq reads undergo _quality control_ (QC) checks using
-    a tool like
-    [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-    before and after running the tool."""
+    path: str'''
+
+[Type.GeneMatrices]
+params = {}
+info.title = "RNA-seq gene read counts"
+info.description = """The goal of this step is to calculate two gene-by-sample matrices:
+- One with (estimated) read counts.
+- One with TPM (transcripts-per-million) abundance.
+
+These matrices can be created using an alignment-based approach that aligns
+transcripts to a reference genome in a splice-aware fashion or using
+an alignment-free approach that matches transcripts against a reference
+transcriptome.
+
+If you have a reference transcriptome already available that you trust and
+you are not specifically interested in scientifically studying the
+alignment of your RNA-seq to the genome, then a tool that performs
+quantification without alignment is generally a good choice due to their
+orders-of-magnitude speedup over alignment-based procedures.
+
+These matrices can be used for plotting, differential expression testing,
+clustering, and many other downstream analyses. The following review
+provides an overview of RNA-seq data analysis, including information about
+read count matrices (Fig 2a and 2b are especially relevant):
+
+> Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+> for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+> https://doi.org/10.1186/s13059-016-0881-8"""
+info.code = '''@dataclass
+class GeneMatrices:
+    """RNA-seq gene read counts
+
+    The goal of this step is to calculate two gene-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    These matrices can be created using an alignment-based approach that aligns
+    transcripts to a reference genome in a splice-aware fashion or using
+    an alignment-free approach that matches transcripts against a reference
+    transcriptome.
+
+    If you have a reference transcriptome already available that you trust and
+    you are not specifically interested in scientifically studying the
+    alignment of your RNA-seq to the genome, then a tool that performs
+    quantification without alignment is generally a good choice due to their
+    orders-of-magnitude speedup over alignment-based procedures.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices (Fig 2a and 2b are especially relevant):
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
+
+    path: str'''
+
+[Type.DifferentialGeneExpression]
+params.comparison_sheet = "Str"
+info.title = "RNA-seq differential gene expression"
+info.description = """The goal of this step is to assign a score (like a _p_-value) to each gene
+that ranks how differentially expressed it is between two conditions.
+Among other uses, this information can be plotted in an
+[MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
+[volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
+
+The following image shows a _typical_ RNA-seq processing workflow,
+**but the details can vary a lot!**
+
+![An overview of the RNA-seq workflow.](assets/rna-seq.png)
+
+For example, sometimes you start with reads already quantified or trimmed,
+and sometimes you need to run additional processing steps like batch
+correction."""
+info.param_titles.comparison_sheet = "@nosuggest:Path to CSV of comparisons to make"
+info.param_descriptions.comparison_sheet = """
+Here is an example CSV file (the headers must match exactly):
+
+| control_condition | treatment_condition |
+|-------------------|---------------------|
+| untreated         | treatment1          |
+| untreated         | treatment2          |
+
+The entries in this table must be **conditions** from the `condition` column
+in the sample sheet CSV. This comparison CSV tells the software which
+conditions you want to compare to each other."""
+info.param_examples.comparison_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/comparisons.csv"""
+info.code = '''@dataclass
+class DifferentialGeneExpression:
+    """RNA-seq differential gene expression
+
+    The goal of this step is to assign a score (like a _p_-value) to each gene
+    that ranks how differentially expressed it is between two conditions.
+    Among other uses, this information can be plotted in an
+    [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
+    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
+
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)
+
+    For example, sometimes you start with reads already quantified or trimmed,
+    and sometimes you need to run additional processing steps like batch
+    correction."""
 
     path: str
 
-    qc: bool
-    trimmed: bool'''
+    comparison_sheet: str
+    """@nosuggest:Path to CSV of comparisons to make
 
-[Function.from_sra_rna_seq]
+    @example:/Users/jlubin/Desktop/MyExperiment/metadata/comparisons.csv
+
+    Here is an example CSV file (the headers must match exactly):
+
+    | control_condition | treatment_condition |
+    |-------------------|---------------------|
+    | untreated         | treatment1          |
+    | untreated         | treatment2          |
+
+    The entries in this table must be **conditions** from the `condition` column
+    in the sample sheet CSV. This comparison CSV tells the software which
+    conditions you want to compare to each other."""'''
+
+[Function.load_sra_rna_seq]
 params.sra = "SraRnaSeq"
-ret = "RnaSeqReads"
+ret = "SeqReads"
 condition = [
     "ret.qc = false",
     "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = \"rna\"",
 ]
 info.title = "Download from ENA"
 info.description = """# Download RNA-seq data from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by SRR accession identifiers
@@ -231,6 +560,7 @@ info.description = """# Download RNA-seq data from the [European Nucleotide Arch
 The downloaded files will be in the .fastq.gz file format, with the
 filenames for the forward reads ending in _1.fastq.gz and the filenames for
 the reverse reads ending in _2.fastq.gz."""
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''sample_sheet = pl.read_csv(__hb_sra.sample_sheet)
@@ -258,15 +588,19 @@ os.symlink(
 
 [Function.load_local_rna_seq]
 params.local = "LocalRnaSeq"
-ret = "RnaSeqReads"
+ret = "SeqReads"
 condition = [
     "ret.qc = false",
     "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = \"rna\"",
 ]
-info.title = "Load local data"
+info.title = "Load RNA-seq data from hard drive"
 info.description = """# Load raw RNA-seq data already present on your computer
 
-The raw RNA-seq files are typically in the .fastq.gz file format."""
+The raw RNA-seq files are typically in the `.fastq` or `.fastq.gz` file
+format."""
+info.search = false
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_local, __hb_ret)
@@ -276,97 +610,21 @@ os.symlink(
     dst=f"{__hb_ret.path}/sample_sheet.csv",
 )'''
 
-[Function.fastqc]
-params.reads = "RnaSeqReads"
-ret = "RnaSeqReads"
-condition = [
-    "ret.trimmed = reads.trimmed",
-    "ret.qc = true",
-    "reads.qc = false",
-]
-info.title = "FastQC"
-info.description = """# Run quality control checks on RNA-seq data with [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-
-FastQC produces two HTML reports for each sample: one for the forward reads
-and one for the reverse reads. These HTML reports can be individually opened
-and inspected in your web browser.
-
-The Harvard Chan Bioinformatics Core provides a
-[useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
-for assessing the outputs of FastQC."""
-info.citation = "Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"
-info.use = "a widely-used quality control tool for high throughput sequence data."
-info.hyperparameters = [
-    {name = 'FASTQC_CORES', default = '4', comment = 'The number of cores that you want FastQC to use' },
-]
-info.code = '''carry_over(__hb_reads, __hb_ret)
-
-sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
-fastqs = " ".join(
-    (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
-    + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
-)
-
-__hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")'''
-
-[Function.multiqc]
-params.reads = "RnaSeqReads"
-ret = "RnaSeqReads"
-condition = [
-    "ret.trimmed = reads.trimmed",
-    "ret.qc = true",
-    "reads.qc = false",
-]
-info.title = "MultiQC"
-info.description = """# Run quality control checks on RNA-seq data with [MultiQC](https://seqera.io/multiqc/)
-
-MultiQC aggregates the output of
-[FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-quality-control checks into a single page viewable in a web browser.
-
-The Harvard Chan Bioinformatics Core provides a
-[useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
-for assessing the outputs of FastQC that can also be used to understand
-the outputs of MultiQC.
-
-This function calls FastQC on the necessary files then aggregates them with
-MultiQC."""
-info.google_scholar_id = "15898044054356823756"
-info.pmid = "27312411"
-info.citation = "Philip Ewels, Måns Magnusson, Sverker Lundin and Max Käller. MultiQC: Summarize analysis results for multiple tools and samples in a single report. Bioinformatics (2016). doi: 10.1093/bioinformatics/btw354. PMID: 27312411"
-info.additional_citations = ["Simon Andrews. FastQC: a quality control tool for high throughput sequence data. (2010). Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc"]
-info.use = "a wrapper around FastQC that also combines all results into a single page."
-info.hyperparameters = [
-]
-info.code = '''FASTQC_CORES = 4
-
-carry_over(__hb_reads, __hb_ret)
-
-sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
-fastqs = " ".join(
-    (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_1.fastq.gz ")
-    + (__hb_reads.path + "/" + sample_sheet["sample_name"] + "_2.fastq.gz")
-)
-
-__hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
-__hb_bash(
-    f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}"""
-)'''
-
 [Function.cutadapt_illumina]
-params.reads = "RnaSeqReads"
-ret = "RnaSeqReads"
+params.reads = "SeqReads"
+ret = "SeqReads"
 condition = [
     "reads.qc = true",
-    "ret.qc = false",
     "reads.trimmed = false",
+    "reads.type = \"rna\"",
+    "ret.qc = false",
     "ret.trimmed = true",
+    "ret.long = reads.long",
+    "ret.type = \"rna\"",
 ]
-info.title = "cutadapt (Illumina)"
+info.title = "cutadapt (Illumina + poly(A))"
 info.description = """# Remove Illumina universal adapter for RNA-seq and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
-This is typically a good step to do in an RNA-seq pre-processing pipeline,
-and **typically only need to be done (at most) once**.
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
 removes adapter sequences that are present due to a read length being
 longer than the insert size of the sequence in a sequencer. Poly(A) tails
@@ -392,6 +650,7 @@ From the [cutadapt manual](https://cutadapt.readthedocs.io/en/stable/):
 > sequences in an error-tolerant way."""
 info.google_scholar_id = "4180123542769751602"
 info.citation = "Marcel Martin. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. http://dx.doi.org/10.14806/ej.17.1.200"
+info.use = "to remove the Illumina universal adapter and poly(A)-tails from mRNA"
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
@@ -410,37 +669,14 @@ for sample_name in sample_sheet["sample_name"]:
                 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
                 {__hb_reads.path}/{sample_name}_2.fastq.gz""")'''
 
-[Type.TranscriptMatrices]
-params = {}
-info.title = "Transcript read counts (and TPM abundance) of RNA-seq samples"
-info.description = """The goal of this step is to calculate two transcript-by-sample matrices:
-- One with (estimated) read counts.
-- One with TPM (transcripts-per-million) abundance.
-
-These matrices are usually computed by using a reference transcriptome
-(coding sequences) rather than a reference genome. Unless your scientific
-question relates specifically to transcript information, these matrices are
-often aggregated into **gene-level** read count and abundance information."""
-info.code = '''@dataclass
-class TranscriptMatrices:
-    """Transcript read counts (and TPM abundance) of RNA-seq samples
-
-    The goal of this step is to calculate two transcript-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
-
-    These matrices are usually computed by using a reference transcriptome
-    (coding sequences) rather than a reference genome. Unless your scientific
-    question relates specifically to transcript information, these matrices are
-    often aggregated into **gene-level** read count and abundance information."""
-
-    path: str'''
-
 [Function.kallisto]
-params.reads = "RnaSeqReads"
+params.reads = "SeqReads"
 ret = "TranscriptMatrices"
 condition = [
     "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = \"rna\"",
 ]
 info.title = "kallisto"
 info.description = """# Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/)
@@ -467,61 +703,49 @@ for sample_name in sample_sheet["sample_name"]:
                 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
                 {__hb_reads.path}/{sample_name}_2.fastq.gz""")'''
 
-[Type.GeneMatrices]
-params = {}
-info.title = "Gene read counts (and TPM abundance) of RNA-seq samples"
-info.description = """The goal of this step is to calculate two gene-by-sample matrices:
-- One with (estimated) read counts.
-- One with TPM (transcripts-per-million) abundance.
+[Function.salmon]
+params.reads = "SeqReads"
+ret = "TranscriptMatrices"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = \"rna\"",
+]
+info.title = "Salmon"
+info.description = """# Quantify transcript abundances *without* alignment using [Salmon](https://salmon.readthedocs.io/en/latest/index.html)
 
-These matrices can be created using an alignment-based approach that aligns
-transcripts to a reference genome in a splice-aware fashion or using
-an alignment-free approach that matches transcripts against a reference
-transcriptome.
+Salmon is a tool that estimates the number of times a transcript appears
+using a lightweight mapping technique that is much faster than a full
+alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
+info.google_scholar_id = "11462947284863466602"
+info.pmid = "28263959"
+info.citation = "Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods."
+info.hyperparameters = [
+    {name = 'SALMON_INDEX', default = '"salmon_sa_index"', comment = 'The location of the Salmon transcriptome index on your computer' },
+    {name = 'CORES', default = '4', comment = 'The number of cores that you want Salmon to use' },
+]
+info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
-If you have a reference transcriptome already available that you trust and
-you are not specifically interested in scientifically studying the
-alignment of your RNA-seq to the genome, then a tool that performs
-quantification without alignment is generally a good choice due to their
-orders-of-magnitude speedup over alignment-based procedures.
+sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
-These matrices can be used for plotting, differential expression testing,
-clustering, and many other downstream analyses. The following review
-provides an overview of RNA-seq data analysis, including information about
-read count matrices (Fig 2a and 2b are especially relevant):
+for sample_name in sample_sheet["sample_name"]:
+    __hb_bash(f"""salmon quant \\
+                -i {SALMON_INDEX} \\
+                -l A \\
+                -p {CORES} \\
+                -1 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                -2 {__hb_reads.path}/{sample_name}_2.fastq.gz \\
+                -o {__hb_ret.path}/{sample_name}""")
 
-> Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
-> for RNA-seq data analysis. Genome Biol 17, 13 (2016).
-> https://doi.org/10.1186/s13059-016-0881-8"""
-info.code = '''@dataclass
-class GeneMatrices:
-    """Gene read counts (and TPM abundance) of RNA-seq samples
-
-    The goal of this step is to calculate two gene-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
-
-    These matrices can be created using an alignment-based approach that aligns
-    transcripts to a reference genome in a splice-aware fashion or using
-    an alignment-free approach that matches transcripts against a reference
-    transcriptome.
-
-    If you have a reference transcriptome already available that you trust and
-    you are not specifically interested in scientifically studying the
-    alignment of your RNA-seq to the genome, then a tool that performs
-    quantification without alignment is generally a good choice due to their
-    orders-of-magnitude speedup over alignment-based procedures.
-
-    These matrices can be used for plotting, differential expression testing,
-    clustering, and many other downstream analyses. The following review
-    provides an overview of RNA-seq data analysis, including information about
-    read count matrices (Fig 2a and 2b are especially relevant):
-
-    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
-    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
-    > https://doi.org/10.1186/s13059-016-0881-8"""
-
-    path: str'''
+    # Convert Salmon's quant.sf to kallisto's abundance.tsv format
+    pl.read_csv(f"{__hb_ret.path}/{sample_name}/quant.sf", separator="\t").select(
+        pl.col("Name").alias("target_id"),
+        pl.col("Length").alias("length"),
+        pl.col("EffectiveLength").alias("eff_length"),
+        pl.col("NumReads").alias("est_counts"),
+        pl.col("TPM").alias("tpm"),
+    ).write_csv(f"{__hb_ret.path}/{sample_name}/abundance.tsv", separator="\t")'''
 
 [Function.tximport]
 params.data = "TranscriptMatrices"
@@ -557,48 +781,6 @@ __hb_bash(f"""
         {__hb_data.path} \\
         {__hb_ret.path}""")'''
 
-[Type.DifferentialGeneExpression]
-params.comparison_sheet = "Str"
-info.title = "Differential gene expression"
-info.description = """The goal of this step is to assign a score (like a _p_-value) to each gene
-that ranks how differentially expressed it is between two conditions.
-Among other uses, this information can be plotted in an
-[MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
-[volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
-
-The following image shows a _typical_ RNA-seq processing workflow,
-**but the details can vary a lot!**
-
-![An overview of the RNA-seq workflow.](assets/rna-seq.png)
-
-For example, sometimes you start with reads already quantified or trimmed,
-and sometimes you need to run additional processing steps like batch
-correction."""
-info.param_titles.comparison_sheet = "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"
-info.code = '''@dataclass
-class DifferentialGeneExpression:
-    """Differential gene expression
-
-    The goal of this step is to assign a score (like a _p_-value) to each gene
-    that ranks how differentially expressed it is between two conditions.
-    Among other uses, this information can be plotted in an
-    [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
-    [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
-
-    The following image shows a _typical_ RNA-seq processing workflow,
-    **but the details can vary a lot!**
-
-    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)
-
-    For example, sometimes you start with reads already quantified or trimmed,
-    and sometimes you need to run additional processing steps like batch
-    correction."""
-
-    path: str
-
-    comparison_sheet: str
-    "@nosuggest:Path to CSV of comparisons to make (columns: control_condition, treatment_condition)"'''
-
 [Function.deseq2]
 params.data = "GeneMatrices"
 ret = "DifferentialGeneExpression"
@@ -609,7 +791,7 @@ info.description = """# Find differentially-expressed protein-coding genes with 
 
 DESeq2 models gene expression using what is called a
 <span class="more-info">
-<span>
+<span style="display: none">
 A <b>negative binomial distribution</b> is a statistical distribution
 that models count data with unexplained variance, such as the
 number of mRNA transcripts in a cell.  It looks like an off-center
@@ -644,26 +826,193 @@ __hb_bash(f"""
         {__hb_data.path}/counts.csv \\
         {__hb_ret.path}""")'''
 
-[Function.salmon]
-params.reads = "RnaSeqReads"
-ret = "TranscriptMatrices"
-condition = [
-    "reads.qc = true",
-]
-info.title = "Salmon"
-info.description = """# Quantify transcript abundances *without* alignment using [Salmon](https://pachterlab.github.io/kallisto/)
+[Type.LocalLemonSeq]
+params.path = "Str"
+params.reference = "Str"
+info.title = "@intermediate:LEMONmethyl-seq"
+info.param_titles.path = "Path to the directory containing the LEMONmethyl-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
+info.param_descriptions.reference = """
+The path should be to a `.fasta` file containing one entry (for the
+reference genome)."""
+info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
+info.code = '''@dataclass
+class LocalLemonSeq:
+    "LEMONmethyl-seq"
 
-Salmon is a tool that estimates the number of times a transcript appears
-using a lightweight mapping technique that is much faster than a full
-alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
-info.google_scholar_id = "11462947284863466602"
-info.pmid = "28263959"
-info.citation = "Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & Kingsford, C. (2017). Salmon provides fast and bias-aware quantification of transcript expression. Nature Methods."
-info.hyperparameters = [
-    {name = 'SALMON_INDEX', default = '"put the path to the Salmon index here"', comment = 'The location of the Salmon transcriptome index on your computer' },
-    {name = 'SALMON_CORES', default = '4', comment = 'The number of cores that you want Salmon to use' },
+    path: str
+    """Path to the directory containing the LEMONmethyl-seq data
+
+    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
+    reference: str
+    """Path to the reference genome to align the LEMONmethyl-seq data to
+
+    @example:/Users/jlubin/Desktop/MyExperiment/reference.fasta
+
+    The path should be to a `.fasta` file containing one entry (for the
+    reference genome)."""'''
+
+[Prop.P_LocalLemonSeq]
+params.path = "Str"
+params.reference = "Str"
+info.title = "LEMONmethyl-seq"
+info.param_titles.path = "Path to the directory containing the LEMONmethyl-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
+info.param_descriptions.reference = """
+The path should be to a `.fasta` file containing one entry (for the
+reference genome)."""
+info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
+
+[Function.F_LocalLemonSeq]
+params = {}
+ret = "LocalLemonSeq"
+condition = [
+    "P_LocalLemonSeq { path = ret.path, reference = ret.reference }"
 ]
-info.code = '''raise NotImplementedError  # Coming soon!'''
+info.title = "LEMONmethyl-seq"
+
+[Type.UnconvertedLemonSeq]
+params = {}
+info.title = "@intermediate:Unconverted LEMONmethyl-seq"
+info.code = '''@dataclass
+class UnconvertedLemonSeq:
+    "@intermediate:Unconverted LEMONmethyl-seq"
+
+    path: str'''
+
+[Type.CalledMethylation]
+params = {}
+info.title = "Methylation calls"
+info.code = '''@dataclass
+class CalledMethylation:
+    "Methylation calls"
+
+    path: str'''
+
+[Function.load_local_lemon_seq]
+params.local = "LocalLemonSeq"
+ret = "UnconvertedLemonSeq"
+condition = [
+]
+info.title = "Load LEMONmethyl-seq data from hard drive"
+info.description = """The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
+file format."""
+info.search = false
+info.hyperparameters = [
+]
+info.code = '''carry_over(__hb_local, __hb_ret)
+
+save(
+    __hb_local.reference,
+    f"{__hb_ret.path}/reference/unconverted_reference.fasta",
+)'''
+
+[Function.sed_in_silico_em]
+params.data = "UnconvertedLemonSeq"
+ret = "SeqReads"
+condition = [
+    "ret.qc = false",
+    "ret.trimmed = true",
+    "ret.long = true",
+    "ret.type = \"lemon\"",
+]
+info.title = "EM-convert provided reference"
+info.description = """# (In silico) EM-convert the provided reference
+
+In order to perform alignment of LEMONmethyl-seq reads, we need a version of
+the reference genome that has undergone _in silico EM conversion_; or, in
+other words, that has all Cs converted to Ts in the `.fasta`
+(computationally).
+
+_This preprocessing step performs the in silico EM conversion._"""
+info.use = "to make a new EM-converted reference"
+info.search = false
+info.hyperparameters = [
+]
+info.code = '''carry_over(__hb_data, __hb_ret)
+
+__hb_bash(f"""
+    cat "{__hb_ret.path}/unconverted_reference.fasta" \
+        | sed '/^>/s/$/ (in silico C -> T converted)/' \
+        | sed '/^[^>]/s/C/T/g' \
+        | sed '/^[^>]/s/c/t/g' \
+        > "{__hb_ret.path}/reference/reference.fasta"
+""")'''
+
+[Function.use_existing_em_reference]
+params.data = "UnconvertedLemonSeq"
+ret = "SeqReads"
+condition = [
+    "ret.qc = false",
+    "ret.trimmed = true",
+    "ret.long = true",
+    "ret.type = \"lemon\"",
+]
+info.title = "Use existing EM-converted reference"
+info.description = """# Use an existing (in silico) EM-converted reference genome
+
+In order to perform alignment of LEMONmethyl-seq reads, we need a version of
+the reference genome that has undergone _in silico EM conversion_; or, in
+other words, that has all Cs converted to Ts in the `.fasta`
+(computationally).
+
+If you already have a reference genome that has undergone in silico EM
+conversion, you don't need to redo that step! After downloading the
+completed script, simply put in the path to where that reference genome is
+stored in the parameter below.
+
+_Crucially, this genome must have all Cs converted to Ts
+computationally!_"""
+info.use = "to reuse an existing EM-converted reference"
+info.search = false
+info.hyperparameters = [
+    {name = 'EM_REFERENCE_PATH', default = '"/Users/jlubin/Documents/genomes/converted.fasta"', comment = 'The path to the (in silico) EM-converted reference genome' },
+]
+info.code = '''carry_over(__hb_data, __hb_ret)
+
+save(
+    EM_REFERENCE_PATH,
+    f"{__hb_ret.path}/reference/reference.fasta",
+)'''
+
+[Function.lemon_mc]
+params.bam = "SortedIndexBAM"
+ret = "CalledMethylation"
+condition = [
+    "bam.type = \"lemon\"",
+]
+info.title = "LEMONmC.py"
+info.description = """LEMONmC.py is a lightweight tool to call methylation sites on a reference
+genome given a set of LEMONmethyl-seq reads aligned to an in silico
+converted version of the reference genome.
+
+For each C in the reference, if there is a C in the aligned read, we know
+that site was methylated (it was protected in the wet lab EM conversion
+process). If there is a T in the aligned read, we know that the site must
+not have been methylated!
+
+LEMONmC.py counts up the per-site methylated and unmethylated alignments
+and collects the results into a single table, with one entry per cytosine
+in the reference genome."""
+info.hyperparameters = [
+]
+info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+    sample_name = os.path.splitext(os.path.basename(path))[0]
+    __hb_bash(f"""
+        uv run LEMONmC.py \
+            --ref "{__hb_bam.path}/reference/unconverted.fasta" \
+            --bam "{path}" \
+            --tsv "{__hb_ret.path}/{sample_name}.tsv"
+    """)'''
 
 [Function.sleuth]
 params.data = "TranscriptMatrices"
