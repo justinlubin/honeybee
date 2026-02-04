@@ -518,8 +518,6 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
                     {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
-# %% Transcript matrices
-
 @Function(
     "reads.qc = true",
     "reads.trimmed = true",
