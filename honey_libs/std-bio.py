@@ -78,7 +78,15 @@ class SeqReads:
 
 @Output
 class SeqAlignment:
-    """Sequence alignment (SAM)"""
+    """Sequence alignment (SAM)
+
+    [SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
+    **uncompressed** files that describe an alignment of reads to a reference
+    genome. These alignments may or may not be "sorted" by nucleotide position
+    and may or may not be "indexed"; an "index" is a supplementary file to the
+    SAM file that allows for the computer to quickly access various information
+    from the alignment for viewing in, for example, the
+    [Integrative Genomics Viewer (IGV)](https://igv.org/)."""
 
     path: str
 
@@ -87,7 +95,20 @@ class SeqAlignment:
 
 @Output
 class SortedIndexBAM:
-    "Sequence alignment (sorted and indexed BAM files)"
+    """Sequence alignment (sorted and indexed BAM files)
+
+    [BAM files](https://doi.org/10.1093/bioinformatics/btp352) are
+    **compressed** files that describe an alignment of reads to a reference
+    genome. These alignments may or may not be "sorted" by nucleotide position
+    and may or may not be "indexed"; an "index" is a supplementary file to the
+    SAM file that allows for the computer to quickly access various information
+    from the alignment for viewing in, for example, the
+    [Integrative Genomics Viewer (IGV)](https://igv.org/).
+
+    This step specifically **requires** the BAM files to be sorted an indexed.
+    This is not always strictly necessary for downstream tools, but it can be
+    convenient to have these files on hand (and BAM files are much smaller than
+    uncompressed SAM files, too)."""
 
     path: str
 
@@ -205,7 +226,12 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
 def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """minimap2
 
-    # Align noisy long reads (~10% error rate) to a reference genome with [minimap2](https://lh3.github.io/minimap2/)"""
+    # Align noisy long reads (~10% error rate) to a reference genome with [minimap2](https://lh3.github.io/minimap2/)
+
+    While traditional aligners like [BWA](https://github.com/lh3/bwa) or
+    [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml) _can_
+    align long reads, minimap2 is a dedicated tool that aligns long reads much
+    more quickly."""
 
     carry_over(__hb_reads, __hb_ret, file="reference")
 
@@ -226,7 +252,9 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     search=False,
 )
 def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SortedIndexBAM):
-    """Convert to sorted BAM and index"""
+    """Convert to sorted BAM and index
+
+    # Converted uncompressed SAM files to compressed BAM files (and sort and index them)"""
 
     carry_over(__hb_align, __hb_ret, file="reference")
 
@@ -312,6 +340,7 @@ class TranscriptMatrices:
 
     path: str
 
+
 @Output
 class BootstrappedTranscriptMatrices:
     """Transcript read counts (and TPM abundance) of RNA-seq samples, with bootstrap estimates
@@ -325,6 +354,7 @@ class BootstrappedTranscriptMatrices:
     incorporate measurement uncertainty into differential expression analysis."""
 
     path: str
+
 
 @Output
 class GeneMatrices:
@@ -606,6 +636,7 @@ def kallisto_bootstrap(
 ################################################################################
 # %% Gene matrices
 
+
 @Function(
     "reads.qc = true",
     "reads.trimmed = true",
@@ -770,14 +801,26 @@ class LocalLemonSeq:
 
 @Output
 class UnconvertedLemonSeq:
-    "@intermediate:Unconverted LEMONmethyl-seq"
+    """@intermediate:Unconverted LEMONmethyl-seq
+
+    The goal of this step is to load in the LEMONmethyl-seq reads you want to
+    analyze. After this step, we also need to convert (or somehow otherwise
+    obtain) an in silico EM-converted reference genome to map these reads to."""
 
     path: str
 
 
 @Output
 class CalledMethylation:
-    "Methylation calls"
+    """Per-cytosine methylation counts
+
+    The goal of this step is to produce a table of "methylation calls"; that is,
+    a table where each row corresponds to a cytosine in the provided reference
+    genome, and each column of the table provides information about how often
+    that cytosine was methylated in the reads being analyzed.
+
+    This information is useful for downstream plotting or simply to look at the
+    table itself to understand patterns of methylation!"""
 
     path: str
 
@@ -873,6 +916,8 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
     """LEMONmC.py
 
+    # Call methylation counts from a BAM file
+
     LEMONmC.py is a lightweight tool to call methylation sites on a reference
     genome given a set of LEMONmethyl-seq reads aligned to an in silico
     converted version of the reference genome.
@@ -909,7 +954,9 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
     "http://dx.doi.org/10.1038/nmeth.4324.",
     use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
 )
-def sleuth(__hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression):
+def sleuth(
+    __hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
+):
     """sleuth
 
     # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
