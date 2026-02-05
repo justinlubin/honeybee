@@ -589,16 +589,17 @@ def kallisto(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
 
 @Function(
     "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = 'rna'",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
     citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
     "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
     "p 525--527 (2016).",
 )
-def kallisto_bootstrap(
-    __hb_reads: RnaSeqReads, __hb_ret: BootstrappedTranscriptMatrices
-):
-    """kallisto (with bootstraps)
+def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: BootstrappedTranscriptMatrices):
+    """kallisto (with bootstrap)
 
     # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/), with bootstrap estimates
 
