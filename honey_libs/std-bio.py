@@ -312,6 +312,19 @@ class TranscriptMatrices:
 
     path: str
 
+@Output
+class BootstrappedTranscriptMatrices:
+    """Transcript read counts (and TPM abundance) of RNA-seq samples, with bootstrap estimates
+
+    The goal of this step is to calculate two transcript-by-sample matrices:
+    - One with (estimated) read counts.
+    - One with TPM (transcripts-per-million) abundance.
+
+    Additionally, bootstrap resampling estimates are included, which allow
+    downstream tools like [sleuth](https://pachterlab.github.io/sleuth/) to
+    incorporate measurement uncertainty into differential expression analysis."""
+
+    path: str
 
 @Output
 class GeneMatrices:
@@ -543,6 +556,55 @@ def kallisto(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
                     {__hb_reads.path}/{sample_name}_1.fastq.gz \\
                     {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
+
+@Function(
+    "reads.qc = true",
+    google_scholar_id="15817796957364212470",
+    pmid="27043002",
+    citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
+    "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
+    "p 525--527 (2016).",
+)
+def kallisto_bootstrap(
+    __hb_reads: RnaSeqReads, __hb_ret: BootstrappedTranscriptMatrices
+):
+    """kallisto (with bootstraps)
+
+    # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/), with bootstrap estimates
+
+    kallisto is a tool that estimates the number of times a transcript appears
+    using a technique called _pseudoalignment_ that is much faster than a full
+    alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s.
+
+    This version runs kallisto with bootstrap resampling, which is required by
+    downstream tools like [sleuth](https://pachterlab.github.io/sleuth/) that
+    incorporate measurement uncertainty into differential expression analysis."""
+
+    # PARAMETER: The location of the kallisto transcriptome index on your computer
+    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+
+    # PARAMETER: The number of cores that you want kallisto to use
+    KALLISTO_CORES = 4
+
+    # PARAMETER: The number of bootstrap samples
+    KALLISTO_BOOTSTRAPS = 50
+
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""kallisto quant \\
+                    -b {KALLISTO_BOOTSTRAPS} \\
+                    -t {KALLISTO_CORES} \\
+                    -i {KALLISTO_INDEX} \\
+                    -o {__hb_ret.path}/{sample_name} \\
+                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+
+
+################################################################################
+# %% Gene matrices
 
 @Function(
     "reads.qc = true",
@@ -847,7 +909,7 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
     "http://dx.doi.org/10.1038/nmeth.4324.",
     use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
 )
-def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
+def sleuth(__hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     """sleuth
 
     # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
@@ -858,7 +920,22 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
     that demonstrate how to use it to analyze RNA-seq datasets."""
 
-    raise NotImplementedError  # Coming soon!
+    # PARAMETER: The version of Ensembl to use for gene annotations
+    ENSEMBL_VERSION = "115"
+
+    # PARAMETER: The Ensembl gene annotation dataset to use
+    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+
+    carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+
+    __hb_bash(f"""
+        Rscript sleuth.r \\
+            {ENSEMBL_VERSION} \\
+            {ENSEMBL_DATASET} \\
+            {__hb_data.path}/sample_sheet.csv \\
+            {__hb_ret.comparison_sheet} \\
+            {__hb_data.path} \\
+            {__hb_ret.path}""")
 
 
 # @Function(
