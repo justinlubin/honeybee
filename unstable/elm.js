@@ -6839,7 +6839,13 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+f73f9a3';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+506d3a9';
+var $elm$html$Html$Attributes$height = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'height',
+		$elm$core$String$fromInt(n));
+};
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -8853,6 +8859,12 @@ var $author$project$View$startNavigationButton = function (prog) {
 			$elm$html$Html$text('Start navigating'),
 			extras));
 };
+var $elm$html$Html$Attributes$width = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'width',
+		$elm$core$String$fromInt(n));
+};
 var $author$project$View$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -8868,29 +8880,61 @@ var $author$project$View$view = function (model) {
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$b,
+						$elm$html$Html$span,
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Programming by Navigation')
+								$elm$html$Html$text('🐝 '),
+								A2(
+								$elm$html$Html$b,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$a,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$href('https://honeybee-lang.org')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Honeybee')
+											]))
+									])),
+								$elm$html$Html$text(' (homepage)')
 							])),
-						$elm$html$Html$text(' with '),
 						A2(
-						$elm$html$Html$b,
+						$elm$html$Html$span,
 						_List_Nil,
 						_List_fromArray(
 							[
 								A2(
-								$elm$html$Html$a,
+								$elm$html$Html$img,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$href('https://honeybee-lang.org')
+										$elm$html$Html$Attributes$src('assets/zulip-icon-circle.svg'),
+										$elm$html$Html$Attributes$width(20),
+										$elm$html$Html$Attributes$height(20)
 									]),
+								_List_Nil),
+								$elm$html$Html$text(' '),
+								A2(
+								$elm$html$Html$b,
+								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Honeybee')
+										A2(
+										$elm$html$Html$a,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$href('https://chat.honeybee-lang.org')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Zulip')
+											]))
 									])),
-								$elm$html$Html$text(' 🐝')
+								$elm$html$Html$text(' (say hi, ask for help)')
 							]))
 					]),
 				_List_Nil,
