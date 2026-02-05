@@ -58,9 +58,7 @@ $(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
 		--target web
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
-	uv run \
-		--project $(GLUE_DIR) \
-		ty check && \
+	cd ../honey_libs && ty check
 	uv run \
 		--project $(GLUE_DIR) \
 		$(GLUE_DIR)/std-bio.py \
