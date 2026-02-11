@@ -552,6 +552,32 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
+    "ret.type = 'rna'",
+)
+def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """STAR"""
+
+    # PARAMETER: The location of the STAR index on your computer
+    STAR_REFERENCE = "/Users/jlubin/Desktop/Indexes/star_index"
+
+    # PARAMETER: The number of cores that you want STAR to use
+    STAR_CORES = 4
+
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""STAR \\
+                  --runThreadN {STAR_CORES}
+                  --genomeDir {STAR_REFERENCE}
+                  --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
     "reads.type = 'rna'",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
