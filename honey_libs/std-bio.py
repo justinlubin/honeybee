@@ -895,7 +895,7 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
             | sed '/^>/s/$/ (in silico C -> T converted)/' \
             | sed '/^[^>]/s/C/T/g' \
             | sed '/^[^>]/s/c/t/g' \
-            > "{__hb_ret.path}/reference/converted.fasta"
+            > "{__hb_ret.path}/reference/reference.fasta"
     """)
 
 
@@ -932,7 +932,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 
     save(
         EM_REFERENCE_PATH,
-        f"{__hb_ret.path}/reference/converted.fasta",
+        f"{__hb_ret.path}/reference/reference.fasta",
     )
 
 
