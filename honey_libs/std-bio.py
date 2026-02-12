@@ -15,8 +15,7 @@ class Dir:
 
     @staticmethod
     def make(name):
-        time = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
-        dir = f"output/{time}/{Dir.stage * 10:03d}-{name}"
+        dir = f"output/{Dir.stage * 10:03d}-{name}"
         os.makedirs(dir, exist_ok=True)
         Dir.stage += 1
         return dir
@@ -25,7 +24,7 @@ class Dir:
 @Helper
 def carry_over(src_object, dst_object, *, file=None):
     def carry_one(f):
-        src = f"../../../{src_object.path}/{f}"  # relative to dst
+        src = f"../../{src_object.path}/{f}"  # relative to dst
         dst = f"{dst_object.path}/{f}"
         if os.path.islink(src):
             src = os.readlink(src)
@@ -243,7 +242,7 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
                 --sam-hit-only \\
                 "{__hb_reads.path}/reference/reference.fasta" \\
                 "{path}" \\
-                > "${sample_name}.sam"
+                > "{__hb_ret.path}/{sample_name}.sam"
         """)
 
 
@@ -552,6 +551,32 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
+    "ret.type = 'rna'",
+)
+def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """STAR"""
+
+    # PARAMETER: The location of the STAR index on your computer
+    STAR_REFERENCE = "/Users/jlubin/Desktop/Indexes/star_index"
+
+    # PARAMETER: The number of cores that you want STAR to use
+    STAR_CORES = 4
+
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""STAR \\
+                  --runThreadN {STAR_CORES}
+                  --genomeDir {STAR_REFERENCE}
+                  --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
     "reads.type = 'rna'",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
@@ -839,7 +864,7 @@ def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSe
 
     save(
         __hb_local.reference,
-        f"{__hb_ret.path}/reference/unconverted_reference.fasta",
+        f"{__hb_ret.path}/reference/unconverted.fasta",
     )
 
 
@@ -866,11 +891,11 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
     carry_over(__hb_data, __hb_ret)
 
     __hb_bash(f"""
-        cat "{__hb_ret.path}/unconverted_reference.fasta" \
+        cat "{__hb_ret.path}/reference/unconverted.fasta" \
             | sed '/^>/s/$/ (in silico C -> T converted)/' \
             | sed '/^[^>]/s/C/T/g' \
             | sed '/^[^>]/s/c/t/g' \
-            > "{__hb_ret.path}/reference/reference.fasta"
+            > "{__hb_ret.path}/reference/converted.fasta"
     """)
 
 
@@ -907,7 +932,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 
     save(
         EM_REFERENCE_PATH,
-        f"{__hb_ret.path}/reference/reference.fasta",
+        f"{__hb_ret.path}/reference/converted.fasta",
     )
 
 
