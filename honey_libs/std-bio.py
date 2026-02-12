@@ -943,6 +943,109 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
 
 
 ################################################################################
+# %% ATAC-seq analysis
+
+
+# REFER TO https://nbis-workshop-epigenomics.readthedocs.io/en/latest/content/tutorials/ATACseq/lab-atacseq-bulk.html#
+
+# missing from ^: shifting alignments
+
+
+@Input
+class LocalAtacSeq:
+    "ATAC-seq (stored on your own hard drive)"
+
+    sample_sheet: str
+    """TODO"""
+
+    path: str
+    """TODO"""
+
+
+@Input
+class SraAtacSeq:
+    "ATAC-seq (stored on the Sequence Read Archive)"
+
+    sample_sheet: str
+    """TODO"""
+
+
+@Output
+class AtacPeaks:
+    """TODO"""
+
+    path: str
+
+
+@Function(
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = 'atac'",
+    search=False,
+)
+def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
+    """TODO"""
+
+    raise NotImplementedError
+
+
+@Function(
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = 'atac'",
+    search=False,
+)
+def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
+    """TODO"""
+
+    raise NotImplementedError
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+)
+def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """TODO"""
+
+    raise NotImplementedError
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+)
+def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """TODO"""
+
+    raise NotImplementedError
+
+# low prio - sorted won't work yet because it needs to name-sorted
+@Function(
+    "bam.type = 'atac'",
+)
+def genrich(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
+    """TODO"""
+
+    raise NotImplementedError
+
+# check if sorted
+@Function(
+    "bam.type = 'atac'",
+)
+def macs3(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
+    """TODO"""
+
+    raise NotImplementedError
+
+
+################################################################################
 # %% Stubs
 
 
