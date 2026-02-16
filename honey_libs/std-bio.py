@@ -1026,6 +1026,13 @@ def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
     """TODO"""
 
     raise NotImplementedError
+# (__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSeq):
+  #  carry_over(__hb_local, __hb_ret)
+
+   # save(
+  #      __hb_local.reference,
+     #   f"{__hb_ret.path}/reference/unconverted.fasta",
+  #  )
 
 
 @Function(
@@ -1035,10 +1042,42 @@ def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
     "ret.type = reads.type",
 )
 def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """TODO"""
 
-    raise NotImplementedError
+    carry_over(__hb_reads, __hb_ret, file="reference")
 
+    # build bowtie-2 index files from reference
+    index_path = f"{__hb_ret.path}/index"
+    __hb_bash(f"""
+        bowtie2-build \
+            -f {__hb_reads.path}/reference/reference.fasta {index_path} > out.txt
+    """)    
+
+    # get lists of mate1 and mate2 files
+    mate1 = []
+    mate2 = []
+    for path in glob.glob(f"{__hb_reads .path}/*.fastq*"):
+        sample_name = os.path.splitext(os.path.basename(path))[0]
+        if sample_name[-9:] == "_R1.fastq":
+            mate1.append(path)
+        elif sample_name[-9:] == "_R2.fastq":
+            mate2.append(path)
+
+    # make sure mate1 and mate2 are same len, names match in pairs, are sorted to be at same index
+    for i in range(len(mate1)):
+        m1 = mate1[i]
+        m2 = mate2[i]
+        lastslash = m1.rfind("/")
+        if lastslash == -1:
+            lastslash = 0
+        name = m1[lastslash:-12]
+    
+    __hb_bash(f"""
+        bowtie2 \
+            -x "{index_path}" \
+            -1 "{m1}" \
+            -2 "{m2}" \
+            -S "{__hb_ret.path}/{name}.sam"
+    """)  
 
 @Function(
     "reads.qc = true",
