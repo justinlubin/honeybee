@@ -1050,7 +1050,7 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     __hb_bash(f"""
         bowtie2-build \
             -f {__hb_reads.path}/reference/reference.fasta {index_path} > out.txt
-    """)    
+    """)
 
     # get lists of mate1 and mate2 files
     mate1 = []
@@ -1077,7 +1077,7 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
             -1 "{m1}" \
             -2 "{m2}" \
             -S "{__hb_ret.path}/{name}.sam"
-    """)  
+    """)
 
 @Function(
     "reads.qc = true",
@@ -1086,9 +1086,45 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     "ret.type = reads.type",
 )
 def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """TODO"""
 
-    raise NotImplementedError
+    ref = f"{__hb_ret.path}/reference/reference.fasta"
+    __hb_bash(f"""
+        bwa index "{ref}"
+    """)
+
+    # get lists of mate1 and mate2 files
+    mate1 = []
+    mate2 = []
+    for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
+        sample_name = os.path.splitext(os.path.basename(path))[0]
+        if sample_name[-9:] == "_R1.fastq":
+            mate1.append(path)
+        elif sample_name[-9:] == "_R2.fastq":
+            mate2.append(path)
+
+    # make sure mate1 and mate2 are same len, names match in pairs, are sorted to be at same index
+    for i in range(len(mate1)):
+        m1 = mate1[i]
+        m2 = mate2[i]
+        lastslash = m1.rfind("/")
+        if lastslash == -1:
+            lastslash = 0
+        name = m1[lastslash:-12]
+
+        s1 = f"{__hb_reads.path}/{name}_R1.sai"
+        s2 = f"{__hb_reads.path}/{name}_R2.sai"
+
+        __hb_bash(f"""
+            bwa aln "{ref}" "{m1}" > "{s1}"
+        """)
+
+        __hb_bash(f"""
+            bwa aln "{ref}" "{m2}" > "{s2}"
+        """)
+
+        __hb_bash(f"""
+            bwa sampe "{ref}" "{s1}" "{s2}" "{m1}" "{m2}" > "{__hb_ret.path}/{name}.sam"
+        """)
 
 # low prio - sorted won't work yet because it needs to name-sorted
 @Function(
