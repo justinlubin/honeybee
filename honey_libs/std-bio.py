@@ -1060,14 +1060,31 @@ def genrich(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
 
     raise NotImplementedError
 
-# check if sorted
 @Function(
     "bam.type = 'atac'",
 )
 def macs3(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
-    """TODO"""
+    # PARAMETER: Effective genome size (use 'hs' for human, 'mm' for mouse, or a number)
+    GENOME_SIZE = "hs"
 
-    raise NotImplementedError
+    for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+        sample_name = os.path.splitext(os.path.basename(path))[0]
+        __hb_bash(f"""
+            macs3 callpeak \\
+                -t "{path}" \\
+                -f BAMPE \\
+                -g {GENOME_SIZE} \\
+                --nomodel \\
+                --keep-dup all \\
+                -n {sample_name} \\
+                --outdir "{__hb_ret.path}"
+        """)
+
+        # Convert xls output (tab-separated with comment headers) to .csv
+        xls_path = f"{__hb_ret.path}/{sample_name}_peaks.xls"
+        pl.read_csv(
+            xls_path, separator="\t", comment_prefix="#"
+        ).write_csv(f"{__hb_ret.path}/{sample_name}_peaks.csv")
 
 
 ################################################################################
