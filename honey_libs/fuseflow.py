@@ -290,6 +290,42 @@ def choose_stream_level_16(__hb_vec: VectorizationPass, __hb_ret: StreamLevelCho
     print("Choose stream level 16.")
 
 @Function(
+    "ret.stream_level = 32",
+    "ret.stream_level < vec.num_loops",
+    "ret.mlir_path = vec.mlir_path",
+)
+def choose_stream_level_32(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
+    ScheduleState.set_values(stream_level=32)
+    print("Choose stream level 32.")
+
+@Function(
+    "ret.stream_level = 64",
+    "ret.stream_level < vec.num_loops",
+    "ret.mlir_path = vec.mlir_path",
+)
+def choose_stream_level_64(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
+    ScheduleState.set_values(stream_level=64)
+    print("Choose stream level 64.")
+
+@Function(
+    "ret.stream_level = 128",
+    "ret.stream_level < vec.num_loops",
+    "ret.mlir_path = vec.mlir_path",
+)
+def choose_stream_level_128(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
+    ScheduleState.set_values(stream_level=128)
+    print("Choose stream level 128.")
+
+@Function(
+    "ret.stream_level = 256",
+    "ret.stream_level < vec.num_loops",
+    "ret.mlir_path = vec.mlir_path",
+)
+def choose_stream_level_256(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
+    ScheduleState.set_values(stream_level=256)
+    print("Choose stream level 256.")
+
+@Function(
     "ret.par_factor = 1",
     "ret.mlir_path = level.mlir_path",
 )
@@ -328,6 +364,38 @@ def choose_par_factor_8(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice
 def choose_par_factor_16(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
     ScheduleState.set_values(par_factor=16)
     print("Choose par factor 16.")
+
+@Function(
+    "ret.par_factor = 32",
+    "ret.mlir_path = level.mlir_path",
+)
+def choose_par_factor_32(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_values(par_factor=32)
+    print("Choose par factor 32.")
+
+@Function(
+    "ret.par_factor = 64",
+    "ret.mlir_path = level.mlir_path",
+)
+def choose_par_factor_64(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_values(par_factor=64)
+    print("Choose par factor 64.")
+
+@Function(
+    "ret.par_factor = 128",
+    "ret.mlir_path = level.mlir_path",
+)
+def choose_par_factor_128(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_values(par_factor=128)
+    print("Choose par factor 128.")
+
+@Function(
+    "ret.par_factor = 256",
+    "ret.mlir_path = level.mlir_path",
+)
+def choose_par_factor_256(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_values(par_factor=256)
+    print("Choose par factor 256.")
 
 @Function(
     "ret.stream_shape = 16",
