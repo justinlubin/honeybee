@@ -980,10 +980,10 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
 class LocalAtacSeq:
     "ATAC-seq (stored on your own hard drive)"
 
-    sample_sheet: str
+    path: str
     """TODO"""
 
-    path: str
+    reference: str
     """TODO"""
 
 
@@ -1025,14 +1025,14 @@ def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
 def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
     """TODO"""
 
-    raise NotImplementedError
-# (__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSeq):
-  #  carry_over(__hb_local, __hb_ret)
+    # symlink on fastqc files and path to reference
+    # When loading data, save the reference sheet symlinked to reference/reference.fasta
+    carry_over(__hb_local, __hb_ret)
 
-   # save(
-  #      __hb_local.reference,
-     #   f"{__hb_ret.path}/reference/unconverted.fasta",
-  #  )
+    save(
+        __hb_local.reference,
+        f"{__hb_ret.path}/reference/reference.fasta",
+    )
 
 
 @Function(
@@ -1042,15 +1042,19 @@ def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
     "ret.type = reads.type",
 )
 def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """TODO"""
 
     carry_over(__hb_reads, __hb_ret, file="reference")
 
-    # build bowtie-2 index files from reference
     index_path = f"{__hb_ret.path}/index"
+
     __hb_bash(f"""
         bowtie2-build \
-            -f {__hb_reads.path}/reference/reference.fasta {index_path} > out.txt
+            -f {__hb_reads.path}/reference/reference.fasta \
+            {index_path} \
+            > out.txt
     """)
+
 
     # get lists of mate1 and mate2 files
     mate1 = []
@@ -1071,13 +1075,14 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
             lastslash = 0
         name = m1[lastslash:-12]
     
-    __hb_bash(f"""
-        bowtie2 \
-            -x "{index_path}" \
-            -1 "{m1}" \
-            -2 "{m2}" \
-            -S "{__hb_ret.path}/{name}.sam"
-    """)
+        __hb_bash(f"""
+            bowtie2 \
+                -x "{index_path}" \
+                -1 "{m1}" \
+                -2 "{m2}" \
+                -S "{__hb_ret.path}/{name}.sam"
+        """)
+
 
 @Function(
     "reads.qc = true",
@@ -1086,8 +1091,12 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     "ret.type = reads.type",
 )
 def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """TODO"""
+
+    carry_over(__hb_reads, __hb_ret, file="reference")
 
     ref = f"{__hb_ret.path}/reference/reference.fasta"
+
     __hb_bash(f"""
         bwa index "{ref}"
     """)
@@ -1125,6 +1134,7 @@ def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
         __hb_bash(f"""
             bwa sampe "{ref}" "{s1}" "{s2}" "{m1}" "{m2}" > "{__hb_ret.path}/{name}.sam"
         """)
+
 
 # low prio - sorted won't work yet because it needs to name-sorted
 @Function(
