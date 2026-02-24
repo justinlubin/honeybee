@@ -3,7 +3,7 @@
 This changelog tracks the notable changes for downstream users in each version
 of Honeybee. 
 
-## [Unreleased]
+## [0.5.0] - 2026-02-23
 
 ### Added
 
