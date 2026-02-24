@@ -1002,74 +1002,74 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
 #     path: str
 
 
-@Function(
-    "ret.qc = false",
-    "ret.trimmed = false",
-    "ret.long = false",
-    "ret.type = 'atac'",
-    search=False,
-)
-def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
-    """TODO"""
+# @Function(
+#     "ret.qc = false",
+#     "ret.trimmed = false",
+#     "ret.long = false",
+#     "ret.type = 'atac'",
+#     search=False,
+# )
+# def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
+#     """TODO"""
 
-    raise NotImplementedError
-
-
-@Function(
-    "ret.qc = false",
-    "ret.trimmed = false",
-    "ret.long = false",
-    "ret.type = 'atac'",
-    search=False,
-)
-def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
-    """TODO"""
-
-    raise NotImplementedError
+#     raise NotImplementedError
 
 
-@Function(
-    "reads.qc = true",
-    "reads.trimmed = true",
-    "reads.long = false",
-    "ret.type = reads.type",
-)
-def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """TODO"""
+# @Function(
+#     "ret.qc = false",
+#     "ret.trimmed = false",
+#     "ret.long = false",
+#     "ret.type = 'atac'",
+#     search=False,
+# )
+# def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
+#     """TODO"""
 
-    raise NotImplementedError
-
-
-@Function(
-    "reads.qc = true",
-    "reads.trimmed = true",
-    "reads.long = false",
-    "ret.type = reads.type",
-)
-def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """TODO"""
-
-    raise NotImplementedError
+#     raise NotImplementedError
 
 
-# low prio - sorted won't work yet because it needs to name-sorted
-@Function(
-    "bam.type = 'atac'",
-)
-def genrich(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
-    """TODO"""
+# @Function(
+#     "reads.qc = true",
+#     "reads.trimmed = true",
+#     "reads.long = false",
+#     "ret.type = reads.type",
+# )
+# def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+#     """TODO"""
 
-    raise NotImplementedError
+#     raise NotImplementedError
 
 
-# check if sorted
-@Function(
-    "bam.type = 'atac'",
-)
-def macs3(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
-    """TODO"""
+# @Function(
+#     "reads.qc = true",
+#     "reads.trimmed = true",
+#     "reads.long = false",
+#     "ret.type = reads.type",
+# )
+# def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+#     """TODO"""
 
-    raise NotImplementedError
+#     raise NotImplementedError
+
+
+# # low prio - sorted won't work yet because it needs to name-sorted
+# @Function(
+#     "bam.type = 'atac'",
+# )
+# def genrich(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
+#     """TODO"""
+
+#     raise NotImplementedError
+
+
+# # check if sorted
+# @Function(
+#     "bam.type = 'atac'",
+# )
+# def macs3(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
+#     """TODO"""
+
+#     raise NotImplementedError
 
 
 ################################################################################
