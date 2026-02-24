@@ -997,7 +997,7 @@ class SraAtacSeq:
 
 @Output
 class AtacPeaks:
-    """TODO"""
+    """ATAC-seq peak calls"""
 
     path: str
 
@@ -1051,6 +1051,7 @@ def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
     raise NotImplementedError
 
+
 # low prio - sorted won't work yet because it needs to name-sorted
 @Function(
     "bam.type = 'atac'",
@@ -1059,6 +1060,7 @@ def genrich(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
     """TODO"""
 
     raise NotImplementedError
+
 
 # check if sorted
 @Function(
