@@ -8799,7 +8799,7 @@ var $author$project$View$program = F2(
 					]))
 			]);
 	});
-var $author$project$Version$stable = 'UNSTABLE' === 'STABLE';
+var $author$project$Version$stable = 'STABLE' === 'STABLE';
 var $author$project$Update$UserStartedNavigation = function (a) {
 	return {$: 'UserStartedNavigation', a: a};
 };
