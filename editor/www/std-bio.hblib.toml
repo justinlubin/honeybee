@@ -1228,10 +1228,10 @@ info.title = "ATAC-seq (stored on the Sequence Read Archive)"
 
 [Type.AtacPeaks]
 params = {}
-info.title = "TODO"
+info.title = "ATAC-seq peak calls"
 info.code = '''@dataclass
 class AtacPeaks:
-    """TODO"""
+    """ATAC-seq peak calls"""
 
     path: str'''
 

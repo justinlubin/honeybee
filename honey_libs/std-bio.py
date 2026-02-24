@@ -976,30 +976,30 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
 # missing from ^: shifting alignments
 
 
-@Input
-class LocalAtacSeq:
-    "ATAC-seq (stored on your own hard drive)"
+# @Input
+# class LocalAtacSeq:
+#     "ATAC-seq (stored on your own hard drive)"
 
-    sample_sheet: str
-    """TODO"""
+#     sample_sheet: str
+#     """TODO"""
 
-    path: str
-    """TODO"""
-
-
-@Input
-class SraAtacSeq:
-    "ATAC-seq (stored on the Sequence Read Archive)"
-
-    sample_sheet: str
-    """TODO"""
+#     path: str
+#     """TODO"""
 
 
-@Output
-class AtacPeaks:
-    """ATAC-seq peak calls"""
+# @Input
+# class SraAtacSeq:
+#     "ATAC-seq (stored on the Sequence Read Archive)"
 
-    path: str
+#     sample_sheet: str
+#     """TODO"""
+
+
+# @Output
+# class AtacPeaks:
+#     """ATAC-seq peak calls"""
+
+#     path: str
 
 
 @Function(
