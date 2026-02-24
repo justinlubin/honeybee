@@ -1,9 +1,7 @@
 [[Prop]]
 name = "P_SraRnaSeq"
-args.label = "main"
 args.sample_sheet = "samples.csv"
 
 [Goal]
 name = "DifferentialGeneExpression"
-args.label = "main"
 args.comparison_sheet = "comparisons.csv"

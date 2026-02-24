@@ -6838,8 +6838,8 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $author$project$Version$shortVersion = '0.4.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+506d3a9';
+var $author$project$Version$shortVersion = '0.5.0';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+5664cbd';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,

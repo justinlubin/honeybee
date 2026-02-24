@@ -79,10 +79,6 @@ a:hover {
 }
 
 .markdown.inline {
-    display: inline-block;
-}
-
-.markdown.inline > * {
     display: inline;
 }
 
