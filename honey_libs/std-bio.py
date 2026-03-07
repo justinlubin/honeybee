@@ -10,18 +10,6 @@ from honey_lang import Helper, Input, Output, Function, __hb_bash
 
 
 @Helper
-class Dir:
-    stage = 1
-
-    @staticmethod
-    def make(name):
-        dir = f"output/{Dir.stage * 10:03d}-{name}"
-        os.makedirs(dir, exist_ok=True)
-        Dir.stage += 1
-        return dir
-
-
-@Helper
 def carry_over(src_object, dst_object, *, file=None):
     def carry_one(f):
         src = f"../../{src_object.path}/{f}"  # relative to dst
