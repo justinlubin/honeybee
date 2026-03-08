@@ -5,6 +5,10 @@ of Honeybee.
 
 ## [Unreleased]
 
+### Added
+
+- Added basic EM-seq support
+
 ### Changed
 
 - Paths are now statically embedded in the output program
