@@ -948,6 +948,40 @@ __hb_bash(f"""
         {__hb_data.path}/counts.csv \\
         {__hb_ret.path}""")'''
 
+[Function.sleuth]
+params.data = "BootstrappedTranscriptMatrices"
+ret = "DifferentialGeneExpression"
+condition = [
+]
+info.title = "sleuth"
+info.description = """# Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
+
+sleuth can find differentially-expressed genes between samples and can
+incorporate measurements of uncertainty using "bootstrap estimates" from
+read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
+sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
+that demonstrate how to use it to analyze RNA-seq datasets."""
+info.google_scholar_id = "1639708055766929241"
+info.pmid = "28581496"
+info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
+info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
+info.hyperparameters = [
+    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
+    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
+]
+info.code = '''__hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
+
+carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+
+__hb_bash(f"""
+    Rscript sleuth.r \\
+        {ENSEMBL_VERSION} \\
+        {ENSEMBL_DATASET} \\
+        {__hb_data.path}/sample_sheet.csv \\
+        {__hb_ret.comparison_sheet} \\
+        {__hb_data.path} \\
+        {__hb_ret.path}""")'''
+
 [Type.LocalLemonSeq]
 params.path = "Str"
 params.reference = "Str"
@@ -1160,37 +1194,97 @@ info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
             --tsv "{__hb_ret.path}/{sample_name}.tsv"
     """)'''
 
-[Function.sleuth]
-params.data = "BootstrappedTranscriptMatrices"
-ret = "DifferentialGeneExpression"
+[Type.LocalEMSeq]
+params.path = "Str"
+params.reference = "Str"
+info.title = "@intermediate:EM-seq"
+info.param_titles.path = "Path to the directory containing the raw EM-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
+info.param_descriptions.reference = """
+The path should be to a `.fasta` file containing one entry (for the
+reference genome)."""
+info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
+info.code = '''@dataclass
+class LocalEMSeq:
+    "EM-seq"
+
+    path: str
+    """Path to the directory containing the raw EM-seq data
+
+    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
+    reference: str
+    """Path to the reference genome to align the LEMONmethyl-seq data to
+
+    @example:/Users/jlubin/Desktop/MyExperiment/reference.fasta
+
+    The path should be to a `.fasta` file containing one entry (for the
+    reference genome)."""'''
+
+[Prop.P_LocalEMSeq]
+params.path = "Str"
+params.reference = "Str"
+info.title = "EM-seq"
+info.param_titles.path = "Path to the directory containing the raw EM-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
+info.param_descriptions.reference = """
+The path should be to a `.fasta` file containing one entry (for the
+reference genome)."""
+info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
+
+[Function.F_LocalEMSeq]
+params = {}
+ret = "LocalEMSeq"
 condition = [
+    "P_LocalEMSeq { path = ret.path, reference = ret.reference }"
 ]
-info.title = "sleuth"
-info.description = """# Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
+info.title = "EM-seq"
 
-sleuth can find differentially-expressed genes between samples and can
-incorporate measurements of uncertainty using "bootstrap estimates" from
-read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
-sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
-that demonstrate how to use it to analyze RNA-seq datasets."""
-info.google_scholar_id = "1639708055766929241"
-info.pmid = "28581496"
-info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
-info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
-info.hyperparameters = [
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
-]
-info.code = '''__hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
+[Type.UnconvertedLemonSeq]
+params = {}
+info.title = "@intermediate:Unconverted LEMONmethyl-seq"
+info.description = """The goal of this step is to load in the LEMONmethyl-seq reads you want to
+analyze. After this step, we also need to convert (or somehow otherwise
+obtain) an in silico EM-converted reference genome to map these reads to."""
+info.code = '''@dataclass
+class UnconvertedLemonSeq:
+    """@intermediate:Unconverted LEMONmethyl-seq
 
-carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+    The goal of this step is to load in the LEMONmethyl-seq reads you want to
+    analyze. After this step, we also need to convert (or somehow otherwise
+    obtain) an in silico EM-converted reference genome to map these reads to."""
 
-__hb_bash(f"""
-    Rscript sleuth.r \\
-        {ENSEMBL_VERSION} \\
-        {ENSEMBL_DATASET} \\
-        {__hb_data.path}/sample_sheet.csv \\
-        {__hb_ret.comparison_sheet} \\
-        {__hb_data.path} \\
-        {__hb_ret.path}""")'''
+    path: str'''
+
+[Type.CalledMethylation]
+params = {}
+info.title = "Per-cytosine methylation counts"
+info.description = """The goal of this step is to produce a table of "methylation calls"; that is,
+a table where each row corresponds to a cytosine in the provided reference
+genome, and each column of the table provides information about how often
+that cytosine was methylated in the reads being analyzed.
+
+This information is useful for downstream plotting or simply to look at the
+table itself to understand patterns of methylation!"""
+info.code = '''@dataclass
+class CalledMethylation:
+    """Per-cytosine methylation counts
+
+    The goal of this step is to produce a table of "methylation calls"; that is,
+    a table where each row corresponds to a cytosine in the provided reference
+    genome, and each column of the table provides information about how often
+    that cytosine was methylated in the reads being analyzed.
+
+    This information is useful for downstream plotting or simply to look at the
+    table itself to understand patterns of methylation!"""
+
+    path: str'''
 

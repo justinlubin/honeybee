@@ -10,6 +10,11 @@ from honey_lang import Helper, Input, Output, Function, __hb_bash
 
 
 @Helper
+def stem(path):
+    return os.path.splitext(os.path.basename(path))[0]
+
+
+@Helper
 def carry_over(src_object, dst_object, *, file=None):
     def carry_one(f):
         src = f"../../{src_object.path}/{f}"  # relative to dst
@@ -56,6 +61,9 @@ class SeqReads:
     as _quality control_ (QC) checks."""
 
     path: str
+    """Directory structure:
+    - *.fastq: raw data
+    - reference/*: files for the reference for the reads"""
 
     qc: bool
     trimmed: bool
@@ -92,7 +100,7 @@ class SortedIndexBAM:
     from the alignment for viewing in, for example, the
     [Integrative Genomics Viewer (IGV)](https://igv.org/).
 
-    This step specifically **requires** the BAM files to be sorted an indexed.
+    This step specifically **requires** the BAM files to be sorted and indexed.
     This is not always strictly necessary for downstream tools, but it can be
     convenient to have these files on hand (and BAM files are much smaller than
     uncompressed SAM files, too)."""
@@ -206,6 +214,51 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
 @Function(
     "reads.qc = true",
+    "reads.trimmed = false",
+    "ret.qc = false",
+    "ret.trimmed = true",
+    "ret.long = reads.long",
+    "ret.type = reads.type",
+    google_scholar_id="4180123542769751602",
+    citation="Marcel Martin. Cutadapt removes adapter sequences from "
+    "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "
+    "http://dx.doi.org/10.14806/ej.17.1.200",
+    use="to remove sequencing adapters",
+)
+def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
+    """cutadapt
+
+    # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+
+    [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
+    removes adapter sequences that are present due to a read length being
+    longer than the insert size of the sequence in a sequencer."""
+
+    # PARAMETER: The forward adapter, by default the Illumina universal
+    FORWARD_ADAPTER = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
+
+    # PARAMETER: The reverse adapter, by default the Illumina universal
+    REVERSE_ADAPTER = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+
+    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+    for sample_name in sample_sheet["sample_name"]:
+        __hb_bash(f"""uv run cutadapt \\
+                    --cores=0 \\
+                    -m 1 \\
+                    --poly-a \\
+                    -a {FORWARD_ADAPTER} \\
+                    -A {REVERSE_ADAPTER} \\
+                    -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
+                    -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+
+
+@Function(
+    "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = true",
     "ret.type = reads.type",
@@ -267,7 +320,7 @@ class LocalRnaSeq:
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
 
-    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+    @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
 
     Here is an example CSV file (the headers must match exactly):
 
@@ -284,7 +337,7 @@ class LocalRnaSeq:
     path: str
     """Path to the directory containing the RNA-seq data
 
-    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
 
     This directory should contain files ending with `.fastq` or `.fastq.gz`."""
 
@@ -296,7 +349,7 @@ class SraRnaSeq:
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
 
-    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+    @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
 
     Here is an example CSV file (the headers must match exactly):
 
@@ -398,7 +451,7 @@ class DifferentialGeneExpression:
     comparison_sheet: str
     """@nosuggest:Path to CSV of comparisons to make
 
-    @example:/Users/jlubin/Desktop/MyExperiment/metadata/comparisons.csv
+    @example:/Users/barb/Desktop/MyExperiment/metadata/comparisons.csv
 
     Here is an example CSV file (the headers must match exactly):
 
@@ -489,10 +542,10 @@ def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: SeqReads):
     "http://dx.doi.org/10.14806/ej.17.1.200",
     use="to remove the Illumina universal adapter and poly(A)-tails from mRNA",
 )
-def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt (Illumina + poly(A))
+def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
+    """cutadapt (inclugin poly(A) tails)
 
-    # Remove Illumina universal adapter for RNA-seq and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+    # Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
     [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
     removes adapter sequences that are present due to a read length being
@@ -518,6 +571,12 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
     > Cutadapt helps with these trimming tasks by finding the adapter or primer
     > sequences in an error-tolerant way."""
 
+    # PARAMETER: The forward adapter, by default the Illumina universal
+    FORWARD_ADAPTER = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
+
+    # PARAMETER: The reverse adapter, by default the Illumina universal
+    REVERSE_ADAPTER = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+
     carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
@@ -527,8 +586,8 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
                     --cores=0 \\
                     -m 1 \\
                     --poly-a \\
-                    -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
-                    -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
+                    -a {FORWARD_ADAPTER} \\
+                    -A {REVERSE_ADAPTER} \\
                     -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
                     -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
                     {__hb_reads.path}/{sample_name}_1.fastq.gz \\
@@ -539,13 +598,14 @@ def cutadapt_illumina(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
-    "ret.type = 'rna'",
+    "reads.type = 'rna'",
+    "ret.type = reads.type",
 )
 def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """STAR"""
 
     # PARAMETER: The location of the STAR index on your computer
-    STAR_REFERENCE = "/Users/jlubin/Desktop/Indexes/star_index"
+    STAR_REFERENCE = "/Users/barb/Desktop/Indexes/star_index"
 
     # PARAMETER: The number of cores that you want STAR to use
     STAR_CORES = 4
@@ -789,6 +849,46 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
             {__hb_ret.path}""")
 
 
+@Function(
+    google_scholar_id="1639708055766929241",
+    pmid="28581496",
+    citation="Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted "
+    "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
+    "quantification uncertainty, Nature Methods (2017), advanced access "
+    "http://dx.doi.org/10.1038/nmeth.4324.",
+    use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
+)
+def sleuth(
+    __hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
+):
+    """sleuth
+
+    # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
+
+    sleuth can find differentially-expressed genes between samples and can
+    incorporate measurements of uncertainty using "bootstrap estimates" from
+    read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
+    sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
+    that demonstrate how to use it to analyze RNA-seq datasets."""
+
+    # PARAMETER: The version of Ensembl to use for gene annotations
+    ENSEMBL_VERSION = "115"
+
+    # PARAMETER: The Ensembl gene annotation dataset to use
+    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+
+    carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+
+    __hb_bash(f"""
+        Rscript sleuth.r \\
+            {ENSEMBL_VERSION} \\
+            {ENSEMBL_DATASET} \\
+            {__hb_data.path}/sample_sheet.csv \\
+            {__hb_ret.comparison_sheet} \\
+            {__hb_data.path} \\
+            {__hb_ret.path}""")
+
+
 ################################################################################
 # %% LEMONmethyl-seq
 
@@ -800,14 +900,14 @@ class LocalLemonSeq:
     path: str
     """Path to the directory containing the LEMONmethyl-seq data
 
-    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
 
     This directory should contain files ending with `.fastq` or `.fastq.gz`."""
 
     reference: str
     """Path to the reference genome to align the LEMONmethyl-seq data to
 
-    @example:/Users/jlubin/Desktop/MyExperiment/reference.fasta
+    @example:/Users/barb/Desktop/MyExperiment/reference.fasta
 
     The path should be to a `.fasta` file containing one entry (for the
     reference genome)."""
@@ -914,7 +1014,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
     computationally!_"""
 
     # PARAMETER: The path to the (in silico) EM-converted reference genome
-    EM_REFERENCE_PATH = "/Users/jlubin/Documents/genomes/converted.fasta"
+    EM_REFERENCE_PATH = "/Users/barb/Documents/genomes/converted.fasta"
 
     carry_over(__hb_data, __hb_ret)
 
@@ -952,6 +1052,159 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
                 --ref "{__hb_bam.path}/reference/unconverted.fasta" \
                 --bam "{path}" \
                 --tsv "{__hb_ret.path}/{sample_name}.tsv"
+        """)
+
+
+################################################################################
+# %% EM-seq
+
+
+@Input
+class LocalEmSeq:
+    "EM-seq"
+
+    path: str
+    """Path to the directory containing the raw EM-seq data
+
+    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
+
+@Output
+class EmSeqNoRef:
+    "@intermediate:EM-seq data (without converted reference)"
+
+    path: str
+    """Directory structure:
+    - *.fastq: raw EM-seq data
+    """
+
+
+@Function(
+    search=False,
+)
+def load_local_em_seq(__hb_local: LocalEmSeq, __hb_ret: EmSeqNoRef):
+    """Load EM-seq data from hard drive
+
+    # Load raw EM-seq data already present on your computer
+
+    The raw EM-seq files are typically in the `.fastq` or `.fastq.gz` file
+    format."""
+
+    carry_over(__hb_local, __hb_ret)
+
+
+@Function(
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = 'em'",
+    use="to make a new Bismark-converted reference",
+    search=False,
+)
+def bismark_genome_preparation(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
+    """Bismark EM-convert reference
+
+    # (In silico) EM-convert the provided reference with [Bismark](https://felixkrueger.github.io/Bismark/bismark/genome_preparation/)
+
+    In order to perform alignment of EM-seq reads, we need a version of
+    the reference genome that has undergone _in silico EM conversion_; or, in
+    other words, that has all Cs converted to Ts (and Gs to As in the reverse
+    reads) in the `.fasta` files (computationally).
+
+    _This preprocessing step performs the in silico EM conversion._"""
+
+    # PARAMETER: The number of cores that you want Bismark to use
+    BISMARK_CORES = 4
+
+    # PARAMETER: The folder containing the (unconverted) reference genome to align against
+    REFERENCE_GENOME_FOLDER = "/Users/barb/Documents/genomes/genome_folder"
+
+    __hb_bash(f"""
+        bismark_genome_preparation \
+            --verbose \
+            --parallel {max(BISMARK_CORES // 2, 1)} \
+            {REFERENCE_GENOME_FOLDER}
+    """)
+
+    carry_over(__hb_input, __hb_ret)
+
+    save(
+        REFERENCE_GENOME_FOLDER,
+        f"{__hb_ret.path}/reference",
+    )
+
+
+@Function(
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = 'em'",
+    use="to reuse an existing EM-converted reference",
+    search=False,
+)
+def use_existing_bismark_reference(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
+    """Use existing EM-converted reference
+
+    # Use an existing (in silico) [EM-converted Bismark reference genome](https://felixkrueger.github.io/Bismark/bismark/genome_preparation/)
+
+    In order to perform alignment of EM-seq reads, we need a version of
+    the reference genome that has undergone _in silico EM conversion_; or, in
+    other words, that has all Cs converted to Ts (and Gs to As in the reverse
+    reads) in the `.fasta` files (computationally).
+
+    If you already have a reference genome that has undergone in silico EM
+    conversion for Bismark, you don't need to redo that step! After downloading
+    the completed script, simply put in the path to where that reference genome
+    is stored in the parameter below."""
+
+    # PARAMETER: The folder containing the Bismark reference genome to align against
+    BISMARK_GENOME_FOLDER = "/Users/barb/Documents/genomes/bismark_genome_folder"
+
+    carry_over(__hb_input, __hb_ret)
+
+    save(
+        BISMARK_GENOME_FOLDER,
+        f"{__hb_ret.path}/reference",
+    )
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = 'em'",
+    "ret.type = reads.type",
+)
+def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """Bismark
+
+    # Align EM-converted reads with [Bismark](https://felixkrueger.github.io/Bismark/bismark/alignment/)
+
+    Bismark uses [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+    under the hood to align wet-lab EM-converted sample reads to an in silico
+    EM-converted reference."""
+
+    # PARAMETER: The number of cores that you want Bismark to use
+    BISMARK_CORES = 4
+
+    # PARAMETER: The suffix at the end of the filenames for the forward reads
+    FORWARD_READ_SUFFIX = "_R1"
+
+    # PARAMETER: The suffix at the end of the filenames for the reverse reads
+    REVERSE_READ_SUFFIX = "_R2"
+
+    for path in glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz"):
+        sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX)
+        __hb_bash(f"""
+            bismark \
+                --bam \
+                --parallel {max(BISMARK_CORES // 4, 1)} \
+                --genome {__hb_reads.path}/reference \
+                -o {__hb_ret.path} \
+                -1 {__hb_reads.path}/{sample_name}{FORWARD_READ_SUFFIX}.fastq.gz \
+                -2 {__hb_reads.path}/{sample_name}{REVERSE_READ_SUFFIX}.fastq.gz
         """)
 
 
@@ -1062,46 +1315,6 @@ def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
 
 ################################################################################
 # %% Stubs
-
-
-@Function(
-    google_scholar_id="1639708055766929241",
-    pmid="28581496",
-    citation="Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted "
-    "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
-    "quantification uncertainty, Nature Methods (2017), advanced access "
-    "http://dx.doi.org/10.1038/nmeth.4324.",
-    use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
-)
-def sleuth(
-    __hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
-):
-    """sleuth
-
-    # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
-
-    sleuth can find differentially-expressed genes between samples and can
-    incorporate measurements of uncertainty using "bootstrap estimates" from
-    read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
-    sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
-    that demonstrate how to use it to analyze RNA-seq datasets."""
-
-    # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "115"
-
-    # PARAMETER: The Ensembl gene annotation dataset to use
-    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
-
-    carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
-
-    __hb_bash(f"""
-        Rscript sleuth.r \\
-            {ENSEMBL_VERSION} \\
-            {ENSEMBL_DATASET} \\
-            {__hb_data.path}/sample_sheet.csv \\
-            {__hb_ret.comparison_sheet} \\
-            {__hb_data.path} \\
-            {__hb_ret.path}""")
 
 
 # @Function(
