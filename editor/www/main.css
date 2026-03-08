@@ -82,6 +82,10 @@ a:hover {
     display: inline;
 }
 
+.markdown.inline > * {
+    display: inline;
+}
+
 .markdown h1 {
     font-weight: var(--bold);
     font-size: 1.1em;
