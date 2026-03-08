@@ -6,15 +6,8 @@ import os
 import polars as pl'''
 
 [[Preamble]]
-content='''class Dir:
-    stage = 1
-
-    @staticmethod
-    def make(name):
-        dir = f"output/{Dir.stage * 10:03d}-{name}"
-        os.makedirs(dir, exist_ok=True)
-        Dir.stage += 1
-        return dir'''
+content='''def stem(path):
+    return os.path.splitext(os.path.basename(path))[0]'''
 
 [[Preamble]]
 content='''def carry_over(src_object, dst_object, *, file=None):
@@ -57,6 +50,10 @@ information (e.g. about chromatin accessibility, methylation status, or
 transcription levels), reads first need to be _preprocessed_. Most
 preprocessing is method-specific, but some methods share commonalities, such
 as _quality control_ (QC) checks."""
+info.param_titles.path = "Data path"
+info.param_descriptions.path = """Directory structure:
+- *.fastq: raw data
+- reference/*: files for the reference for the reads"""
 info.code = '''@dataclass
 class SeqReads:
     """@intermediate:Sequencing reads
@@ -77,6 +74,11 @@ class SeqReads:
     as _quality control_ (QC) checks."""
 
     path: str
+    """Data path
+
+    Directory structure:
+    - *.fastq: raw data
+    - reference/*: files for the reference for the reads"""
 
     qc: bool
     trimmed: bool
@@ -84,18 +86,21 @@ class SeqReads:
     type: str'''
 
 [Type.SeqAlignment]
+params.compressed = "Bool"
 params.type = "Str"
-info.title = "Sequence alignment (SAM)"
+info.title = "Sequence alignment"
 info.description = """[SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
 **uncompressed** files that describe an alignment of reads to a reference
 genome. These alignments may or may not be "sorted" by nucleotide position
 and may or may not be "indexed"; an "index" is a supplementary file to the
 SAM file that allows for the computer to quickly access various information
 from the alignment for viewing in, for example, the
-[Integrative Genomics Viewer (IGV)](https://igv.org/)."""
+[Integrative Genomics Viewer (IGV)](https://igv.org/).
+
+The equivalent **compressed** files are BAM files."""
 info.code = '''@dataclass
 class SeqAlignment:
-    """Sequence alignment (SAM)
+    """Sequence alignment
 
     [SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
     **uncompressed** files that describe an alignment of reads to a reference
@@ -103,46 +108,13 @@ class SeqAlignment:
     and may or may not be "indexed"; an "index" is a supplementary file to the
     SAM file that allows for the computer to quickly access various information
     from the alignment for viewing in, for example, the
-    [Integrative Genomics Viewer (IGV)](https://igv.org/)."""
-
-    path: str
-
-    type: str'''
-
-[Type.SortedIndexBAM]
-params.type = "Str"
-info.title = "Sequence alignment (sorted and indexed BAM files)"
-info.description = """[BAM files](https://doi.org/10.1093/bioinformatics/btp352) are
-**compressed** files that describe an alignment of reads to a reference
-genome. These alignments may or may not be "sorted" by nucleotide position
-and may or may not be "indexed"; an "index" is a supplementary file to the
-SAM file that allows for the computer to quickly access various information
-from the alignment for viewing in, for example, the
-[Integrative Genomics Viewer (IGV)](https://igv.org/).
-
-This step specifically **requires** the BAM files to be sorted an indexed.
-This is not always strictly necessary for downstream tools, but it can be
-convenient to have these files on hand (and BAM files are much smaller than
-uncompressed SAM files, too)."""
-info.code = '''@dataclass
-class SortedIndexBAM:
-    """Sequence alignment (sorted and indexed BAM files)
-
-    [BAM files](https://doi.org/10.1093/bioinformatics/btp352) are
-    **compressed** files that describe an alignment of reads to a reference
-    genome. These alignments may or may not be "sorted" by nucleotide position
-    and may or may not be "indexed"; an "index" is a supplementary file to the
-    SAM file that allows for the computer to quickly access various information
-    from the alignment for viewing in, for example, the
     [Integrative Genomics Viewer (IGV)](https://igv.org/).
 
-    This step specifically **requires** the BAM files to be sorted an indexed.
-    This is not always strictly necessary for downstream tools, but it can be
-    convenient to have these files on hand (and BAM files are much smaller than
-    uncompressed SAM files, too)."""
+    The equivalent **compressed** files are BAM files."""
 
     path: str
 
+    compressed: bool
     type: str'''
 
 [Function.fastqc]
@@ -239,6 +211,46 @@ info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")'''
 
+[Function.cutadapt]
+params.reads = "SeqReads"
+ret = "SeqReads"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = false",
+    "ret.qc = false",
+    "ret.trimmed = true",
+    "ret.long = reads.long",
+    "ret.type = reads.type",
+]
+info.title = "cutadapt"
+info.description = """# Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+
+[Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
+removes adapter sequences that are present due to a read length being
+longer than the insert size of the sequence in a sequencer."""
+info.google_scholar_id = "4180123542769751602"
+info.citation = "Marcel Martin. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. http://dx.doi.org/10.14806/ej.17.1.200"
+info.use = "to remove sequencing adapters"
+info.hyperparameters = [
+    {name = 'FORWARD_ADAPTER', default = '"AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"', comment = 'The forward adapter, by default the Illumina universal' },
+    {name = 'REVERSE_ADAPTER', default = '"AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"', comment = 'The reverse adapter, by default the Illumina universal' },
+]
+info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+
+sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+
+for sample_name in sample_sheet["sample_name"]:
+    __hb_bash(f"""uv run cutadapt \\
+                --cores=0 \\
+                -m 1 \\
+                --poly-a \\
+                -a {FORWARD_ADAPTER} \\
+                -A {REVERSE_ADAPTER} \\
+                -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
+                -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
+                {__hb_reads.path}/{sample_name}_1.fastq.gz \\
+                {__hb_reads.path}/{sample_name}_2.fastq.gz""")'''
+
 [Function.minimap2]
 params.reads = "SeqReads"
 ret = "SeqAlignment"
@@ -247,6 +259,7 @@ condition = [
     "reads.trimmed = true",
     "reads.long = true",
     "ret.type = reads.type",
+    "ret.compressed = false",
 ]
 info.title = "minimap2"
 info.description = """# Align noisy long reads (~10% error rate) to a reference genome with [minimap2](https://lh3.github.io/minimap2/)
@@ -255,6 +268,10 @@ While traditional aligners like [BWA](https://github.com/lh3/bwa) or
 [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml) _can_
 align long reads, minimap2 is a dedicated tool that aligns long reads much
 more quickly."""
+info.google_scholar_id = "5235337231718602932"
+info.pmid = "29750242"
+info.citation = "Li H. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics. 2018 Sep 15;34(18):3094-3100. doi: 10.1093/bioinformatics/bty191. PMID: 29750242; PMCID: PMC6137996."
+info.use = "to align long reads"
 info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="reference")
@@ -272,12 +289,16 @@ for path in glob.glob(f"{__hb_reads.path}/*.fastq"):
 
 [Function.bam_sort_index]
 params.align = "SeqAlignment"
-ret = "SortedIndexBAM"
+ret = "SeqAlignment"
 condition = [
     "ret.type = align.type",
+    "align.compressed = false",
+    "ret.compressed = true",
 ]
-info.title = "Convert to sorted BAM and index"
-info.description = """# Converted uncompressed SAM files to compressed BAM files (and sort and index them)"""
+info.title = "Compress to BAM"
+info.description = """# Converted uncompressed SAM files to compressed BAM files
+
+This step also **sorts** and **indexes** the alignments."""
 info.search = false
 info.hyperparameters = [
 ]
@@ -310,11 +331,11 @@ Here is an example CSV file (the headers must match exactly):
 
 The `sample_name` column can contain whatever you'd like, as long as each
 row is unique."""
-info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.param_examples.sample_sheet = """/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 info.param_titles.path = "Path to the directory containing the RNA-seq data"
 info.param_descriptions.path = """
 This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_examples.path = """/Users/barb/Desktop/MyExperiment/raw-fastq-reads/"""
 info.code = '''@dataclass
 class LocalRnaSeq:
     "RNA-seq (stored on your own hard drive)"
@@ -322,7 +343,7 @@ class LocalRnaSeq:
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
 
-    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+    @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
 
     Here is an example CSV file (the headers must match exactly):
 
@@ -339,7 +360,7 @@ class LocalRnaSeq:
     path: str
     """Path to the directory containing the RNA-seq data
 
-    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
 
     This directory should contain files ending with `.fastq` or `.fastq.gz`."""'''
 
@@ -360,11 +381,11 @@ Here is an example CSV file (the headers must match exactly):
 
 The `sample_name` column can contain whatever you'd like, as long as each
 row is unique."""
-info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.param_examples.sample_sheet = """/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 info.param_titles.path = "Path to the directory containing the RNA-seq data"
 info.param_descriptions.path = """
 This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_examples.path = """/Users/barb/Desktop/MyExperiment/raw-fastq-reads/"""
 
 [Function.F_LocalRnaSeq]
 params = {}
@@ -391,7 +412,7 @@ Here is an example CSV file (the headers must match exactly):
 **Important:** The `sample_name` column must contain valid SRA "run
 accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
 digit."""
-info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.param_examples.sample_sheet = """/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 info.code = '''@dataclass
 class SraRnaSeq:
     "RNA-seq (stored on the Sequence Read Archive)"
@@ -399,7 +420,7 @@ class SraRnaSeq:
     sample_sheet: str
     """Path to sample sheet CSV with SRA metadata
 
-    @example:/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv
+    @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
 
     Here is an example CSV file (the headers must match exactly):
 
@@ -431,7 +452,7 @@ Here is an example CSV file (the headers must match exactly):
 **Important:** The `sample_name` column must contain valid SRA "run
 accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
 digit."""
-info.param_examples.sample_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/sample_sheet.csv"""
+info.param_examples.sample_sheet = """/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv"""
 
 [Function.F_SraRnaSeq]
 params = {}
@@ -576,7 +597,7 @@ Here is an example CSV file (the headers must match exactly):
 The entries in this table must be **conditions** from the `condition` column
 in the sample sheet CSV. This comparison CSV tells the software which
 conditions you want to compare to each other."""
-info.param_examples.comparison_sheet = """/Users/jlubin/Desktop/MyExperiment/metadata/comparisons.csv"""
+info.param_examples.comparison_sheet = """/Users/barb/Desktop/MyExperiment/metadata/comparisons.csv"""
 info.code = '''@dataclass
 class DifferentialGeneExpression:
     """RNA-seq differential gene expression
@@ -601,7 +622,7 @@ class DifferentialGeneExpression:
     comparison_sheet: str
     """@nosuggest:Path to CSV of comparisons to make
 
-    @example:/Users/jlubin/Desktop/MyExperiment/metadata/comparisons.csv
+    @example:/Users/barb/Desktop/MyExperiment/metadata/comparisons.csv
 
     Here is an example CSV file (the headers must match exactly):
 
@@ -679,7 +700,7 @@ os.symlink(
     dst=f"{__hb_ret.path}/sample_sheet.csv",
 )'''
 
-[Function.cutadapt_illumina]
+[Function.cutadapt_rna]
 params.reads = "SeqReads"
 ret = "SeqReads"
 condition = [
@@ -691,8 +712,8 @@ condition = [
     "ret.long = reads.long",
     "ret.type = \"rna\"",
 ]
-info.title = "cutadapt (Illumina + poly(A))"
-info.description = """# Remove Illumina universal adapter for RNA-seq and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+info.title = "cutadapt (inclugin poly(A) tails)"
+info.description = """# Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
 removes adapter sequences that are present due to a read length being
@@ -721,6 +742,8 @@ info.google_scholar_id = "4180123542769751602"
 info.citation = "Marcel Martin. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. http://dx.doi.org/10.14806/ej.17.1.200"
 info.use = "to remove the Illumina universal adapter and poly(A)-tails from mRNA"
 info.hyperparameters = [
+    {name = 'FORWARD_ADAPTER', default = '"AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"', comment = 'The forward adapter, by default the Illumina universal' },
+    {name = 'REVERSE_ADAPTER', default = '"AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"', comment = 'The reverse adapter, by default the Illumina universal' },
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
@@ -731,8 +754,8 @@ for sample_name in sample_sheet["sample_name"]:
                 --cores=0 \\
                 -m 1 \\
                 --poly-a \\
-                -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \\
-                -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \\
+                -a {FORWARD_ADAPTER} \\
+                -A {REVERSE_ADAPTER} \\
                 -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
                 -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
                 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
@@ -745,11 +768,13 @@ condition = [
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
-    "ret.type = \"rna\"",
+    "reads.type = \"rna\"",
+    "ret.type = reads.type",
+    "ret.compressed = false",
 ]
 info.description = "STAR"
 info.hyperparameters = [
-    {name = 'STAR_REFERENCE', default = '"/Users/jlubin/Desktop/Indexes/star_index"', comment = 'The location of the STAR index on your computer' },
+    {name = 'STAR_REFERENCE', default = '"/Users/barb/Desktop/Indexes/star_index"', comment = 'The location of the STAR index on your computer' },
     {name = 'STAR_CORES', default = '4', comment = 'The number of cores that you want STAR to use' },
 ]
 info.code = '''carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
@@ -959,6 +984,40 @@ __hb_bash(f"""
         {__hb_data.path}/counts.csv \\
         {__hb_ret.path}""")'''
 
+[Function.sleuth]
+params.data = "BootstrappedTranscriptMatrices"
+ret = "DifferentialGeneExpression"
+condition = [
+]
+info.title = "sleuth"
+info.description = """# Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
+
+sleuth can find differentially-expressed genes between samples and can
+incorporate measurements of uncertainty using "bootstrap estimates" from
+read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
+sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
+that demonstrate how to use it to analyze RNA-seq datasets."""
+info.google_scholar_id = "1639708055766929241"
+info.pmid = "28581496"
+info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
+info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
+info.hyperparameters = [
+    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
+    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
+]
+info.code = '''__hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
+
+carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+
+__hb_bash(f"""
+    Rscript sleuth.r \\
+        {ENSEMBL_VERSION} \\
+        {ENSEMBL_DATASET} \\
+        {__hb_data.path}/sample_sheet.csv \\
+        {__hb_ret.comparison_sheet} \\
+        {__hb_data.path} \\
+        {__hb_ret.path}""")'''
+
 [Type.LocalLemonSeq]
 params.path = "Str"
 params.reference = "Str"
@@ -966,12 +1025,12 @@ info.title = "@intermediate:LEMONmethyl-seq"
 info.param_titles.path = "Path to the directory containing the LEMONmethyl-seq data"
 info.param_descriptions.path = """
 This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_examples.path = """/Users/barb/Desktop/MyExperiment/raw-fastq-reads/"""
 info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
 info.param_descriptions.reference = """
 The path should be to a `.fasta` file containing one entry (for the
 reference genome)."""
-info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
+info.param_examples.reference = """/Users/barb/Desktop/MyExperiment/reference.fasta"""
 info.code = '''@dataclass
 class LocalLemonSeq:
     "LEMONmethyl-seq"
@@ -979,14 +1038,14 @@ class LocalLemonSeq:
     path: str
     """Path to the directory containing the LEMONmethyl-seq data
 
-    @example:/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/
+    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
 
     This directory should contain files ending with `.fastq` or `.fastq.gz`."""
 
     reference: str
     """Path to the reference genome to align the LEMONmethyl-seq data to
 
-    @example:/Users/jlubin/Desktop/MyExperiment/reference.fasta
+    @example:/Users/barb/Desktop/MyExperiment/reference.fasta
 
     The path should be to a `.fasta` file containing one entry (for the
     reference genome)."""'''
@@ -998,12 +1057,12 @@ info.title = "LEMONmethyl-seq"
 info.param_titles.path = "Path to the directory containing the LEMONmethyl-seq data"
 info.param_descriptions.path = """
 This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.path = """/Users/jlubin/Desktop/MyExperiment/raw-fastq-reads/"""
+info.param_examples.path = """/Users/barb/Desktop/MyExperiment/raw-fastq-reads/"""
 info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
 info.param_descriptions.reference = """
 The path should be to a `.fasta` file containing one entry (for the
 reference genome)."""
-info.param_examples.reference = """/Users/jlubin/Desktop/MyExperiment/reference.fasta"""
+info.param_examples.reference = """/Users/barb/Desktop/MyExperiment/reference.fasta"""
 
 [Function.F_LocalLemonSeq]
 params = {}
@@ -1029,9 +1088,9 @@ class UnconvertedLemonSeq:
 
     path: str'''
 
-[Type.CalledMethylation]
+[Type.MethylationCalls]
 params = {}
-info.title = "Per-cytosine methylation counts"
+info.title = "Methylation calls (per-cytosine methylation)"
 info.description = """The goal of this step is to produce a table of "methylation calls"; that is,
 a table where each row corresponds to a cytosine in the provided reference
 genome, and each column of the table provides information about how often
@@ -1040,8 +1099,8 @@ that cytosine was methylated in the reads being analyzed.
 This information is useful for downstream plotting or simply to look at the
 table itself to understand patterns of methylation!"""
 info.code = '''@dataclass
-class CalledMethylation:
-    """Per-cytosine methylation counts
+class MethylationCalls:
+    """Methylation calls (per-cytosine methylation)
 
     The goal of this step is to produce a table of "methylation calls"; that is,
     a table where each row corresponds to a cytosine in the provided reference
@@ -1130,7 +1189,7 @@ computationally!_"""
 info.use = "to reuse an existing EM-converted reference"
 info.search = false
 info.hyperparameters = [
-    {name = 'EM_REFERENCE_PATH', default = '"/Users/jlubin/Documents/genomes/converted.fasta"', comment = 'The path to the (in silico) EM-converted reference genome' },
+    {name = 'EM_REFERENCE_PATH', default = '"/Users/barb/Documents/genomes/converted.fasta"', comment = 'The path to the (in silico) EM-converted reference genome' },
 ]
 info.code = '''carry_over(__hb_data, __hb_ret)
 
@@ -1140,10 +1199,11 @@ save(
 )'''
 
 [Function.lemon_mc]
-params.bam = "SortedIndexBAM"
-ret = "CalledMethylation"
+params.bam = "SeqAlignment"
+ret = "MethylationCalls"
 condition = [
     "bam.type = \"lemon\"",
+    "bam.compressed = true",
 ]
 info.title = "LEMONmC.py"
 info.description = """# Call methylation counts from a BAM file
@@ -1171,37 +1231,212 @@ info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
             --tsv "{__hb_ret.path}/{sample_name}.tsv"
     """)'''
 
-[Function.sleuth]
-params.data = "BootstrappedTranscriptMatrices"
-ret = "DifferentialGeneExpression"
+[Type.LocalEmSeq]
+params.path = "Str"
+info.title = "@intermediate:EM-seq"
+info.param_titles.path = "Path to the directory containing the raw EM-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/barb/Desktop/MyExperiment/raw-fastq-reads/"""
+info.code = '''@dataclass
+class LocalEmSeq:
+    "EM-seq"
+
+    path: str
+    """Path to the directory containing the raw EM-seq data
+
+    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
+
+    This directory should contain files ending with `.fastq` or `.fastq.gz`."""'''
+
+[Prop.P_LocalEmSeq]
+params.path = "Str"
+info.title = "EM-seq"
+info.param_titles.path = "Path to the directory containing the raw EM-seq data"
+info.param_descriptions.path = """
+This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+info.param_examples.path = """/Users/barb/Desktop/MyExperiment/raw-fastq-reads/"""
+
+[Function.F_LocalEmSeq]
+params = {}
+ret = "LocalEmSeq"
+condition = [
+    "P_LocalEmSeq { path = ret.path }"
+]
+info.title = "EM-seq"
+
+[Type.EmSeqNoRef]
+params = {}
+info.title = "@intermediate:EM-seq data (without converted reference)"
+info.param_titles.path = "Data path"
+info.param_descriptions.path = """Directory structure:
+- *.fastq: raw EM-seq data"""
+info.code = '''@dataclass
+class EmSeqNoRef:
+    "@intermediate:EM-seq data (without converted reference)"
+
+    path: str
+    """Data path
+
+    Directory structure:
+    - *.fastq: raw EM-seq data
+    """'''
+
+[Function.load_local_em_seq]
+params.local = "LocalEmSeq"
+ret = "EmSeqNoRef"
 condition = [
 ]
-info.title = "sleuth"
-info.description = """# Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
+info.title = "Load EM-seq data from hard drive"
+info.description = """# Load raw EM-seq data already present on your computer
 
-sleuth can find differentially-expressed genes between samples and can
-incorporate measurements of uncertainty using "bootstrap estimates" from
-read quantifiers like [kallisto](http://pachterlab.github.io/kallisto).
-sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
-that demonstrate how to use it to analyze RNA-seq datasets."""
-info.google_scholar_id = "1639708055766929241"
-info.pmid = "28581496"
-info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
-info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
+The raw EM-seq files are typically in the `.fastq` or `.fastq.gz` file
+format."""
+info.search = false
 info.hyperparameters = [
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
-info.code = '''__hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
+info.code = '''carry_over(__hb_local, __hb_ret)'''
 
-carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
+[Function.bismark_genome_preparation]
+params.input = "EmSeqNoRef"
+ret = "SeqReads"
+condition = [
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = \"em\"",
+]
+info.title = "Bismark EM-convert reference"
+info.description = """# (In silico) EM-convert the provided reference with [Bismark](https://felixkrueger.github.io/Bismark/bismark/genome_preparation/)
 
-__hb_bash(f"""
-    Rscript sleuth.r \\
-        {ENSEMBL_VERSION} \\
-        {ENSEMBL_DATASET} \\
-        {__hb_data.path}/sample_sheet.csv \\
-        {__hb_ret.comparison_sheet} \\
-        {__hb_data.path} \\
-        {__hb_ret.path}""")'''
+In order to perform alignment of EM-seq reads, we need a version of
+the reference genome that has undergone _in silico EM conversion_; or, in
+other words, that has all Cs converted to Ts (and Gs to As in the reverse
+reads) in the `.fasta` files (computationally).
+
+_This preprocessing step performs the in silico EM conversion._"""
+info.use = "to make a new Bismark-converted reference"
+info.search = false
+info.hyperparameters = [
+    {name = 'BISMARK_CORES', default = '4', comment = 'The number of cores that you want Bismark to use' },
+    {name = 'REFERENCE_GENOME_FOLDER', default = '"/Users/barb/Documents/genomes/genome_folder"', comment = 'The folder containing the (unconverted) reference genome to align against' },
+]
+info.code = '''__hb_bash(f"""
+    bismark_genome_preparation \
+        --verbose \
+        --parallel {max(BISMARK_CORES // 2, 1)} \
+        {REFERENCE_GENOME_FOLDER}
+""")
+
+carry_over(__hb_input, __hb_ret)
+
+save(
+    REFERENCE_GENOME_FOLDER,
+    f"{__hb_ret.path}/reference",
+)'''
+
+[Function.use_existing_bismark_reference]
+params.input = "EmSeqNoRef"
+ret = "SeqReads"
+condition = [
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = \"em\"",
+]
+info.title = "Use existing EM-converted reference"
+info.description = """# Use an existing (in silico) [EM-converted Bismark reference genome](https://felixkrueger.github.io/Bismark/bismark/genome_preparation/)
+
+In order to perform alignment of EM-seq reads, we need a version of
+the reference genome that has undergone _in silico EM conversion_; or, in
+other words, that has all Cs converted to Ts (and Gs to As in the reverse
+reads) in the `.fasta` files (computationally).
+
+If you already have a reference genome that has undergone in silico EM
+conversion for Bismark, you don't need to redo that step! After downloading
+the completed script, simply put in the path to where that reference genome
+is stored in the parameter below."""
+info.use = "to reuse an existing EM-converted reference"
+info.search = false
+info.hyperparameters = [
+    {name = 'BISMARK_GENOME_FOLDER', default = '"/Users/barb/Documents/genomes/bismark_genome_folder"', comment = 'The folder containing the Bismark reference genome to align against' },
+]
+info.code = '''carry_over(__hb_input, __hb_ret)
+
+save(
+    BISMARK_GENOME_FOLDER,
+    f"{__hb_ret.path}/reference",
+)'''
+
+[Function.bismark]
+params.reads = "SeqReads"
+ret = "SeqAlignment"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = \"em\"",
+    "ret.type = reads.type",
+    "ret.compressed = true",
+]
+info.title = "Bismark"
+info.description = """# Align EM-converted reads with [Bismark](https://felixkrueger.github.io/Bismark/bismark/alignment/)
+
+Bismark uses [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+under the hood to align wet-lab EM-converted sample reads to an in silico
+EM-converted reference."""
+info.google_scholar_id = "10716431004487472020"
+info.pmid = "21493656"
+info.citation = "Krueger F, Andrews SR. Bismark: a flexible aligner and methylation caller for Bisulfite-Seq applications. Bioinformatics. 2011 Jun 1;27(11):1571-2. doi: 10.1093/bioinformatics/btr167. Epub 2011 Apr 14. PMID: 21493656; PMCID: PMC3102221."
+info.additional_citations = ["Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. Nat Methods. 2012 Mar 4;9(4):357-9. doi: 10.1038/nmeth.1923. PMID: 22388286; PMCID: PMC3322381."]
+info.hyperparameters = [
+    {name = 'BISMARK_CORES', default = '4', comment = 'The number of cores that you want Bismark to use' },
+    {name = 'FORWARD_READ_SUFFIX', default = '"_R1"', comment = 'The suffix at the end of the filenames for the forward reads' },
+    {name = 'REVERSE_READ_SUFFIX', default = '"_R2"', comment = 'The suffix at the end of the filenames for the reverse reads' },
+]
+info.code = '''for path in glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz"):
+    sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX)
+    print(f"Running bismark on '{path}'...")
+    __hb_bash(f"""
+        bismark \
+            --bam \
+            --parallel {max(BISMARK_CORES // 4, 1)} \
+            --genome {__hb_reads.path}/reference \
+            -o {__hb_ret.path} \
+            -1 {__hb_reads.path}/{sample_name}{FORWARD_READ_SUFFIX}.fastq.gz \
+            -2 {__hb_reads.path}/{sample_name}{REVERSE_READ_SUFFIX}.fastq.gz
+    """)'''
+
+[Function.bismark_methylation_extractor]
+params.input = "SeqAlignment"
+ret = "MethylationCalls"
+condition = [
+    "input.type = \"em\"",
+    "input.compressed = true",
+]
+info.title = "Bismark Methylation Extractor"
+info.description = """# Call methylation with the [Bismark Methylation Extractor](https://felixkrueger.github.io/Bismark/bismark/methylation_extraction/)
+
+This step also produces bedGraph files and "coverage" files using
+[bismark2bedGraph](https://felixkrueger.github.io/Bismark/bismark/methylation_extraction/#optional-bedgraph-output).
+
+The most important output files are the **coverage** files, as they contain
+the number of methylated and unmethylated reads at each CpG. These files
+enable essentially any downstream analysis of interest."""
+info.hyperparameters = [
+    {name = 'BISMARK_CORES', default = '4', comment = 'The number of cores that you want Bismark to use' },
+]
+info.code = '''__hb_input: SeqAlignment,
+__hb_ret: MethylationCalls,
+
+for path in glob.glob(f"{__hb_input.path}/*.bam"):
+    print(f"Running bismark_methylation_extractor on '{path}'...")
+    __hb_bash(f"""
+        bismark_methylation_extractor \
+           --parallel {max(BISMARK_CORES // 3, 1)} \
+           --gzip \
+           --bedGraph \
+           -o {__hb_ret.path} \
+           {path}
+    """)'''
 

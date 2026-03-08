@@ -17,12 +17,12 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly parse_library: (a: number, b: number) => [number, number, number];
     readonly autopilot: (a: number, b: number, c: number, d: number) => [number, number, number, number];
-    readonly valid_goal_metadata: (a: number, b: number, c: number, d: number) => [number, number, number];
-    readonly pbn_init: (a: number, b: number, c: number, d: number) => [number, number, number];
+    readonly parse_library: (a: number, b: number) => [number, number, number];
     readonly pbn_choose: (a: number) => [number, number, number];
+    readonly pbn_init: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly pbn_undo: () => [number, number, number];
+    readonly valid_goal_metadata: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;
