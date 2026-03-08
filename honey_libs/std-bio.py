@@ -75,7 +75,7 @@ class SeqReads:
 
 @Output
 class SeqAlignment:
-    """Sequence alignment (SAM)
+    """Sequence alignment
 
     [SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
     **uncompressed** files that describe an alignment of reads to a reference
@@ -83,32 +83,13 @@ class SeqAlignment:
     and may or may not be "indexed"; an "index" is a supplementary file to the
     SAM file that allows for the computer to quickly access various information
     from the alignment for viewing in, for example, the
-    [Integrative Genomics Viewer (IGV)](https://igv.org/)."""
-
-    path: str
-
-    type: str
-
-
-@Output
-class SortedIndexBAM:
-    """Sequence alignment (sorted and indexed BAM files)
-
-    [BAM files](https://doi.org/10.1093/bioinformatics/btp352) are
-    **compressed** files that describe an alignment of reads to a reference
-    genome. These alignments may or may not be "sorted" by nucleotide position
-    and may or may not be "indexed"; an "index" is a supplementary file to the
-    SAM file that allows for the computer to quickly access various information
-    from the alignment for viewing in, for example, the
     [Integrative Genomics Viewer (IGV)](https://igv.org/).
 
-    This step specifically **requires** the BAM files to be sorted and indexed.
-    This is not always strictly necessary for downstream tools, but it can be
-    convenient to have these files on hand (and BAM files are much smaller than
-    uncompressed SAM files, too)."""
+    The equivalent **compressed** files are BAM files."""
 
     path: str
 
+    compressed: bool
     type: str
 
 
@@ -264,6 +245,11 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "reads.trimmed = true",
     "reads.long = true",
     "ret.type = reads.type",
+    "ret.compressed = false",
+    google_scholar_id="5235337231718602932",
+    pmid="29750242",
+    citation="Li H. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics. 2018 Sep 15;34(18):3094-3100. doi: 10.1093/bioinformatics/bty191. PMID: 29750242; PMCID: PMC6137996.",
+    use="to align long reads",
 )
 def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """minimap2
@@ -291,12 +277,16 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
 @Function(
     "ret.type = align.type",
+    "align.compressed = false",
+    "ret.compressed = true",
     search=False,
 )
-def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SortedIndexBAM):
-    """Convert to sorted BAM and index
+def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
+    """Compress to BAM
 
-    # Converted uncompressed SAM files to compressed BAM files (and sort and index them)"""
+    # Converted uncompressed SAM files to compressed BAM files
+
+    This step also **sorts** and **indexes** the alignments."""
 
     carry_over(__hb_align, __hb_ret, file="reference")
 
@@ -602,6 +592,7 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "reads.long = false",
     "reads.type = 'rna'",
     "ret.type = reads.type",
+    "ret.compressed = false",
 )
 def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """STAR"""
@@ -927,8 +918,8 @@ class UnconvertedLemonSeq:
 
 
 @Output
-class CalledMethylation:
-    """Per-cytosine methylation counts
+class MethylationCalls:
+    """Methylation calls (per-cytosine methylation)
 
     The goal of this step is to produce a table of "methylation calls"; that is,
     a table where each row corresponds to a cytosine in the provided reference
@@ -1028,8 +1019,9 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 
 @Function(
     "bam.type = 'lemon'",
+    "bam.compressed = true",
 )
-def lemon_mc(__hb_bam: SortedIndexBAM, __hb_ret: CalledMethylation):
+def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
     """LEMONmC.py
 
     # Call methylation counts from a BAM file
@@ -1180,6 +1172,13 @@ def use_existing_bismark_reference(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
     "reads.long = false",
     "reads.type = 'em'",
     "ret.type = reads.type",
+    "ret.compressed = true",
+    google_scholar_id="10716431004487472020",
+    pmid="21493656",
+    citation="Krueger F, Andrews SR. Bismark: a flexible aligner and methylation caller for Bisulfite-Seq applications. Bioinformatics. 2011 Jun 1;27(11):1571-2. doi: 10.1093/bioinformatics/btr167. Epub 2011 Apr 14. PMID: 21493656; PMCID: PMC3102221.",
+    additional_citations=[
+        "Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. Nat Methods. 2012 Mar 4;9(4):357-9. doi: 10.1038/nmeth.1923. PMID: 22388286; PMCID: PMC3322381."
+    ],
 )
 def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """Bismark
@@ -1201,6 +1200,7 @@ def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
     for path in glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz"):
         sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX)
+        print(f"Running bismark on '{path}'...")
         __hb_bash(f"""
             bismark \
                 --bam \
@@ -1210,6 +1210,68 @@ def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
                 -1 {__hb_reads.path}/{sample_name}{FORWARD_READ_SUFFIX}.fastq.gz \
                 -2 {__hb_reads.path}/{sample_name}{REVERSE_READ_SUFFIX}.fastq.gz
         """)
+
+
+@Function(
+    "input.type = 'em'",
+    "input.compressed = true",
+)
+def bismark_methylation_extractor(
+    __hb_input: SeqAlignment,
+    __hb_ret: MethylationCalls,
+):
+    """Bismark Methylation Extractor
+
+    # Call methylation with the [Bismark Methylation Extractor](https://felixkrueger.github.io/Bismark/bismark/methylation_extraction/)
+
+    This step also produces bedGraph files and "coverage" files using
+    [bismark2bedGraph](https://felixkrueger.github.io/Bismark/bismark/methylation_extraction/#optional-bedgraph-output).
+
+    The most important output files are the **coverage** files, as they contain
+    the number of methylated and unmethylated reads at each CpG. These files
+    enable essentially any downstream analysis of interest."""
+
+    # PARAMETER: The number of cores that you want Bismark to use
+    BISMARK_CORES = 4
+
+    for path in glob.glob(f"{__hb_input.path}/*.bam"):
+        print(f"Running bismark_methylation_extractor on '{path}'...")
+        __hb_bash(f"""
+            bismark_methylation_extractor \
+               --parallel {max(BISMARK_CORES // 3, 1)} \
+               --gzip \
+               --bedGraph \
+               -o {__hb_ret.path} \
+               {path}
+        """)
+
+
+# # PARAMETER: The suffix at the end of the filenames for the forward reads
+# FORWARD_READ_SUFFIX = "_R1"
+
+# # Original top (OT) strand
+# for path in glob.glob(f"{__hb_ret.path}/CpG_OT_*.txt.gz"):
+#     sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX + "_bismark_bt2_pe")
+#     print(f"Running bismark2bedGraph on '{path}' OT...")
+#     __hb_bash(f"""
+#         bismark2bedGraph \
+#            --dir {__hb_ret.path} \
+#            --parallel {max(BISMARK_CORES // 3, 1)} \
+#            -o {sample_name}_OT.txt \
+#            {path}
+#     """)
+
+# # Original bottom (OB) strand
+# for path in glob.glob(f"{__hb_ret.path}/CpG_OB_*.txt.gz"):
+#     sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX + "_bismark_bt2_pe")
+#     print(f"Running bismark2bedGraph on '{path}' OB...")
+#     __hb_bash(f"""
+#         bismark2bedGraph \
+#            --dir {__hb_ret.path} \
+#            --parallel {max(BISMARK_CORES // 3, 1)} \
+#            -o {sample_name}_OB.txt \
+#            {path}
+#     """)
 
 
 ################################################################################
