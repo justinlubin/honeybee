@@ -61,7 +61,9 @@ class SeqReads:
     as _quality control_ (QC) checks."""
 
     path: str
-    """Directory structure:
+    """Data path
+
+    Directory structure:
     - *.fastq: raw data
     - reference/*: files for the reference for the reads"""
 
@@ -1076,7 +1078,9 @@ class EmSeqNoRef:
     "@intermediate:EM-seq data (without converted reference)"
 
     path: str
-    """Directory structure:
+    """Data path
+
+    Directory structure:
     - *.fastq: raw EM-seq data
     """
 
