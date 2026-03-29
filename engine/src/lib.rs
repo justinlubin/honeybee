@@ -2,6 +2,7 @@ pub mod main_handler;
 pub mod menu;
 
 mod benchmark;
+mod big_step;
 mod cellgen;
 mod codegen;
 mod core;

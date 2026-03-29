@@ -138,7 +138,109 @@ pub fn interact(
                         )
                     }
                     top_down::TopDownStep::Seq(_, _) => {
-                        println!("<unexpected>")
+                        fn summarize_seq(
+                            step: &top_down::TopDownStep<
+                                core::ParameterizedFunction,
+                            >,
+                        ) -> Option<String> {
+                            // Collect all Extend steps in the Seq
+                            fn collect_extends(
+                                step: &top_down::TopDownStep<
+                                    core::ParameterizedFunction,
+                                >,
+                                out: &mut Vec<core::ParameterizedFunction>,
+                            ) {
+                                match step {
+                                    top_down::TopDownStep::Extend(_, f, _) => {
+                                        out.push(f.clone());
+                                    }
+                                    top_down::TopDownStep::Seq(a, b) => {
+                                        collect_extends(a, out);
+                                        collect_extends(b, out);
+                                    }
+                                }
+                            }
+                            let mut fns = Vec::new();
+                            collect_extends(step, &mut fns);
+
+                            // Count defaults and find the final choice
+                            let num_defaults = fns.iter()
+                                .filter(|f| f.name.0 == "choose_default_par_factor")
+                                .count();
+                            let choice = fns.iter().rev()
+                                .find(|f| f.name.0.starts_with("choose_par_factor_"))?;
+                            let par_factor = choice.metadata
+                                .get(&core::MetParam("par_factor".to_owned()))?;
+                            let stream_level = choice.metadata
+                                .get(&core::MetParam("stream_level".to_owned()))?;
+
+                            let par_val = match par_factor {
+                                core::Value::Int(n) => n.to_string(),
+                                other => format!("{:?}", other),
+                            };
+                            let level_val = match stream_level {
+                                core::Value::Int(n) => n.to_string(),
+                                other => format!("{:?}", other),
+                            };
+
+                            let mut desc = format!(
+                                "loop i{}: par_factor = {}",
+                                level_val, par_val,
+                            );
+                            if num_defaults > 0 {
+                                // Collect which loops are defaulted
+                                let defaulted: Vec<String> = fns.iter()
+                                    .filter(|f| f.name.0.starts_with("advance_par_factor_level_"))
+                                    .filter_map(|f| f.metadata.get(
+                                        &core::MetParam("stream_level".to_owned())
+                                    ))
+                                    .map(|v| match v {
+                                        core::Value::Int(n) => format!("i{}", n),
+                                        other => format!("{:?}", other),
+                                    })
+                                    .collect();
+                                desc.push_str(&format!(
+                                    "  ({} → 1)",
+                                    defaulted.join(", "),
+                                ));
+                            }
+                            Some(desc)
+                        }
+
+                        match summarize_seq(&option) {
+                            Some(summary) => println!(
+                                "{}",
+                                Yellow.paint(summary),
+                            ),
+                            None => {
+                                // Fallback: show raw names
+                                fn collect_names(
+                                    step: &top_down::TopDownStep<
+                                        core::ParameterizedFunction,
+                                    >,
+                                    names: &mut Vec<String>,
+                                ) {
+                                    match step {
+                                        top_down::TopDownStep::Extend(_, f, _) => {
+                                            names.push(f.name.0.clone());
+                                        }
+                                        top_down::TopDownStep::Seq(a, b) => {
+                                            collect_names(a, names);
+                                            collect_names(b, names);
+                                        }
+                                    }
+                                }
+                                let mut names = Vec::new();
+                                collect_names(&option, &mut names);
+                                println!(
+                                    "{}",
+                                    Yellow.paint(format!(
+                                        "[{}]",
+                                        names.join(" → "),
+                                    ))
+                                )
+                            }
+                        }
                     }
                 }
             }

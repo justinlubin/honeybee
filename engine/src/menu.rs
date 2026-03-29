@@ -19,6 +19,7 @@ pub enum Algorithm {
     PBNConstructiveOracle,
     NaiveEnumeration,
     PrunedEnumeration,
+    FuseFlow,
 }
 
 impl Algorithm {
@@ -30,6 +31,7 @@ impl Algorithm {
             Self::PBNConstructiveOracle,
             Self::NaiveEnumeration,
             Self::PrunedEnumeration,
+            Self::FuseFlow,
         ]
     }
 
@@ -120,6 +122,22 @@ impl Algorithm {
                     save_history,
                 )
             }
+            Algorithm::FuseFlow => {
+                let engine = egglog::Egglog::new(true);
+                let oracle = dl_oracle::Oracle::new(engine, problem).unwrap();
+                let inner =
+                    top_down::ClassicalConstructiveSynthesis::new(oracle);
+                let provider = big_step::BigStepProvider::new(inner);
+                let start = top_down::Sketch::blank();
+                let checker = top_down::GroundChecker::new();
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
+            }
         }
     }
 
@@ -182,6 +200,9 @@ impl Algorithm {
                 let synth =
                     enumerate::EnumerativeSynthesis::new(problem, pruner);
                 Box::new(synth)
+            }
+            Algorithm::FuseFlow => {
+                panic!("FuseFlow does not support any_synthesizer")
             }
         }
     }
