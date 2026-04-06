@@ -169,12 +169,13 @@ impl<'a> Context<'a> {
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
+        path_prefix: &str,
     ) -> String {
         let mut s = format!("{} = {}(", var_name, type_name);
         let mut needs_newline = false;
         if implementation.is_some() {
             needs_newline = true;
-            s += &format!("\n    path=Dir.make(\"{}\"),", function_name);
+            s += &format!("\n    path=\"{}{}\",", path_prefix, function_name);
         }
         if !metadata.is_empty() {
             needs_newline = true;
@@ -233,9 +234,11 @@ impl<'a> Context<'a> {
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
 
+                let path_prefix = format!("{:03}-", self.cells.len() * 10);
+
                 self.cells.push(Cell::Code {
                     title: f_sig
-                        .info_string("tite")
+                        .info_string("title")
                         .unwrap_or(f.name.0.clone()),
                     description: Self::description(f_sig),
                     code: Self::body_code(
@@ -248,6 +251,7 @@ impl<'a> Context<'a> {
                             .collect(),
                         &arg_strings,
                         f_sig.info_string("code"),
+                        &path_prefix,
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,

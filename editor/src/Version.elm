@@ -6,7 +6,7 @@ module Version exposing (fullVersion, stable)
 
 shortVersion : String
 shortVersion =
-    "0.4.0"
+    "0.5.0"
 
 
 fullVersion : String
