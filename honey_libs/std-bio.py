@@ -1283,100 +1283,163 @@ def bismark_methylation_extractor(
 # missing from ^: shifting alignments
 
 
-# @Input
-# class LocalAtacSeq:
-#     "ATAC-seq (stored on your own hard drive)"
+@Input
+class LocalAtacSeq:
+    "ATAC-seq (stored on your own hard drive)"
 
-#     sample_sheet: str
-#     """TODO"""
+    path: str
+    """TODO"""
 
-#     path: str
-#     """TODO"""
-
-
-# @Input
-# class SraAtacSeq:
-#     "ATAC-seq (stored on the Sequence Read Archive)"
-
-#     sample_sheet: str
-#     """TODO"""
+    reference: str
+    """TODO"""
 
 
-# @Output
-# class AtacPeaks:
-#     """ATAC-seq peak calls"""
+@Input
+class SraAtacSeq:
+    "ATAC-seq (stored on the Sequence Read Archive)"
 
-#     path: str
-
-
-# @Function(
-#     "ret.qc = false",
-#     "ret.trimmed = false",
-#     "ret.long = false",
-#     "ret.type = 'atac'",
-#     search=False,
-# )
-# def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
-#     """TODO"""
-
-#     raise NotImplementedError
+    sample_sheet: str
+    """TODO"""
 
 
-# @Function(
-#     "ret.qc = false",
-#     "ret.trimmed = false",
-#     "ret.long = false",
-#     "ret.type = 'atac'",
-#     search=False,
-# )
-# def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
-#     """TODO"""
+@Output
+class AtacPeaks:
+    """TODO"""
 
-#     raise NotImplementedError
+    path: str
 
 
-# @Function(
-#     "reads.qc = true",
-#     "reads.trimmed = true",
-#     "reads.long = false",
-#     "ret.type = reads.type",
-# )
-# def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-#     """TODO"""
+@Function(
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = 'atac'",
+    search=False,
+)
+def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
+    """TODO"""
 
-#     raise NotImplementedError
-
-
-# @Function(
-#     "reads.qc = true",
-#     "reads.trimmed = true",
-#     "reads.long = false",
-#     "ret.type = reads.type",
-# )
-# def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-#     """TODO"""
-
-#     raise NotImplementedError
+    raise NotImplementedError
 
 
-# # low prio - sorted won't work yet because it needs to name-sorted
-# @Function(
-#     "bam.type = 'atac'",
-# )
-# def genrich(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
-#     """TODO"""
+@Function(
+    "ret.qc = false",
+    "ret.trimmed = false",
+    "ret.long = false",
+    "ret.type = 'atac'",
+    search=False,
+)
+def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
+    """TODO"""
 
-#     raise NotImplementedError
+    # symlink on fastqc files and path to reference
+    # When loading data, save the reference sheet symlinked to reference/reference.fasta
+    carry_over(__hb_local, __hb_ret)
+
+    save(
+        __hb_local.reference,
+        f"{__hb_ret.path}/reference/reference.fasta",
+    )
 
 
-# # check if sorted
-# @Function(
-#     "bam.type = 'atac'",
-# )
-# def macs3(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
-#     """TODO"""
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+)
+def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """TODO"""
 
-#     raise NotImplementedError
+    carry_over(__hb_reads, __hb_ret, file="reference")
+
+    index_path = f"{__hb_ret.path}/index"
+
+    __hb_bash(f"""
+        bowtie2-build \
+            -f {__hb_reads.path}/reference/reference.fasta \
+            {index_path} \
+            > out.txt
+    """)
+
+    # get lists of mate1 and mate2 files
+    mate1 = []
+    mate2 = []
+    for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
+        sample_name = os.path.splitext(os.path.basename(path))[0]
+        if sample_name[-9:] == "_R1.fastq":
+            mate1.append(path)
+        elif sample_name[-9:] == "_R2.fastq":
+            mate2.append(path)
+
+    # make sure mate1 and mate2 are same len, names match in pairs, are sorted to be at same index
+    for i in range(len(mate1)):
+        m1 = mate1[i]
+        m2 = mate2[i]
+        lastslash = m1.rfind("/")
+        if lastslash == -1:
+            lastslash = 0
+        name = m1[lastslash:-12]
+
+        __hb_bash(f"""
+            bowtie2 \
+                -x "{index_path}" \
+                -1 "{m1}" \
+                -2 "{m2}" \
+                -S "{__hb_ret.path}/{name}.sam"
+        """)
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+)
+def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+    """TODO"""
+
+    carry_over(__hb_reads, __hb_ret, file="reference")
+
+    ref = f"{__hb_ret.path}/reference/reference.fasta"
+
+    __hb_bash(f"""
+        bwa index "{ref}"
+    """)
+
+    # get lists of mate1 and mate2 files
+    mate1 = []
+    mate2 = []
+    for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
+        sample_name = os.path.splitext(os.path.basename(path))[0]
+        if sample_name[-9:] == "_R1.fastq":
+            mate1.append(path)
+        elif sample_name[-9:] == "_R2.fastq":
+            mate2.append(path)
+
+    # make sure mate1 and mate2 are same len, names match in pairs, are sorted to be at same index
+    for i in range(len(mate1)):
+        m1 = mate1[i]
+        m2 = mate2[i]
+        lastslash = m1.rfind("/")
+        if lastslash == -1:
+            lastslash = 0
+        name = m1[lastslash:-12]
+
+        s1 = f"{__hb_reads.path}/{name}_R1.sai"
+        s2 = f"{__hb_reads.path}/{name}_R2.sai"
+
+        __hb_bash(f"""
+            bwa aln "{ref}" "{m1}" > "{s1}"
+        """)
+
+        __hb_bash(f"""
+            bwa aln "{ref}" "{m2}" > "{s2}"
+        """)
+
+        __hb_bash(f"""
+            bwa sampe "{ref}" "{s1}" "{s2}" "{m1}" "{m2}" > "{__hb_ret.path}/{name}.sam"
+        """)
 
 
 ################################################################################
