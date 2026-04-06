@@ -208,12 +208,12 @@ wheels = [
 
 [[package]]
 name = "honey-lang"
-version = "0.4.0"
+version = "0.5.0"
 source = { editable = "../honey_lang" }
 
 [[package]]
 name = "honey-libs"
-version = "0.4.0"
+version = "0.5.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cutadapt" },
@@ -238,8 +238,8 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "ipython", specifier = ">=9.2.0" },
-    { name = "ty", specifier = ">=0.0.1a20" },
+    { name = "ipython", specifier = ">=9.9.0" },
+    { name = "ty", specifier = ">=0.0.12" },
 ]
 
 [[package]]

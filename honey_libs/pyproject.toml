@@ -1,6 +1,6 @@
 [project]
 name = "honey-libs"
-version = "0.4.0"
+version = "0.5.0"
 description = "Honeybee libraries"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -11,14 +11,14 @@ dependencies = [
     "polars>=1.33.0",
 ]
 
-[tool.uv]
-dev-dependencies = [
-    "ipython>=9.2.0",
-    "ty>=0.0.1a20",
-]
-
 [tool.uv.sources]
 honey-lang = { path = "../honey_lang", editable = true }
 
 [tool.ty.environment]
 extra-paths = ["../honey_lang"]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.9.0",
+    "ty>=0.0.12",
+]
