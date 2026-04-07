@@ -306,100 +306,106 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
 
 
 @Input
-class LocalRnaSeq:
-    "RNA-seq (stored on your own hard drive)"
+class RnaSeq:
+    """RNA-seq
+
+    TODO"""
 
     sample_sheet: str
-    """Path to sample sheet CSV with SRA metadata
+    """Path to sample sheet CSV
 
     @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
 
     Here is an example CSV file (the headers must match exactly):
 
-    | sample_name | condition | replicate |
-    |-------------|-----------|-----------|
-    | JPL001_t1   | treated   | 1         |
-    | JPL002_t2   | treated   | 2         |
-    | JPL003_u1   | untreated | 1         |
-    | JPL004_u2   | untreated | 2         |
+    | sample_name | condition | forward_location                | reverse_location                |
+    |-------------|-----------|---------------------------------|---------------------------------|
+    | BM001_t1    | treated   | /Users/barb/Exp1/t1_R1.fastq.gz | /Users/barb/Exp1/t1_R2.fastq.gz |
+    | BM002_t2    | treated   | /Users/barb/Exp1/t2_R1.fastq.gz | /Users/barb/Exp1/t1_R2.fastq.gz |
+    | BM003_u1    | untreated | SRR34323943_1                   | SRR3423943_2                    |
+    | BM004_u2    | untreated | SRR34323942_1                   | SRR3423942_2                    |
 
-    The `sample_name` column can contain whatever you'd like, as long as each
-    row is unique."""
-
-    path: str
-    """Path to the directory containing the RNA-seq data
-
-    @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
-
-    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-
-
-@Input
-class SraRnaSeq:
-    "RNA-seq (stored on the Sequence Read Archive)"
-
-    sample_sheet: str
-    """Path to sample sheet CSV with SRA metadata
-
-    @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | sample_name | condition | replicate |
-    |-------------|-----------|-----------|
-    | SRR34323945 | treated   | 1         |
-    | SRR34323944 | treated   | 2         |
-    | SRR34323943 | untreated | 1         |
-    | SRR34323942 | untreated | 2         |
-
-    **Important:** The `sample_name` column must contain valid SRA "run
-    accessions" (SRRs). They are of the form SRR*xxxxxxxx*, where each *x* is
-    digit."""
+    Each row is one sample. Here is what each column means:
+    - **`sample_name`** is a unique identifier for each sample (it can be
+      whatever you want as long as it is unique).
+    - **`condition`** is the label for the experimental condition for each
+      sample (this label can be whatever you want, such as "control" and
+      "treatment"). Multiple samples with the same condition are considered
+      **biological replicates**.
+    - **`forward_location`** is the path to the raw RNA-seq data of forward
+      reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
+      the filename is likely to end in something resembling `_1.fastq.gz` or
+      `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
+      their SRA "run accession" (SRR) identifier. These identifiers are of the
+      form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
+      paired-end data, add a _1 to the end of the SRR identifier.
+    - **`reverse_location`** (for **paired-end data only**) is the path to the
+      reverse reads. This path should be similar to the `forward_location` path
+      but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
+      to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
+      identifier."""
 
 
 @Output
 class TranscriptMatrices:
     """RNA-seq transcript read counts
 
-    The goal of this step is to calculate two transcript-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
+    This step outputs two tables: one with read counts, and one with
+    transcripts-per-million (TPM) abundance for each of your samples. Each row
+    in these tables is a **gene isoform** (mRNA transcript), of which there may
+    be many per gene!
 
-    These matrices are usually computed by using a reference transcriptome
-    (coding sequences) rather than a reference genome. Unless your scientific
-    question relates specifically to transcript information, these matrices are
-    often aggregated into **gene-level** read count and abundance information."""
+    Additionally, some tools like [kallisto](https://pachterlab.github.io/kallisto/about)
+    can quantify the uncertainty in read counts, which downstream tools like
+    [sleuth](https://pachterlab.github.io/sleuth/) can use for plotting error
+    bars.
+
+    ## How these tables are made…
+
+    There are two main ways to create these tables:
+    1) **Alignment-based methods** align transcripts to a reference genome in a
+       splice-aware fashion; the alignments can then be tallied up.
+    2) **Alignment-free methods** directly quantify the transcript abundances
+       using a reference transcriptome without actually determining where each
+       transcript exactly aligns to.
+
+    If you have a reference transcriptome already available that you trust and
+    you are not specifically interested in scientifically studying the
+    alignment of your RNA-seq to the genome, then a tool that performs
+    quantification without alignment is generally a good choice due to their
+    orders-of-magnitude speedup over alignment-based procedures.
+
+    These matrices can be used for plotting, differential expression testing,
+    clustering, and many other downstream analyses. The following review
+    provides an overview of RNA-seq data analysis, including information about
+    read count matrices (Fig 2a and 2b are especially relevant):
+
+    > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
+    > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
+    > https://doi.org/10.1186/s13059-016-0881-8"""
 
     path: str
 
-
-@Output
-class BootstrappedTranscriptMatrices:
-    """Transcript read counts (and TPM abundance) of RNA-seq samples, with bootstrap estimates
-
-    The goal of this step is to calculate two transcript-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
-
-    Additionally, bootstrap resampling estimates are included, which allow
-    downstream tools like [sleuth](https://pachterlab.github.io/sleuth/) to
-    incorporate measurement uncertainty into differential expression analysis."""
-
-    path: str
+    bootstrapped: bool
+    "Quantify uncertainty in results using bootstrap"
 
 
 @Output
 class GeneMatrices:
     """RNA-seq gene read counts
 
-    The goal of this step is to calculate two gene-by-sample matrices:
-    - One with (estimated) read counts.
-    - One with TPM (transcripts-per-million) abundance.
+    This step outputs two tables: one with read counts, and one with
+    transcripts-per-million (TPM) abundance for each of your samples. Each row
+    in these tables is a **single gene**.
 
-    These matrices can be created using an alignment-based approach that aligns
-    transcripts to a reference genome in a splice-aware fashion or using
-    an alignment-free approach that matches transcripts against a reference
-    transcriptome.
+    ## How these tables are made…
+
+    There are two main ways to create these tables:
+    1) **Alignment-based methods** align transcripts to a reference genome in a
+       splice-aware fashion; the alignments can then be tallied up.
+    2) **Alignment-free methods** directly quantify the transcript abundances
+       using a reference transcriptome without actually determining where each
+       transcript exactly aligns to.
 
     If you have a reference transcriptome already available that you trust and
     you are not specifically interested in scientifically studying the
@@ -440,22 +446,6 @@ class DifferentialGeneExpression:
 
     path: str
 
-    comparison_sheet: str
-    """@nosuggest:Path to CSV of comparisons to make
-
-    @example:/Users/barb/Desktop/MyExperiment/metadata/comparisons.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | control_condition | treatment_condition |
-    |-------------------|---------------------|
-    | untreated         | treatment1          |
-    | untreated         | treatment2          |
-
-    The entries in this table must be **conditions** from the `condition` column
-    in the sample sheet CSV. This comparison CSV tells the software which
-    conditions you want to compare to each other."""
-
 
 @Function(
     "ret.qc = false",
@@ -464,37 +454,49 @@ class DifferentialGeneExpression:
     "ret.type = 'rna'",
     search=False,
 )
-def load_sra_rna_seq(__hb_sra: SraRnaSeq, __hb_ret: SeqReads):
-    """Download from ENA
+def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
+    """Load RNA-seq data from sample sheet
 
-    # Download RNA-seq data from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home) by SRR accession identifiers
+    This code collects all the RNA-seq data defined in the sample sheet. It
+    downloads samples identified with SRR accession identifiers from the
+    [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 
-    The downloaded files will be in the .fastq.gz file format, with the
-    filenames for the forward reads ending in _1.fastq.gz and the filenames for
-    the reverse reads ending in _2.fastq.gz."""
+    sample_sheet = pl.read_csv(__hb_rna.sample_sheet)
+    new_files = {}
 
-    sample_sheet = pl.read_csv(__hb_sra.sample_sheet)
+    for sample in sample_sheet.rows(named=True):
+        files = [sample["forward_location"]]
+        if sample["reverse_location"].strip():
+            files.append(sample["reverse_location"])
 
-    for srr in sample_sheet["sample_name"]:
-        base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
-        base_url += srr[:6] + "/"
-        base_url += srr[9:].zfill(3) + "/"
-        base_url += srr + "/"
+        for file in files:
+            if file.startswith("SRR"):
+                srr = file[:-2]  # remove _1 or _2
+                base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
+                base_url += srr[:6] + "/"
+                base_url += srr[9:].zfill(3) + "/"
+                base_url += srr + "/"
 
-        # Assumes forward (_1) and reverse (_2) reads exist
+                new_file = file + ".fastq.gz"
 
-        __hb_bash(f"""
-             wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_1.fastq.gz
-        """)
+                __hb_bash(f"""
+                     wget \\
+                         --no-clobber \\
+                         --directory-prefix={__hb_ret.path} \\
+                         {base_url}{new_file}
+                """)
+            else:
+                new_file = os.path.basename(file)
+                os.symlink(
+                    src=file,
+                    dst=__hb_ret.path + "/" + new_file,
+                )
+            new_files[file] = new_file
 
-        __hb_bash(f"""
-             wget -nc --directory-prefix={__hb_ret.path} {base_url}{srr}_2.fastq.gz
-        """)
-
-    os.symlink(
-        src=__hb_sra.sample_sheet,
-        dst=f"{__hb_ret.path}/sample_sheet.csv",
-    )
+    sample_sheet.with_columns(
+        forward_location=pl.col("forward_location").replace(new_files),
+        reverse_location=pl.col("reverse_location").replace(new_files),
+    ).write_csv(f"{__hb_ret.path}/sample_sheet.csv")
 
 
 @Function(
@@ -619,6 +621,7 @@ def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     "reads.trimmed = true",
     "reads.long = false",
     "reads.type = 'rna'",
+    "ret.bootstrapped = false",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
     citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
@@ -658,13 +661,14 @@ def kallisto(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     "reads.trimmed = true",
     "reads.long = false",
     "reads.type = 'rna'",
+    "ret.bootstrapped = true",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
     citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
     "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
     "p 525--527 (2016).",
 )
-def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: BootstrappedTranscriptMatrices):
+def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     """kallisto (with bootstrap)
 
     # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/), with bootstrap estimates
@@ -709,6 +713,7 @@ def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: BootstrappedTranscriptMat
     "reads.trimmed = true",
     "reads.long = false",
     "reads.type = 'rna'",
+    "ret.bootstrapped = false",
     google_scholar_id="11462947284863466602",
     pmid="28263959",
     citation="Patro, R., Duggal, G., Love, M. I., Irizarry, R. A., & "
@@ -843,6 +848,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
 
 
 @Function(
+    "data.bootstrapped = true",
     google_scholar_id="1639708055766929241",
     pmid="28581496",
     citation="Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted "
@@ -851,9 +857,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     "http://dx.doi.org/10.1038/nmeth.4324.",
     use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
 )
-def sleuth(
-    __hb_data: BootstrappedTranscriptMatrices, __hb_ret: DifferentialGeneExpression
-):
+def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     """sleuth
 
     # Find differentially-expressed protein-coding genes with [sleuth](https://pachterlab.github.io/sleuth/)
@@ -1443,9 +1447,10 @@ def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
 
 @Function(
+    "bam.compressed = true",
     "bam.type = 'atac'",
 )
-def macs3(__hb_bam: SortedIndexBAM, __hb_ret: AtacPeaks):
+def macs3(__hb_bam: SeqAlignment, __hb_ret: AtacPeaks):
     """TODO"""
 
     # PARAMETER: Effective genome size (use hs for human, mm for mouse, or a number)
