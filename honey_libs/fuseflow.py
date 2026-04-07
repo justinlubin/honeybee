@@ -42,73 +42,111 @@ def write_schedule_json(schedule_dict, output_dir, *, filename="schedule.json"):
 
 @Helper
 class ScheduleState:
-    stream_level = None
-    par_factor = None
+    par_factors = None
     stream_shape = None
     block_sparse = None
     dataflow_ordering = None
+    sparse_annotations = None
+
+    @classmethod
+    def initialize_parallel_schedule(cls, *, num_loops, max_levels=16):
+        if num_loops <= 0:
+            raise ValueError("num_loops must be positive")
+        if num_loops > max_levels:
+            raise ValueError(
+                f"num_loops={num_loops} exceeds maximum supported stream levels ({max_levels})"
+            )
+        cls.par_factors = [1 for _ in range(num_loops)]
+
+    @classmethod
+    def set_par_factor_for_level(cls, *, stream_level, par_factor):
+        if cls.par_factors is None:
+            raise RuntimeError("parallel schedule not initialized")
+        if stream_level < 0 or stream_level >= len(cls.par_factors):
+            raise ValueError("stream_level out of bounds")
+        cls.par_factors[stream_level] = par_factor
+
+    @classmethod
+    def annotate_tensor(cls, tensor_name, is_sparse):
+        if cls.sparse_annotations is None:
+            cls.sparse_annotations = {}
+        cls.sparse_annotations[tensor_name] = is_sparse
 
     @classmethod
     def set_values(
         cls,
         *,
-        stream_level=None,
-        par_factor=None,
+        par_factors=None,
         stream_shape=None,
         block_sparse=None,
         dataflow_ordering=None,
+        sparse_annotations=None,
     ):
-        if stream_level is not None:
-            cls.stream_level = stream_level
-        if par_factor is not None:
-            cls.par_factor = par_factor
+        if par_factors is not None:
+            cls.par_factors = par_factors
         if stream_shape is not None:
             cls.stream_shape = stream_shape
         if block_sparse is not None:
             cls.block_sparse = block_sparse
         if dataflow_ordering is not None:
             cls.dataflow_ordering = dataflow_ordering
+        if sparse_annotations is not None:
+            cls.sparse_annotations = sparse_annotations
 
     @classmethod
     def as_dict(cls):
         return {
             "stream-parallelizer": {
-                "stream-level": cls.stream_level,
-                "par-factor": cls.par_factor,
+                "par_factors": cls.par_factors,
             },
             "stream-vectorizer": {
                 "stream-shape": cls.stream_shape,
                 "enable-block-sparse": cls.block_sparse,
             },
             "dataflow-ordering": cls.dataflow_ordering,
+            "sparse-annotations": cls.sparse_annotations,
         }
 
     @classmethod
     def missing_fields(cls):
         missing = []
-        if cls.stream_level is None:
-            missing.append("stream_level")
-        if cls.par_factor is None:
-            missing.append("par_factor")
+        if cls.par_factors is None:
+            missing.append("par_factors")
         if cls.stream_shape is None:
             missing.append("stream_shape")
         if cls.block_sparse is None:
             missing.append("block_sparse")
         if cls.dataflow_ordering is None:
             missing.append("dataflow_ordering")
+        if cls.sparse_annotations is None:
+            missing.append("sparse_annotations")
         return missing
 
 ################################################################################
 # %% FuseFlow Schedule
-@Input 
-class MlirProgram: 
+@Input
+class MlirProgram:
     """An MLIR program in your filesystem
 
     This is the program that we use to generate the schedule."""
-    path: str 
+    path: str
     """Path to the MLIR program"""
     num_loops: int
     """Number of loops identified by FuseFlow compiler"""
+    num_tensors: int
+    """Number of tensors in the MLIR program"""
+
+@Input
+class TensorInfo:
+    """A tensor in the MLIR program
+
+    This tensor can be annotated as sparse or dense by the user."""
+    name: str
+    """Name of the tensor (e.g. t0)"""
+    path: str
+    """Path to the MLIR program this tensor belongs to"""
+    tensor_order: int
+    """Order index for sequential annotation (0-based)"""
 
 @Input
 class LoopOrderOption:
@@ -120,7 +158,47 @@ class LoopOrderOption:
     order: str
     """Loop order string"""
 
-@Output 
+@Output
+class TensorAnnotationLevel:
+    """TensorAnnotationLevel
+
+    Internal step to enumerate tensors for per-tensor sparse/dense annotation."""
+    path: str
+
+    tensor_index: int
+    tensor_name: str
+    mlir_path: str
+    num_tensors: int
+    num_loops: int
+
+
+@Output
+class TensorAnnotationChoice:
+    """TensorAnnotationChoice
+
+    The goal of this step is to choose whether a tensor is sparse or dense."""
+    path: str
+
+    tensor_index: int
+    tensor_name: str
+    is_sparse: bool
+    mlir_path: str
+    num_tensors: int
+    num_loops: int
+
+
+@Output
+class SparseAnnotationPass:
+    """SparseAnnotationPass
+
+    Completion of sparse annotation for all tensors in the MLIR program."""
+    path: str
+
+    mlir_path: str
+    num_loops: int
+
+
+@Output
 class VectorizationPass:
     """VectorizationPass
 
@@ -156,14 +234,15 @@ class BlockSparseChoice:
 
 
 @Output
-class StreamLevelChoice:
-    """StreamLevelChoice
+class ParFactorLevelChoice:
+    """ParFactorLevelChoice
 
-    The goal of this step is to choose a stream level for parallelization."""
+    Internal step to enumerate stream levels for per-level parallelization factors."""
     path: str
 
     stream_level: int
     mlir_path: str
+    num_loops: int
 
 
 @Output
@@ -184,7 +263,9 @@ class ParFactorChoice:
     path: str
 
     par_factor: int
+    stream_level: int
     mlir_path: str
+    num_loops: int
 
 
 @Output
@@ -212,8 +293,7 @@ def default_schedule(__hb_ret: FuseFlowSchedule):
 
     The function that produces a schedule."""
     ScheduleState.set_values(
-        stream_level=0,
-        par_factor=1,
+        par_factors=[1],
         stream_shape=16,
         block_sparse=False,
         dataflow_ordering="",
@@ -235,219 +315,701 @@ def build_schedule(__hb_order: LoopOrderChoice, __hb_ret: FuseFlowSchedule):
     write_schedule_json(schedule, __hb_ret.path)
     print(json.dumps(schedule, indent=2, sort_keys=True))
 
+################################################################################
+# %% Sparse Tensor Annotation (sequential, one tensor at a time)
+
+@Function(
+    "ret.tensor_index = 0",
+    "ret.tensor_index < mlir.num_tensors",
+    "mlir.num_tensors < 17",
+    "ret.num_tensors = mlir.num_tensors",
+    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = mlir.path",
+    "P_TensorInfo { path = mlir.path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def begin_tensor_annotation(__hb_mlir: MlirProgram, __hb_ret: TensorAnnotationLevel):
+    print(f"Begin tensor annotation at index 0: {__hb_ret.tensor_name}")
+
+@Function(
+    "ret.is_sparse = true",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def annotate_tensor_sparse(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationChoice):
+    ScheduleState.annotate_tensor(__hb_level.tensor_name, True)
+    print(f"Annotated tensor '{__hb_level.tensor_name}' as sparse.")
+
+@Function(
+    "ret.is_sparse = false",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def annotate_tensor_dense(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationChoice):
+    ScheduleState.annotate_tensor(__hb_level.tensor_name, False)
+    print(f"Annotated tensor '{__hb_level.tensor_name}' as dense.")
+
+@Function(
+    "prev.tensor_index = 0",
+    "ret.tensor_index = 1",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_1(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 1.")
+
+@Function(
+    "prev.tensor_index = 1",
+    "ret.tensor_index = 2",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_2(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 2.")
+
+@Function(
+    "prev.tensor_index = 2",
+    "ret.tensor_index = 3",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_3(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 3.")
+
+@Function(
+    "prev.tensor_index = 3",
+    "ret.tensor_index = 4",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_4(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 4.")
+
+@Function(
+    "prev.tensor_index = 4",
+    "ret.tensor_index = 5",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_5(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 5.")
+
+@Function(
+    "prev.tensor_index = 5",
+    "ret.tensor_index = 6",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_6(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 6.")
+
+@Function(
+    "prev.tensor_index = 6",
+    "ret.tensor_index = 7",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_7(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 7.")
+
+@Function(
+    "prev.tensor_index = 7",
+    "ret.tensor_index = 8",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_8(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 8.")
+
+@Function(
+    "prev.tensor_index = 8",
+    "ret.tensor_index = 9",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_9(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 9.")
+
+@Function(
+    "prev.tensor_index = 9",
+    "ret.tensor_index = 10",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_10(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 10.")
+
+@Function(
+    "prev.tensor_index = 10",
+    "ret.tensor_index = 11",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_11(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 11.")
+
+@Function(
+    "prev.tensor_index = 11",
+    "ret.tensor_index = 12",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_12(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 12.")
+
+@Function(
+    "prev.tensor_index = 12",
+    "ret.tensor_index = 13",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_13(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 13.")
+
+@Function(
+    "prev.tensor_index = 13",
+    "ret.tensor_index = 14",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_14(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 14.")
+
+@Function(
+    "prev.tensor_index = 14",
+    "ret.tensor_index = 15",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+)
+def advance_tensor_annotation_15(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+    print("Advance to tensor annotation index 15.")
+
+@Function(
+    "ann.tensor_index = 0",
+    "ann.num_tensors = 1",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_0(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 1",
+    "ann.num_tensors = 2",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_1(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 2",
+    "ann.num_tensors = 3",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_2(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 3",
+    "ann.num_tensors = 4",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_3(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 4",
+    "ann.num_tensors = 5",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_4(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 5",
+    "ann.num_tensors = 6",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_5(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 6",
+    "ann.num_tensors = 7",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_6(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 7",
+    "ann.num_tensors = 8",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_7(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 8",
+    "ann.num_tensors = 9",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_8(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 9",
+    "ann.num_tensors = 10",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_9(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 10",
+    "ann.num_tensors = 11",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_10(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 11",
+    "ann.num_tensors = 12",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_11(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 12",
+    "ann.num_tensors = 13",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_12(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 13",
+    "ann.num_tensors = 14",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_13(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 14",
+    "ann.num_tensors = 15",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_14(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+@Function(
+    "ann.tensor_index = 15",
+    "ann.num_tensors = 16",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+)
+def finish_annotation_after_tensor_15(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+    print("Sparse annotation complete.")
+
+################################################################################
+# %% Parallelization Factor Selection
+
 @Function(
     "ret.stream_level = 0",
     "ret.stream_level < vec.num_loops",
+    "vec.num_loops < 17",
+    "ret.num_loops = vec.num_loops",
     "ret.mlir_path = vec.mlir_path",
 )
-def choose_default_stream_level(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=0)
-    print("Choose default stream level (0).")
+def begin_par_factor_selection(__hb_vec: VectorizationPass, __hb_ret: ParFactorLevelChoice):
+    ScheduleState.initialize_parallel_schedule(num_loops=__hb_vec.num_loops, max_levels=16)
+    print("Begin per-level par factor selection at stream level 0.")
 
 @Function(
+    "prev.stream_level = 0",
     "ret.stream_level = 1",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_1(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=1)
-    print("Choose stream level 1.")
+def advance_par_factor_level_1(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 1.")
 
 @Function(
+    "prev.stream_level = 1",
     "ret.stream_level = 2",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_2(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=2)
-    print("Choose stream level 2.")
+def advance_par_factor_level_2(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 2.")
 
 @Function(
+    "prev.stream_level = 2",
+    "ret.stream_level = 3",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_par_factor_level_3(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 3.")
+
+@Function(
+    "prev.stream_level = 3",
     "ret.stream_level = 4",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_4(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=4)
-    print("Choose stream level 4.")
+def advance_par_factor_level_4(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 4.")
 
 @Function(
+    "prev.stream_level = 4",
+    "ret.stream_level = 5",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_par_factor_level_5(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 5.")
+
+@Function(
+    "prev.stream_level = 5",
+    "ret.stream_level = 6",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_par_factor_level_6(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 6.")
+
+@Function(
+    "prev.stream_level = 6",
+    "ret.stream_level = 7",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_par_factor_level_7(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 7.")
+
+@Function(
+    "prev.stream_level = 7",
     "ret.stream_level = 8",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_8(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=8)
-    print("Choose stream level 8.")
+def advance_par_factor_level_8(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 8.")
 
 @Function(
-    "ret.stream_level = 16",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "prev.stream_level = 8",
+    "ret.stream_level = 9",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_16(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=16)
-    print("Choose stream level 16.")
+def advance_par_factor_level_9(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 9.")
 
 @Function(
-    "ret.stream_level = 32",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "prev.stream_level = 9",
+    "ret.stream_level = 10",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_32(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=32)
-    print("Choose stream level 32.")
+def advance_par_factor_level_10(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 10.")
 
 @Function(
-    "ret.stream_level = 64",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "prev.stream_level = 10",
+    "ret.stream_level = 11",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_64(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=64)
-    print("Choose stream level 64.")
+def advance_par_factor_level_11(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 11.")
 
 @Function(
-    "ret.stream_level = 128",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "prev.stream_level = 11",
+    "ret.stream_level = 12",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_128(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=128)
-    print("Choose stream level 128.")
+def advance_par_factor_level_12(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 12.")
 
 @Function(
-    "ret.stream_level = 256",
-    "ret.stream_level < vec.num_loops",
-    "ret.mlir_path = vec.mlir_path",
+    "prev.stream_level = 12",
+    "ret.stream_level = 13",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
 )
-def choose_stream_level_256(__hb_vec: VectorizationPass, __hb_ret: StreamLevelChoice):
-    ScheduleState.set_values(stream_level=256)
-    print("Choose stream level 256.")
+def advance_par_factor_level_13(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 13.")
+
+@Function(
+    "prev.stream_level = 13",
+    "ret.stream_level = 14",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_par_factor_level_14(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 14.")
+
+@Function(
+    "prev.stream_level = 14",
+    "ret.stream_level = 15",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_par_factor_level_15(__hb_prev: ParFactorChoice, __hb_ret: ParFactorLevelChoice):
+    print("Advance to stream level 15.")
 
 @Function(
     "ret.par_factor = 1",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_default_par_factor(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=1)
+def choose_default_par_factor(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=1,
+    )
     print("Choose default par factor (1).")
 
 @Function(
     "ret.par_factor = 2",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_2(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=2)
+def choose_par_factor_2(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=2,
+    )
     print("Choose par factor 2.")
 
 @Function(
     "ret.par_factor = 4",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_4(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=4)
+def choose_par_factor_4(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=4,
+    )
     print("Choose par factor 4.")
 
 @Function(
     "ret.par_factor = 8",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_8(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=8)
+def choose_par_factor_8(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=8,
+    )
     print("Choose par factor 8.")
 
 @Function(
     "ret.par_factor = 16",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_16(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=16)
+def choose_par_factor_16(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=16,
+    )
     print("Choose par factor 16.")
 
 @Function(
     "ret.par_factor = 32",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_32(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=32)
+def choose_par_factor_32(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=32,
+    )
     print("Choose par factor 32.")
 
 @Function(
     "ret.par_factor = 64",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_64(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=64)
+def choose_par_factor_64(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=64,
+    )
     print("Choose par factor 64.")
 
 @Function(
     "ret.par_factor = 128",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_128(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=128)
+def choose_par_factor_128(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=128,
+    )
     print("Choose par factor 128.")
 
 @Function(
     "ret.par_factor = 256",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
     "ret.mlir_path = level.mlir_path",
 )
-def choose_par_factor_256(__hb_level: StreamLevelChoice, __hb_ret: ParFactorChoice):
-    ScheduleState.set_values(par_factor=256)
+def choose_par_factor_256(__hb_level: ParFactorLevelChoice, __hb_ret: ParFactorChoice):
+    ScheduleState.set_par_factor_for_level(
+        stream_level=__hb_level.stream_level,
+        par_factor=256,
+    )
     print("Choose par factor 256.")
 
 @Function(
     "ret.stream_shape = 16",
-    "ret.mlir_path = mlir.path",
-    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
 )
-def choose_default_stream_shape(__hb_mlir: MlirProgram, __hb_ret: StreamShapeChoice):
+def choose_default_stream_shape(__hb_ann: SparseAnnotationPass, __hb_ret: StreamShapeChoice):
     ScheduleState.set_values(stream_shape=16)
     print("Choose default stream shape (16).")
 
 @Function(
     "ret.stream_shape = 1",
-    "ret.mlir_path = mlir.path",
-    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
 )
-def choose_stream_shape_1(__hb_mlir: MlirProgram, __hb_ret: StreamShapeChoice):
+def choose_stream_shape_1(__hb_ann: SparseAnnotationPass, __hb_ret: StreamShapeChoice):
     ScheduleState.set_values(stream_shape=1)
     print("Choose stream shape 1.")
 
 @Function(
     "ret.stream_shape = 2",
-    "ret.mlir_path = mlir.path",
-    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
 )
-def choose_stream_shape_2(__hb_mlir: MlirProgram, __hb_ret: StreamShapeChoice):
+def choose_stream_shape_2(__hb_ann: SparseAnnotationPass, __hb_ret: StreamShapeChoice):
     ScheduleState.set_values(stream_shape=2)
     print("Choose stream shape 2.")
 
 @Function(
     "ret.stream_shape = 4",
-    "ret.mlir_path = mlir.path",
-    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
 )
-def choose_stream_shape_4(__hb_mlir: MlirProgram, __hb_ret: StreamShapeChoice):
+def choose_stream_shape_4(__hb_ann: SparseAnnotationPass, __hb_ret: StreamShapeChoice):
     ScheduleState.set_values(stream_shape=4)
     print("Choose stream shape 4.")
 
 @Function(
     "ret.stream_shape = 8",
-    "ret.mlir_path = mlir.path",
-    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
 )
-def choose_stream_shape_8(__hb_mlir: MlirProgram, __hb_ret: StreamShapeChoice):
+def choose_stream_shape_8(__hb_ann: SparseAnnotationPass, __hb_ret: StreamShapeChoice):
     ScheduleState.set_values(stream_shape=8)
     print("Choose stream shape 8.")
 
 @Function(
     "ret.stream_shape = 16",
-    "ret.mlir_path = mlir.path",
-    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
 )
-def choose_stream_shape_16(__hb_mlir: MlirProgram, __hb_ret: StreamShapeChoice):
+def choose_stream_shape_16(__hb_ann: SparseAnnotationPass, __hb_ret: StreamShapeChoice):
     ScheduleState.set_values(stream_shape=16)
     print("Choose stream shape 16.")
 
@@ -477,9 +1039,131 @@ def vectorization(__hb_block: BlockSparseChoice, __hb_ret: VectorizationPass):
     print("Vectorization.")
 
 @Function(
+    "par.stream_level = 0",
+    "par.num_loops = 1",
     "ret.mlir_path = par.mlir_path",
 )
-def parallelization(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+def parallelization_after_level_0(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 1",
+    "par.num_loops = 2",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_1(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 2",
+    "par.num_loops = 3",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_2(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 3",
+    "par.num_loops = 4",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_3(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 4",
+    "par.num_loops = 5",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_4(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 5",
+    "par.num_loops = 6",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_5(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 6",
+    "par.num_loops = 7",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_6(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 7",
+    "par.num_loops = 8",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_7(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 8",
+    "par.num_loops = 9",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_8(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 9",
+    "par.num_loops = 10",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_9(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 10",
+    "par.num_loops = 11",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_10(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 11",
+    "par.num_loops = 12",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_11(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 12",
+    "par.num_loops = 13",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_12(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 13",
+    "par.num_loops = 14",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_13(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 14",
+    "par.num_loops = 15",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_14(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
+    print("Parallelization.")
+
+@Function(
+    "par.stream_level = 15",
+    "par.num_loops = 16",
+    "ret.mlir_path = par.mlir_path",
+)
+def parallelization_after_level_15(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
     print("Parallelization.")
 
 @Function(
