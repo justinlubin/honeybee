@@ -69,13 +69,13 @@ struct Cli {
 enum Command {
     /// Run Honeybee interactively in the CLI
     Interact {
+        /// The Honeybee program to use (.hb.toml)
+        #[arg(value_name = "FILE")]
+        program: PathBuf,
+
         /// The library file to use (.hblib.toml)
         #[arg(short, long, value_name = "FILE")]
         library: PathBuf,
-
-        /// The Honeybee program to use (.hb.toml)
-        #[arg(short, long, value_name = "FILE")]
-        program: PathBuf,
 
         /// The codegen style to use
         #[arg(
