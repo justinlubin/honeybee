@@ -14,20 +14,40 @@ def stem(path):
     return os.path.splitext(os.path.basename(path))[0]
 
 
-@Helper
-def carry_over(src_object, dst_object, *, file=None):
-    def carry_one(f):
-        src = f"../../{src_object.path}/{f}"  # relative to dst
-        dst = f"{dst_object.path}/{f}"
-        if os.path.islink(src):
-            src = os.readlink(src)
-        os.symlink(src=src, dst=dst)
+# @Helper
+# def carry_over(src_object, dst_object, *, file=None):
+#     def carry_one(f):
+#         src = f"../../{src_object.path}/{f}"  # relative to dst
+#         dst = f"{dst_object.path}/{f}"
+#         if os.path.islink(src):
+#             src = os.readlink(src)
+#         os.symlink(src=src, dst=dst)
 
-    if file is None:
-        for file in os.listdir(src_object.path):
-            carry_one(file)
+#     if file is None:
+#         for file in os.listdir(src_object.path):
+#             carry_one(file)
+#     else:
+#         carry_one(file)
+
+
+@Helper
+def carry_over(source, destination):
+    if os.path.isdir(source):
+        for filename in os.listdir(source):
+            src = filename
+            if os.path.islink(src):
+                src = os.readlink(src)
+            src = os.path.relpath(src, start=destination)
+            dst = f"{destination}/{filename}"
+            os.symlink(src=src, dst=dst)
     else:
-        carry_one(file)
+        if os.path.islink(source):
+            source = os.readlink(source)
+        source = os.path.relpath(
+            source,
+            start=os.path.dirname(destination),
+        )
+        os.symlink(src=source, dst=destination)
 
 
 @Helper
@@ -117,14 +137,15 @@ def fastqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     [useful tutorial](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html#assessing-quality-metrics)
     for assessing the outputs of FastQC."""
 
-    # PARAMETER: The number of cores that you want FastQC to use
-    FASTQC_CORES = 4
+    # PARAMETER: The number of cores to use
+    CORES = 4
 
-    carry_over(__hb_reads, __hb_ret)
+    carry_over(__hb_reads.path, __hb_ret.path)
 
     fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
 
-    __hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
+    # -t number of cores, -o output
+    __hb_bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
 
 
 @Function(
@@ -163,13 +184,15 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     This function calls FastQC on the necessary files then aggregates them with
     MultiQC."""
 
-    FASTQC_CORES = 4
+    # PARAMETER: The number of cores to use
+    CORES = 4
 
-    carry_over(__hb_reads, __hb_ret)
+    carry_over(__hb_reads.path, __hb_ret.path)
 
     fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
 
-    __hb_bash(f"""fastqc -t {FASTQC_CORES} -o {__hb_ret.path} {fastqs}""")
+    # -t number of cores, -o output
+    __hb_bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
     __hb_bash(
         f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}"""
     )
@@ -192,7 +215,7 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     have already been removed, then you don't need to run any processing to
     try to remove them again."""
 
-    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+    carry_over(__hb_reads.path, __hb_ret.path)
 
 
 @Function(
@@ -220,24 +243,44 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The forward adapter, by default the Illumina universal
     FORWARD_ADAPTER = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
 
-    # PARAMETER: The reverse adapter, by default the Illumina universal
+    # PARAMETER: The reverse adapter, by default the Illumina universal (can delete for single-end only)
     REVERSE_ADAPTER = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
 
-    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+    # PARAMETER: The number of cores to use
+    CORES = 4
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+    carry_over(
+        f"{__hb_reads.path}/sample_sheet.csv",
+        f"{__hb_ret.path}/sample_sheet.csv",
+    )
 
-    for sample_name in sample_sheet["sample_name"]:
-        __hb_bash(f"""uv run cutadapt \\
-                    --cores=0 \\
-                    -m 1 \\
-                    --poly-a \\
-                    -a {FORWARD_ADAPTER} \\
-                    -A {REVERSE_ADAPTER} \\
-                    -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
-                    -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
-                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
-                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
+
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+            # -A reverse adapter, -o forward output, -o reverse output
+            __hb_bash(f"""uv run cutadapt \\
+                        --cores={CORES} \\
+                        -m 1 \\
+                        -a {FORWARD_ADAPTER} \\
+                        -A {REVERSE_ADAPTER} \\
+                        -o {__hb_ret.path}/{sample["forward_location"]} \\
+                        -p {__hb_ret.path}/{sample["reverse_location"]} \\
+                        {__hb_reads.path}/{sample["forward_location"]} \\
+                        {__hb_reads.path}/{sample["reverse_location"]}""")
+
+        # Single-end
+        else:
+            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+            # -o forward output
+            __hb_bash(f"""uv run cutadapt \\
+                        --cores={CORES} \\
+                        -m 1 \\
+                        -a {FORWARD_ADAPTER} \\
+                        -o {__hb_ret.path}/{sample["forward_location"]} \\
+                        {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 @Function(
@@ -347,6 +390,24 @@ class RnaSeq:
 
 
 @Output
+class SalmonIndex:
+    """@intermediate:Salmon index
+
+    TODO"""
+
+    path: str
+
+
+@Output
+class KallistoIndex:
+    """@intermediate:Kallisto index
+
+    TODO"""
+
+    path: str
+
+
+@Output
 class TranscriptMatrices:
     """RNA-seq transcript read counts
 
@@ -355,10 +416,11 @@ class TranscriptMatrices:
     in these tables is a **gene isoform** (mRNA transcript), of which there may
     be many per gene!
 
-    Additionally, some tools like [kallisto](https://pachterlab.github.io/kallisto/about)
+    Additionally, some tools like
+    [kallisto](https://pachterlab.github.io/kallisto/about)
     can quantify the uncertainty in read counts, which downstream tools like
-    [sleuth](https://pachterlab.github.io/sleuth/) can use for plotting error
-    bars.
+    [sleuth](https://pachterlab.github.io/sleuth/)
+    can use for plotting error bars.
 
     ## How these tables are made…
 
@@ -462,15 +524,25 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
     [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 
     sample_sheet = pl.read_csv(__hb_rna.sample_sheet)
+
+    # Store the resulting filenames for the new sample sheet we will create
     new_files = {}
 
+    # Loop through each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
+        # Collect the list of files to symlink/download for this sample
+
         files = [sample["forward_location"]]
-        if sample["reverse_location"].strip():
+        if sample["reverse_location"]:
             files.append(sample["reverse_location"])
 
+        # Loop through each file
         for file in files:
+            # If the file starts with "SRR", download it from ENA
             if file.startswith("SRR"):
+                assert file[:-2] in {"_1", "_2"}, "SRR must end in _1 or _2"
+
+                # Construct the URL
                 srr = file[:-2]  # remove _1 or _2
                 base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
                 base_url += srr[:6] + "/"
@@ -479,12 +551,15 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
 
                 new_file = file + ".fastq.gz"
 
+                # Download the file
                 __hb_bash(f"""
                      wget \\
                          --no-clobber \\
                          --directory-prefix={__hb_ret.path} \\
                          {base_url}{new_file}
                 """)
+
+            # Otherwise, symlink the file path (on the local machine)
             else:
                 new_file = os.path.basename(file)
                 os.symlink(
@@ -493,33 +568,11 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
                 )
             new_files[file] = new_file
 
+    # Create the new sample sheet with updated filenames
     sample_sheet.with_columns(
         forward_location=pl.col("forward_location").replace(new_files),
         reverse_location=pl.col("reverse_location").replace(new_files),
     ).write_csv(f"{__hb_ret.path}/sample_sheet.csv")
-
-
-@Function(
-    "ret.qc = false",
-    "ret.trimmed = false",
-    "ret.long = false",
-    "ret.type = 'rna'",
-    search=False,
-)
-def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: SeqReads):
-    """Load RNA-seq data from hard drive
-
-    # Load raw RNA-seq data already present on your computer
-
-    The raw RNA-seq files are typically in the `.fastq` or `.fastq.gz` file
-    format."""
-
-    carry_over(__hb_local, __hb_ret)
-
-    os.symlink(
-        src=__hb_local.sample_sheet,
-        dst=f"{__hb_ret.path}/sample_sheet.csv",
-    )
 
 
 @Function(
@@ -529,7 +582,7 @@ def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: SeqReads):
     "ret.qc = false",
     "ret.trimmed = true",
     "ret.long = reads.long",
-    "ret.type = 'rna'",
+    "ret.type = reads.type",
     google_scholar_id="4180123542769751602",
     citation="Marcel Martin. Cutadapt removes adapter sequences from "
     "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "
@@ -537,7 +590,7 @@ def load_local_rna_seq(__hb_local: LocalRnaSeq, __hb_ret: SeqReads):
     use="to remove the Illumina universal adapter and poly(A)-tails from mRNA",
 )
 def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt (inclugin poly(A) tails)
+    """cutadapt (+ trim poly(A) tails)
 
     # Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
@@ -568,52 +621,146 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The forward adapter, by default the Illumina universal
     FORWARD_ADAPTER = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
 
-    # PARAMETER: The reverse adapter, by default the Illumina universal
+    # PARAMETER: The reverse adapter, by default the Illumina universal (can delete for single-end only)
     REVERSE_ADAPTER = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
 
-    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+    # PARAMETER: The number of cores to use
+    CORES = 4
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+    carry_over(
+        f"{__hb_reads.path}/sample_sheet.csv",
+        f"{__hb_ret.path}/sample_sheet.csv",
+    )
 
-    for sample_name in sample_sheet["sample_name"]:
-        __hb_bash(f"""uv run cutadapt \\
-                    --cores=0 \\
-                    -m 1 \\
-                    --poly-a \\
-                    -a {FORWARD_ADAPTER} \\
-                    -A {REVERSE_ADAPTER} \\
-                    -o {__hb_ret.path}/{sample_name}_1.fastq.gz \\
-                    -p {__hb_ret.path}/{sample_name}_2.fastq.gz \\
-                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
-                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
+
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+            # -A reverse adapter, -o forward output, -o reverse output
+            __hb_bash(f"""uv run cutadapt \\
+                        --cores={CORES} \\
+                        -m 1 \\
+                        --poly-a \\
+                        -a {FORWARD_ADAPTER} \\
+                        -A {REVERSE_ADAPTER} \\
+                        -o {__hb_ret.path}/{sample["forward_location"]} \\
+                        -p {__hb_ret.path}/{sample["reverse_location"]} \\
+                        {__hb_reads.path}/{sample["forward_location"]} \\
+                        {__hb_reads.path}/{sample["reverse_location"]}""")
+
+        # Single-end
+        else:
+            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+            # -o forward output
+            __hb_bash(f"""uv run cutadapt \\
+                        --cores={CORES} \\
+                        -m 1 \\
+                        --poly-a \\
+                        -a {FORWARD_ADAPTER} \\
+                        -o {__hb_ret.path}/{sample["forward_location"]} \\
+                        {__hb_reads.path}/{sample["forward_location"]}""")
 
 
-@Function(
-    "reads.qc = true",
-    "reads.trimmed = true",
-    "reads.long = false",
-    "reads.type = 'rna'",
-    "ret.type = reads.type",
-    "ret.compressed = false",
-)
-def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """STAR"""
+# @Function(
+#     "reads.qc = true",
+#     "reads.trimmed = true",
+#     "reads.long = false",
+#     "reads.type = 'rna'",
+#     "ret.type = reads.type",
+#     "ret.compressed = false",
+# )
+# def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
+#     """STAR"""
 
-    # PARAMETER: The location of the STAR index on your computer
-    STAR_REFERENCE = "/Users/barb/Desktop/Indexes/star_index"
+#     # PARAMETER: The location of the STAR index on your computer
+#     STAR_REFERENCE = "/Users/barb/Desktop/Indexes/star_index"
 
-    # PARAMETER: The number of cores that you want STAR to use
-    STAR_CORES = 4
+#     # PARAMETER: The number of cores that you want STAR to use
+#     STAR_CORES = 4
 
-    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+#     carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+#     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
-    for sample_name in sample_sheet["sample_name"]:
-        __hb_bash(f"""STAR \\
-                  --runThreadN {STAR_CORES}
-                  --genomeDir {STAR_REFERENCE}
-                  --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+#     for sample_name in sample_sheet["sample_name"]:
+#         __hb_bash(f"""STAR \\
+#                   --runThreadN {STAR_CORES}
+#                   --genomeDir {STAR_REFERENCE}
+#                   --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+
+
+@Function
+def use_existing_kallisto_index(__hb_ret: KallistoIndex):
+    """Use existing index
+
+    TODO"""
+
+    # PARAMETER: The location of the kallisto transcriptome index on your computer
+    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+
+    carry_over(
+        KALLISTO_INDEX,
+        f"{__hb_ret.path}/kallisto.idx",
+    )
+
+
+@Function
+def create_kallisto_index(__hb_ret: KallistoIndex):
+    """Create new index from transcriptome
+
+    TODO"""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The location of the reference transcriptome on your computer (FASTA format)
+    TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
+
+    # -t number of cores, -i output filename for index
+    __hb_bash(f"""
+        kallisto index \\
+            -t {CORES} \\
+            -i {__hb_ret.path}/kallisto.idx \\
+            {TRANSCRIPTOME_PATH}
+    """)
+
+
+@Function
+def use_existing_salmon_index(__hb_ret: SalmonIndex):
+    """Use existing index
+
+    TODO"""
+
+    # PARAMETER: The location of the kallisto transcriptome index on your computer
+    SALMON_INDEX = "salmon_index"
+
+    carry_over(
+        SALMON_INDEX,
+        f"{__hb_ret.path}/salmon_index",
+    )
+
+
+@Function
+def create_salmon_index(__hb_ret: SalmonIndex):
+    """Create new index from transcriptome
+
+    TODO"""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The location of the reference transcriptome on your computer (FASTA format)
+    TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
+
+    # -p number of cores, -t path to transcriptome, -i output filename for index
+    __hb_bash(f"""
+        salmon index \\
+            -p {CORES} \\
+            -t {TRANSCRIPTOME_PATH} \\
+            -i {__hb_ret.path}/salmon_index
+    """)
 
 
 @Function(
@@ -628,7 +775,11 @@ def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
     "p 525--527 (2016).",
 )
-def kallisto(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
+def kallisto(
+    __hb_idx: KallistoIndex,
+    __hb_reads: SeqReads,
+    __hb_ret: TranscriptMatrices,
+):
     """kallisto
 
     # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/)
@@ -637,23 +788,30 @@ def kallisto(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     using a technique called _pseudoalignment_ that is much faster than a full
     alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 
-    # PARAMETER: The location of the kallisto transcriptome index on your computer
-    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+    # PARAMETER: The number of cores to use
+    CORES = 4
 
-    # PARAMETER: The number of cores that you want kallisto to use
-    KALLISTO_CORES = 4
+    carry_over(
+        f"{__hb_reads.path}/sample_sheet.csv",
+        f"{__hb_ret.path}/sample_sheet.csv",
+    )
 
-    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # -t number of cores, -i kallisto index, -o output folder
+            __hb_bash(f"""kallisto quant \\
+                        -t {CORES} \\
+                        -i {__hb_idx.path} \\
+                        -o {__hb_ret.path}/{sample["sample_name"]} \\
+                        {__hb_reads.path}/{sample["forward_location"]} \\
+                        {__hb_reads.path}/{sample["reverse_location"]}""")
 
-    for sample_name in sample_sheet["sample_name"]:
-        __hb_bash(f"""kallisto quant \\
-                    -t {KALLISTO_CORES} \\
-                    -i {KALLISTO_INDEX} \\
-                    -o {__hb_ret.path}/{sample_name} \\
-                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
-                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+        # Sinle-end
+        else:
+            raise NotImplementedError
 
 
 @Function(
@@ -661,17 +819,21 @@ def kallisto(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     "reads.trimmed = true",
     "reads.long = false",
     "reads.type = 'rna'",
-    "ret.bootstrapped = true",
+    "ret.bootstrapped = false",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
     citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "
     "probabilistic RNA-seq quantification, Nature Biotechnology 34, "
     "p 525--527 (2016).",
 )
-def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
-    """kallisto (with bootstrap)
+def kallisto_bootstrap(
+    __hb_idx: KallistoIndex,
+    __hb_reads: SeqReads,
+    __hb_ret: TranscriptMatrices,
+):
+    """kallisto (with bootstrap resampling)
 
-    # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/), with bootstrap estimates
+    # Quantify transcript abundances *without* alignment using [kallisto](https://pachterlab.github.io/kallisto/)
 
     kallisto is a tool that estimates the number of times a transcript appears
     using a technique called _pseudoalignment_ that is much faster than a full
@@ -679,29 +841,42 @@ def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
 
     This version runs kallisto with bootstrap resampling, which is required by
     downstream tools like [sleuth](https://pachterlab.github.io/sleuth/) that
-    incorporate measurement uncertainty into differential expression analysis."""
+    incorporate measurement uncertainty into differential expression analysis.
 
-    # PARAMETER: The location of the kallisto transcriptome index on your computer
-    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+    By default, this code uses 50 bootstrap resmamples. The higher this number
+    is, the more precise the quantification of uncertainty is, but the longer
+    the code will take to run. So, you should make this number as high as you
+    are willing to wait for!"""
 
-    # PARAMETER: The number of cores that you want kallisto to use
-    KALLISTO_CORES = 4
+    # PARAMETER: The number of cores to use
+    CORES = 4
 
-    # PARAMETER: The number of bootstrap samples
+    # PARAMETER: The number of bootstrap resamplings kallisto should perform
     KALLISTO_BOOTSTRAPS = 50
 
-    carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
+    carry_over(
+        f"{__hb_reads.path}/sample_sheet.csv",
+        f"{__hb_ret.path}/sample_sheet.csv",
+    )
 
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
 
-    for sample_name in sample_sheet["sample_name"]:
-        __hb_bash(f"""kallisto quant \\
-                    -b {KALLISTO_BOOTSTRAPS} \\
-                    -t {KALLISTO_CORES} \\
-                    -i {KALLISTO_INDEX} \\
-                    -o {__hb_ret.path}/{sample_name} \\
-                    {__hb_reads.path}/{sample_name}_1.fastq.gz \\
-                    {__hb_reads.path}/{sample_name}_2.fastq.gz""")
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # -b number of bootstrap resamplings, -t number of cores,
+            # -i kallisto index, -o output folder
+            __hb_bash(f"""kallisto quant \\
+                        -b {KALLISTO_BOOTSTRAPS}
+                        -t {CORES} \\
+                        -i {__hb_idx.path} \\
+                        -o {__hb_ret.path}/{sample["sample_name"]} \\
+                        {__hb_reads.path}/{sample["forward_location"]} \\
+                        {__hb_reads.path}/{sample["reverse_location"]}""")
+
+        # Sinle-end
+        else:
+            raise NotImplementedError
 
 
 ################################################################################
@@ -720,7 +895,11 @@ def kallisto_bootstrap(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     "Kingsford, C. (2017). Salmon provides fast and bias-aware quantification "
     "of transcript expression. Nature Methods.",
 )
-def salmon(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
+def salmon(
+    __hb_idx: SalmonIndex,
+    __hb_reads: SeqReads,
+    __hb_ret: TranscriptMatrices,
+):
     """Salmon
 
     # Quantify transcript abundances *without* alignment using [Salmon](https://salmon.readthedocs.io/en/latest/index.html)
@@ -729,33 +908,38 @@ def salmon(__hb_reads: SeqReads, __hb_ret: TranscriptMatrices):
     using a lightweight mapping technique that is much faster than a full
     alignment procedure like [STAR](https://github.com/alexdobin/STAR)'s."""
 
-    # PARAMETER: The location of the Salmon transcriptome index on your computer
-    SALMON_INDEX = "salmon_sa_index"
-
-    # PARAMETER: The number of cores that you want Salmon to use
+    # PARAMETER: The number of cores to use
     CORES = 4
 
     carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
 
     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
-    for sample_name in sample_sheet["sample_name"]:
+    for sample in sample_sheet["sample_name"]:
+        # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+        # reads, -o output folder
         __hb_bash(f"""salmon quant \\
-                    -i {SALMON_INDEX} \\
-                    -l A \\
                     -p {CORES} \\
-                    -1 {__hb_reads.path}/{sample_name}_1.fastq.gz \\
-                    -2 {__hb_reads.path}/{sample_name}_2.fastq.gz \\
-                    -o {__hb_ret.path}/{sample_name}""")
+                    -i {__hb_idx.path} \\
+                    -1 {__hb_reads.path}/{sample["forward_location"]} \\
+                    -2 {__hb_reads.path}/{sample["reverse_location"]} \\
+                    -o {__hb_ret.path}/{sample["sample_name"]}""")
 
-        # Convert Salmon's quant.sf to kallisto's abundance.tsv format
-        pl.read_csv(f"{__hb_ret.path}/{sample_name}/quant.sf", separator="\t").select(
+        # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
+        # compatability
+        pl.read_csv(
+            f"{__hb_ret.path}/{sample['sample_name']}/quant.sf",
+            separator="\t",
+        ).select(
             pl.col("Name").alias("target_id"),
             pl.col("Length").alias("length"),
             pl.col("EffectiveLength").alias("eff_length"),
             pl.col("NumReads").alias("est_counts"),
             pl.col("TPM").alias("tpm"),
-        ).write_csv(f"{__hb_ret.path}/{sample_name}/abundance.tsv", separator="\t")
+        ).write_csv(
+            f"{__hb_ret.path}/{sample['sample_name']}/abundance.tsv",
+            separator="\t",
+        )
 
 
 @Function(
@@ -837,14 +1021,16 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
 
     carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-    __hb_bash(f"""
-        Rscript deseq2.r \\
-            {ENSEMBL_VERSION} \\
-            {ENSEMBL_DATASET} \\
-            {__hb_data.path}/sample_sheet.csv \\
-            {__hb_ret.comparison_sheet} \\
-            {__hb_data.path}/counts.csv \\
-            {__hb_ret.path}""")
+    raise NotImplementedError
+
+    # __hb_bash(f"""
+    #     Rscript deseq2.r \\
+    #         {ENSEMBL_VERSION} \\
+    #         {ENSEMBL_DATASET} \\
+    #         {__hb_data.path}/sample_sheet.csv \\
+    #         {__hb_ret.comparison_sheet} \\
+    #         {__hb_data.path}/counts.csv \\
+    #         {__hb_ret.path}""")
 
 
 @Function(
@@ -876,14 +1062,16 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
 
     carry_over(__hb_data, __hb_ret, file="sample_sheet.csv")
 
-    __hb_bash(f"""
-        Rscript sleuth.r \\
-            {ENSEMBL_VERSION} \\
-            {ENSEMBL_DATASET} \\
-            {__hb_data.path}/sample_sheet.csv \\
-            {__hb_ret.comparison_sheet} \\
-            {__hb_data.path} \\
-            {__hb_ret.path}""")
+    raise NotImplementedError
+
+    # __hb_bash(f"""
+    #     Rscript sleuth.r \\
+    #         {ENSEMBL_VERSION} \\
+    #         {ENSEMBL_DATASET} \\
+    #         {__hb_data.path}/sample_sheet.csv \\
+    #         {__hb_ret.comparison_sheet} \\
+    #         {__hb_data.path} \\
+    #         {__hb_ret.path}""")
 
 
 ################################################################################
@@ -1351,6 +1539,7 @@ def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
     "reads.trimmed = true",
     "reads.long = false",
     "ret.type = reads.type",
+    "ret.compressed = false",
 )
 def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """TODO"""
@@ -1399,6 +1588,7 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     "reads.trimmed = true",
     "reads.long = false",
     "ret.type = reads.type",
+    "ret.compressed = false",
 )
 def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     """TODO"""
