@@ -25,6 +25,8 @@ RUN uv sync
 RUN apt-get -y install kallisto
 COPY playground playground
 
+RUN Rscript install_dependencies.r
+
 ###############################################################################
 # Set up PATH
 
