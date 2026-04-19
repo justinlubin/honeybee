@@ -829,7 +829,7 @@ def kallisto(
                         {__hb_reads.path}/{sample["forward_location"]} \\
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 
-        # Sinle-end
+        # Single-end
         else:
             raise NotImplementedError
 
@@ -894,7 +894,7 @@ def kallisto_bootstrap(
                         {__hb_reads.path}/{sample["forward_location"]} \\
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 
-        # Sinle-end
+        # Singe-end
         else:
             raise NotImplementedError
 
@@ -1158,7 +1158,7 @@ def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSe
     The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
     file format."""
 
-    carry_over(__hb_local, __hb_ret)
+    carry_over(__hb_local.path, __hb_ret.path)
 
     save(
         __hb_local.reference,
@@ -1186,7 +1186,7 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
 
     _This preprocessing step performs the in silico EM conversion._"""
 
-    carry_over(__hb_data, __hb_ret)
+    carry_over(__hb_data.path, __hb_ret.path)
 
     __hb_bash(f"""
         cat "{__hb_ret.path}/reference/unconverted.fasta" \
@@ -1226,7 +1226,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
     # PARAMETER: The path to the (in silico) EM-converted reference genome
     EM_REFERENCE_PATH = "/Users/barb/Documents/genomes/converted.fasta"
 
-    carry_over(__hb_data, __hb_ret)
+    carry_over(__hb_data.path, __hb_ret.path)
 
     save(
         EM_REFERENCE_PATH,
@@ -1305,7 +1305,7 @@ def load_local_em_seq(__hb_local: LocalEmSeq, __hb_ret: EmSeqNoRef):
     The raw EM-seq files are typically in the `.fastq` or `.fastq.gz` file
     format."""
 
-    carry_over(__hb_local, __hb_ret)
+    carry_over(__hb_local.path, __hb_ret.path)
 
 
 @Function(
@@ -1341,7 +1341,7 @@ def bismark_genome_preparation(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
             {REFERENCE_GENOME_FOLDER}
     """)
 
-    carry_over(__hb_input, __hb_ret)
+    carry_over(__hb_input.path, __hb_ret.path)
 
     save(
         REFERENCE_GENOME_FOLDER,
@@ -1375,7 +1375,7 @@ def use_existing_bismark_reference(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
     # PARAMETER: The folder containing the Bismark reference genome to align against
     BISMARK_GENOME_FOLDER = "/Users/barb/Documents/genomes/bismark_genome_folder"
 
-    carry_over(__hb_input, __hb_ret)
+    carry_over(__hb_input.path, __hb_ret.path)
 
     save(
         BISMARK_GENOME_FOLDER,
@@ -1551,7 +1551,7 @@ def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
 
     # symlink on fastqc files and path to reference
     # When loading data, save the reference sheet symlinked to reference/reference.fasta
-    carry_over(__hb_local, __hb_ret)
+    carry_over(__hb_local.path, __hb_ret.path)
 
     save(
         __hb_local.reference,
