@@ -839,7 +839,7 @@ def kallisto(
     "reads.trimmed = true",
     "reads.long = false",
     "reads.type = 'rna'",
-    "ret.bootstrapped = false",
+    "ret.bootstrapped = true",
     google_scholar_id="15817796957364212470",
     pmid="27043002",
     citation="NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal "

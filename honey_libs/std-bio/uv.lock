@@ -207,12 +207,7 @@ wheels = [
 ]
 
 [[package]]
-name = "honey-lang"
-version = "0.5.0"
-source = { editable = "../honey_lang" }
-
-[[package]]
-name = "honey-libs"
+name = "hblib-stdbio"
 version = "0.5.0"
 source = { virtual = "." }
 dependencies = [
@@ -231,7 +226,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cutadapt", specifier = ">=5.1" },
-    { name = "honey-lang", editable = "../honey_lang" },
+    { name = "honey-lang", editable = "../../honey_lang" },
     { name = "multiqc", specifier = ">=1.30" },
     { name = "polars", specifier = ">=1.33.0" },
 ]
@@ -241,6 +236,11 @@ dev = [
     { name = "ipython", specifier = ">=9.9.0" },
     { name = "ty", specifier = ">=0.0.12" },
 ]
+
+[[package]]
+name = "honey-lang"
+version = "0.5.0"
+source = { editable = "../../honey_lang" }
 
 [[package]]
 name = "humanfriendly"
