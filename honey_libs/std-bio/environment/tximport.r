@@ -1,5 +1,3 @@
-# TODO: Only works for kallisto
-
 ################################################################################
 # %% Imports
 
@@ -25,11 +23,11 @@ metadata = read.csv(SAMPLE_SHEET, header = TRUE)
 
 files = file.path(
     TRANSCRIPT_DIR,
-    metadata$sample,
+    metadata$sample_name,
     "abundance.h5"
 )
 
-names(files) = metadata$sample
+names(files) = metadata$sample_name
 
 # %% Create tx2gene using biomaRt
 

@@ -12,7 +12,7 @@ OPTIMIZE_ELM := false
 HERE_DIR := editor
 ENGINE_DIR := ../engine
 LANG_DIR := ../honey_lang
-GLUE_DIR := ../honey_libs
+GLUE_DIR := ../honey_libs/std-bio
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 
@@ -50,7 +50,7 @@ $(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
 		--target web
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
-	cd ../honey_libs && ty check
+	cd $(GLUE_DIR) && ty check
 	uv run \
 		--project $(GLUE_DIR) \
 		$(GLUE_DIR)/std-bio.py \
