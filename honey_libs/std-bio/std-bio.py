@@ -1,6 +1,5 @@
 import os
 import glob
-import datetime
 import polars as pl
 
 from honey_lang import Helper, Input, Output, Function, __hb_bash
@@ -63,6 +62,11 @@ def save(src, dst):
     dir = os.path.dirname(dst)
     os.makedirs(dir, exist_ok=True)
     os.symlink(src=os.path.abspath(src), dst=dst)
+
+
+@Helper
+def shared():
+    return "output/shared"
 
 
 ################################################################################
@@ -257,12 +261,7 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The number of cores to use
     CORES = 4
 
-    carry_over(
-        f"{__hb_reads.path}/*.csv",
-        __hb_ret.path,
-    )
-
-    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
         # Paired-end
@@ -312,15 +311,13 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     align long reads, minimap2 is a dedicated tool that aligns long reads much
     more quickly."""
 
-    carry_over(__hb_reads, __hb_ret, file="reference")
-
     for path in glob.glob(f"{__hb_reads.path}/*.fastq"):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         __hb_bash(f"""
             minimap2 -a \\
                 -x map-ont \\
                 --sam-hit-only \\
-                "{__hb_reads.path}/reference/reference.fasta" \\
+                "{shared()}/reference/reference.fasta" \\
                 "{path}" \\
                 > "{__hb_ret.path}/{sample_name}.sam"
         """)
@@ -338,8 +335,6 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
     # Converted uncompressed SAM files to compressed BAM files
 
     This step also **sorts** and **indexes** the alignments."""
-
-    carry_over(__hb_align, __hb_ret, file="reference")
 
     for path in glob.glob(f"{__hb_align.path}/*.sam"):
         sample_name = os.path.splitext(os.path.basename(path))[0]
@@ -606,13 +601,13 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
     sample_sheet.with_columns(
         forward_location=pl.col("forward_location").replace(new_files),
         reverse_location=pl.col("reverse_location").replace(new_files),
-    ).write_csv(f"{__hb_ret.path}/sample_sheet.csv")
+    ).write_csv(f"{shared()}/sample_sheet.csv")
 
     # Copy over the comparison sheet, if it exists
     if __hb_rna.comparison_sheet:
         carry_over(
             __hb_rna.comparison_sheet,
-            f"{__hb_ret.path}/comparison_sheet.csv",
+            f"{shared()}/comparison_sheet.csv",
         )
 
     # Otherwise, include all comparisons
@@ -625,7 +620,7 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
                 controls.append(conditions[i])
                 treatments.append(conditions[j])
         pl.DataFrame({"control": controls, "treatment": treatments}).write_csv(
-            f"{__hb_ret.path}/comparison_sheet.csv"
+            f"{shared()}/comparison_sheet.csv"
         )
 
 
@@ -681,12 +676,7 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The number of cores to use
     CORES = 4
 
-    carry_over(
-        f"{__hb_reads.path}/*.csv",
-        __hb_ret.path,
-    )
-
-    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
         # Paired-end
@@ -845,12 +835,7 @@ def kallisto(
     # PARAMETER: The number of cores to use
     CORES = 4
 
-    carry_over(
-        f"{__hb_reads.path}/*.csv",
-        __hb_ret.path,
-    )
-
-    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
         # Paired-end
@@ -908,12 +893,7 @@ def kallisto_bootstrap(
     # PARAMETER: The number of bootstrap resamplings kallisto should perform
     KALLISTO_BOOTSTRAPS = 50
 
-    carry_over(
-        f"{__hb_reads.path}/*.csv",
-        __hb_ret.path,
-    )
-
-    sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
         # Paired-end
@@ -965,12 +945,7 @@ def salmon(
     # PARAMETER: The number of cores to use
     CORES = 4
 
-    carry_over(
-        f"{__hb_reads.path}/*.csv",
-        __hb_ret.path,
-    )
-
-    sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet["sample_name"]:
         # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
@@ -1024,16 +999,11 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    carry_over(
-        f"{__hb_data.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
-    )
-
     __hb_bash(f"""
         Rscript tximport.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {__hb_data.path}/sample_sheet.csv \\
+            {shared()}/sample_sheet.csv \\
             {__hb_data.path} \\
             {__hb_ret.path}""")
 
@@ -1076,17 +1046,12 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    carry_over(
-        f"{__hb_data.path}/*.csv",
-        __hb_ret.path,
-    )
-
     __hb_bash(f"""
         Rscript deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {__hb_ret.path}/sample_sheet.csv \\
-            {__hb_ret.path}/comparison_sheet.csv \\
+            {shared()}/sample_sheet.csv \\
+            {shared()}/comparison_sheet.csv \\
             {__hb_data.path}/counts.csv \\
             {__hb_ret.path}""")
 
@@ -1127,8 +1092,8 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
         Rscript sleuth.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {__hb_ret.path}/sample_sheet.csv \\
-            {__hb_ret.path}/comparison_sheet.csv \\
+            {shared()}/sample_sheet.csv \\
+            {shared()}/comparison_sheet.csv \\
             {__hb_data.path} \\
             {__hb_ret.path}""")
 
@@ -1196,7 +1161,7 @@ def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSe
 
     save(
         __hb_local.reference,
-        f"{__hb_ret.path}/reference/unconverted.fasta",
+        f"{shared()}/reference/unconverted.fasta",
     )
 
 
@@ -1223,7 +1188,7 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
     carry_over(__hb_data.path, __hb_ret.path)
 
     __hb_bash(f"""
-        cat "{__hb_ret.path}/reference/unconverted.fasta" \
+        cat "{shared()}/reference/unconverted.fasta" \
             | sed '/^>/s/$/ (in silico C -> T converted)/' \
             | sed '/^[^>]/s/C/T/g' \
             | sed '/^[^>]/s/c/t/g' \
@@ -1264,7 +1229,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 
     save(
         EM_REFERENCE_PATH,
-        f"{__hb_ret.path}/reference/reference.fasta",
+        f"{shared()}/reference/reference.fasta",
     )
 
 
@@ -1294,7 +1259,7 @@ def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         __hb_bash(f"""
             uv run LEMONmC.py \
-                --ref "{__hb_bam.path}/reference/unconverted.fasta" \
+                --ref "{shared()}/reference/unconverted.fasta" \
                 --bam "{path}" \
                 --tsv "{__hb_ret.path}/{sample_name}.tsv"
         """)
@@ -1362,16 +1327,13 @@ def bismark_genome_preparation(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
 
     _This preprocessing step performs the in silico EM conversion._"""
 
-    # PARAMETER: The number of cores that you want Bismark to use
-    BISMARK_CORES = 4
-
     # PARAMETER: The folder containing the (unconverted) reference genome to align against
     REFERENCE_GENOME_FOLDER = "/Users/barb/Documents/genomes/genome_folder"
 
     __hb_bash(f"""
         bismark_genome_preparation \
             --verbose \
-            --parallel {max(BISMARK_CORES // 2, 1)} \
+            --parallel 1 \
             {REFERENCE_GENOME_FOLDER}
     """)
 
@@ -1440,9 +1402,6 @@ def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     under the hood to align wet-lab EM-converted sample reads to an in silico
     EM-converted reference."""
 
-    # PARAMETER: The number of cores that you want Bismark to use
-    BISMARK_CORES = 4
-
     # PARAMETER: The suffix at the end of the filenames for the forward reads
     FORWARD_READ_SUFFIX = "_R1"
 
@@ -1455,7 +1414,7 @@ def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
         __hb_bash(f"""
             bismark \
                 --bam \
-                --parallel {max(BISMARK_CORES // 4, 1)} \
+                --parallel 1 \
                 --genome {__hb_reads.path}/reference \
                 -o {__hb_ret.path} \
                 -1 {__hb_reads.path}/{sample_name}{FORWARD_READ_SUFFIX}.fastq.gz \
@@ -1482,14 +1441,11 @@ def bismark_methylation_extractor(
     the number of methylated and unmethylated reads at each CpG. These files
     enable essentially any downstream analysis of interest."""
 
-    # PARAMETER: The number of cores that you want Bismark to use
-    BISMARK_CORES = 4
-
     for path in glob.glob(f"{__hb_input.path}/*.bam"):
         print(f"Running bismark_methylation_extractor on '{path}'...")
         __hb_bash(f"""
             bismark_methylation_extractor \
-               --parallel {max(BISMARK_CORES // 3, 1)} \
+               --parallel 1 \
                --gzip \
                --bedGraph \
                -o {__hb_ret.path} \
@@ -1535,21 +1491,13 @@ def bismark_methylation_extractor(
 
 
 @Input
-class LocalAtacSeq:
+class AtacSeq:
     "ATAC-seq (stored on your own hard drive)"
 
     path: str
     """TODO"""
 
     reference: str
-    """TODO"""
-
-
-@Input
-class SraAtacSeq:
-    "ATAC-seq (stored on the Sequence Read Archive)"
-
-    sample_sheet: str
     """TODO"""
 
 
@@ -1567,20 +1515,7 @@ class AtacPeaks:
     "ret.type = 'atac'",
     search=False,
 )
-def load_sra_atac_seq(__hb_sra: SraAtacSeq, __hb_ret: SeqReads):
-    """TODO"""
-
-    raise NotImplementedError
-
-
-@Function(
-    "ret.qc = false",
-    "ret.trimmed = false",
-    "ret.long = false",
-    "ret.type = 'atac'",
-    search=False,
-)
-def load_local_atac_seq(__hb_local: LocalAtacSeq, __hb_ret: SeqReads):
+def load_local_atac_seq(__hb_local: AtacSeq, __hb_ret: SeqReads):
     """TODO"""
 
     # symlink on fastqc files and path to reference
@@ -1739,19 +1674,6 @@ def macs3(__hb_bam: SeqAlignment, __hb_ret: AtacPeaks):
 # ) -> TranscriptMatrices.D:
 #     raise NotImplementedError
 
-# @Output
-# class Alignment:
-#     "Alignment to a reference genome"
-#
-#     class S:
-#         label: str
-#         "Label for data"
-#
-#     class D:
-#         sample_sheet: str
-#         path: str
-#
-#
 # @Function(
 #     "ret.label = data.label",
 #     "ret.bc = false", # TODO why does removing this crash HB?
@@ -1776,79 +1698,3 @@ def macs3(__hb_bam: SeqAlignment, __hb_ret: AtacPeaks):
 #     > Bioinformatics, 30(7):923-30."""
 #
 #     raise NotImplementedError # Coming soon!
-#
-#
-# @Function(
-#     "data.qc = true",
-#     "ret.label = data.label",
-# )
-# def star(data: RnaSeq, ret: Alignment.S) -> Alignment.D:
-#     "STAR"
-#     pass
-#
-# @Prop
-# class CutAndRunProp:
-#     "CUT&RUN-seq"
-#
-#     label: str
-#     "Label for data"
-#
-#     sample_sheet: str
-#     "Path to sample sheet CSV"
-#
-#     raw_data: str
-#     "Path to raw FASTQ files"
-#
-#
-# @Prop
-# class EMSeqProp:
-#     "EM-seq"
-#
-#     label: str
-#     "Label for data"
-#
-#     sample_sheet: str
-#     "Path to sample sheet CSV"
-#
-#     raw_data: str
-#     "Path to raw FASTQ files"
-#
-#
-# @Prop
-# class FlowProp:
-#     "Flow cytometry"
-#
-#     label: str
-#     "Label for data"
-#
-#     sample_sheet: str
-#     "Path to sample sheet CSV"
-#
-#     raw_data: str
-#     "Path to raw FCS files"
-#
-#
-# @Prop
-# class SortProp:
-#     "Sort cells with FACS"
-#
-#     label: str
-#     "Label for data"
-#
-#
-# @Prop
-# class StainProp:
-#     "Stain cells with antibodies"
-#
-#     label: str
-#     "Label for data"
-#
-# @Prop
-# class TransfectProp:
-#     "Infect cells with CRISPR sgRNA guide library"
-#
-#     label: str
-#     "Label for data"
-#
-#     library: str
-#     "Path to the library file"

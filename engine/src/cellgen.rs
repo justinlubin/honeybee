@@ -234,7 +234,8 @@ impl<'a> Context<'a> {
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
 
-                let path_prefix = format!("{:03}-", self.cells.len() * 10);
+                let path_prefix =
+                    format!("output/{:03}-", self.cells.len() * 10);
 
                 self.cells.push(Cell::Code {
                     title: f_sig
