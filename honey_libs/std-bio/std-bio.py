@@ -32,7 +32,15 @@ def stem(path):
 
 @Helper
 def carry_over(source, destination):
-    if os.path.isdir(source):
+    if "*" in source:
+        for filename in glob.glob(source):
+            src = filename
+            if os.path.islink(src):
+                src = os.readlink(src)
+            src = os.path.relpath(src, start=destination)
+            dst = f"{destination}/{filename}"
+            os.symlink(src=src, dst=dst)
+    elif os.path.isdir(source):
         for filename in os.listdir(source):
             src = filename
             if os.path.islink(src):
@@ -232,7 +240,7 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     use="to remove sequencing adapters",
 )
 def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt
+    """cutadapt (include poly(A) tails)
 
     # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
@@ -250,8 +258,8 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     CORES = 4
 
     carry_over(
-        f"{__hb_reads.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_reads.path}/*.csv",
+        __hb_ret.path,
     )
 
     sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
@@ -388,6 +396,32 @@ class RnaSeq:
       to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
       identifier."""
 
+    comparison_sheet: str
+    """(Optional!) Path to comparison sheet CSV
+
+    @example:/Users/barb/Desktop/MyExperiment/metadata/comparison_sheet.csv
+
+    If you want to compare some of the conditions defined in your sample sheet,
+    include a path to a CSV that describes the comparisons you want to make
+    in this field. Otherwise, you can leave it blank to make _all_ comparisons.
+    (Depending on your analysis and number of conditions, it may take a long
+    time to run all comparisons!)
+    
+    Here is an example CSV file (the headers must match exactly):
+
+    | control   | treatment  |
+    |-----------|------------|
+    | untreated | treatment1 |
+    | untreated | treatment2 |
+
+    Each row is one comparison to make.
+
+    The `control` column is the control condition, and the `treatment` column
+    is the treatment condition.
+
+    **Important Note:** The entries must match the `condition` names from the
+    sample sheet above exactly!"""
+
 
 @Output
 class SalmonIndex:
@@ -508,26 +542,6 @@ class DifferentialGeneExpression:
 
     path: str
 
-    comparison_sheet: str
-    """@nosuggest:Path to comparison sheet CSV
-
-    @example:/Users/barb/Desktop/MyExperiment/metadata/comparison_sheet.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | control   | treatment  |
-    |-----------|------------|
-    | untreated | treatment1 |
-    | untreated | treatment2 |
-
-    Each row is one comparison to make.
-
-    The `control` column is the control condition, and the `treatment` column
-    is the treatment condition.
-
-    **Important Note:** The entries must match the `condition` names from the
-    sample sheet above exactly!"""
-
 
 @Function(
     "ret.qc = false",
@@ -594,6 +608,26 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
         reverse_location=pl.col("reverse_location").replace(new_files),
     ).write_csv(f"{__hb_ret.path}/sample_sheet.csv")
 
+    # Copy over the comparison sheet, if it exists
+    if __hb_rna.comparison_sheet:
+        carry_over(
+            __hb_rna.comparison_sheet,
+            f"{__hb_ret.path}/comparison_sheet.csv",
+        )
+
+    # Otherwise, include all comparisons
+    else:
+        conditions = sample_sheet["condition"].unique(maintain_order=True)
+        controls = []
+        treatments = []
+        for i in range(0, len(conditions)):
+            for j in range(i + 1, len(conditions)):
+                controls.append(conditions[i])
+                treatments.append(conditions[j])
+        pl.DataFrame({"control": controls, "treatment": treatments}).write_csv(
+            f"{__hb_ret.path}/comparison_sheet.csv"
+        )
+
 
 @Function(
     "reads.qc = true",
@@ -610,7 +644,7 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
     use="to remove the Illumina universal adapter and poly(A)-tails from mRNA",
 )
 def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt (+ trim poly(A) tails)
+    """cutadapt (remove poly(A) tails)
 
     # Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
@@ -648,8 +682,8 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     CORES = 4
 
     carry_over(
-        f"{__hb_reads.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_reads.path}/*.csv",
+        __hb_ret.path,
     )
 
     sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
@@ -812,8 +846,8 @@ def kallisto(
     CORES = 4
 
     carry_over(
-        f"{__hb_reads.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_reads.path}/*.csv",
+        __hb_ret.path,
     )
 
     sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
@@ -875,8 +909,8 @@ def kallisto_bootstrap(
     KALLISTO_BOOTSTRAPS = 50
 
     carry_over(
-        f"{__hb_reads.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_reads.path}/*.csv",
+        __hb_ret.path,
     )
 
     sample_sheet = pl.read_csv(f"{__hb_ret.path}/sample_sheet.csv")
@@ -932,8 +966,8 @@ def salmon(
     CORES = 4
 
     carry_over(
-        f"{__hb_reads.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_reads.path}/*.csv",
+        __hb_ret.path,
     )
 
     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
@@ -1043,16 +1077,16 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     carry_over(
-        f"{__hb_data.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_data.path}/*.csv",
+        __hb_ret.path,
     )
 
     __hb_bash(f"""
         Rscript deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {__hb_data.path}/sample_sheet.csv \\
-            {__hb_ret.comparison_sheet} \\
+            {__hb_ret.path}/sample_sheet.csv \\
+            {__hb_ret.path}/comparison_sheet.csv \\
             {__hb_data.path}/counts.csv \\
             {__hb_ret.path}""")
 
@@ -1085,16 +1119,16 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     carry_over(
-        f"{__hb_data.path}/sample_sheet.csv",
-        f"{__hb_ret.path}/sample_sheet.csv",
+        f"{__hb_data.path}/*.csv",
+        __hb_ret.path,
     )
 
     __hb_bash(f"""
         Rscript sleuth.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
-            {__hb_data.path}/sample_sheet.csv \\
-            {__hb_ret.comparison_sheet} \\
+            {__hb_ret.path}/sample_sheet.csv \\
+            {__hb_ret.path}/comparison_sheet.csv \\
             {__hb_data.path} \\
             {__hb_ret.path}""")
 
