@@ -1,7 +1,9 @@
+options(pkgType = "binary")
+
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-BiocManager::install(version = "3.22")
+BiocManager::install(version = "3.18")
 BiocManager::install("tximport")
 BiocManager::install("DESeq2")
 BiocManager::install("rhdf5")

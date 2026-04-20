@@ -560,7 +560,6 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
     # Loop through each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
         # Collect the list of files to symlink/download for this sample
-
         files = [sample["forward_location"]]
         if sample["reverse_location"]:
             files.append(sample["reverse_location"])
