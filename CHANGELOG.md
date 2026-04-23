@@ -7,6 +7,7 @@ of Honeybee.
 
 ### Added
 
+- Added Honeybee Standard Bio Docker image
 - Added basic EM-seq support
 
 ### Changed
