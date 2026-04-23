@@ -327,16 +327,3 @@ def Helper(obj):
     print(f"[[Preamble]]\ncontent='''{code.strip()}'''\n")
 
     return obj
-
-
-def __hb_bash(command):
-    print(f"Running bash command:\n\n{command}\n")
-
-    p = subprocess.run(
-        command,
-        shell=True,
-        text=True,
-    )
-
-    if p.returncode != 0:
-        raise ValueError(f"Non-zero exit code: {p.returncode}")

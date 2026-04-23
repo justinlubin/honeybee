@@ -19,6 +19,7 @@ extra-paths = ["../../honey_lang"]
 
 [dependency-groups]
 dev = [
+    "globus-cli>=3.41.0",
     "ipython>=9.9.0",
     "ty>=0.0.12",
 ]
