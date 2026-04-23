@@ -404,15 +404,15 @@ class RnaSeq:
     
     Here is an example CSV file (the headers must match exactly):
 
-    | control   | treatment  |
-    |-----------|------------|
-    | untreated | treatment1 |
-    | untreated | treatment2 |
+    | control_condition | treatment_condition |
+    |-------------------|---------------------|
+    | untreated         | treatment1          |
+    | untreated         | treatment2          |
 
     Each row is one comparison to make.
 
-    The `control` column is the control condition, and the `treatment` column
-    is the treatment condition.
+    The `control_condition` column is the control condition, and the
+    `treatment_condition` column is the treatment condition.
 
     **Important Note:** The entries must match the `condition` names from the
     sample sheet above exactly!"""
@@ -738,7 +738,8 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
 def use_existing_kallisto_index(__hb_ret: KallistoIndex):
     """Use existing index
 
-    TODO"""
+    If you already have a kallisto index for the transcriptome you'd like to
+    use, you can use this code to skip creating a new one."""
 
     # PARAMETER: The location of the kallisto transcriptome index on your computer
     KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
@@ -750,10 +751,43 @@ def use_existing_kallisto_index(__hb_ret: KallistoIndex):
 
 
 @Function
-def create_kallisto_index(__hb_ret: KallistoIndex):
-    """Create new index from transcriptome
+def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
+    """Create new index from HUMAN transcriptome (hg38)
 
-    TODO"""
+    This code creates a kallisto index from the human transcriptome (hg38). It
+    automatically downloads the human transcriptome for you from
+    [Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The version of Ensembl to use for gene annotations
+    ENSEMBL_VERSION = "115"
+
+    __hb_bash(f"""
+        wget \
+            --directory-prefix {shared()}/transcriptomes \
+            https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+    """)
+
+    # -t number of cores, -i output filename for index
+    __hb_bash(f"""
+        kallisto index \\
+            -t {CORES} \\
+            -i {__hb_ret.path}/kallisto.idx \\
+            {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+    """)
+
+
+@Function
+def create_kallisto_index(__hb_ret: KallistoIndex):
+    """Create new index from OTHER transcriptome
+
+    This code creates a kallisto index from an existing transcriptome file on
+    your computer. This transcriptome file should contain the complementary
+    DNA (cDNA) for your transcripts of interest. A good place to download
+    transcriptome files is the
+    [Ensembl genome repository](https://www.ensembl.org/)."""
 
     # PARAMETER: The number of cores to use
     CORES = 4

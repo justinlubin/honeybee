@@ -234,7 +234,7 @@ def _emit_function_sig(f, condition, kwargs):
 
     hyper_parameters = {}
     src = inspect.getsource(f)
-    it = iter(src[src.index("):") :].splitlines())
+    it = iter(src[src.index("):", src.index("__hb_ret")) :].splitlines())
     next(it)
     while True:
         try:

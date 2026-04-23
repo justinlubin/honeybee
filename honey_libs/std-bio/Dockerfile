@@ -19,9 +19,22 @@ RUN Rscript -e 'install.packages("devtools")'
 # # Other dependencies
 RUN apt-get update
 RUN apt-get -y install fastqc
-RUN apt-get -y install kallisto
 RUN apt-get -y install less
 RUN apt-get -y install python3-dev
+RUN apt-get -y install wget
+RUN apt-get -y install cmake
+
+RUN wget https://github.com/pachterlab/kallisto/archive/refs/tags/v0.52.0.zip
+RUN unzip v0.52.0.zip && \
+    cd kallisto-0.52.0 && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make
+RUN mkdir -p /root/.local/bin/
+RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
+RUN rm v0.52.0.zip
+RUN rm -rf kallisto-0.52.0
 
 # # uv dependencies
 RUN apt-get -y install curl
@@ -41,6 +54,8 @@ RUN uv add --dev jupyter
 # RUN uv add --dev 'python-lsp-server'
 RUN uv sync
 RUN rm main.py
+
+RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
 # # Final setup
 COPY environment environment
