@@ -36,7 +36,13 @@ RUN uv add cutadapt
 RUN uv add multiqc
 RUN uv add polars
 RUN uv add --dev jupyter
+# RUN uv add --dev jupyterlab-lsp
+# RUN uv add --dev jupyter-lsp
+# RUN uv add --dev 'python-lsp-server'
 RUN uv sync
+RUN rm main.py
 
 # # Final setup
 COPY environment environment
+COPY environment/_DO_NOT_EDIT.md .
+# COPY jupyter /root/.jupyter
