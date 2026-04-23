@@ -40,4 +40,3 @@ RUN uv sync
 
 # # Final setup
 COPY environment environment
-COPY playground playground
