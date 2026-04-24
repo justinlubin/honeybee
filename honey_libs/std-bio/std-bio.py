@@ -4,7 +4,9 @@ import re
 import subprocess
 import polars as pl
 
-from honey_lang import Function, Helper, Input, Output
+from honey_lang import Function, Helper, Input, Output, initialize
+
+initialize()
 
 ################################################################################
 # %% Helper
@@ -16,8 +18,8 @@ def log(text):
 
 
 @Helper
-def bash(command):
-    command = re.sub("\s+", " ", command)
+def bash(command, redirect_stderr=True):
+    command = re.sub(r"\s+", " ", command)
 
     log(f"### Running bash command:\n\n{command}\n\n### Output:\n")
 
@@ -25,7 +27,7 @@ def bash(command):
         command,
         shell=True,
         text=True,
-        stderr=subprocess.STDOUT,
+        stderr=subprocess.STDOUT if redirect_stderr else None,
     )
 
     log(f"\n### Exit code:\n\n{p.returncode}\n")
@@ -602,9 +604,10 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
 
                 # Download the file
                 bash(f"""
-                     wget \\
-                         --no-clobber \\
-                         --directory-prefix={__hb_ret.path} \\
+                     wget
+                         --progress=bar:force
+                         --no-clobber
+                         --directory-prefix={__hb_ret.path}
                          {base_url}{new_file}
                 """)
 
@@ -786,8 +789,9 @@ def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
     ENSEMBL_VERSION = "115"
 
     bash(f"""
-        wget \
-            --directory-prefix {shared()}/transcriptomes \
+        wget
+            --progress=bar:force
+            --directory-prefix {shared()}/transcriptomes
             https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
     """)
 

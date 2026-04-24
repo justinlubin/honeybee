@@ -1,14 +1,10 @@
 import ast
-import datetime
-import glob
 import inspect
-import os
 import re
-import subprocess
 from dataclasses import dataclass
 
 
-def deindent(s):
+def _deindent(s):
     # https://stackoverflow.com/a/2378988
     initial_indent = len(s) - len(s.lstrip())
     ret = ""
@@ -19,7 +15,7 @@ def deindent(s):
 
 # Based on https://stackoverflow.com/a/77628177
 def _attribute_info(cls):
-    src = deindent(inspect.getsource(cls))
+    src = _deindent(inspect.getsource(cls))
     tree = ast.parse(src.strip())
     for t in ast.walk(tree):
         if isinstance(t, ast.ClassDef):
@@ -270,7 +266,16 @@ def _emit_function_sig(f, condition, kwargs):
     print()
 
 
+################################################################################
+# Export
+
+_initialize_ran = False
+
+
 def Input(cls):
+    if not _initialize_ran:
+        raise ValueError("Must call honey_lang.initialize() at top of library")
+
     _emit_met_sig("InputType", cls)
     _emit_met_sig("InputProp", cls)
     cls.__honeybee_type = True
@@ -278,12 +283,18 @@ def Input(cls):
 
 
 def Output(cls):
+    if not _initialize_ran:
+        raise ValueError("Must call honey_lang.initialize() at top of library")
+
     _emit_met_sig("OutputType", cls)
     cls.__honeybee_type = True
     return cls
 
 
 def Function(*args, **kwargs):
+    if not _initialize_ran:
+        raise ValueError("Must call honey_lang.initialize() at top of library")
+
     def wrap(f):
         _emit_function_sig(f, args, kwargs)
         return f
@@ -296,30 +307,9 @@ def Function(*args, **kwargs):
         return wrap
 
 
-helper_ran = False
-
-
 def Helper(obj):
-    global helper_ran
-    obj_file = inspect.getsourcefile(obj)
-    if obj_file is None:
-        raise ValueError("Unknown object file for " + str(obj))
-    if obj_file != __file__ and not helper_ran:
-        imports = []
-        with open(obj_file, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("import") or line.startswith("from"):
-                    imports.append(line)
-                else:
-                    break
-        for needed_import in ["from dataclasses import dataclass", "import os"]:
-            if needed_import not in imports:
-                imports.append(needed_import)
-        imports.sort()
-        print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}'''\n")
-
-        helper_ran = True
+    if not _initialize_ran:
+        raise ValueError("Must call honey_lang.initialize() at top of library")
 
     code = ""
     for line in inspect.getsource(obj).splitlines()[1:]:
@@ -327,3 +317,36 @@ def Helper(obj):
     print(f"[[Preamble]]\ncontent='''{code.strip()}'''\n")
 
     return obj
+
+
+def initialize(erase_static=True):
+    global _initialize_ran
+
+    if _initialize_ran:
+        raise ValueError("Must call honey_lang.initialize() only once")
+
+    # Add config
+
+    print("[Config]")
+    print("erase_static =", "true" if erase_static else "false")
+    print()
+
+    # Add imports
+
+    file = inspect.stack()[1].filename
+
+    imports = []
+    with open(file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("import") or line.startswith("from"):
+                imports.append(line)
+            else:
+                break
+    for needed_import in ["from dataclasses import dataclass", "import os"]:
+        if needed_import not in imports:
+            imports.append(needed_import)
+    imports.sort()
+    print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}'''\n")
+
+    _initialize_ran = True
