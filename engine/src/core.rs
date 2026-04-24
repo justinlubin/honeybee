@@ -251,6 +251,8 @@ pub struct Library {
     pub functions: FunctionLibrary,
     #[serde(rename = "Preamble")]
     pub preamble: Option<Vec<IndexMap<String, String>>>,
+    #[serde(rename = "Config")]
+    pub config: Option<toml::Table>,
 }
 
 /// The type of Honeybee programs.

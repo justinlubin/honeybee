@@ -106,6 +106,7 @@ struct Context<'a> {
     fresh_counter: HashMap<String, usize>,
     used_types: IndexSet<MetName>,
     used_functions: IndexSet<BaseFunction>,
+    paths: HashMap<String, String>,
 }
 
 impl<'a> Context<'a> {
@@ -169,13 +170,13 @@ impl<'a> Context<'a> {
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
-        path_prefix: &str,
+        path: &str,
     ) -> String {
         let mut s = format!("{} = {}(", var_name, type_name);
         let mut needs_newline = false;
         if implementation.is_some() {
             needs_newline = true;
-            s += &format!("\n    path=\"{}{}\",", path_prefix, function_name);
+            s += &format!("\n    path=\"{}\",", path);
         }
         if !metadata.is_empty() {
             needs_newline = true;
@@ -188,7 +189,10 @@ impl<'a> Context<'a> {
         if needs_newline {
             s += "\n";
         }
-        s += ")";
+        s += &format!(
+            "\n\n{}{}{}",
+            r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
+        );
 
         match implementation {
             Some(imp) => {
@@ -237,6 +241,10 @@ impl<'a> Context<'a> {
                 let path_prefix =
                     format!("output/{:03}-", self.cells.len() * 10);
 
+                let function_name = &f.name.0;
+
+                let path = format!("{}{}", path_prefix, function_name);
+
                 self.cells.push(Cell::Code {
                     title: f_sig
                         .info_string("title")
@@ -245,18 +253,20 @@ impl<'a> Context<'a> {
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
-                        &f.name.0,
+                        function_name,
                         &f.metadata
                             .iter()
                             .map(|(mp, v)| (mp.0.clone(), python_value(v)))
                             .collect(),
                         &arg_strings,
                         f_sig.info_string("code"),
-                        &path_prefix,
+                        &path,
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
                 });
+
+                self.paths.insert(var_name.to_owned(), path);
             }
         }
     }
@@ -358,6 +368,10 @@ impl<'a> Context<'a> {
     }
 }
 
+fn get_erase_static(library: &Library) -> Option<bool> {
+    library.config.as_ref()?.get("erase_static")?.as_bool()
+}
+
 pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
     let mut ctx = Context {
         library,
@@ -365,12 +379,40 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         fresh_counter: HashMap::new(),
         used_types: IndexSet::new(),
         used_functions: IndexSet::new(),
+        paths: HashMap::new(),
     };
 
     ctx.exp("GOAL", e);
     ctx.preamble();
 
-    ctx.cells
+    let mut cells = ctx.cells;
+
+    if get_erase_static(library) == Some(true) {
+        return cells;
+        for cell in &mut cells {
+            match cell {
+                Cell::Code {
+                    title,
+                    description,
+                    code,
+                    open_when_editing,
+                    open_when_exporting,
+                } => todo!(),
+                Cell::Hole {
+                    var_name,
+                    hole_name,
+                } => todo!(),
+                Cell::Choice {
+                    var_name,
+                    type_title,
+                    type_description,
+                    function_choices,
+                } => todo!(),
+            }
+        }
+    }
+
+    cells
 }
 
 ////////////////////////////////////////////////////////////////////////////////
