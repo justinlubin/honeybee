@@ -4,17 +4,12 @@ import re
 import subprocess
 import polars as pl
 
-from honey_lang import Function, Helper, Input, Output, initialize
+from honey_lang import Function, Helper, Input, Output, initialize, log
 
 initialize()
 
 ################################################################################
 # %% Helper
-
-
-@Helper
-def log(text):
-    print(text)
 
 
 @Helper
