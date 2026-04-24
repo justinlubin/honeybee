@@ -7,12 +7,14 @@ of Honeybee.
 
 ### Added
 
+- Added erasure of static information
 - Added Honeybee Standard Bio Docker image
 - Added basic EM-seq support
 
 ### Changed
 
 - Paths are now statically embedded in the output program
+- std-bio now has static erasure enabled
 
 ## [0.5.0] - 2026-02-23
 

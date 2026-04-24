@@ -45,6 +45,7 @@ pub enum Cell {
     Hole {
         var_name: String,
         hole_name: top_down::HoleName,
+        code: Option<String>,
     },
     Choice {
         var_name: String,
@@ -107,13 +108,14 @@ struct Context<'a> {
     used_types: IndexSet<MetName>,
     used_functions: IndexSet<BaseFunction>,
     paths: HashMap<String, String>,
+    erase_static: bool,
 }
 
 impl<'a> Context<'a> {
     fn fresh_var(&mut self, prefix: &str) -> String {
         let c = self.fresh_counter.entry(prefix.to_owned()).or_insert(1);
         let s = format!(
-            "{}{}",
+            "__HB_{}{}",
             prefix,
             if *c > 1 {
                 format!("{}", *c)
@@ -166,31 +168,37 @@ impl<'a> Context<'a> {
     fn body_code(
         var_name: &str,
         type_name: &str,
-        function_name: &str,
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
         path: &str,
+        erase_static: bool,
     ) -> String {
-        let mut s = format!("{} = {}(", var_name, type_name);
-        let mut needs_newline = false;
-        if implementation.is_some() {
-            needs_newline = true;
-            s += &format!("\n    path=\"{}\",", path);
+        let mut s = "".to_owned();
+
+        if !erase_static {
+            s += &format!("{} = {}(", var_name, type_name);
+            let mut needs_newline = false;
+            if implementation.is_some() {
+                needs_newline = true;
+                s += &format!("\n    path=\"{}\",", path);
+            }
+            if !metadata.is_empty() {
+                needs_newline = true;
+                s += &metadata
+                    .into_iter()
+                    .map(|(lhs, rhs)| format!("\n    {}={},", lhs, rhs))
+                    .collect::<Vec<_>>()
+                    .join("");
+            }
+            if needs_newline {
+                s += "\n";
+            }
+            s += ")\n\n";
         }
-        if !metadata.is_empty() {
-            needs_newline = true;
-            s += &metadata
-                .into_iter()
-                .map(|(lhs, rhs)| format!("\n    {}={},", lhs, rhs))
-                .collect::<Vec<_>>()
-                .join("");
-        }
-        if needs_newline {
-            s += "\n";
-        }
+
         s += &format!(
-            "\n\n{}{}{}",
+            "{}{}{}",
             r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
         );
 
@@ -218,7 +226,10 @@ impl<'a> Context<'a> {
                 self.cells.push(Cell::Hole {
                     var_name: var_name.to_owned(),
                     hole_name: *h,
+                    code: None,
                 });
+                self.paths
+                    .insert(var_name.to_owned(), "__HB_PREVIOUS".to_owned());
             }
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
@@ -253,7 +264,6 @@ impl<'a> Context<'a> {
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
-                        function_name,
                         &f.metadata
                             .iter()
                             .map(|(mp, v)| (mp.0.clone(), python_value(v)))
@@ -261,6 +271,7 @@ impl<'a> Context<'a> {
                         &arg_strings,
                         f_sig.info_string("code"),
                         &path,
+                        self.erase_static,
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
@@ -348,10 +359,12 @@ impl<'a> Context<'a> {
             None => (),
         }
 
-        for t in self.used_types.iter().rev() {
-            match self.library.types.get(t).unwrap().info_string("code") {
-                Some(type_code) => pr_code += &format!("{}\n\n", type_code),
-                None => (),
+        if !self.erase_static {
+            for t in self.used_types.iter().rev() {
+                match self.library.types.get(t).unwrap().info_string("code") {
+                    Some(type_code) => pr_code += &format!("{}\n\n", type_code),
+                    None => (),
+                }
             }
         }
 
@@ -380,6 +393,7 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         used_types: IndexSet::new(),
         used_functions: IndexSet::new(),
         paths: HashMap::new(),
+        erase_static: get_erase_static(library) == Some(true),
     };
 
     ctx.exp("GOAL", e);
@@ -387,32 +401,43 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
 
     let mut cells = ctx.cells;
 
-    if get_erase_static(library) == Some(true) {
-        return cells;
+    if ctx.erase_static {
         for cell in &mut cells {
             match cell {
-                Cell::Code {
-                    title,
-                    description,
-                    code,
-                    open_when_editing,
-                    open_when_exporting,
-                } => todo!(),
+                Cell::Code { code, .. } => {
+                    *code = erase_static_information(&ctx.paths, code)
+                }
                 Cell::Hole {
-                    var_name,
-                    hole_name,
-                } => todo!(),
+                    code, hole_name, ..
+                } => *code = Some(format!("?{}", hole_name)),
                 Cell::Choice {
-                    var_name,
-                    type_title,
-                    type_description,
-                    function_choices,
-                } => todo!(),
+                    function_choices, ..
+                } => {
+                    for fc in function_choices {
+                        fc.code = fc
+                            .code
+                            .as_ref()
+                            .map(|c| erase_static_information(&ctx.paths, c));
+                    }
+                }
             }
         }
     }
 
     cells
+}
+
+fn erase_static_information(
+    paths: &HashMap<String, String>,
+    code: &str,
+) -> String {
+    let mut ret = code.to_owned();
+    for (var, val) in paths {
+        ret = ret.replace(&format!("{}.path", var), &format!("\"{}\"", val));
+    }
+    let re = Regex::new(r#"\{"(.*)"\}"#).unwrap();
+    ret = re.replace_all(&ret, "$1").into();
+    ret
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -505,6 +530,7 @@ pub fn fill(
             Cell::Hole {
                 var_name,
                 hole_name,
+                code: _,
             } => {
                 let (type_title, type_description, function_choices) =
                     collated_choices.remove(hole_name).ok_or(

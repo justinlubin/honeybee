@@ -35,9 +35,14 @@ pub fn plain_text_notebook(lib: &Library, e: &Exp) -> String {
             cellgen::Cell::Hole {
                 var_name,
                 hole_name,
-            } => {
-                format!("# %%\n\n{} = ?{}\n{}", var_name, hole_name, var_name)
-            }
+                code,
+            } => match code {
+                Some(code) => format!("# %%\n\n{}", code),
+                None => format!(
+                    "# %%\n\n{} = ?{}\n{}",
+                    var_name, hole_name, var_name
+                ),
+            },
             cellgen::Cell::Choice { var_name, .. } => {
                 format!("# %%\n\n{} = <choice>\n{}", var_name, var_name)
             }
@@ -114,27 +119,25 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                 }
             }
             cellgen::Cell::Hole {
-                var_name,
                 hole_name,
+                var_name: _,
+                code: _,
             } => {
                 vec![ipynb::Cell::Code(ipynb::CodeCell {
                     metadata: HashMap::new(),
                     source: vec![format!(
-                        "{} = raise ValueError(\"Hole cell {}\")",
-                        var_name, hole_name
+                        "raise ValueError(\"Hole cell {}\")",
+                        hole_name
                     )],
                     id: Some(format!("{}", 2 * i)),
                     execution_count: None,
                     outputs: vec![],
                 })]
             }
-            cellgen::Cell::Choice { var_name, .. } => {
+            cellgen::Cell::Choice { .. } => {
                 vec![ipynb::Cell::Code(ipynb::CodeCell {
                     metadata: HashMap::new(),
-                    source: vec![format!(
-                        "{} = raise ValueError(\"Choice cell\")",
-                        var_name
-                    )],
+                    source: vec![format!("raise ValueError(\"Choice cell\")")],
                     id: Some(format!("{}", 2 * i)),
                     execution_count: None,
                     outputs: vec![],
