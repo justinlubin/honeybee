@@ -25,6 +25,8 @@ def bash(command, redirect_stderr=True):
         stderr=subprocess.STDOUT if redirect_stderr else None,
     )
 
+    log(p.stdout, stdout=False)
+
     log(f"\n### Exit code:\n\n{p.returncode}\n")
 
 

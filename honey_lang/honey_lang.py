@@ -352,7 +352,7 @@ def initialize(erase_static=True):
         if needed_import not in imports:
             imports.append(needed_import)
     imports.sort()
-    # datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}")
     print("\nlogger = logging.getLogger(__name__)")
     print("logging.basicConfig(")
@@ -360,16 +360,18 @@ def initialize(erase_static=True):
     print('    format="[%(asctime)s] %(message)s",')
     print("    level=logging.INFO,")
     print(")")
-    print(
-        '\nlogger.info("########## Start of a new run of the pipeline! ##########")',
-    )
-    print("\ndef log(text):")
-    print("    print(text)")
-    print("    logger.info(text)", end="")
-    print("'''\n")
+    print("\ndef log(text, stdout=True):")
+    print("    if stdout:")
+    print("        print(text)")
+    print("    logger.info(text)")
+    print("\nlog(")
+    print('    "########## Start of a new run of the pipeline! ##########",')
+    print("    stdout=False,")
+    print(")'''\n")
 
     _initialize_ran = True
 
 
-def log(text):
-    print(text)
+def log(text, stdout=True):
+    if stdout:
+        print(text)
