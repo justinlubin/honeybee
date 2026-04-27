@@ -14,6 +14,7 @@ initialize()
 
 @Helper
 def bash(command, redirect_stderr=True):
+    command = command.replace("\\\n", "\n")
     command = re.sub(r"\s+", " ", command)
 
     log(f"### Running bash command:\n\n{command}\n\n### Output:\n")
@@ -755,7 +756,9 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
 #                   --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
-@Function
+@Function(
+    search=False,
+)
 def use_existing_kallisto_index(__hb_ret: KallistoIndex):
     """Use existing index
 
@@ -771,7 +774,9 @@ def use_existing_kallisto_index(__hb_ret: KallistoIndex):
     )
 
 
-@Function
+@Function(
+    search=False,
+)
 def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
     """Create new index from HUMAN transcriptome (hg38)
 
@@ -788,20 +793,23 @@ def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
     bash(f"""
         wget
             --progress=bar:force
+            --no-clobber
             --directory-prefix {shared()}/transcriptomes
             https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
     """)
 
     # -t number of cores, -i output filename for index
     bash(f"""
-        kallisto index \\
-            -t {CORES} \\
-            -i {__hb_ret.path}/kallisto.idx \\
+        kallisto index
+            -t {CORES}
+            -i {__hb_ret.path}/kallisto.idx
             {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
     """)
 
 
-@Function
+@Function(
+    search=False,
+)
 def create_kallisto_index(__hb_ret: KallistoIndex):
     """Create new index from OTHER transcriptome
 
@@ -841,7 +849,9 @@ def use_existing_salmon_index(__hb_ret: SalmonIndex):
     )
 
 
-@Function
+@Function(
+    search=False,
+)
 def create_salmon_index(__hb_ret: SalmonIndex):
     """Create new index from transcriptome
 

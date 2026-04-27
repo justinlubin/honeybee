@@ -83,7 +83,7 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                 description,
                 code,
                 open_when_exporting,
-                open_when_editing: _,
+                ..
             } => {
                 if code.trim().is_empty() {
                     vec![]

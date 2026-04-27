@@ -41,6 +41,8 @@ pub enum Cell {
         code: String,
         open_when_editing: bool,
         open_when_exporting: bool,
+        has_path: bool,
+        priority: usize,
     },
     Hole {
         var_name: String,
@@ -53,6 +55,24 @@ pub enum Cell {
         type_description: Option<String>,
         function_choices: Vec<FunctionChoice>,
     },
+}
+
+impl Cell {
+    fn has_output(&self) -> bool {
+        match self {
+            Self::Code { has_path, .. } => *has_path,
+            Self::Hole { .. } => true,
+            Self::Choice { .. } => true,
+        }
+    }
+
+    fn priority(&self) -> usize {
+        match self {
+            Cell::Code { priority, .. } => *priority,
+            Cell::Hole { .. } => 2,
+            Cell::Choice { .. } => 2,
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +196,7 @@ impl<'a> Context<'a> {
     ) -> String {
         let mut s = "".to_owned();
 
-        if !erase_static {
+        if !erase_static || implementation.is_none() {
             s += &format!("{} = {}(", var_name, type_name);
             let mut needs_newline = false;
             if implementation.is_some() {
@@ -194,13 +214,15 @@ impl<'a> Context<'a> {
             if needs_newline {
                 s += "\n";
             }
-            s += ")\n\n";
+            s += ")";
         }
 
-        s += &format!(
-            "{}{}{}",
-            r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
-        );
+        if implementation.is_some() {
+            s += &format!(
+                "\n\n{}{}{}",
+                r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
+            );
+        }
 
         match implementation {
             Some(imp) => {
@@ -217,7 +239,7 @@ impl<'a> Context<'a> {
             None => (),
         };
 
-        s
+        s.trim().to_owned()
     }
 
     fn exp(&mut self, var_name: &str, e: &Exp) {
@@ -249,17 +271,34 @@ impl<'a> Context<'a> {
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
 
-                let path_prefix =
-                    format!("output/{:03}-", self.cells.len() * 10);
+                let path_prefix = format!(
+                    "output/{:03}-",
+                    self.cells
+                        .iter()
+                        .filter(|c| c.has_output())
+                        .collect::<Vec<_>>()
+                        .len()
+                        * 10
+                );
 
                 let function_name = &f.name.0;
 
                 let path = format!("{}{}", path_prefix, function_name);
 
+                let implementation = f_sig.info_string("code");
+
                 self.cells.push(Cell::Code {
-                    title: f_sig
-                        .info_string("title")
-                        .unwrap_or(f.name.0.clone()),
+                    has_path: implementation.is_some(),
+                    priority: if implementation.is_some() { 2 } else { 1 },
+                    title: format!(
+                        "{}{}",
+                        if is_input(&self.library, &f_sig.ret) {
+                            "Input: "
+                        } else {
+                            ""
+                        },
+                        f_sig.info_string("title").unwrap_or(f.name.0.clone())
+                    ),
                     description: Self::description(f_sig),
                     code: Self::body_code(
                         var_name,
@@ -269,7 +308,7 @@ impl<'a> Context<'a> {
                             .map(|(mp, v)| (mp.0.clone(), python_value(v)))
                             .collect(),
                         &arg_strings,
-                        f_sig.info_string("code"),
+                        implementation,
                         &path,
                         self.erase_static,
                     ),
@@ -339,6 +378,8 @@ impl<'a> Context<'a> {
                 description: "Before running your code, please set the following parameters!".to_owned(),
                 open_when_editing: false,
                 open_when_exporting: true,
+                has_path: false,
+                priority: 0,
             },
         );
 
@@ -359,12 +400,13 @@ impl<'a> Context<'a> {
             None => (),
         }
 
-        if !self.erase_static {
-            for t in self.used_types.iter().rev() {
-                match self.library.types.get(t).unwrap().info_string("code") {
-                    Some(type_code) => pr_code += &format!("{}\n\n", type_code),
-                    None => (),
-                }
+        for t in self.used_types.iter().rev() {
+            if self.erase_static && !is_input(&self.library, t) {
+                continue;
+            }
+            match self.library.types.get(t).unwrap().info_string("code") {
+                Some(type_code) => pr_code += &format!("{}\n\n", type_code),
+                None => (),
             }
         }
 
@@ -375,10 +417,16 @@ impl<'a> Context<'a> {
                 code: pr_code.trim().to_owned(),
                 description: "".to_owned(),
                 open_when_editing: false,
-                open_when_exporting: false,
+                open_when_exporting: true,
+                has_path: false,
+                priority: 0,
             },
         );
     }
+}
+
+fn is_input(library: &Library, mn: &MetName) -> bool {
+    library.props.contains_key(&MetName(format!("P_{}", mn.0)))
 }
 
 fn get_erase_static(library: &Library) -> Option<bool> {
@@ -401,42 +449,46 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
 
     let mut cells = ctx.cells;
 
-    if ctx.erase_static {
-        for cell in &mut cells {
-            match cell {
-                Cell::Code { code, .. } => {
-                    *code = erase_static_information(&ctx.paths, code)
-                }
-                Cell::Hole {
-                    code, hole_name, ..
-                } => *code = Some(format!("?{}", hole_name)),
-                Cell::Choice {
-                    function_choices, ..
-                } => {
-                    for fc in function_choices {
-                        fc.code = fc
-                            .code
-                            .as_ref()
-                            .map(|c| erase_static_information(&ctx.paths, c));
-                    }
+    for cell in &mut cells {
+        match cell {
+            Cell::Code { code, .. } => {
+                *code = post_process(&ctx.paths, code, ctx.erase_static)
+            }
+            Cell::Hole {
+                code, hole_name, ..
+            } => *code = Some(format!("?{}", hole_name)),
+            Cell::Choice {
+                function_choices, ..
+            } => {
+                for fc in function_choices {
+                    fc.code = fc
+                        .code
+                        .as_ref()
+                        .map(|c| post_process(&ctx.paths, c, ctx.erase_static));
                 }
             }
         }
     }
 
+    cells.sort_by_key(|c| c.priority());
+
     cells
 }
 
-fn erase_static_information(
+fn post_process(
     paths: &HashMap<String, String>,
     code: &str,
+    erase_static: bool,
 ) -> String {
     let mut ret = code.to_owned();
-    for (var, val) in paths {
-        ret = ret.replace(&format!("{}.path", var), &format!("\"{}\"", val));
+    if erase_static {
+        for (var, val) in paths {
+            ret = ret.replace(&format!("{{{}.path}}", var), val);
+            ret =
+                ret.replace(&format!("{}.path", var), &format!("\"{}\"", val));
+        }
     }
-    let re = Regex::new(r#"\{"(.*)"\}"#).unwrap();
-    ret = re.replace_all(&ret, "$1").into();
+    ret = ret.replace("__HB_", "");
     ret
 }
 
