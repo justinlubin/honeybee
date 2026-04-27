@@ -267,3 +267,20 @@ document.addEventListener("click", (e) => {
     }
   }
 });
+
+////////////////////////////////////////////////////////////////////////////////
+// Debug functionality
+
+window.__auto = function () {
+  let pbnStatusMessage = null;
+  while (true) {
+    try {
+      pbnStatusMessage = elmify(Honeybee.pbn_choose(0));
+    } catch (e) {
+      break;
+    }
+  }
+  if (pbnStatusMessage) {
+    app.ports.iPbnStatus_.send(pbnStatusMessage);
+  }
+};

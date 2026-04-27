@@ -57,6 +57,8 @@ RUN rm main.py
 
 RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
+RUN apt-get install -y aria2
+
 # # Final setup
 COPY environment environment
 COPY environment/_DO_NOT_EDIT.md .
