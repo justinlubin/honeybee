@@ -17,7 +17,7 @@ def bash(command, redirect_stderr=True):
     command = command.replace("\\\n", "\n")
     command = re.sub(r"\s+", " ", command)
 
-    log(f"### Running bash command:\n")
+    log("### Running bash command:\n")
     log(command + "\n")
     log("### Output:\n")
 
@@ -29,8 +29,9 @@ def bash(command, redirect_stderr=True):
         stderr=subprocess.STDOUT if redirect_stderr else None,
         bufsize=1,
     ) as p:
-        for line in p.stdout:
-            log(line)
+        if p.stdout:
+            for line in p.stdout:
+                log(line)
 
     log(f"\n### Exit code:\n\n{p.returncode}\n")
 
