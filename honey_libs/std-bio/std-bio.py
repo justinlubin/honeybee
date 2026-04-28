@@ -41,52 +41,19 @@ def stem(path):
     return os.path.splitext(os.path.basename(path))[0]
 
 
-# @Helper
-# def carry_over(src_object, dst_object, *, file=None):
-#     def carry_one(f):
-#         src = f"../../{src_object.path}/{f}"  # relative to dst
-#         dst = f"{dst_object.path}/{f}"
-#         if os.path.islink(src):
-#             src = os.readlink(src)
-#         os.symlink(src=src, dst=dst)
-
-#     if file is None:
-#         for file in os.listdir(src_object.path):
-#             carry_one(file)
-#     else:
-#         carry_one(file)
+@Helper
+def carry_over(source_glob, destination_folder):
+    if "*" not in source_glob:
+        source_glob += "/*"
+    for src in glob.glob(source_glob):
+        basename = os.path.basename(src)
+        src = os.path.relpath(src, start=destination_folder)
+        dst = f"{destination_folder}/{basename}"
+        os.symlink(src=src, dst=dst)
 
 
 @Helper
-def carry_over(source, destination):
-    if "*" in source:
-        for filename in glob.glob(source):
-            src = filename
-            if os.path.islink(src):
-                src = os.readlink(src)
-            src = os.path.relpath(src, start=destination)
-            dst = f"{destination}/{filename}"
-            os.symlink(src=src, dst=dst)
-    elif os.path.isdir(source):
-        for filename in os.listdir(source):
-            src = filename
-            if os.path.islink(src):
-                src = os.readlink(src)
-            src = os.path.relpath(src, start=destination)
-            dst = f"{destination}/{filename}"
-            os.symlink(src=src, dst=dst)
-    else:
-        if os.path.islink(source):
-            source = os.readlink(source)
-        source = os.path.relpath(
-            source,
-            start=os.path.dirname(destination),
-        )
-        os.symlink(src=source, dst=destination)
-
-
-@Helper
-def save(src, dst):
+def link(src, dst):
     dir = os.path.dirname(dst)
     os.makedirs(dir, exist_ok=True)
     os.symlink(src=os.path.abspath(src), dst=dst)
@@ -631,7 +598,7 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
 
     # Copy over the comparison sheet, if it exists
     if __hb_rna.comparison_sheet:
-        carry_over(
+        link(
             __hb_rna.comparison_sheet,
             f"{shared()}/comparison_sheet.csv",
         )
@@ -773,7 +740,7 @@ def use_existing_kallisto_index(__hb_ret: KallistoIndex):
     # PARAMETER: The location of the kallisto transcriptome index on your computer
     KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
 
-    carry_over(
+    link(
         KALLISTO_INDEX,
         f"{__hb_ret.path}/kallisto.idx",
     )
@@ -848,7 +815,7 @@ def use_existing_salmon_index(__hb_ret: SalmonIndex):
     # PARAMETER: The location of the kallisto transcriptome index on your computer
     SALMON_INDEX = "salmon_index"
 
-    carry_over(
+    link(
         SALMON_INDEX,
         f"{__hb_ret.path}/salmon_index",
     )
@@ -1229,7 +1196,7 @@ def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSe
 
     carry_over(__hb_local.path, __hb_ret.path)
 
-    save(
+    link(
         __hb_local.reference,
         f"{shared()}/reference/unconverted.fasta",
     )
@@ -1297,7 +1264,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 
     carry_over(__hb_data.path, __hb_ret.path)
 
-    save(
+    link(
         EM_REFERENCE_PATH,
         f"{shared()}/reference/reference.fasta",
     )
@@ -1409,7 +1376,7 @@ def bismark_genome_preparation(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
 
     carry_over(__hb_input.path, __hb_ret.path)
 
-    save(
+    link(
         REFERENCE_GENOME_FOLDER,
         f"{__hb_ret.path}/reference",
     )
@@ -1443,7 +1410,7 @@ def use_existing_bismark_reference(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
 
     carry_over(__hb_input.path, __hb_ret.path)
 
-    save(
+    link(
         BISMARK_GENOME_FOLDER,
         f"{__hb_ret.path}/reference",
     )
@@ -1592,7 +1559,7 @@ def load_local_atac_seq(__hb_local: AtacSeq, __hb_ret: SeqReads):
     # When loading data, save the reference sheet symlinked to reference/reference.fasta
     carry_over(__hb_local.path, __hb_ret.path)
 
-    save(
+    link(
         __hb_local.reference,
         f"{__hb_ret.path}/reference/reference.fasta",
     )
