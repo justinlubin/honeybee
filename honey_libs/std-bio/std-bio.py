@@ -17,16 +17,20 @@ def bash(command, redirect_stderr=True):
     command = command.replace("\\\n", "\n")
     command = re.sub(r"\s+", " ", command)
 
-    log(f"### Running bash command:\n\n{command}\n\n### Output:\n")
+    log(f"### Running bash command:\n")
+    log(command + "\n")
+    log("### Output:\n")
 
-    p = subprocess.run(
+    with subprocess.Popen(
         command,
         shell=True,
         text=True,
+        stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT if redirect_stderr else None,
-    )
-
-    log(p.stdout, stdout=False)
+        bufsize=1,
+    ) as p:
+        for line in p.stdout:
+            log(line)
 
     log(f"\n### Exit code:\n\n{p.returncode}\n")
 
