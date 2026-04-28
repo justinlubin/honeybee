@@ -89,9 +89,9 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                     vec![]
                 } else {
                     let header = if description.starts_with("# ") {
-                        format!("#{}", description)
+                        format!("# {}", description)
                     } else {
-                        format!("## {}\n\n{}", title, description)
+                        format!("# {}\n\n{}", title, description)
                     };
 
                     vec![
@@ -153,13 +153,11 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
             id: Some("start".to_owned()),
             attachments: Some(HashMap::new()),
             source: vec![
-                "# Analysis pipeline\n".to_owned(),
                 format!(
-                    "Script originally created using [Honeybee](https://honeybee-lang.org) (version {}).\n",
+                    "Script originally created using [Honeybee](https://honeybee-lang.org) (version {}).\n\n",
                     env!("HONEYBEE_VERSION"),
                 ),
-                "Please cite:\n".to_owned(),
-                "- Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
+                "**Please cite:** Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
         }),
     );
 

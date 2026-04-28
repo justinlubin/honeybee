@@ -31,7 +31,7 @@ def bash(command, redirect_stderr=True):
     ) as p:
         if p.stdout:
             for line in p.stdout:
-                log(line)
+                log(line.removesuffix("\n"))
 
     log(f"\n### Exit code:\n\n{p.returncode}\n")
 
@@ -880,7 +880,7 @@ def kallisto(
             # -t number of cores, -i kallisto index, -o output folder
             bash(f"""kallisto quant \\
                         -t {CORES} \\
-                        -i {__hb_idx.path} \\
+                        -i {__hb_idx.path}/kallisto.idx \\
                         -o {__hb_ret.path}/{sample["sample_name"]} \\
                         {__hb_reads.path}/{sample["forward_location"]} \\
                         {__hb_reads.path}/{sample["reverse_location"]}""")
@@ -941,7 +941,7 @@ def kallisto_bootstrap(
                         -b {KALLISTO_BOOTSTRAPS}
                         -t {CORES} \\
                         -i {__hb_idx.path} \\
-                        -o {__hb_ret.path}/{sample["sample_name"]} \\
+                        -o {__hb_ret.path}/{sample["sample_name"]}/kallisto.idx \\
                         {__hb_reads.path}/{sample["forward_location"]} \\
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 

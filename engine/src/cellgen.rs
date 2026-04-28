@@ -175,8 +175,7 @@ impl<'a> Context<'a> {
         }
 
         if !citations.is_empty() {
-            let plural_suffix = if citations.len() == 1 { "" } else { "s" };
-            ret += &format!("### Citation{}\n\n", plural_suffix);
+            ret += "**Please cite:**{}\n\n";
             for cit in citations {
                 ret += &format!("- {}\n", cit);
             }
@@ -217,16 +216,24 @@ impl<'a> Context<'a> {
             s += ")";
         }
 
-        if implementation.is_some() {
-            s += &format!(
-                "\n\n{}{}{}",
-                r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
-            );
-        }
-
         match implementation {
             Some(imp) => {
-                let mut new_imp = imp.replace("__hb_ret", var_name);
+                s += &format!("\n\nif os.path.exists({}.path):\n", var_name);
+                s += &format!(
+                    r#"    print(f"'{{{}.path}}' already exists, skipping step")"#,
+                    var_name
+                );
+                s += &format!(
+                    "\nelse:\n    {}{}{}\n\n",
+                    r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
+                );
+
+                let mut new_imp = imp
+                    .lines()
+                    .map(|s| format!("    {}\n", s))
+                    .collect::<Vec<_>>()
+                    .join("")
+                    .replace("__hb_ret", var_name);
 
                 for (lhs, rhs) in args {
                     new_imp = new_imp.replace(&format!("__hb_{}", lhs), rhs)
@@ -234,7 +241,7 @@ impl<'a> Context<'a> {
 
                 let new_imp = bashify(&new_imp);
 
-                s += &format!("\n\n{}", new_imp)
+                s += &new_imp;
             }
             None => (),
         };
