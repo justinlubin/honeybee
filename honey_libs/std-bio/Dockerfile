@@ -58,6 +58,8 @@ RUN rm main.py
 RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
 RUN apt-get install -y aria2
+RUN apt-get install -y build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev
+RUN Rscript -e 'BiocManager::install("biomaRt")'
 
 # # Final setup
 COPY environment environment

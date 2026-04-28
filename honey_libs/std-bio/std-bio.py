@@ -1037,7 +1037,7 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     bash(f"""
-        Rscript tximport.r \\
+        Rscript ../environment/tximport.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1084,7 +1084,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     bash(f"""
-        Rscript deseq2.r \\
+        Rscript ../environment/deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1126,7 +1126,7 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     )
 
     bash(f"""
-        Rscript sleuth.r \\
+        Rscript ../environment/sleuth.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\

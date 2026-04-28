@@ -89,7 +89,7 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                     vec![]
                 } else {
                     let header = if description.starts_with("# ") {
-                        format!("# {}", description)
+                        format!("{}", description)
                     } else {
                         format!("# {}\n\n{}", title, description)
                     };

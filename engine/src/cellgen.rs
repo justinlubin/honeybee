@@ -218,7 +218,10 @@ impl<'a> Context<'a> {
 
         match implementation {
             Some(imp) => {
-                s += &format!("\n\nif os.path.exists({}.path):\n", var_name);
+                s += &format!(
+                    "\n\nif os.path.isdir({}.path) and os.listdir({}.path):\n",
+                    var_name, var_name
+                );
                 s += &format!(
                     r#"    print(f"'{{{}.path}}' already exists, skipping step")"#,
                     var_name
