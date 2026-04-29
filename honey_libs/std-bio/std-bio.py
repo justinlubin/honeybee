@@ -239,7 +239,7 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
 def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     """cutadapt (include poly(A) tails)
 
-    # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+    # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
     [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
     removes adapter sequences that are present due to a read length being
@@ -346,9 +346,7 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
 
 @Input
 class RnaSeq:
-    """RNA-seq
-
-    TODO"""
+    """RNA-seq"""
 
     sample_sheet: str
     """Path to sample sheet CSV
@@ -424,7 +422,9 @@ class SalmonIndex:
 class KallistoIndex:
     """@intermediate:Kallisto index
 
-    TODO"""
+    The goal of this step is to create an index for the
+    [kallisto](https://pachterlab.github.io/kallisto/about)
+    transcript abundance quantifier."""
 
     path: str
 
@@ -750,7 +750,7 @@ def use_existing_kallisto_index(__hb_ret: KallistoIndex):
     search=False,
 )
 def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
-    """Create new index from HUMAN transcriptome (hg38)
+    """New from HUMAN transcriptome (hg38)
 
     This code creates a kallisto index from the human transcriptome (hg38). It
     automatically downloads the human transcriptome for you from
@@ -783,7 +783,7 @@ def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
     search=False,
 )
 def create_kallisto_index(__hb_ret: KallistoIndex):
-    """Create new index from OTHER transcriptome
+    """New from OTHER transcriptome
 
     This code creates a kallisto index from an existing transcriptome file on
     your computer. This transcriptome file should contain the complementary
@@ -1529,7 +1529,7 @@ def bismark_methylation_extractor(
 
 @Input
 class AtacSeq:
-    "ATAC-seq (stored on your own hard drive)"
+    "ATAC-seq"
 
     path: str
     """TODO"""
@@ -1540,7 +1540,7 @@ class AtacSeq:
 
 @Output
 class AtacPeaks:
-    """TODO"""
+    """Chromatin accessibility peaks"""
 
     path: str
 

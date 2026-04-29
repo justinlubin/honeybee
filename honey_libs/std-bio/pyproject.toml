@@ -17,6 +17,9 @@ honey-lang = { path = "../../honey_lang", editable = true }
 [tool.ty.environment]
 extra-paths = ["../../honey_lang"]
 
+[tool.ty.src]
+include = ["std-bio.py"]
+
 [dependency-groups]
 dev = [
     "globus-cli>=3.41.0",
