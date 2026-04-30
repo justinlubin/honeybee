@@ -6,11 +6,11 @@ echo "## Starting Honeybee Standard Bio Docker Container (${HONEYBEE_VERSION})"
 echo "################################################################################"
 echo
 
-echo "User environment: $HONEYBEE_ENVIRONMENT"
+echo "User environment: $HONEYBEE_USER_ENVIRONMENT"
 echo
 
-if [ ! -e "$1" ]; then
-  cp -r environment $HONEYBEE_ENVIRONMENT
+if [ ! -e "$HONEYBEE_USER_ENVIRONMENT" ]; then
+  cp -r environment $HONEYBEE_USER_ENVIRONMENT
 fi
 
 uv run jupyter lab \

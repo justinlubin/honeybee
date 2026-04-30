@@ -18,7 +18,6 @@ RUN Rscript -e 'BiocManager::install("rhdf5")'
 RUN Rscript -e 'install.packages("devtools")'
 RUN Rscript -e 'BiocManager::install("biomaRt")'
 RUN Rscript -e 'install.packages("optparse")'
-# RUN Rscript -e 'install.packages("tidyverse")'
 # RUN Rscript -e 'devtools::install_github("pachterlab/sleuth")'
 
 # System packages
@@ -44,6 +43,11 @@ RUN mkdir -p /root/.local/bin/
 RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
 RUN rm v0.52.0.zip
 RUN rm -rf kallisto-0.52.0
+
+RUN apt-get install -y libharfbuzz-dev libfribidi-dev
+RUN apt-get install -y libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libwebp-dev
+RUN Rscript -e 'install.packages("tidyverse")'
+
 
 # uv
 
@@ -78,6 +82,6 @@ ARG COMMIT
 ARG USER_FILES
 
 ENV HONEYBEE_VERSION=${VERSION}+${COMMIT}
-ENV HONEYBEE_ENVIRONMENT=${USER_FILES}/environment
+ENV HONEYBEE_USER_ENVIRONMENT=${USER_FILES}/environment
 
 ENTRYPOINT ["/root/entrypoint.sh"]

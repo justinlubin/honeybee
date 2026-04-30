@@ -1,10 +1,10 @@
 ################################################################################
 # %% Imports
 
-library(tidyverse)
-library(biomaRt)
-library(DESeq2)
-library(optparse)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(biomaRt))
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(optparse))
 
 ################################################################################
 # %% Command-line arguments

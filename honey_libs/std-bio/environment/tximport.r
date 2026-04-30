@@ -1,9 +1,9 @@
 ################################################################################
 # %% Imports
 
-library(biomaRt)
-library(tximport)
-library(optparse)
+suppressPackageStartupMessages(library(biomaRt))
+suppressPackageStartupMessages(library(tximport))
+suppressPackageStartupMessages(library(optparse))
 
 ################################################################################
 # %% Command-line arguments
