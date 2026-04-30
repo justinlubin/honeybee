@@ -6071,7 +6071,7 @@ var $author$project$Update$consistentSuggestions = F2(
 			goalFact.args);
 	});
 var $author$project$Core$example = function (library) {
-	var propName = 'P_SraRnaSeq';
+	var propName = 'P_RnaSeq';
 	var goalName = 'DifferentialGeneExpression';
 	var _v0 = _Utils_Tuple2(
 		A2($author$project$Assoc$get, propName, library.props),
@@ -6081,16 +6081,7 @@ var $author$project$Core$example = function (library) {
 		var typeSig = _v0.b.a;
 		return {
 			goal: $elm$core$Maybe$Just(
-				{
-					args: _List_fromArray(
-						[
-							_Utils_Tuple2(
-							'comparison_sheet',
-							_Utils_Tuple2('metadata/comparisons.csv', $author$project$Core$VTStr))
-						]),
-					name: goalName,
-					sig: typeSig
-				}),
+				{args: _List_Nil, name: goalName, sig: typeSig}),
 			props: _List_fromArray(
 				[
 					$elm$core$Maybe$Just(
@@ -6099,7 +6090,10 @@ var $author$project$Core$example = function (library) {
 							[
 								_Utils_Tuple2(
 								'sample_sheet',
-								_Utils_Tuple2('metadata/samples.csv', $author$project$Core$VTStr))
+								_Utils_Tuple2('sample_sheet.csv', $author$project$Core$VTStr)),
+								_Utils_Tuple2(
+								'comparison_sheet',
+								_Utils_Tuple2('comparison_sheet.csv', $author$project$Core$VTStr))
 							]),
 						name: propName,
 						sig: propSig
@@ -6838,8 +6832,8 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $author$project$Version$shortVersion = '0.5.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+dd0cb81';
+var $author$project$Version$shortVersion = '0.6.0';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+97e2ed8';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,

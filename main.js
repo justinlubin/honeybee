@@ -90,15 +90,15 @@ customElements.define(
         /__hb_ret/g,
         `<span
            class='hb-argument'
-           title='PLACEHOLDER: Will get filled with data from the current step.'
+           title='This is a PLACEHOLDER that will get filled with data from the current step.'
         >current</span>`,
       );
 
       codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-        /__hb_[A-Za-z][A-Za-z_]*/g,
+        /(__hb_[A-Za-z][A-Za-z_]*)|(__HB_PREVIOUS)/g,
         `<span
            class='hb-argument'
-           title='PLACEHOLDER: Will get filled with data from upstream steps in the pipeline.'
+           title='This is a PLACEHOLDER that will get filled with data from upstream steps in the pipeline.'
         >previous</span>`,
       );
 
@@ -267,3 +267,20 @@ document.addEventListener("click", (e) => {
     }
   }
 });
+
+////////////////////////////////////////////////////////////////////////////////
+// Debug functionality
+
+window.__auto = function () {
+  let pbnStatusMessage = null;
+  while (true) {
+    try {
+      pbnStatusMessage = elmify(Honeybee.pbn_choose(0));
+    } catch (e) {
+      break;
+    }
+  }
+  if (pbnStatusMessage) {
+    app.ports.iPbnStatus_.send(pbnStatusMessage);
+  }
+};
