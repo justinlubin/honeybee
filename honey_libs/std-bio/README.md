@@ -18,3 +18,7 @@ These files are:
 - `std-bio.py`: the Honeybee Standard Bio library
 - `uv.lock`: uv-generated lockfile for above `pyproject.toml`
 
+## Some tips for using the generated Jupyter notebooks
+
+- Enable scrolling for output cells
+- Use table of contents view
