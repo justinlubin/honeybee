@@ -43,6 +43,7 @@ pub enum Cell {
         open_when_exporting: bool,
         has_path: bool,
         priority: usize,
+        number_id: Option<String>,
     },
     Hole {
         var_name: String,
@@ -281,8 +282,8 @@ impl<'a> Context<'a> {
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
 
-                let path_prefix = format!(
-                    "output/{:03}-",
+                let number_id = format!(
+                    "{:03}",
                     self.cells
                         .iter()
                         .filter(|c| c.has_output())
@@ -291,6 +292,8 @@ impl<'a> Context<'a> {
                         * 10
                 );
 
+                let path_prefix = format!("output/{}-", number_id);
+
                 let function_name = &f.name.0;
 
                 let path = format!("{}{}", path_prefix, function_name);
@@ -298,6 +301,11 @@ impl<'a> Context<'a> {
                 let implementation = f_sig.info_string("code");
 
                 self.cells.push(Cell::Code {
+                    number_id: if implementation.is_some() {
+                        Some(number_id)
+                    } else {
+                        None
+                    },
                     has_path: implementation.is_some(),
                     priority: if implementation.is_some() { 2 } else { 1 },
                     title: format!(
@@ -390,6 +398,7 @@ impl<'a> Context<'a> {
                 open_when_exporting: true,
                 has_path: false,
                 priority: 0,
+                number_id: None,
             },
         );
 
@@ -430,6 +439,7 @@ impl<'a> Context<'a> {
                 open_when_exporting: true,
                 has_path: false,
                 priority: 0,
+                number_id: None,
             },
         );
     }

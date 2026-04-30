@@ -7,7 +7,9 @@ RUN apt-get update
 # R
 
 RUN apt-get install -y r-base r-base-dev
-RUN apt-get install -y build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev
+RUN apt-get install -y build-essential libcurl4-gnutls-dev libxml2-dev
+RUN apt-get install -y libssl-dev libuv1-dev libfontconfig1-dev
+# RUN apt-get install -y libharfbuzz-dev libfribidi-dev
 RUN Rscript -e 'install.packages("BiocManager")'
 RUN Rscript -e 'BiocManager::install(version = "3.18")'
 RUN Rscript -e 'BiocManager::install("tximport")'
@@ -15,6 +17,8 @@ RUN Rscript -e 'BiocManager::install("DESeq2")'
 RUN Rscript -e 'BiocManager::install("rhdf5")'
 RUN Rscript -e 'install.packages("devtools")'
 RUN Rscript -e 'BiocManager::install("biomaRt")'
+RUN Rscript -e 'install.packages("optparse")'
+# RUN Rscript -e 'install.packages("tidyverse")'
 # RUN Rscript -e 'devtools::install_github("pachterlab/sleuth")'
 
 # System packages
@@ -66,3 +70,4 @@ RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announce
 COPY environment environment
 COPY environment/_DO_NOT_EDIT.md .
 
+COPY container-start.sh container-start.sh

@@ -15,12 +15,7 @@ run:
 		-p 8888:8888 \
 		--mount type=bind,source="$(shell pwd)/$(USER_FILES)",target="/root/$(USER_FILES)" \
 		std-bio \
-		uv run jupyter lab \
-			--no-browser \
-			--ip 0.0.0.0 \
-			--port 8888 \
-			--notebook-dir user-files \
-			--allow-root
+		bash container-start.sh $(USER_FILES)/environment
 
 .PHONY: irun
 irun:

@@ -83,15 +83,27 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                 description,
                 code,
                 open_when_exporting,
+                number_id,
                 ..
             } => {
                 if code.trim().is_empty() {
                     vec![]
                 } else {
-                    let header = if description.starts_with("# ") {
-                        format!("{}", description)
-                    } else {
-                        format!("# {}\n\n{}", title, description)
+                    let number_id_prefix = match number_id {
+                        Some(id) => id + " ",
+                        None => "".to_owned(),
+                    };
+
+                    let header = match description.strip_prefix("# ") {
+                        Some(rest) => {
+                            format!("# {}{}", number_id_prefix, rest)
+                        }
+                        None => {
+                            format!(
+                                "# {}{}\n\n{}",
+                                number_id_prefix, title, description
+                            )
+                        }
                     };
 
                     vec![
