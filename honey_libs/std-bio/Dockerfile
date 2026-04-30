@@ -68,6 +68,16 @@ RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announce
 # Final setup
 
 COPY environment environment
-COPY environment/_DO_NOT_EDIT.md .
+COPY edit-warning.md DO_NOT_EDIT_HERE.md
 
-COPY container-start.sh container-start.sh
+COPY entrypoint.sh entrypoint.sh
+RUN chmod +x entrypoint.sh
+
+ARG VERSION
+ARG COMMIT
+ARG USER_FILES
+
+ENV HONEYBEE_VERSION=${VERSION}+${COMMIT}
+ENV HONEYBEE_ENVIRONMENT=${USER_FILES}/environment
+
+ENTRYPOINT ["/root/entrypoint.sh"]
