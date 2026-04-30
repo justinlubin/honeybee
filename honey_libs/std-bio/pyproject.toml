@@ -1,6 +1,6 @@
 [project]
 name = "hblib-stdbio"
-version = "0.5.0"
+version = "0.6.0"
 description = "Standard Bio Honeybee Library"
 readme = "README.md"
 requires-python = ">=3.13"
