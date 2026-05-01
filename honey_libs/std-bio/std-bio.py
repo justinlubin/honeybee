@@ -38,14 +38,19 @@ def bash(command, redirect_stderr=True):
 
 @Helper
 def stem(path):
-    return os.path.splitext(os.path.basename(path))[0]
+    ret = path
+    while True:
+        ret, ext = os.path.splitext(os.path.basename(ret))
+        if not ext:
+            return ret
 
 
 @Helper
 def carry_over(source_glob, destination_folder):
+    os.makedirs(destination_folder, exist_ok=True)
     if "*" not in source_glob:
         source_glob += "/*"
-    for src in glob.glob(source_glob):
+    for src in sorted(glob.glob(source_glob)):
         basename = os.path.basename(src)
         src = os.path.relpath(src, start=destination_folder)
         dst = f"{destination_folder}/{basename}"
@@ -149,7 +154,7 @@ def fastqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
     carry_over(__hb_reads.path, __hb_ret.path)
 
-    fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+    fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
     # -t number of cores, -o output
     bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
@@ -196,7 +201,7 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
     carry_over(__hb_reads.path, __hb_ret.path)
 
-    fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+    fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
     # -t number of cores, -o output
     bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
@@ -304,7 +309,7 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     align long reads, minimap2 is a dedicated tool that aligns long reads much
     more quickly."""
 
-    for path in glob.glob(f"{__hb_reads.path}/*.fastq"):
+    for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         bash(f"""
             minimap2 -a \\
@@ -329,7 +334,7 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
 
     This step also **sorts** and **indexes** the alignments."""
 
-    for path in glob.glob(f"{__hb_align.path}/*.sam"):
+    for path in sorted(glob.glob(f"{__hb_align.path}/*.sam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         bash(f"""
             samtools view -bS "{path}" \
@@ -1037,7 +1042,7 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     bash(f"""
-        Rscript ../environment/tximport.r \\
+        Rscript environment/tximport.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1084,7 +1089,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
     bash(f"""
-        Rscript ../environment/deseq2.r \\
+        Rscript environment/deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1120,13 +1125,8 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    carry_over(
-        f"{__hb_data.path}/*.csv",
-        __hb_ret.path,
-    )
-
     bash(f"""
-        Rscript ../environment/sleuth.r \\
+        Rscript environment/sleuth.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1292,7 +1292,7 @@ def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
     and collects the results into a single table, with one entry per cytosine
     in the reference genome."""
 
-    for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+    for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         bash(f"""
             uv run LEMONmC.py \
@@ -1445,7 +1445,7 @@ def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     # PARAMETER: The suffix at the end of the filenames for the reverse reads
     REVERSE_READ_SUFFIX = "_R2"
 
-    for path in glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz"):
+    for path in sorted(glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz")):
         sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX)
         log(f"Running bismark on '{path}'...")
         bash(f"""
@@ -1478,14 +1478,16 @@ def bismark_methylation_extractor(
     the number of methylated and unmethylated reads at each CpG. These files
     enable essentially any downstream analysis of interest."""
 
-    for path in glob.glob(f"{__hb_input.path}/*.bam"):
+    for path in sorted(glob.glob(f"{__hb_input.path}/*.bam")):
         log(f"Running bismark_methylation_extractor on '{path}'...")
+        # Tip: Add --CX to the command below to get CpH methylation! (It takes
+        # a lot more time and space to analyze, though.)
         bash(f"""
-            bismark_methylation_extractor \
-               --parallel 1 \
-               --gzip \
-               --bedGraph \
-               -o {__hb_ret.path} \
+            bismark_methylation_extractor
+               --parallel 1
+               --gzip
+               --bedGraph
+               -o {__hb_ret.path}
                {path}
         """)
 
@@ -1635,7 +1637,7 @@ def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     # get lists of mate1 and mate2 files
     mate1 = []
     mate2 = []
-    for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
+    for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         if sample_name[-9:] == "_R1.fastq":
             mate1.append(path)
@@ -1677,7 +1679,7 @@ def macs3(__hb_bam: SeqAlignment, __hb_ret: AtacPeaks):
     # PARAMETER: Effective genome size (use hs for human, mm for mouse, or a number)
     GENOME_SIZE = "hs"
 
-    for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+    for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         bash(f"""
             macs3 callpeak \\
