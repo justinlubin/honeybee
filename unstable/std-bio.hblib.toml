@@ -53,13 +53,18 @@ content='''def bash(command, redirect_stderr=True):
 
 [[Preamble]]
 content='''def stem(path):
-    return os.path.splitext(os.path.basename(path))[0]'''
+    ret = path
+    while True:
+        ret, ext = os.path.splitext(os.path.basename(ret))
+        if not ext:
+            return ret'''
 
 [[Preamble]]
 content='''def carry_over(source_glob, destination_folder):
+    os.makedirs(destination_folder, exist_ok=True)
     if "*" not in source_glob:
         source_glob += "/*"
-    for src in glob.glob(source_glob):
+    for src in sorted(glob.glob(source_glob)):
         basename = os.path.basename(src)
         src = os.path.relpath(src, start=destination_folder)
         dst = f"{destination_folder}/{basename}"
@@ -189,7 +194,7 @@ info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_reads.path, __hb_ret.path)
 
-fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
 # -t number of cores, -o output
 bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")'''
@@ -228,7 +233,7 @@ info.hyperparameters = [
 ]
 info.code = '''carry_over(__hb_reads.path, __hb_ret.path)
 
-fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
 # -t number of cores, -o output
 bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
@@ -331,7 +336,7 @@ info.citation = "Li H. Minimap2: pairwise alignment for nucleotide sequences. Bi
 info.use = "to align long reads"
 info.hyperparameters = [
 ]
-info.code = '''for path in glob.glob(f"{__hb_reads.path}/*.fastq"):
+info.code = '''for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
         minimap2 -a \\
@@ -357,7 +362,7 @@ This step also **sorts** and **indexes** the alignments."""
 info.search = false
 info.hyperparameters = [
 ]
-info.code = '''for path in glob.glob(f"{__hb_align.path}/*.sam"):
+info.code = '''for path in sorted(glob.glob(f"{__hb_align.path}/*.sam")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
         samtools view -bS "{path}" \
@@ -1066,16 +1071,30 @@ for sample in sample_sheet.rows(named=True):
     # Paired-end
     if sample["reverse_location"]:
         # -t number of cores, -i kallisto index, -o output folder
-        bash(f"""kallisto quant \\
-                    -t {CORES} \\
-                    -i {__hb_idx.path}/kallisto.idx \\
-                    -o {__hb_ret.path}/{sample["sample_name"]} \\
-                    {__hb_reads.path}/{sample["forward_location"]} \\
+        bash(f"""kallisto quant
+                    -t {CORES}
+                    -i {__hb_idx.path}/kallisto.idx
+                    -o {__hb_ret.path}/{sample["sample_name"]}
+                    {__hb_reads.path}/{sample["forward_location"]}
                     {__hb_reads.path}/{sample["reverse_location"]}""")
 
     # Single-end
     else:
-        raise NotImplementedError'''
+        # IMPORTANT: For single-end reads, you *must* set fragment length
+        # and standard deviation of the library! These can be determined
+        # from, e.g., a TapeStation. The kallisto creators note:
+        #     Typical Illumina libraries produce fragment lengths ranging
+        #     from 180–200 bp but it's best to determine this from a library
+        #     quantification with an instrument such as an Agilent
+        #     Bioanalyzer.
+        #                     - https://pachterlab.github.io/kallisto/manual
+        bash(f"""kallisto quant
+                    --fragment-length=200
+                    --sd=20
+                    -t {CORES}
+                    -i {__hb_idx.path}/kallisto.idx
+                    -o {__hb_ret.path}/{sample["sample_name"]}
+                    {__hb_reads.path}/{sample["forward_location"]}""")'''
 
 [Function.kallisto_bootstrap]
 params.idx = "KallistoIndex"
@@ -1202,7 +1221,7 @@ info.hyperparameters = [
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''bash(f"""
-    Rscript ../environment/tximport.r \\
+    Rscript environment/tximport.r \\
         {ENSEMBL_VERSION} \\
         {ENSEMBL_DATASET} \\
         {shared()}/sample_sheet.csv \\
@@ -1244,7 +1263,7 @@ info.hyperparameters = [
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''bash(f"""
-    Rscript ../environment/deseq2.r \\
+    Rscript environment/deseq2.r \\
         {ENSEMBL_VERSION} \\
         {ENSEMBL_DATASET} \\
         {shared()}/sample_sheet.csv \\
@@ -1274,13 +1293,8 @@ info.hyperparameters = [
     {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
-info.code = '''carry_over(
-    f"{__hb_data.path}/*.csv",
-    __hb_ret.path,
-)
-
-bash(f"""
-    Rscript ../environment/sleuth.r \\
+info.code = '''bash(f"""
+    Rscript environment/sleuth.r \\
         {ENSEMBL_VERSION} \\
         {ENSEMBL_DATASET} \\
         {shared()}/sample_sheet.csv \\
@@ -1492,7 +1506,7 @@ and collects the results into a single table, with one entry per cytosine
 in the reference genome."""
 info.hyperparameters = [
 ]
-info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+info.code = '''for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
         uv run LEMONmC.py \
@@ -1662,7 +1676,7 @@ info.hyperparameters = [
     {name = 'FORWARD_READ_SUFFIX', default = '"_R1"', comment = 'The suffix at the end of the filenames for the forward reads' },
     {name = 'REVERSE_READ_SUFFIX', default = '"_R2"', comment = 'The suffix at the end of the filenames for the reverse reads' },
 ]
-info.code = '''for path in glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz"):
+info.code = '''for path in sorted(glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz")):
     sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX)
     log(f"Running bismark on '{path}'...")
     bash(f"""
@@ -1693,14 +1707,16 @@ the number of methylated and unmethylated reads at each CpG. These files
 enable essentially any downstream analysis of interest."""
 info.hyperparameters = [
 ]
-info.code = '''for path in glob.glob(f"{__hb_input.path}/*.bam"):
+info.code = '''for path in sorted(glob.glob(f"{__hb_input.path}/*.bam")):
     log(f"Running bismark_methylation_extractor on '{path}'...")
+    # Tip: Add --CX to the command below to get CpH methylation! (It takes
+    # a lot more time and space to analyze, though.)
     bash(f"""
-        bismark_methylation_extractor \
-           --parallel 1 \
-           --gzip \
-           --bedGraph \
-           -o {__hb_ret.path} \
+        bismark_methylation_extractor
+           --parallel 1
+           --gzip
+           --bedGraph
+           -o {__hb_ret.path}
            {path}
     """)'''
 
@@ -1841,7 +1857,7 @@ bash(f"""
 # get lists of mate1 and mate2 files
 mate1 = []
 mate2 = []
-for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
+for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     if sample_name[-9:] == "_R1.fastq":
         mate1.append(path)
@@ -1883,7 +1899,7 @@ info.description = "TODO"
 info.hyperparameters = [
     {name = 'GENOME_SIZE', default = '"hs"', comment = 'Effective genome size (use hs for human, mm for mouse, or a number)' },
 ]
-info.code = '''for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+info.code = '''for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
         macs3 callpeak \\
