@@ -1,4 +1,10 @@
-1. Bump version numbers for editor, engine, honey_lang, and honey_libs
+1. Bump version numbers in the following files:
+  - `editor/src/Version/elm`
+  - `engine/Cargo.toml`
+  - `honey_lang/pyproject.toml`
+  - `honey_libs/fuseflow/pyproject.toml`
+  - `honey_libs/std-bio/pyproject.toml`
+  - `honey_libs/std-bio/Makefile`
 2. Run `make` in `editor` to update lock files
 3. Update CHANGELOG section
 4. Push commit

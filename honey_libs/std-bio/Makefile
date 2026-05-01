@@ -8,7 +8,7 @@ check:
 image:
 	docker build \
 	    -t std-bio \
-	    --build-arg VERSION=v0.6.0 \
+	    --build-arg VERSION=v0.6.1 \
 	    --build-arg COMMIT=$(shell git rev-parse --short HEAD) \
 	    --build-arg USER_FILES=$(USER_FILES) \
 	    .

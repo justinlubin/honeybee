@@ -5,6 +5,12 @@ of Honeybee.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-01
+
+### Changed
+
+- Minor improvements to Standard Bio library and Docker image
+
 ## [0.6.0] - 2026-04-29
 
 ### Added
