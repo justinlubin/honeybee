@@ -883,16 +883,30 @@ def kallisto(
         # Paired-end
         if sample["reverse_location"]:
             # -t number of cores, -i kallisto index, -o output folder
-            bash(f"""kallisto quant \\
-                        -t {CORES} \\
-                        -i {__hb_idx.path}/kallisto.idx \\
-                        -o {__hb_ret.path}/{sample["sample_name"]} \\
-                        {__hb_reads.path}/{sample["forward_location"]} \\
+            bash(f"""kallisto quant
+                        -t {CORES}
+                        -i {__hb_idx.path}/kallisto.idx
+                        -o {__hb_ret.path}/{sample["sample_name"]}
+                        {__hb_reads.path}/{sample["forward_location"]}
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 
         # Single-end
         else:
-            raise NotImplementedError
+            # IMPORTANT: For single-end reads, you *must* set fragment length
+            # and standard deviation of the library! These can be determined
+            # from, e.g., a TapeStation. The kallisto creators note:
+            #     Typical Illumina libraries produce fragment lengths ranging
+            #     from 180–200 bp but it's best to determine this from a library
+            #     quantification with an instrument such as an Agilent
+            #     Bioanalyzer.
+            #                     - https://pachterlab.github.io/kallisto/manual
+            bash(f"""kallisto quant
+                        --fragment-length=200
+                        --sd=20
+                        -t {CORES}
+                        -i {__hb_idx.path}/kallisto.idx
+                        -o {__hb_ret.path}/{sample["sample_name"]}
+                        {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 @Function(
