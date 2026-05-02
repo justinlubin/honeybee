@@ -67,10 +67,29 @@ class ScheduleState:
         cls.par_factors[stream_level] = par_factor
 
     @classmethod
-    def annotate_tensor(cls, tensor_name, is_sparse):
+    def _ensure_tensor_entry(cls, tensor_name):
         if cls.sparse_annotations is None:
             cls.sparse_annotations = {}
-        cls.sparse_annotations[tensor_name] = is_sparse
+        if tensor_name not in cls.sparse_annotations:
+            cls.sparse_annotations[tensor_name] = {"format": None, "indices": {}}
+        return cls.sparse_annotations[tensor_name]
+
+    @classmethod
+    def annotate_tensor_index(cls, tensor_name, index_name, is_sparse):
+        entry = cls._ensure_tensor_entry(tensor_name)
+        entry["indices"][index_name] = is_sparse
+        if entry["format"] is None:
+            entry["format"] = "custom"
+
+    @classmethod
+    def annotate_tensor_format(cls, tensor_name, format_name, index_names, sparsity_pattern):
+        if len(index_names) != len(sparsity_pattern):
+            raise ValueError("index_names and sparsity_pattern must have matching length")
+        entry = cls._ensure_tensor_entry(tensor_name)
+        entry["format"] = format_name
+        entry["indices"] = {
+            name: bool(flag) for name, flag in zip(index_names, sparsity_pattern)
+        }
 
     @classmethod
     def set_values(
@@ -140,13 +159,17 @@ class MlirProgram:
 class TensorInfo:
     """A tensor in the MLIR program
 
-    This tensor can be annotated as sparse or dense by the user."""
+    This tensor can be annotated with a sparse format or per-index sparsity."""
     name: str
     """Name of the tensor (e.g. t0)"""
     path: str
     """Path to the MLIR program this tensor belongs to"""
     tensor_order: int
     """Order index for sequential annotation (0-based)"""
+    num_indices: int
+    """Number of indices (dimensions) of this tensor"""
+    indices: str
+    """Space-separated names of the tensor's indices (e.g. 'i j')"""
 
 @Input
 class LoopOrderOption:
@@ -162,7 +185,23 @@ class LoopOrderOption:
 class TensorAnnotationLevel:
     """TensorAnnotationLevel
 
-    Internal step to enumerate tensors for per-tensor sparse/dense annotation."""
+    Ready to annotate tensor T: pick a sparse format or enter per-index custom mode."""
+    path: str
+
+    tensor_index: int
+    tensor_name: str
+    num_indices: int
+    indices: str
+    mlir_path: str
+    num_tensors: int
+    num_loops: int
+
+
+@Output
+class TensorAnnotationDone:
+    """TensorAnnotationDone
+
+    Tensor T has been fully annotated (via a format shortcut or per-index custom)."""
     path: str
 
     tensor_index: int
@@ -173,14 +212,34 @@ class TensorAnnotationLevel:
 
 
 @Output
-class TensorAnnotationChoice:
-    """TensorAnnotationChoice
+class TensorIndexLevel:
+    """TensorIndexLevel
 
-    The goal of this step is to choose whether a tensor is sparse or dense."""
+    Ready to annotate index K of tensor T (custom per-index mode)."""
     path: str
 
     tensor_index: int
     tensor_name: str
+    num_indices: int
+    indices: str
+    index_position: int
+    mlir_path: str
+    num_tensors: int
+    num_loops: int
+
+
+@Output
+class TensorIndexChoice:
+    """TensorIndexChoice
+
+    Index K of tensor T has been marked sparse or dense."""
+    path: str
+
+    tensor_index: int
+    tensor_name: str
+    num_indices: int
+    indices: str
+    index_position: int
     is_sparse: bool
     mlir_path: str
     num_tensors: int
@@ -316,7 +375,16 @@ def build_schedule(__hb_order: LoopOrderChoice, __hb_ret: FuseFlowSchedule):
     print(json.dumps(schedule, indent=2, sort_keys=True))
 
 ################################################################################
-# %% Sparse Tensor Annotation (sequential, one tensor at a time)
+# %% Sparse Tensor Annotation (format shortcuts + per-index custom mode)
+#
+# At each tensor, the user picks one of:
+#   * a format shortcut (CSR, CSC, COO for 2D; Dense for any dim), which commits
+#     every index of the tensor at once, or
+#   * "custom", which drops into a per-index loop where each index position K
+#     gets its own hole (t{N}_{index_name}) marked sparse or dense.
+# Max indices per tensor: 4. Max tensors: 16.
+
+# --- Enter annotation for tensor 0 ----------------------------------------
 
 @Function(
     "ret.tensor_index = 0",
@@ -325,34 +393,225 @@ def build_schedule(__hb_order: LoopOrderChoice, __hb_ret: FuseFlowSchedule):
     "ret.num_tensors = mlir.num_tensors",
     "ret.num_loops = mlir.num_loops",
     "ret.mlir_path = mlir.path",
-    "P_TensorInfo { path = mlir.path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = mlir.path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
 def begin_tensor_annotation(__hb_mlir: MlirProgram, __hb_ret: TensorAnnotationLevel):
-    print(f"Begin tensor annotation at index 0: {__hb_ret.tensor_name}")
+    print(
+        f"Begin tensor annotation: '{__hb_ret.tensor_name}' "
+        f"({__hb_ret.num_indices} indices: {__hb_ret.indices})."
+    )
+
+# --- Format shortcuts: Level -> Done --------------------------------------
+
+@Function(
+    "level.num_indices = 2",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def annotate_tensor_csr(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationDone):
+    names = __hb_level.indices.split()
+    ScheduleState.annotate_tensor_format(__hb_level.tensor_name, "CSR", names, [True, False])
+    print(f"Annotated '{__hb_level.tensor_name}' as CSR: {names[0]}=sparse, {names[1]}=dense.")
+
+@Function(
+    "level.num_indices = 2",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def annotate_tensor_csc(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationDone):
+    names = __hb_level.indices.split()
+    ScheduleState.annotate_tensor_format(__hb_level.tensor_name, "CSC", names, [False, True])
+    print(f"Annotated '{__hb_level.tensor_name}' as CSC: {names[0]}=dense, {names[1]}=sparse.")
+
+@Function(
+    "level.num_indices = 2",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def annotate_tensor_coo(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationDone):
+    names = __hb_level.indices.split()
+    ScheduleState.annotate_tensor_format(__hb_level.tensor_name, "COO", names, [True, True])
+    print(f"Annotated '{__hb_level.tensor_name}' as COO: {names[0]},{names[1]} both sparse.")
+
+@Function(
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def annotate_tensor_dense(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationDone):
+    names = __hb_level.indices.split()
+    ScheduleState.annotate_tensor_format(
+        __hb_level.tensor_name, "Dense", names, [False] * len(names)
+    )
+    print(f"Annotated '{__hb_level.tensor_name}' as Dense ({len(names)}D).")
+
+# --- Custom per-index mode: Level -> IndexLevel ---------------------------
+
+@Function(
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_indices = level.num_indices",
+    "ret.indices = level.indices",
+    "ret.index_position = 0",
+    "ret.index_position < level.num_indices",
+    "level.num_indices < 5",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+)
+def begin_custom_annotation(__hb_level: TensorAnnotationLevel, __hb_ret: TensorIndexLevel):
+    names = __hb_level.indices.split()
+    first = names[0] if names else "?"
+    print(
+        f"Begin custom per-index annotation of '{__hb_level.tensor_name}' "
+        f"at hole {__hb_level.tensor_name}_{first}."
+    )
+
+# --- Per-index choice: IndexLevel -> IndexChoice --------------------------
 
 @Function(
     "ret.is_sparse = true",
-    "ret.tensor_index = level.tensor_index",
-    "ret.tensor_name = level.tensor_name",
-    "ret.num_tensors = level.num_tensors",
-    "ret.num_loops = level.num_loops",
-    "ret.mlir_path = level.mlir_path",
+    "ret.tensor_index = il.tensor_index",
+    "ret.tensor_name = il.tensor_name",
+    "ret.num_indices = il.num_indices",
+    "ret.indices = il.indices",
+    "ret.index_position = il.index_position",
+    "ret.num_tensors = il.num_tensors",
+    "ret.num_loops = il.num_loops",
+    "ret.mlir_path = il.mlir_path",
 )
-def annotate_tensor_sparse(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationChoice):
-    ScheduleState.annotate_tensor(__hb_level.tensor_name, True)
-    print(f"Annotated tensor '{__hb_level.tensor_name}' as sparse.")
+def annotate_index_sparse(__hb_il: TensorIndexLevel, __hb_ret: TensorIndexChoice):
+    names = __hb_il.indices.split()
+    idx = names[__hb_il.index_position]
+    ScheduleState.annotate_tensor_index(__hb_il.tensor_name, idx, True)
+    print(f"Annotated {__hb_il.tensor_name}_{idx} as sparse.")
 
 @Function(
     "ret.is_sparse = false",
-    "ret.tensor_index = level.tensor_index",
-    "ret.tensor_name = level.tensor_name",
-    "ret.num_tensors = level.num_tensors",
-    "ret.num_loops = level.num_loops",
-    "ret.mlir_path = level.mlir_path",
+    "ret.tensor_index = il.tensor_index",
+    "ret.tensor_name = il.tensor_name",
+    "ret.num_indices = il.num_indices",
+    "ret.indices = il.indices",
+    "ret.index_position = il.index_position",
+    "ret.num_tensors = il.num_tensors",
+    "ret.num_loops = il.num_loops",
+    "ret.mlir_path = il.mlir_path",
 )
-def annotate_tensor_dense(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnnotationChoice):
-    ScheduleState.annotate_tensor(__hb_level.tensor_name, False)
-    print(f"Annotated tensor '{__hb_level.tensor_name}' as dense.")
+def annotate_index_dense(__hb_il: TensorIndexLevel, __hb_ret: TensorIndexChoice):
+    names = __hb_il.indices.split()
+    idx = names[__hb_il.index_position]
+    ScheduleState.annotate_tensor_index(__hb_il.tensor_name, idx, False)
+    print(f"Annotated {__hb_il.tensor_name}_{idx} as dense.")
+
+# --- Advance to next index (custom): IndexChoice -> IndexLevel ------------
+
+@Function(
+    "prev.index_position = 0",
+    "ret.index_position = 1",
+    "ret.index_position < prev.num_indices",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_indices = prev.num_indices",
+    "ret.indices = prev.indices",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_index_1(__hb_prev: TensorIndexChoice, __hb_ret: TensorIndexLevel):
+    print("Advance to index position 1.")
+
+@Function(
+    "prev.index_position = 1",
+    "ret.index_position = 2",
+    "ret.index_position < prev.num_indices",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_indices = prev.num_indices",
+    "ret.indices = prev.indices",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_index_2(__hb_prev: TensorIndexChoice, __hb_ret: TensorIndexLevel):
+    print("Advance to index position 2.")
+
+@Function(
+    "prev.index_position = 2",
+    "ret.index_position = 3",
+    "ret.index_position < prev.num_indices",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_indices = prev.num_indices",
+    "ret.indices = prev.indices",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def advance_index_3(__hb_prev: TensorIndexChoice, __hb_ret: TensorIndexLevel):
+    print("Advance to index position 3.")
+
+# --- Finish custom when at last index: IndexChoice -> Done ----------------
+
+@Function(
+    "prev.index_position = 0",
+    "prev.num_indices = 1",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def finish_custom_after_index_0(__hb_prev: TensorIndexChoice, __hb_ret: TensorAnnotationDone):
+    print(f"Finished custom annotation of '{__hb_prev.tensor_name}'.")
+
+@Function(
+    "prev.index_position = 1",
+    "prev.num_indices = 2",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def finish_custom_after_index_1(__hb_prev: TensorIndexChoice, __hb_ret: TensorAnnotationDone):
+    print(f"Finished custom annotation of '{__hb_prev.tensor_name}'.")
+
+@Function(
+    "prev.index_position = 2",
+    "prev.num_indices = 3",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def finish_custom_after_index_2(__hb_prev: TensorIndexChoice, __hb_ret: TensorAnnotationDone):
+    print(f"Finished custom annotation of '{__hb_prev.tensor_name}'.")
+
+@Function(
+    "prev.index_position = 3",
+    "prev.num_indices = 4",
+    "ret.tensor_index = prev.tensor_index",
+    "ret.tensor_name = prev.tensor_name",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+)
+def finish_custom_after_index_3(__hb_prev: TensorIndexChoice, __hb_ret: TensorAnnotationDone):
+    print(f"Finished custom annotation of '{__hb_prev.tensor_name}'.")
+
+# --- Advance to next tensor: Done -> Level --------------------------------
 
 @Function(
     "prev.tensor_index = 0",
@@ -361,9 +620,9 @@ def annotate_tensor_dense(__hb_level: TensorAnnotationLevel, __hb_ret: TensorAnn
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_1(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_1(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 1.")
 
 @Function(
@@ -373,9 +632,9 @@ def advance_tensor_annotation_1(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_2(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_2(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 2.")
 
 @Function(
@@ -385,9 +644,9 @@ def advance_tensor_annotation_2(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_3(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_3(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 3.")
 
 @Function(
@@ -397,9 +656,9 @@ def advance_tensor_annotation_3(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_4(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_4(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 4.")
 
 @Function(
@@ -409,9 +668,9 @@ def advance_tensor_annotation_4(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_5(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_5(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 5.")
 
 @Function(
@@ -421,9 +680,9 @@ def advance_tensor_annotation_5(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_6(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_6(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 6.")
 
 @Function(
@@ -433,9 +692,9 @@ def advance_tensor_annotation_6(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_7(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_7(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 7.")
 
 @Function(
@@ -445,9 +704,9 @@ def advance_tensor_annotation_7(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_8(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_8(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 8.")
 
 @Function(
@@ -457,9 +716,9 @@ def advance_tensor_annotation_8(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_9(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_9(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 9.")
 
 @Function(
@@ -469,9 +728,9 @@ def advance_tensor_annotation_9(__hb_prev: TensorAnnotationChoice, __hb_ret: Ten
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_10(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_10(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 10.")
 
 @Function(
@@ -481,9 +740,9 @@ def advance_tensor_annotation_10(__hb_prev: TensorAnnotationChoice, __hb_ret: Te
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_11(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_11(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 11.")
 
 @Function(
@@ -493,9 +752,9 @@ def advance_tensor_annotation_11(__hb_prev: TensorAnnotationChoice, __hb_ret: Te
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_12(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_12(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 12.")
 
 @Function(
@@ -505,9 +764,9 @@ def advance_tensor_annotation_12(__hb_prev: TensorAnnotationChoice, __hb_ret: Te
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_13(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_13(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 13.")
 
 @Function(
@@ -517,9 +776,9 @@ def advance_tensor_annotation_13(__hb_prev: TensorAnnotationChoice, __hb_ret: Te
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_14(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_14(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 14.")
 
 @Function(
@@ -529,153 +788,155 @@ def advance_tensor_annotation_14(__hb_prev: TensorAnnotationChoice, __hb_ret: Te
     "ret.num_tensors = prev.num_tensors",
     "ret.num_loops = prev.num_loops",
     "ret.mlir_path = prev.mlir_path",
-    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index, num_indices = ret.num_indices, indices = ret.indices }",
 )
-def advance_tensor_annotation_15(__hb_prev: TensorAnnotationChoice, __hb_ret: TensorAnnotationLevel):
+def advance_tensor_annotation_15(__hb_prev: TensorAnnotationDone, __hb_ret: TensorAnnotationLevel):
     print("Advance to tensor annotation index 15.")
 
+# --- Finish sparse-annotation pass: Done -> SparseAnnotationPass ----------
+
 @Function(
-    "ann.tensor_index = 0",
-    "ann.num_tensors = 1",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 0",
+    "done.num_tensors = 1",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_0(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_0(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 1",
-    "ann.num_tensors = 2",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 1",
+    "done.num_tensors = 2",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_1(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_1(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 2",
-    "ann.num_tensors = 3",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 2",
+    "done.num_tensors = 3",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_2(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_2(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 3",
-    "ann.num_tensors = 4",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 3",
+    "done.num_tensors = 4",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_3(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_3(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 4",
-    "ann.num_tensors = 5",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 4",
+    "done.num_tensors = 5",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_4(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_4(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 5",
-    "ann.num_tensors = 6",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 5",
+    "done.num_tensors = 6",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_5(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_5(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 6",
-    "ann.num_tensors = 7",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 6",
+    "done.num_tensors = 7",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_6(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_6(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 7",
-    "ann.num_tensors = 8",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 7",
+    "done.num_tensors = 8",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_7(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_7(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 8",
-    "ann.num_tensors = 9",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 8",
+    "done.num_tensors = 9",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_8(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_8(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 9",
-    "ann.num_tensors = 10",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 9",
+    "done.num_tensors = 10",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_9(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_9(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 10",
-    "ann.num_tensors = 11",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 10",
+    "done.num_tensors = 11",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_10(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_10(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 11",
-    "ann.num_tensors = 12",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 11",
+    "done.num_tensors = 12",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_11(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_11(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 12",
-    "ann.num_tensors = 13",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 12",
+    "done.num_tensors = 13",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_12(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_12(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 13",
-    "ann.num_tensors = 14",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 13",
+    "done.num_tensors = 14",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_13(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_13(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 14",
-    "ann.num_tensors = 15",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 14",
+    "done.num_tensors = 15",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_14(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_14(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 @Function(
-    "ann.tensor_index = 15",
-    "ann.num_tensors = 16",
-    "ret.mlir_path = ann.mlir_path",
-    "ret.num_loops = ann.num_loops",
+    "done.tensor_index = 15",
+    "done.num_tensors = 16",
+    "ret.mlir_path = done.mlir_path",
+    "ret.num_loops = done.num_loops",
 )
-def finish_annotation_after_tensor_15(__hb_ann: TensorAnnotationChoice, __hb_ret: SparseAnnotationPass):
+def finish_annotation_after_tensor_15(__hb_done: TensorAnnotationDone, __hb_ret: SparseAnnotationPass):
     print("Sparse annotation complete.")
 
 ################################################################################
