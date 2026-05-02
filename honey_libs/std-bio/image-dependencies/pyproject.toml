@@ -1,0 +1,16 @@
+[project]
+name = "hb-stdbio-docker"
+version = "0.1.0"
+description = "Honeybee Standard Bio Docker Image"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cutadapt>=5.1",
+    "multiqc>=1.30",
+    "polars>=1.33.0",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+]

@@ -3,45 +3,45 @@
 
 // https://stackoverflow.com/a/18197341
 function download(filename, text) {
-    const element = document.createElement("a");
-    element.setAttribute(
-        "href",
-        "data:text/plain;charset=utf-8," + encodeURIComponent(text),
-    );
-    element.setAttribute("download", filename);
+  const element = document.createElement("a");
+  element.setAttribute(
+    "href",
+    "data:text/plain;charset=utf-8," + encodeURIComponent(text),
+  );
+  element.setAttribute("download", filename);
 
-    element.style.display = "none";
-    document.body.appendChild(element);
+  element.style.display = "none";
+  document.body.appendChild(element);
 
-    element.click();
+  element.click();
 
-    document.body.removeChild(element);
+  document.body.removeChild(element);
 }
 
 function elmify(m) {
-    if (m === undefined) {
-        return null;
-    } else if (m instanceof Map) {
-        const obj = {};
-        for (const [k, v] of m) {
-            obj[k] = elmify(v);
-        }
-        return obj;
-    } else if (Array.isArray(m)) {
-        const arr = [];
-        for (const v of m) {
-            arr.push(elmify(v));
-        }
-        return arr;
-    } else if (m instanceof Object) {
-        const obj = {};
-        for (const [k, v] of Object.entries(m)) {
-            obj[k] = elmify(v);
-        }
-        return obj;
-    } else {
-        return m;
+  if (m === undefined) {
+    return null;
+  } else if (m instanceof Map) {
+    const obj = {};
+    for (const [k, v] of m) {
+      obj[k] = elmify(v);
     }
+    return obj;
+  } else if (Array.isArray(m)) {
+    const arr = [];
+    for (const v of m) {
+      arr.push(elmify(v));
+    }
+    return arr;
+  } else if (m instanceof Object) {
+    const obj = {};
+    for (const [k, v] of Object.entries(m)) {
+      obj[k] = elmify(v);
+    }
+    return obj;
+  } else {
+    return m;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -56,61 +56,61 @@ const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
 const flags = {
-    props: elmify(library.Prop),
-    types: elmify(library.Type),
+  props: elmify(library.Prop),
+  types: elmify(library.Type),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // Custom elements
 
 customElements.define(
-    "fancy-code",
-    class extends HTMLElement {
-        constructor() {
-            super();
-            this._code = null;
-        }
+  "fancy-code",
+  class extends HTMLElement {
+    constructor() {
+      super();
+      this._code = null;
+    }
 
-        set code(value) {
-            this._code = value;
+    set code(value) {
+      this._code = value;
 
-            const preElement = document.createElement("pre");
-            const codeElement = document.createElement("code");
+      const preElement = document.createElement("pre");
+      const codeElement = document.createElement("code");
 
-            const language = this.getAttribute("language");
-            if (language) {
-                codeElement.className = "language-" + language;
-            }
+      const language = this.getAttribute("language");
+      if (language) {
+        codeElement.className = "language-" + language;
+      }
 
-            codeElement.textContent = this._code;
+      codeElement.textContent = this._code;
 
-            Prism.highlightElement(codeElement);
+      Prism.highlightElement(codeElement);
 
-            codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-                 /__hb_ret/g,
-                 `<span
-                     class='hb-argument'
-                     title='PLACEHOLDER: Will get filled with data from the current step.'
-                >current</span>`
-            );
+      codeElement.innerHTML = codeElement.innerHTML.replaceAll(
+        /__hb_ret/g,
+        `<span
+           class='hb-argument'
+           title='PLACEHOLDER: Will get filled with data from the current step.'
+        >current</span>`,
+      );
 
-            codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-                 /__hb_[A-Za-z][A-Za-z_]*/g,
-                 `<span
-                     class='hb-argument'
-                     title='PLACEHOLDER: Will get filled with data from upstream steps in the pipeline.'
-                >previous</span>`
-            );
+      codeElement.innerHTML = codeElement.innerHTML.replaceAll(
+        /__hb_[A-Za-z][A-Za-z_]*/g,
+        `<span
+           class='hb-argument'
+           title='PLACEHOLDER: Will get filled with data from upstream steps in the pipeline.'
+        >previous</span>`,
+      );
 
-            this.textContent = "";
-            preElement.appendChild(codeElement);
-            this.appendChild(preElement);
-        }
+      this.textContent = "";
+      preElement.appendChild(codeElement);
+      this.appendChild(preElement);
+    }
 
-        get code() {
-            return this._code;
-        }
-    },
+    get code() {
+      return this._code;
+    }
+  },
 );
 
 // https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
@@ -118,106 +118,102 @@ customElements.define(
 let seen = new Set();
 
 function findElementToFocus(target) {
-    for (const node of target.childNodes) {
-        if (!node.dataset.popinkey) {
-            continue;
-        }
-        if (seen.has(node.dataset.popinkey)) {
-            continue;
-        }
-        return node;
+  for (const node of target.childNodes) {
+    if (!node.dataset.popinkey) {
+      continue;
     }
-    return null;
+    if (seen.has(node.dataset.popinkey)) {
+      continue;
+    }
+    return node;
+  }
+  return null;
 }
 
 customElements.define(
-    "pop-in",
-    class extends HTMLElement {
-        constructor() {
-            super();
+  "pop-in",
+  class extends HTMLElement {
+    constructor() {
+      super();
 
-            const observer = new MutationObserver((_mutations, _obs) => {
-                const el = findElementToFocus(this);
-                if (el) {
-                    seen.add(el.dataset.popinkey);
+      const observer = new MutationObserver((_mutations, _obs) => {
+        const el = findElementToFocus(this);
+        if (el) {
+          seen.add(el.dataset.popinkey);
 
-                    // Important to scroll before adding just-added class
-                    el.scrollIntoView({ behavior: "instant" });
+          // Important to scroll before adding just-added class
+          el.scrollIntoView({ behavior: "instant" });
 
-                    el.classList.add("just-added");
-                    window.setTimeout(() => {
-                        el.classList.remove("just-added");
-                    }, 500);
+          el.classList.add("just-added");
+          window.setTimeout(() => {
+            el.classList.remove("just-added");
+          }, 500);
 
-                    window.setTimeout(() => {
-                        document
-                            .querySelectorAll(".post-popin-attention")
-                            .forEach((x) => {
-                                x.classList.add("attention");
-                                window.setTimeout(() => {
-                                    x.classList.remove("attention");
-                                }, 500);
-                            });
-                    }, 1000);
-                }
+          window.setTimeout(() => {
+            document.querySelectorAll(".post-popin-attention").forEach((x) => {
+              x.classList.add("attention");
+              window.setTimeout(() => {
+                x.classList.remove("attention");
+              }, 500);
             });
-
-            observer.observe(this, {
-                childList: true,
-            });
+          }, 1000);
         }
-    },
+      });
+
+      observer.observe(this, {
+        childList: true,
+      });
+    }
+  },
 );
 
 ////////////////////////////////////////////////////////////////////////////////
 // Elm initialization
 
 const app = Elm.Main.init({
-    node: document.getElementById("app"),
-    flags: flags,
+  node: document.getElementById("app"),
+  flags: flags,
 });
 
 document.getElementById("start-navigating").addEventListener("click", () => {
-    seen = new Set();
+  seen = new Set();
 });
 
 ////////////////////////////////////////////////////////////////////////////////
 // Elm ports
 
 app.ports.oScrollIntoView.subscribe((msg) => {
-    window.setTimeout(() => {
-        document
-            .querySelector(msg.selector)
-            .scrollIntoView({ behavior: "smooth" });
-    }, 100);
+  window.setTimeout(() => {
+    document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
+  }, 100);
 });
 
 // PBN
 
 app.ports.oPbnCheck.subscribe((msg) => {
-    try {
-        const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
-            librarySource,
-            msg.programSource,
-        );
-        validGoalMetadataMessage.choices = validGoalMetadataMessage.choices.map(
-            (m) => Object.fromEntries(m),
-        );
-        app.ports.iValidGoalMetadata_.send(validGoalMetadataMessage);
-    } catch (e) {
-        console.error(e);
-    }
+  try {
+    const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
+      librarySource,
+      msg.programSource,
+    );
+    validGoalMetadataMessage.choices = validGoalMetadataMessage.choices.map(
+      (m) => Object.fromEntries(m),
+    );
+    app.ports.iValidGoalMetadata_.send(validGoalMetadataMessage);
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 app.ports.oPbnInit.subscribe((msg) => {
-    try {
-        const pbnStatusMessage = elmify(
-            Honeybee.pbn_init(librarySource, msg.programSource),
-        );
-        app.ports.iPbnStatus_.send(pbnStatusMessage);
-    } catch (e) {
-        alert(
-            `Honeybee cannot figure out how to make an analysis script for this experiment.
+  try {
+    const pbnStatusMessage = elmify(
+      Honeybee.pbn_init(librarySource, msg.programSource),
+    );
+    app.ports.iPbnStatus_.send(pbnStatusMessage);
+  } catch (e) {
+    alert(
+      `Honeybee cannot figure out how to make an analysis script for this experiment.
 
 Here are some things to try:
 
@@ -230,31 +226,31 @@ Here are some things to try:
 If none of these steps help, it is likely that the Honeybee library does not (yet!) include the comptuational steps you need.
 
 In any case, please feel free reach out to Justin at justinlubin@berkeley.edu with a screenshot of this page for help! ☺`,
-        );
-        console.error(e);
-    }
+    );
+    console.error(e);
+  }
 });
 
 app.ports.oPbnChoose.subscribe((msg) => {
-    try {
-        const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
-        app.ports.iPbnStatus_.send(pbnStatusMessage);
-    } catch (e) {
-        console.error(e);
-    }
+  try {
+    const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
+    app.ports.iPbnStatus_.send(pbnStatusMessage);
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 app.ports.oPbnUndo.subscribe((_msg) => {
-    try {
-        const pbnStatusMessage = elmify(Honeybee.pbn_undo());
-        app.ports.iPbnStatus_.send(pbnStatusMessage);
-    } catch (e) {
-        console.error(e);
-    }
+  try {
+    const pbnStatusMessage = elmify(Honeybee.pbn_undo());
+    app.ports.iPbnStatus_.send(pbnStatusMessage);
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 app.ports.oDownload.subscribe((msg) => {
-    download(msg.filename, msg.text);
+  download(msg.filename, msg.text);
 });
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -262,12 +258,12 @@ app.ports.oDownload.subscribe((msg) => {
 
 // https://stackoverflow.com/a/33616981
 document.addEventListener("click", (e) => {
-    const target = e.target.closest("a");
-    if (target) {
-        const href = target.getAttribute("href");
-        if (href?.startsWith("#")) {
-            e.preventDefault();
-            document.querySelector(href).scrollIntoView({ behavior: "smooth" });
-        }
+  const target = e.target.closest("a");
+  if (target) {
+    const href = target.getAttribute("href");
+    if (href?.startsWith("#")) {
+      e.preventDefault();
+      document.querySelector(href).scrollIntoView({ behavior: "smooth" });
     }
+  }
 });

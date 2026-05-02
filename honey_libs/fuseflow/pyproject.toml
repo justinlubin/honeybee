@@ -1,0 +1,21 @@
+[project]
+name = "hblib-fuseflow"
+version = "0.5.0"
+description = "FuseFlow Honeybee Library"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "honey-lang",
+]
+
+[tool.uv.sources]
+honey-lang = { path = "../../honey_lang", editable = true }
+
+[tool.ty.environment]
+extra-paths = ["../../honey_lang"]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.9.0",
+    "ty>=0.0.12",
+]

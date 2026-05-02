@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-make clean
-make all
-
 shopt -s extglob
 
 TO="__gh-pages"
@@ -18,12 +15,22 @@ git checkout gh-pages
 
 if [ "$1" == "new-version" ]; then
     rm -rf !(.git)
+    cd ../
+    make clean
+    PUBLISH_STABLE=true make all
+    cd "$TO"
     cp -r ../www/. .
 fi
 
 mkdir -p "$UNSTABLE"
 rm -rf "$UNSTABLE"
 mkdir "$UNSTABLE"
+
+cd ../
+make clean
+make all
+cd "$TO"
+
 cp -r ../www/. "$UNSTABLE"
 
 git add * -f

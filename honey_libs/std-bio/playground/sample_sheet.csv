@@ -1,0 +1,5 @@
+sample_name,condition,forward_location,reverse_location
+croff1,croff,SRR34323945_1,SRR34323945_2
+croff2,croff,SRR34323944_1,SRR34323944_2
+wt1,wt,SRR34323943_1,SRR34323943_2
+wt2,wt,SRR34323942_1,SRR34323942_2

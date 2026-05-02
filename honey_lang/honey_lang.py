@@ -230,21 +230,15 @@ def _emit_function_sig(f, condition, kwargs):
             print(f'info.{k} = "{kwargs[k]}"')
 
     code = ""
-    found_def = False
     initial_indent = None
 
     hyper_parameters = {}
-    it = iter(inspect.getsource(f).splitlines())
+    src = inspect.getsource(f)
+    it = iter(src[src.index("):") :].splitlines())
+    next(it)
     while True:
         try:
             line = next(it)
-
-            if line.startswith("def"):
-                found_def = True
-                continue
-
-            if not found_def:
-                continue
 
             if initial_indent is None:
                 initial_indent = len(line) - len(line.lstrip())

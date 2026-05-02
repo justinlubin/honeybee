@@ -1,11 +1,10 @@
 # Requirements:
 #   cargo
-#   dot
 #   elm
 #   uglifyjs
 #   uv
 #   wasm-bindgen
-#     cargo install -f wasm-bindgen-cli --version 0.2.100
+#     cargo install -f wasm-bindgen-cli --version 0.2.108
 #   wasm32-unknown-unknown Rust target
 #     rustup target add wasm32-unknown-unknown
 
@@ -13,22 +12,15 @@ OPTIMIZE_ELM := false
 HERE_DIR := editor
 ENGINE_DIR := ../engine
 LANG_DIR := ../honey_lang
-GLUE_DIR := ../honey_libs
+GLUE_DIR := ../honey_libs/std-bio
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
-
-DIAGRAMS_DIR := $(OUT_DIR)/assets/diagrams
-DIAGRAM_OBJECTS := $(patsubst \
-    $(DIAGRAMS_DIR)/dot/%.dot, \
-    $(DIAGRAMS_DIR)/svg/%.svg, \
-    $(wildcard $(DIAGRAMS_DIR)/dot/*.dot))
 
 .PHONY: all
 all: \
 	$(OUT_DIR)/elm.js \
 	$(OUT_DIR)/pkg/honeybee.js \
 	$(OUT_DIR)/std-bio.hblib.toml \
-	$(DIAGRAM_OBJECTS)
 
 .PHONY: clean
 clean:
@@ -58,15 +50,10 @@ $(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
 		--target web
 
 $(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
-	cd ../honey_libs && ty check
+	cd $(GLUE_DIR) && ty check
 	uv run \
 		--project $(GLUE_DIR) \
 		$(GLUE_DIR)/std-bio.py \
 		> $(OUT_DIR)/std-bio.hblib.toml && \
 	cd $(ENGINE_DIR) && \
 	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/std-bio.hblib.toml
-
-$(OUT_DIR)/assets/diagrams/svg/%.svg: $(OUT_DIR)/assets/diagrams/dot/%.dot
-
-$(DIAGRAMS_DIR)/svg/%.svg: $(DIAGRAMS_DIR)/dot/%.dot
-	dot -Tsvg $< > $@

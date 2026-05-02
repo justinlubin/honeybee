@@ -7,6 +7,16 @@ of Honeybee.
 
 ### Added
 
+- Added basic EM-seq support
+
+### Changed
+
+- Paths are now statically embedded in the output program
+
+## [0.5.0] - 2026-02-23
+
+### Added
+
 - Add additional UI + information to help fill out information in the first
   phase of Honeybee
   ([#109](https://github.com/justinlubin/honeybee/pull/109))

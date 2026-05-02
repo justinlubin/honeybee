@@ -1,7 +1,0 @@
-[[Prop]]
-name = "P_SraRnaSeq"
-args.sample_sheet = "samples.csv"
-
-[Goal]
-name = "DifferentialGeneExpression"
-args.comparison_sheet = "comparisons.csv"
