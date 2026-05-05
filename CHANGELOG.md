@@ -5,13 +5,27 @@ of Honeybee.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-01
+
+### Changed
+
+- Minor improvements to Standard Bio library and Docker image
+
+## [0.6.0] - 2026-04-29
+
 ### Added
 
+- Added erasure of static information
+- Added Honeybee Standard Bio Docker image (still WIP, but has a lot of
+  functionality)
 - Added basic EM-seq support
 
 ### Changed
 
-- Paths are now statically embedded in the output program
+- Paths are now statically embedded in the output program instead of dynamically
+  via Dir.make()
+- std-bio now has static erasure enabled
+- Added a lot of polish (changes) to std-bio library
 
 ## [0.5.0] - 2026-02-23
 

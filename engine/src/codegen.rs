@@ -35,9 +35,14 @@ pub fn plain_text_notebook(lib: &Library, e: &Exp) -> String {
             cellgen::Cell::Hole {
                 var_name,
                 hole_name,
-            } => {
-                format!("# %%\n\n{} = ?{}\n{}", var_name, hole_name, var_name)
-            }
+                code,
+            } => match code {
+                Some(code) => format!("# %%\n\n{}", code),
+                None => format!(
+                    "# %%\n\n{} = ?{}\n{}",
+                    var_name, hole_name, var_name
+                ),
+            },
             cellgen::Cell::Choice { var_name, .. } => {
                 format!("# %%\n\n{} = <choice>\n{}", var_name, var_name)
             }
@@ -78,15 +83,27 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                 description,
                 code,
                 open_when_exporting,
-                open_when_editing: _,
+                number_id,
+                ..
             } => {
                 if code.trim().is_empty() {
                     vec![]
                 } else {
-                    let header = if description.starts_with("# ") {
-                        format!("#{}", description)
-                    } else {
-                        format!("## {}\n\n{}", title, description)
+                    let number_id_prefix = match number_id {
+                        Some(id) => id + " ",
+                        None => "".to_owned(),
+                    };
+
+                    let header = match description.strip_prefix("# ") {
+                        Some(rest) => {
+                            format!("# {}{}", number_id_prefix, rest)
+                        }
+                        None => {
+                            format!(
+                                "# {}{}\n\n{}",
+                                number_id_prefix, title, description
+                            )
+                        }
                     };
 
                     vec![
@@ -114,27 +131,25 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
                 }
             }
             cellgen::Cell::Hole {
-                var_name,
                 hole_name,
+                var_name: _,
+                code: _,
             } => {
                 vec![ipynb::Cell::Code(ipynb::CodeCell {
                     metadata: HashMap::new(),
                     source: vec![format!(
-                        "{} = raise ValueError(\"Hole cell {}\")",
-                        var_name, hole_name
+                        "raise ValueError(\"Hole cell {}\")",
+                        hole_name
                     )],
                     id: Some(format!("{}", 2 * i)),
                     execution_count: None,
                     outputs: vec![],
                 })]
             }
-            cellgen::Cell::Choice { var_name, .. } => {
+            cellgen::Cell::Choice { .. } => {
                 vec![ipynb::Cell::Code(ipynb::CodeCell {
                     metadata: HashMap::new(),
-                    source: vec![format!(
-                        "{} = raise ValueError(\"Choice cell\")",
-                        var_name
-                    )],
+                    source: vec![format!("raise ValueError(\"Choice cell\")")],
                     id: Some(format!("{}", 2 * i)),
                     execution_count: None,
                     outputs: vec![],
@@ -150,10 +165,11 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
             id: Some("start".to_owned()),
             attachments: Some(HashMap::new()),
             source: vec![
-                "# Analysis pipeline\n".to_owned(),
-                format!("Script originally created using [Honeybee](https://honeybee-lang.org) (version {}).\n", env!("CARGO_PKG_VERSION")),
-                "Please cite:\n".to_owned(),
-                "- Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
+                format!(
+                    "Script originally created using [Honeybee](https://honeybee-lang.org) (version {}).\n\n",
+                    env!("HONEYBEE_VERSION"),
+                ),
+                "**Please cite:** Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
         }),
     );
 

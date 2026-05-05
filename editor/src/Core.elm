@@ -277,7 +277,7 @@ example : Library -> WorkingProgram
 example library =
     let
         propName =
-            "P_SraRnaSeq"
+            "P_RnaSeq"
 
         goalName =
             "DifferentialGeneExpression"
@@ -288,7 +288,8 @@ example library =
                 [ Just
                     { name = propName
                     , args =
-                        [ ( "sample_sheet", ( "metadata/samples.csv", VTStr ) )
+                        [ ( "sample_sheet", ( "sample_sheet.csv", VTStr ) )
+                        , ( "comparison_sheet", ( "comparison_sheet.csv", VTStr ) )
                         ]
                     , sig =
                         propSig
@@ -297,11 +298,8 @@ example library =
             , goal =
                 Just
                     { name = goalName
-                    , args =
-                        [ ( "comparison_sheet", ( "metadata/comparisons.csv", VTStr ) )
-                        ]
-                    , sig =
-                        typeSig
+                    , args = []
+                    , sig = typeSig
                     }
             }
 

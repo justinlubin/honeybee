@@ -1,6 +1,6 @@
 [project]
 name = "hblib-fuseflow"
-version = "0.5.0"
+version = "0.6.1"
 description = "FuseFlow Honeybee Library"
 readme = "README.md"
 requires-python = ">=3.13"

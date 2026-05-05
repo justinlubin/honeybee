@@ -1,0 +1,8 @@
+[[Prop]]
+name = "P_RnaSeq"
+args.sample_sheet = "sample_sheet.csv"
+args.comparison_sheet = "comparison_sheet.csv"
+
+[Goal]
+name = "DifferentialGeneExpression"
+args = {}

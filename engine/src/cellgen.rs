@@ -41,10 +41,14 @@ pub enum Cell {
         code: String,
         open_when_editing: bool,
         open_when_exporting: bool,
+        has_path: bool,
+        priority: usize,
+        number_id: Option<String>,
     },
     Hole {
         var_name: String,
         hole_name: top_down::HoleName,
+        code: Option<String>,
     },
     Choice {
         var_name: String,
@@ -52,6 +56,24 @@ pub enum Cell {
         type_description: Option<String>,
         function_choices: Vec<FunctionChoice>,
     },
+}
+
+impl Cell {
+    fn has_output(&self) -> bool {
+        match self {
+            Self::Code { has_path, .. } => *has_path,
+            Self::Hole { .. } => true,
+            Self::Choice { .. } => true,
+        }
+    }
+
+    fn priority(&self) -> usize {
+        match self {
+            Cell::Code { priority, .. } => *priority,
+            Cell::Hole { .. } => 2,
+            Cell::Choice { .. } => 2,
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -106,13 +128,15 @@ struct Context<'a> {
     fresh_counter: HashMap<String, usize>,
     used_types: IndexSet<MetName>,
     used_functions: IndexSet<BaseFunction>,
+    paths: HashMap<String, String>,
+    erase_static: bool,
 }
 
 impl<'a> Context<'a> {
     fn fresh_var(&mut self, prefix: &str) -> String {
         let c = self.fresh_counter.entry(prefix.to_owned()).or_insert(1);
         let s = format!(
-            "{}{}",
+            "__HB_{}{}",
             prefix,
             if *c > 1 {
                 format!("{}", *c)
@@ -152,8 +176,7 @@ impl<'a> Context<'a> {
         }
 
         if !citations.is_empty() {
-            let plural_suffix = if citations.len() == 1 { "" } else { "s" };
-            ret += &format!("### Citation{}\n\n", plural_suffix);
+            ret += "**Please cite:**{}\n\n";
             for cit in citations {
                 ret += &format!("- {}\n", cit);
             }
@@ -165,34 +188,56 @@ impl<'a> Context<'a> {
     fn body_code(
         var_name: &str,
         type_name: &str,
-        function_name: &str,
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
-        path_prefix: &str,
+        path: &str,
+        erase_static: bool,
     ) -> String {
-        let mut s = format!("{} = {}(", var_name, type_name);
-        let mut needs_newline = false;
-        if implementation.is_some() {
-            needs_newline = true;
-            s += &format!("\n    path=\"{}{}\",", path_prefix, function_name);
+        let mut s = "".to_owned();
+
+        if !erase_static || implementation.is_none() {
+            s += &format!("{} = {}(", var_name, type_name);
+            let mut needs_newline = false;
+            if implementation.is_some() {
+                needs_newline = true;
+                s += &format!("\n    path=\"{}\",", path);
+            }
+            if !metadata.is_empty() {
+                needs_newline = true;
+                s += &metadata
+                    .into_iter()
+                    .map(|(lhs, rhs)| format!("\n    {}={},", lhs, rhs))
+                    .collect::<Vec<_>>()
+                    .join("");
+            }
+            if needs_newline {
+                s += "\n";
+            }
+            s += ")";
         }
-        if !metadata.is_empty() {
-            needs_newline = true;
-            s += &metadata
-                .into_iter()
-                .map(|(lhs, rhs)| format!("\n    {}={},", lhs, rhs))
-                .collect::<Vec<_>>()
-                .join("");
-        }
-        if needs_newline {
-            s += "\n";
-        }
-        s += ")";
 
         match implementation {
             Some(imp) => {
-                let mut new_imp = imp.replace("__hb_ret", var_name);
+                s += &format!(
+                    "\n\nif os.path.isdir({}.path) and os.listdir({}.path):\n",
+                    var_name, var_name
+                );
+                s += &format!(
+                    r#"    print(f"'{{{}.path}}' already exists, skipping step")"#,
+                    var_name
+                );
+                s += &format!(
+                    "\nelse:\n    {}{}{}\n\n",
+                    r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
+                );
+
+                let mut new_imp = imp
+                    .lines()
+                    .map(|s| format!("    {}\n", s))
+                    .collect::<Vec<_>>()
+                    .join("")
+                    .replace("__hb_ret", var_name);
 
                 for (lhs, rhs) in args {
                     new_imp = new_imp.replace(&format!("__hb_{}", lhs), rhs)
@@ -200,12 +245,12 @@ impl<'a> Context<'a> {
 
                 let new_imp = bashify(&new_imp);
 
-                s += &format!("\n\n{}", new_imp)
+                s += &new_imp;
             }
             None => (),
         };
 
-        s
+        s.trim().to_owned()
     }
 
     fn exp(&mut self, var_name: &str, e: &Exp) {
@@ -214,7 +259,10 @@ impl<'a> Context<'a> {
                 self.cells.push(Cell::Hole {
                     var_name: var_name.to_owned(),
                     hole_name: *h,
+                    code: None,
                 });
+                self.paths
+                    .insert(var_name.to_owned(), "__HB_PREVIOUS".to_owned());
             }
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
@@ -234,29 +282,59 @@ impl<'a> Context<'a> {
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
 
-                let path_prefix =
-                    format!("output/{:03}-", self.cells.len() * 10);
+                let number_id = format!(
+                    "{:03}",
+                    self.cells
+                        .iter()
+                        .filter(|c| c.has_output())
+                        .collect::<Vec<_>>()
+                        .len()
+                        * 10
+                );
+
+                let path_prefix = format!("output/{}-", number_id);
+
+                let function_name = &f.name.0;
+
+                let path = format!("{}{}", path_prefix, function_name);
+
+                let implementation = f_sig.info_string("code");
 
                 self.cells.push(Cell::Code {
-                    title: f_sig
-                        .info_string("title")
-                        .unwrap_or(f.name.0.clone()),
+                    number_id: if implementation.is_some() {
+                        Some(number_id)
+                    } else {
+                        None
+                    },
+                    has_path: implementation.is_some(),
+                    priority: if implementation.is_some() { 2 } else { 1 },
+                    title: format!(
+                        "{}{}",
+                        if is_input(&self.library, &f_sig.ret) {
+                            "Input: "
+                        } else {
+                            ""
+                        },
+                        f_sig.info_string("title").unwrap_or(f.name.0.clone())
+                    ),
                     description: Self::description(f_sig),
                     code: Self::body_code(
                         var_name,
                         &f_sig.ret.0,
-                        &f.name.0,
                         &f.metadata
                             .iter()
                             .map(|(mp, v)| (mp.0.clone(), python_value(v)))
                             .collect(),
                         &arg_strings,
-                        f_sig.info_string("code"),
-                        &path_prefix,
+                        implementation,
+                        &path,
+                        self.erase_static,
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
                 });
+
+                self.paths.insert(var_name.to_owned(), path);
             }
         }
     }
@@ -318,6 +396,9 @@ impl<'a> Context<'a> {
                 description: "Before running your code, please set the following parameters!".to_owned(),
                 open_when_editing: false,
                 open_when_exporting: true,
+                has_path: false,
+                priority: 0,
+                number_id: None,
             },
         );
 
@@ -339,6 +420,9 @@ impl<'a> Context<'a> {
         }
 
         for t in self.used_types.iter().rev() {
+            if self.erase_static && !is_input(&self.library, t) {
+                continue;
+            }
             match self.library.types.get(t).unwrap().info_string("code") {
                 Some(type_code) => pr_code += &format!("{}\n\n", type_code),
                 None => (),
@@ -352,10 +436,21 @@ impl<'a> Context<'a> {
                 code: pr_code.trim().to_owned(),
                 description: "".to_owned(),
                 open_when_editing: false,
-                open_when_exporting: false,
+                open_when_exporting: true,
+                has_path: false,
+                priority: 0,
+                number_id: None,
             },
         );
     }
+}
+
+fn is_input(library: &Library, mn: &MetName) -> bool {
+    library.props.contains_key(&MetName(format!("P_{}", mn.0)))
+}
+
+fn get_erase_static(library: &Library) -> Option<bool> {
+    library.config.as_ref()?.get("erase_static")?.as_bool()
 }
 
 pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
@@ -365,12 +460,56 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         fresh_counter: HashMap::new(),
         used_types: IndexSet::new(),
         used_functions: IndexSet::new(),
+        paths: HashMap::new(),
+        erase_static: get_erase_static(library) == Some(true),
     };
 
     ctx.exp("GOAL", e);
     ctx.preamble();
 
-    ctx.cells
+    let mut cells = ctx.cells;
+
+    for cell in &mut cells {
+        match cell {
+            Cell::Code { code, .. } => {
+                *code = post_process(&ctx.paths, code, ctx.erase_static)
+            }
+            Cell::Hole {
+                code, hole_name, ..
+            } => *code = Some(format!("?{}", hole_name)),
+            Cell::Choice {
+                function_choices, ..
+            } => {
+                for fc in function_choices {
+                    fc.code = fc
+                        .code
+                        .as_ref()
+                        .map(|c| post_process(&ctx.paths, c, ctx.erase_static));
+                }
+            }
+        }
+    }
+
+    cells.sort_by_key(|c| c.priority());
+
+    cells
+}
+
+fn post_process(
+    paths: &HashMap<String, String>,
+    code: &str,
+    erase_static: bool,
+) -> String {
+    let mut ret = code.to_owned();
+    if erase_static {
+        for (var, val) in paths {
+            ret = ret.replace(&format!("{{{}.path}}", var), val);
+            ret =
+                ret.replace(&format!("{}.path", var), &format!("\"{}\"", val));
+        }
+    }
+    ret = ret.replace("__HB_", "");
+    ret
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -463,6 +602,7 @@ pub fn fill(
             Cell::Hole {
                 var_name,
                 hole_name,
+                code: _,
             } => {
                 let (type_title, type_description, function_choices) =
                     collated_choices.remove(hole_name).ok_or(

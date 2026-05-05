@@ -1,64 +1,64 @@
-import os
 import glob
+import os
+import re
+import subprocess
 import polars as pl
 
-from honey_lang import Helper, Input, Output, Function, __hb_bash
+from honey_lang import Function, Helper, Input, Output, initialize, log
+
+initialize()
 
 ################################################################################
 # %% Helper
 
 
 @Helper
+def bash(command, redirect_stderr=True):
+    command = command.replace("\\\n", "\n")
+    command = re.sub(r"\s+", " ", command)
+
+    log("### Running bash command:\n")
+    log(command + "\n")
+    log("### Output:\n")
+
+    with subprocess.Popen(
+        command,
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT if redirect_stderr else None,
+        bufsize=1,
+    ) as p:
+        if p.stdout:
+            for line in p.stdout:
+                log(line.removesuffix("\n"))
+
+    log(f"\n### Exit code:\n\n{p.returncode}\n")
+
+
+@Helper
 def stem(path):
-    return os.path.splitext(os.path.basename(path))[0]
-
-
-# @Helper
-# def carry_over(src_object, dst_object, *, file=None):
-#     def carry_one(f):
-#         src = f"../../{src_object.path}/{f}"  # relative to dst
-#         dst = f"{dst_object.path}/{f}"
-#         if os.path.islink(src):
-#             src = os.readlink(src)
-#         os.symlink(src=src, dst=dst)
-
-#     if file is None:
-#         for file in os.listdir(src_object.path):
-#             carry_one(file)
-#     else:
-#         carry_one(file)
+    ret = path
+    while True:
+        ret, ext = os.path.splitext(os.path.basename(ret))
+        if not ext:
+            return ret
 
 
 @Helper
-def carry_over(source, destination):
-    if "*" in source:
-        for filename in glob.glob(source):
-            src = filename
-            if os.path.islink(src):
-                src = os.readlink(src)
-            src = os.path.relpath(src, start=destination)
-            dst = f"{destination}/{filename}"
-            os.symlink(src=src, dst=dst)
-    elif os.path.isdir(source):
-        for filename in os.listdir(source):
-            src = filename
-            if os.path.islink(src):
-                src = os.readlink(src)
-            src = os.path.relpath(src, start=destination)
-            dst = f"{destination}/{filename}"
-            os.symlink(src=src, dst=dst)
-    else:
-        if os.path.islink(source):
-            source = os.readlink(source)
-        source = os.path.relpath(
-            source,
-            start=os.path.dirname(destination),
-        )
-        os.symlink(src=source, dst=destination)
+def carry_over(source_glob, destination_folder):
+    os.makedirs(destination_folder, exist_ok=True)
+    if "*" not in source_glob:
+        source_glob += "/*"
+    for src in sorted(glob.glob(source_glob)):
+        basename = os.path.basename(src)
+        src = os.path.relpath(src, start=destination_folder)
+        dst = f"{destination_folder}/{basename}"
+        os.symlink(src=src, dst=dst)
 
 
 @Helper
-def save(src, dst):
+def link(src, dst):
     dir = os.path.dirname(dst)
     os.makedirs(dir, exist_ok=True)
     os.symlink(src=os.path.abspath(src), dst=dst)
@@ -154,10 +154,10 @@ def fastqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
     carry_over(__hb_reads.path, __hb_ret.path)
 
-    fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+    fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
     # -t number of cores, -o output
-    __hb_bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
+    bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
 
 
 @Function(
@@ -201,13 +201,11 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
     carry_over(__hb_reads.path, __hb_ret.path)
 
-    fastqs = " ".join(glob.glob(f"{__hb_reads.path}/*.fastq*"))
+    fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
     # -t number of cores, -o output
-    __hb_bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
-    __hb_bash(
-        f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}"""
-    )
+    bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
+    bash(f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}""")
 
 
 @Function(
@@ -246,7 +244,7 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
 def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     """cutadapt (include poly(A) tails)
 
-    # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+    # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
     [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
     removes adapter sequences that are present due to a read length being
@@ -268,7 +266,7 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
         if sample["reverse_location"]:
             # --cores number of cores, -m 1 remove reads <1, -a forward adapter
             # -A reverse adapter, -o forward output, -o reverse output
-            __hb_bash(f"""uv run cutadapt \\
+            bash(f"""uv run cutadapt \\
                         --cores={CORES} \\
                         -m 1 \\
                         -a {FORWARD_ADAPTER} \\
@@ -282,7 +280,7 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
         else:
             # --cores number of cores, -m 1 remove reads <1, -a forward adapter
             # -o forward output
-            __hb_bash(f"""uv run cutadapt \\
+            bash(f"""uv run cutadapt \\
                         --cores={CORES} \\
                         -m 1 \\
                         -a {FORWARD_ADAPTER} \\
@@ -311,9 +309,9 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     align long reads, minimap2 is a dedicated tool that aligns long reads much
     more quickly."""
 
-    for path in glob.glob(f"{__hb_reads.path}/*.fastq"):
+    for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
-        __hb_bash(f"""
+        bash(f"""
             minimap2 -a \\
                 -x map-ont \\
                 --sam-hit-only \\
@@ -336,13 +334,13 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
 
     This step also **sorts** and **indexes** the alignments."""
 
-    for path in glob.glob(f"{__hb_align.path}/*.sam"):
+    for path in sorted(glob.glob(f"{__hb_align.path}/*.sam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
-        __hb_bash(f"""
+        bash(f"""
             samtools view -bS "{path}" \
             | samtools sort -o "{__hb_ret.path}/{sample_name}.bam"
         """)
-        __hb_bash(f"""
+        bash(f"""
             samtools index "{__hb_ret.path}/{sample_name}.bam"
         """)
 
@@ -353,9 +351,7 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
 
 @Input
 class RnaSeq:
-    """RNA-seq
-
-    TODO"""
+    """RNA-seq"""
 
     sample_sheet: str
     """Path to sample sheet CSV
@@ -404,15 +400,15 @@ class RnaSeq:
     
     Here is an example CSV file (the headers must match exactly):
 
-    | control   | treatment  |
-    |-----------|------------|
-    | untreated | treatment1 |
-    | untreated | treatment2 |
+    | control_condition | treatment_condition |
+    |-------------------|---------------------|
+    | untreated         | treatment1          |
+    | untreated         | treatment2          |
 
     Each row is one comparison to make.
 
-    The `control` column is the control condition, and the `treatment` column
-    is the treatment condition.
+    The `control_condition` column is the control condition, and the
+    `treatment_condition` column is the treatment condition.
 
     **Important Note:** The entries must match the `condition` names from the
     sample sheet above exactly!"""
@@ -431,7 +427,9 @@ class SalmonIndex:
 class KallistoIndex:
     """@intermediate:Kallisto index
 
-    TODO"""
+    The goal of this step is to create an index for the
+    [kallisto](https://pachterlab.github.io/kallisto/about)
+    transcript abundance quantifier."""
 
     path: str
 
@@ -568,7 +566,7 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
         for file in files:
             # If the file starts with "SRR", download it from ENA
             if file.startswith("SRR"):
-                assert file[:-2] in {"_1", "_2"}, "SRR must end in _1 or _2"
+                assert file[-2:] in {"_1", "_2"}, f"SRR '{file}' must end in _1 or _2"
 
                 # Construct the URL
                 srr = file[:-2]  # remove _1 or _2
@@ -580,10 +578,11 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
                 new_file = file + ".fastq.gz"
 
                 # Download the file
-                __hb_bash(f"""
-                     wget \\
-                         --no-clobber \\
-                         --directory-prefix={__hb_ret.path} \\
+                bash(f"""
+                     wget
+                         --progress=bar:force
+                         --no-clobber
+                         --directory-prefix={__hb_ret.path}
                          {base_url}{new_file}
                 """)
 
@@ -604,7 +603,7 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
 
     # Copy over the comparison sheet, if it exists
     if __hb_rna.comparison_sheet:
-        carry_over(
+        link(
             __hb_rna.comparison_sheet,
             f"{shared()}/comparison_sheet.csv",
         )
@@ -682,7 +681,7 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
         if sample["reverse_location"]:
             # --cores number of cores, -m 1 remove reads <1, -a forward adapter
             # -A reverse adapter, -o forward output, -o reverse output
-            __hb_bash(f"""uv run cutadapt \\
+            bash(f"""uv run cutadapt \\
                         --cores={CORES} \\
                         -m 1 \\
                         --poly-a \\
@@ -697,7 +696,7 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
         else:
             # --cores number of cores, -m 1 remove reads <1, -a forward adapter
             # -o forward output
-            __hb_bash(f"""uv run cutadapt \\
+            bash(f"""uv run cutadapt \\
                         --cores={CORES} \\
                         -m 1 \\
                         --poly-a \\
@@ -728,32 +727,74 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
 #     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
 
 #     for sample_name in sample_sheet["sample_name"]:
-#         __hb_bash(f"""STAR \\
+#         bash(f"""STAR \\
 #                   --runThreadN {STAR_CORES}
 #                   --genomeDir {STAR_REFERENCE}
 #                   --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
-@Function
+@Function(
+    search=False,
+)
 def use_existing_kallisto_index(__hb_ret: KallistoIndex):
     """Use existing index
 
-    TODO"""
+    If you already have a kallisto index for the transcriptome you'd like to
+    use, you can use this code to skip creating a new one."""
 
     # PARAMETER: The location of the kallisto transcriptome index on your computer
     KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
 
-    carry_over(
+    link(
         KALLISTO_INDEX,
         f"{__hb_ret.path}/kallisto.idx",
     )
 
 
-@Function
-def create_kallisto_index(__hb_ret: KallistoIndex):
-    """Create new index from transcriptome
+@Function(
+    search=False,
+)
+def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
+    """New from HUMAN transcriptome (hg38)
 
-    TODO"""
+    This code creates a kallisto index from the human transcriptome (hg38). It
+    automatically downloads the human transcriptome for you from
+    [Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The version of Ensembl to use for gene annotations
+    ENSEMBL_VERSION = "115"
+
+    bash(f"""
+        wget
+            --progress=bar:force
+            --no-clobber
+            --directory-prefix {shared()}/transcriptomes
+            https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+    """)
+
+    # -t number of cores, -i output filename for index
+    bash(f"""
+        kallisto index
+            -t {CORES}
+            -i {__hb_ret.path}/kallisto.idx
+            {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+    """)
+
+
+@Function(
+    search=False,
+)
+def create_kallisto_index(__hb_ret: KallistoIndex):
+    """New from OTHER transcriptome
+
+    This code creates a kallisto index from an existing transcriptome file on
+    your computer. This transcriptome file should contain the complementary
+    DNA (cDNA) for your transcripts of interest. A good place to download
+    transcriptome files is the
+    [Ensembl genome repository](https://www.ensembl.org/)."""
 
     # PARAMETER: The number of cores to use
     CORES = 4
@@ -762,7 +803,7 @@ def create_kallisto_index(__hb_ret: KallistoIndex):
     TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
 
     # -t number of cores, -i output filename for index
-    __hb_bash(f"""
+    bash(f"""
         kallisto index \\
             -t {CORES} \\
             -i {__hb_ret.path}/kallisto.idx \\
@@ -779,13 +820,15 @@ def use_existing_salmon_index(__hb_ret: SalmonIndex):
     # PARAMETER: The location of the kallisto transcriptome index on your computer
     SALMON_INDEX = "salmon_index"
 
-    carry_over(
+    link(
         SALMON_INDEX,
         f"{__hb_ret.path}/salmon_index",
     )
 
 
-@Function
+@Function(
+    search=False,
+)
 def create_salmon_index(__hb_ret: SalmonIndex):
     """Create new index from transcriptome
 
@@ -798,7 +841,7 @@ def create_salmon_index(__hb_ret: SalmonIndex):
     TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
 
     # -p number of cores, -t path to transcriptome, -i output filename for index
-    __hb_bash(f"""
+    bash(f"""
         salmon index \\
             -p {CORES} \\
             -t {TRANSCRIPTOME_PATH} \\
@@ -840,16 +883,30 @@ def kallisto(
         # Paired-end
         if sample["reverse_location"]:
             # -t number of cores, -i kallisto index, -o output folder
-            __hb_bash(f"""kallisto quant \\
-                        -t {CORES} \\
-                        -i {__hb_idx.path} \\
-                        -o {__hb_ret.path}/{sample["sample_name"]} \\
-                        {__hb_reads.path}/{sample["forward_location"]} \\
+            bash(f"""kallisto quant
+                        -t {CORES}
+                        -i {__hb_idx.path}/kallisto.idx
+                        -o {__hb_ret.path}/{sample["sample_name"]}
+                        {__hb_reads.path}/{sample["forward_location"]}
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 
         # Single-end
         else:
-            raise NotImplementedError
+            # IMPORTANT: For single-end reads, you *must* set fragment length
+            # and standard deviation of the library! These can be determined
+            # from, e.g., a TapeStation. The kallisto creators note:
+            #     Typical Illumina libraries produce fragment lengths ranging
+            #     from 180–200 bp but it's best to determine this from a library
+            #     quantification with an instrument such as an Agilent
+            #     Bioanalyzer.
+            #                     - https://pachterlab.github.io/kallisto/manual
+            bash(f"""kallisto quant
+                        --fragment-length=200
+                        --sd=20
+                        -t {CORES}
+                        -i {__hb_idx.path}/kallisto.idx
+                        -o {__hb_ret.path}/{sample["sample_name"]}
+                        {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 @Function(
@@ -899,11 +956,11 @@ def kallisto_bootstrap(
         if sample["reverse_location"]:
             # -b number of bootstrap resamplings, -t number of cores,
             # -i kallisto index, -o output folder
-            __hb_bash(f"""kallisto quant \\
+            bash(f"""kallisto quant \\
                         -b {KALLISTO_BOOTSTRAPS}
                         -t {CORES} \\
                         -i {__hb_idx.path} \\
-                        -o {__hb_ret.path}/{sample["sample_name"]} \\
+                        -o {__hb_ret.path}/{sample["sample_name"]}/kallisto.idx \\
                         {__hb_reads.path}/{sample["forward_location"]} \\
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 
@@ -949,7 +1006,7 @@ def salmon(
     for sample in sample_sheet["sample_name"]:
         # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
         # reads, -o output folder
-        __hb_bash(f"""salmon quant \\
+        bash(f"""salmon quant \\
                     -p {CORES} \\
                     -i {__hb_idx.path} \\
                     -1 {__hb_reads.path}/{sample["forward_location"]} \\
@@ -998,8 +1055,8 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    __hb_bash(f"""
-        Rscript tximport.r \\
+    bash(f"""
+        Rscript environment/tximport.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1045,8 +1102,8 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    __hb_bash(f"""
-        Rscript deseq2.r \\
+    bash(f"""
+        Rscript environment/deseq2.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1082,13 +1139,8 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
-    carry_over(
-        f"{__hb_data.path}/*.csv",
-        __hb_ret.path,
-    )
-
-    __hb_bash(f"""
-        Rscript sleuth.r \\
+    bash(f"""
+        Rscript environment/sleuth.r \\
             {ENSEMBL_VERSION} \\
             {ENSEMBL_DATASET} \\
             {shared()}/sample_sheet.csv \\
@@ -1158,7 +1210,7 @@ def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSe
 
     carry_over(__hb_local.path, __hb_ret.path)
 
-    save(
+    link(
         __hb_local.reference,
         f"{shared()}/reference/unconverted.fasta",
     )
@@ -1186,7 +1238,7 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
 
     carry_over(__hb_data.path, __hb_ret.path)
 
-    __hb_bash(f"""
+    bash(f"""
         cat "{shared()}/reference/unconverted.fasta" \
             | sed '/^>/s/$/ (in silico C -> T converted)/' \
             | sed '/^[^>]/s/C/T/g' \
@@ -1226,7 +1278,7 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
 
     carry_over(__hb_data.path, __hb_ret.path)
 
-    save(
+    link(
         EM_REFERENCE_PATH,
         f"{shared()}/reference/reference.fasta",
     )
@@ -1254,9 +1306,9 @@ def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
     and collects the results into a single table, with one entry per cytosine
     in the reference genome."""
 
-    for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+    for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
-        __hb_bash(f"""
+        bash(f"""
             uv run LEMONmC.py \
                 --ref "{shared()}/reference/unconverted.fasta" \
                 --bam "{path}" \
@@ -1329,7 +1381,7 @@ def bismark_genome_preparation(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
     # PARAMETER: The folder containing the (unconverted) reference genome to align against
     REFERENCE_GENOME_FOLDER = "/Users/barb/Documents/genomes/genome_folder"
 
-    __hb_bash(f"""
+    bash(f"""
         bismark_genome_preparation \
             --verbose \
             --parallel 1 \
@@ -1338,7 +1390,7 @@ def bismark_genome_preparation(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
 
     carry_over(__hb_input.path, __hb_ret.path)
 
-    save(
+    link(
         REFERENCE_GENOME_FOLDER,
         f"{__hb_ret.path}/reference",
     )
@@ -1372,7 +1424,7 @@ def use_existing_bismark_reference(__hb_input: EmSeqNoRef, __hb_ret: SeqReads):
 
     carry_over(__hb_input.path, __hb_ret.path)
 
-    save(
+    link(
         BISMARK_GENOME_FOLDER,
         f"{__hb_ret.path}/reference",
     )
@@ -1407,10 +1459,10 @@ def bismark(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     # PARAMETER: The suffix at the end of the filenames for the reverse reads
     REVERSE_READ_SUFFIX = "_R2"
 
-    for path in glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz"):
+    for path in sorted(glob.glob(f"{__hb_reads.path}/*{FORWARD_READ_SUFFIX}.fastq.gz")):
         sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX)
-        print(f"Running bismark on '{path}'...")
-        __hb_bash(f"""
+        log(f"Running bismark on '{path}'...")
+        bash(f"""
             bismark \
                 --bam \
                 --parallel 1 \
@@ -1440,14 +1492,16 @@ def bismark_methylation_extractor(
     the number of methylated and unmethylated reads at each CpG. These files
     enable essentially any downstream analysis of interest."""
 
-    for path in glob.glob(f"{__hb_input.path}/*.bam"):
-        print(f"Running bismark_methylation_extractor on '{path}'...")
-        __hb_bash(f"""
-            bismark_methylation_extractor \
-               --parallel 1 \
-               --gzip \
-               --bedGraph \
-               -o {__hb_ret.path} \
+    for path in sorted(glob.glob(f"{__hb_input.path}/*.bam")):
+        log(f"Running bismark_methylation_extractor on '{path}'...")
+        # Tip: Add --CX to the command below to get CpH methylation! (It takes
+        # a lot more time and space to analyze, though.)
+        bash(f"""
+            bismark_methylation_extractor
+               --parallel 1
+               --gzip
+               --bedGraph
+               -o {__hb_ret.path}
                {path}
         """)
 
@@ -1458,8 +1512,8 @@ def bismark_methylation_extractor(
 # # Original top (OT) strand
 # for path in glob.glob(f"{__hb_ret.path}/CpG_OT_*.txt.gz"):
 #     sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX + "_bismark_bt2_pe")
-#     print(f"Running bismark2bedGraph on '{path}' OT...")
-#     __hb_bash(f"""
+#     log(f"Running bismark2bedGraph on '{path}' OT...")
+#     bash(f"""
 #         bismark2bedGraph \
 #            --dir {__hb_ret.path} \
 #            --parallel {max(BISMARK_CORES // 3, 1)} \
@@ -1470,8 +1524,8 @@ def bismark_methylation_extractor(
 # # Original bottom (OB) strand
 # for path in glob.glob(f"{__hb_ret.path}/CpG_OB_*.txt.gz"):
 #     sample_name = stem(path).removesuffix(FORWARD_READ_SUFFIX + "_bismark_bt2_pe")
-#     print(f"Running bismark2bedGraph on '{path}' OB...")
-#     __hb_bash(f"""
+#     log(f"Running bismark2bedGraph on '{path}' OB...")
+#     bash(f"""
 #         bismark2bedGraph \
 #            --dir {__hb_ret.path} \
 #            --parallel {max(BISMARK_CORES // 3, 1)} \
@@ -1491,7 +1545,7 @@ def bismark_methylation_extractor(
 
 @Input
 class AtacSeq:
-    "ATAC-seq (stored on your own hard drive)"
+    "ATAC-seq"
 
     path: str
     """TODO"""
@@ -1502,7 +1556,7 @@ class AtacSeq:
 
 @Output
 class AtacPeaks:
-    """TODO"""
+    """Chromatin accessibility peaks"""
 
     path: str
 
@@ -1521,7 +1575,7 @@ def load_local_atac_seq(__hb_local: AtacSeq, __hb_ret: SeqReads):
     # When loading data, save the reference sheet symlinked to reference/reference.fasta
     carry_over(__hb_local.path, __hb_ret.path)
 
-    save(
+    link(
         __hb_local.reference,
         f"{__hb_ret.path}/reference/reference.fasta",
     )
@@ -1541,7 +1595,7 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
     index_path = f"{__hb_ret.path}/index"
 
-    __hb_bash(f"""
+    bash(f"""
         bowtie2-build \
             -f {__hb_reads.path}/reference/reference.fasta \
             {index_path} \
@@ -1567,7 +1621,7 @@ def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
             lastslash = 0
         name = m1[lastslash:-12]
 
-        __hb_bash(f"""
+        bash(f"""
             bowtie2 \
                 -x "{index_path}" \
                 -1 "{m1}" \
@@ -1590,14 +1644,14 @@ def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
 
     ref = f"{__hb_ret.path}/reference/reference.fasta"
 
-    __hb_bash(f"""
+    bash(f"""
         bwa index "{ref}"
     """)
 
     # get lists of mate1 and mate2 files
     mate1 = []
     mate2 = []
-    for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
+    for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         if sample_name[-9:] == "_R1.fastq":
             mate1.append(path)
@@ -1616,15 +1670,15 @@ def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
         s1 = f"{__hb_reads.path}/{name}_R1.sai"
         s2 = f"{__hb_reads.path}/{name}_R2.sai"
 
-        __hb_bash(f"""
+        bash(f"""
             bwa aln "{ref}" "{m1}" > "{s1}"
         """)
 
-        __hb_bash(f"""
+        bash(f"""
             bwa aln "{ref}" "{m2}" > "{s2}"
         """)
 
-        __hb_bash(f"""
+        bash(f"""
             bwa sampe "{ref}" "{s1}" "{s2}" "{m1}" "{m2}" > "{__hb_ret.path}/{name}.sam"
         """)
 
@@ -1639,9 +1693,9 @@ def macs3(__hb_bam: SeqAlignment, __hb_ret: AtacPeaks):
     # PARAMETER: Effective genome size (use hs for human, mm for mouse, or a number)
     GENOME_SIZE = "hs"
 
-    for path in glob.glob(f"{__hb_bam.path}/*.bam"):
+    for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
-        __hb_bash(f"""
+        bash(f"""
             macs3 callpeak \\
                 -t "{path}" \\
                 -f BAMPE \\
