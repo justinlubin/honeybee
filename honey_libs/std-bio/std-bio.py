@@ -69,6 +69,16 @@ def shared():
     return "output/shared"
 
 
+@Helper
+def already_exists(path):
+    if not os.path.isdir(path):
+        return False
+    for file in os.listdir(path):
+        if not file.startswith("."):
+            return True
+    return False
+
+
 ################################################################################
 # %% Sequencing reads
 
@@ -1057,11 +1067,11 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
 
     bash(f"""
         Rscript environment/tximport.r \\
-            {ENSEMBL_VERSION} \\
-            {ENSEMBL_DATASET} \\
-            {shared()}/sample_sheet.csv \\
-            {__hb_data.path} \\
-            {__hb_ret.path}""")
+            --ensembl_version={ENSEMBL_VERSION} \\
+            --ensembl_dataset={ENSEMBL_DATASET} \\
+            --sample_sheet={shared()}/sample_sheet.csv \\
+            --input={__hb_data.path} \\
+            --output={__hb_ret.path}""")
 
 
 @Function(
@@ -1104,12 +1114,12 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
 
     bash(f"""
         Rscript environment/deseq2.r \\
-            {ENSEMBL_VERSION} \\
-            {ENSEMBL_DATASET} \\
-            {shared()}/sample_sheet.csv \\
-            {shared()}/comparison_sheet.csv \\
-            {__hb_data.path}/counts.csv \\
-            {__hb_ret.path}""")
+            --ensembl_version={ENSEMBL_VERSION} \\
+            --ensembl_dataset={ENSEMBL_DATASET} \\
+            --sample_sheet={shared()}/sample_sheet.csv \\
+            --comparison_sheet={shared()}/comparison_sheet.csv \\
+            --input{__hb_data.path}/counts.csv \\
+            --output={__hb_ret.path}""")
 
 
 @Function(
