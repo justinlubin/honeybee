@@ -736,7 +736,6 @@ cell ctx c =
                 (cardHeading []
                     [ span []
                         [ text "Choice"
-                        , cardHeadingSubtitle [] [ text x.varName ]
                         ]
                     ]
                     [ text (cellTitle c) ]
