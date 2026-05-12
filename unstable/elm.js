@@ -6833,7 +6833,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.6.1';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+e994475';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+c55e40f';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,
@@ -7129,16 +7129,6 @@ var $author$project$View$cardHeading = F4(
 						]),
 					suffix)
 				]));
-	});
-var $author$project$View$cardHeadingSubtitle = F2(
-	function (attrs, content) {
-		return A2(
-			$elm$html$Html$span,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('card-heading-subtitle'),
-				attrs),
-			content);
 	});
 var $elm$html$Html$h4 = _VirtualDom_node('h4');
 var $author$project$View$cardInnerHeading = F2(
@@ -7869,14 +7859,7 @@ var $author$project$View$cell = F2(
 							_List_Nil,
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Choice'),
-									A2(
-									$author$project$View$cardHeadingSubtitle,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text(x.varName)
-										]))
+									$elm$html$Html$text('Choice')
 								]))
 						]),
 					_List_fromArray(

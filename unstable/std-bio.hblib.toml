@@ -11,8 +11,6 @@ import polars as pl
 import re
 import subprocess
 
-os.makedirs(shared(), exist_ok=True)
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     filename=f"log.txt",
@@ -84,7 +82,9 @@ content='''def link(src, dst):
 
 [[Preamble]]
 content='''def shared():
-    return "output/shared"'''
+    path = "output/shared"
+    os.makedirs(path, exist_ok=True)
+    return path'''
 
 [[Preamble]]
 content='''def already_exists(path):
@@ -269,7 +269,7 @@ info.title = "Skip adapter trimming"
 info.description = """If the provider of your sequencing results has said that adapter sequences
 have already been removed, then you don't need to run any processing to
 try to remove them again."""
-info.use = "to skip adapter trimming (because your sequencing provider already did adapter trimming for you)"
+info.use = "to skip adapter trimming (e.g. because your sequencing provider already did adapter trimming for you)"
 info.search = false
 info.hyperparameters = [
 ]
@@ -286,7 +286,7 @@ condition = [
     "ret.long = reads.long",
     "ret.type = reads.type",
 ]
-info.title = "cutadapt (include poly(A) tails)"
+info.title = "cutadapt - include poly(A) tails"
 info.description = """# Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
@@ -294,7 +294,7 @@ removes adapter sequences that are present due to a read length being
 longer than the insert size of the sequence in a sequencer."""
 info.google_scholar_id = "4180123542769751602"
 info.citation = "Marcel Martin. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. http://dx.doi.org/10.14806/ej.17.1.200"
-info.use = "to remove sequencing adapters"
+info.use = "to remove sequencing adapters from DNA"
 info.hyperparameters = [
     {name = 'FORWARD_ADAPTER', default = '"AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"', comment = 'The forward adapter, by default the Illumina universal' },
     {name = 'REVERSE_ADAPTER', default = '"AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"', comment = 'The reverse adapter, by default the Illumina universal (can delete for single-end only)' },
@@ -637,10 +637,10 @@ alignment of your RNA-seq to the genome, then a tool that performs
 quantification without alignment is generally a good choice due to their
 orders-of-magnitude speedup over alignment-based procedures.
 
-These matrices can be used for plotting, differential expression testing,
+These tables can be used for plotting, differential expression testing,
 clustering, and many other downstream analyses. The following review
 provides an overview of RNA-seq data analysis, including information about
-read count matrices (Fig 2a and 2b are especially relevant):
+read count tables (Fig 2a and 2b are especially relevant):
 
 > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
 > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -676,10 +676,10 @@ class TranscriptMatrices:
     quantification without alignment is generally a good choice due to their
     orders-of-magnitude speedup over alignment-based procedures.
 
-    These matrices can be used for plotting, differential expression testing,
+    These tables can be used for plotting, differential expression testing,
     clustering, and many other downstream analyses. The following review
     provides an overview of RNA-seq data analysis, including information about
-    read count matrices (Fig 2a and 2b are especially relevant):
+    read count tables (Fig 2a and 2b are especially relevant):
 
     > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -712,10 +712,10 @@ alignment of your RNA-seq to the genome, then a tool that performs
 quantification without alignment is generally a good choice due to their
 orders-of-magnitude speedup over alignment-based procedures.
 
-These matrices can be used for plotting, differential expression testing,
+These tables can be used for plotting, differential expression testing,
 clustering, and many other downstream analyses. The following review
 provides an overview of RNA-seq data analysis, including information about
-read count matrices (Fig 2a and 2b are especially relevant):
+read count tables (Fig 2a and 2b are especially relevant):
 
 > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
 > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -743,10 +743,10 @@ class GeneMatrices:
     quantification without alignment is generally a good choice due to their
     orders-of-magnitude speedup over alignment-based procedures.
 
-    These matrices can be used for plotting, differential expression testing,
+    These tables can be used for plotting, differential expression testing,
     clustering, and many other downstream analyses. The following review
     provides an overview of RNA-seq data analysis, including information about
-    read count matrices (Fig 2a and 2b are especially relevant):
+    read count tables (Fig 2a and 2b are especially relevant):
 
     > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -877,9 +877,9 @@ else:
         for j in range(i + 1, len(conditions)):
             controls.append(conditions[i])
             treatments.append(conditions[j])
-    pl.DataFrame({"control": controls, "treatment": treatments}).write_csv(
-        f"{shared()}/comparison_sheet.csv"
-    )'''
+    pl.DataFrame(
+        {"control_condition": controls, "treatment_condition": treatments}
+    ).write_csv(f"{shared()}/comparison_sheet.csv")'''
 
 [Function.cutadapt_rna]
 params.reads = "SeqReads"
@@ -893,7 +893,7 @@ condition = [
     "ret.long = reads.long",
     "ret.type = reads.type",
 ]
-info.title = "cutadapt (remove poly(A) tails)"
+info.title = "cutadapt - remove poly(A) tails"
 info.description = """# Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
@@ -921,7 +921,7 @@ From the [cutadapt manual](https://cutadapt.readthedocs.io/en/stable/):
 > sequences in an error-tolerant way."""
 info.google_scholar_id = "4180123542769751602"
 info.citation = "Marcel Martin. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. http://dx.doi.org/10.14806/ej.17.1.200"
-info.use = "to remove the Illumina universal adapter and poly(A)-tails from mRNA"
+info.use = "to remove sequencing adapters AND poly(A)-tails from mRNA"
 info.hyperparameters = [
     {name = 'FORWARD_ADAPTER', default = '"AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"', comment = 'The forward adapter, by default the Illumina universal' },
     {name = 'REVERSE_ADAPTER', default = '"AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"', comment = 'The reverse adapter, by default the Illumina universal (can delete for single-end only)' },
@@ -1070,7 +1070,7 @@ bash(f"""
 
 [Function.create_hg38_salmon_index]
 params = {}
-ret = "KallistoIndex"
+ret = "SalmonIndex"
 condition = [
 ]
 info.title = "New from HUMAN transcriptome (hg38)"
@@ -1261,7 +1261,13 @@ for sample in sample_sheet.rows(named=True):
 
     # Single-end
     else:
-        raise NotImplementedError  # single-end for salmon coming soon!
+        # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+        # reads, -o output folder
+        bash(f"""salmon quant
+                    -p {CORES}
+                    -i {__hb_idx.path}
+                    -r {__hb_reads.path}/{sample["forward_location"]}
+                    -o {__hb_ret.path}/{sample["sample_name"]}""")
 
     # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
     # compatability
@@ -1367,19 +1373,21 @@ sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleu
 that demonstrate how to use it to analyze RNA-seq datasets."""
 info.google_scholar_id = "1639708055766929241"
 info.pmid = "28581496"
-info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), advanced access http://dx.doi.org/10.1038/nmeth.4324."
-info.use = "a **lesser-used (but still very common)** tool that **does** give you error bars."
+info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), http://dx.doi.org/10.1038/nmeth.4324."
+info.use = "a **lesser-used (but still common)** tool that **does** give you error bars."
 info.hyperparameters = [
+    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
     {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''bash(f"""
     Rscript environment/sleuth.r
+        --cores={CORES}
         --ensembl_version={ENSEMBL_VERSION}
         --ensembl_dataset={ENSEMBL_DATASET}
         --sample_sheet={shared()}/sample_sheet.csv
         --comparison_sheet={shared()}/comparison_sheet.csv
-        --input{__hb_data.path}
+        --input={__hb_data.path}
         --output={__hb_ret.path}""")'''
 
 [Type.LocalLemonSeq]
