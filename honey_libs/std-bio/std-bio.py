@@ -50,7 +50,9 @@ def carry_over(source_glob, destination_folder):
     os.makedirs(destination_folder, exist_ok=True)
     if "*" not in source_glob:
         source_glob += "/*"
-    for src in sorted(glob.glob(source_glob)):
+    sources = glob.glob(source_glob)
+    assert sources != [], f"Pattern '{source_glob}' did not match any files"
+    for src in sorted(sources):
         basename = os.path.basename(src)
         src = os.path.relpath(src, start=destination_folder)
         dst = f"{destination_folder}/{basename}"
@@ -59,9 +61,11 @@ def carry_over(source_glob, destination_folder):
 
 @Helper
 def link(src, dst):
-    dir = os.path.dirname(dst)
-    os.makedirs(dir, exist_ok=True)
-    os.symlink(src=os.path.abspath(src), dst=dst)
+    assert os.path.isfile(src), f"Cannot find file '{src}'"
+    destination_folder = os.path.dirname(dst)
+    os.makedirs(destination_folder, exist_ok=True)
+    src = os.path.relpath(src, start=destination_folder)
+    os.symlink(src=src, dst=dst)
 
 
 @Helper
@@ -590,11 +594,13 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
                 new_file = file + ".fastq.gz"
 
                 # Download the file
+                # -x 16 -s 16 means to use 16 concurrent streams to download the
+                # files; please do not set this number too high out of respect
+                # for the EBI's bandwidth!
                 bash(f"""
-                     wget
-                         --progress=bar:force
-                         --no-clobber
-                         --directory-prefix={__hb_ret.path}
+                     aria2c
+                         -x 16 -s 16
+                         --dir={__hb_ret.path}
                          {base_url}{new_file}
                 """)
 
@@ -1005,12 +1011,14 @@ def kallisto_bootstrap(
         # Paired-end
         if sample["reverse_location"]:
             # -b number of bootstrap resamplings, -t number of cores,
-            # -i kallisto index, -o output folder
+            # -i kallisto index, -o output folder (--plaintext sets output
+            # format)
             bash(f"""kallisto quant
+                         --plaintext
                         -b {KALLISTO_BOOTSTRAPS}
                         -t {CORES}
-                        -i {__hb_idx.path}
-                        -o {__hb_ret.path}/{sample["sample_name"]}/kallisto.idx
+                        -i {__hb_idx.path}/kallisto.idx
+                        -o {__hb_ret.path}/{sample["sample_name"]}
                         {__hb_reads.path}/{sample["forward_location"]}
                         {__hb_reads.path}/{sample["reverse_location"]}""")
 
@@ -1025,6 +1033,7 @@ def kallisto_bootstrap(
             #     Bioanalyzer.
             #                     - https://pachterlab.github.io/kallisto/manual
             bash(f"""kallisto quant
+                         --plaintext
                         -b {KALLISTO_BOOTSTRAPS}
                         --fragment-length=200
                         --sd=20

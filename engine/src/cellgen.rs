@@ -176,7 +176,7 @@ impl<'a> Context<'a> {
         }
 
         if !citations.is_empty() {
-            ret += "**Please cite:**{}\n\n";
+            ret += "**Please cite:**\n\n";
             for cit in citations {
                 ret += &format!("- {}\n", cit);
             }
@@ -297,6 +297,8 @@ impl<'a> Context<'a> {
 
                 let implementation = f_sig.info_string("code");
 
+                let input = is_input(&self.library, &f_sig.ret);
+
                 self.cells.push(Cell::Code {
                     number_id: if implementation.is_some() {
                         Some(number_id)
@@ -304,14 +306,16 @@ impl<'a> Context<'a> {
                         None
                     },
                     has_path: implementation.is_some(),
-                    priority: if implementation.is_some() { 2 } else { 1 },
+                    priority: if input {
+                        0
+                    } else if implementation.is_some() {
+                        3
+                    } else {
+                        2
+                    },
                     title: format!(
                         "{}{}",
-                        if is_input(&self.library, &f_sig.ret) {
-                            "Input: "
-                        } else {
-                            ""
-                        },
+                        if input { "Input: " } else { "" },
                         f_sig.info_string("title").unwrap_or(f.name.0.clone())
                     ),
                     description: Self::description(f_sig),
@@ -394,7 +398,7 @@ impl<'a> Context<'a> {
                 open_when_editing: false,
                 open_when_exporting: true,
                 has_path: false,
-                priority: 0,
+                priority: 1,
                 number_id: None,
             },
         );
@@ -435,7 +439,7 @@ impl<'a> Context<'a> {
                 open_when_editing: false,
                 open_when_exporting: true,
                 has_path: false,
-                priority: 0,
+                priority: 1,
                 number_id: None,
             },
         );

@@ -8,27 +8,36 @@ RUN apt-get update
 
 RUN apt-get install -y r-base r-base-dev
 RUN apt-get install -y build-essential libcurl4-gnutls-dev libxml2-dev
-RUN apt-get install -y libssl-dev libuv1-dev libfontconfig1-dev
-# RUN apt-get install -y libharfbuzz-dev libfribidi-dev
+RUN apt-get install -y libssl-dev libuv1-dev libfontconfig1-dev libgit2-dev
+RUN apt-get update
+RUN apt-get install -y libharfbuzz-dev
+RUN apt-get install -y libfribidi-dev
+RUN apt-get install -y libfreetype6-dev
+RUN apt-get install -y libpng-dev libtiff5-dev libjpeg-dev libwebp-dev
+
+RUN Rscript -e 'install.packages("optparse")'
+RUN Rscript -e 'install.packages("devtools")'
+RUN Rscript -e 'install.packages("remotes")'
+RUN Rscript -e 'install.packages("tidyverse")'
 RUN Rscript -e 'install.packages("BiocManager")'
+
+RUN Rscript -e 'BiocManager::install("biomaRt")'
 RUN Rscript -e 'BiocManager::install(version = "3.18")'
 RUN Rscript -e 'BiocManager::install("tximport")'
 RUN Rscript -e 'BiocManager::install("DESeq2")'
 RUN Rscript -e 'BiocManager::install("rhdf5")'
-RUN Rscript -e 'install.packages("devtools")'
-RUN Rscript -e 'BiocManager::install("biomaRt")'
-RUN Rscript -e 'install.packages("optparse")'
-# RUN Rscript -e 'devtools::install_github("pachterlab/sleuth")'
+
+RUN Rscript -e 'devtools::install_github("pachterlab/sleuth")'
 
 # System packages
 
-RUN apt-get update
-RUN apt-get -y install fastqc
-RUN apt-get -y install less
-RUN apt-get -y install python3-dev
-RUN apt-get -y install wget
-RUN apt-get -y install cmake
+RUN apt-get install -y fastqc
+RUN apt-get install -y less
+RUN apt-get install -y python3-dev
+RUN apt-get install -y wget
+RUN apt-get install -y cmake
 RUN apt-get install -y aria2
+RUN apt-get install -y salmon
 
 # kallisto
 
@@ -43,11 +52,6 @@ RUN mkdir -p /root/.local/bin/
 RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
 RUN rm v0.52.0.zip
 RUN rm -rf kallisto-0.52.0
-
-RUN apt-get install -y libharfbuzz-dev libfribidi-dev
-RUN apt-get install -y libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libwebp-dev
-RUN Rscript -e 'install.packages("tidyverse")'
-
 
 # uv
 

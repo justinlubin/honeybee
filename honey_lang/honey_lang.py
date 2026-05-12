@@ -354,6 +354,7 @@ def initialize(erase_static=True):
     imports.sort()
 
     print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}")
+    print("\nos.makedirs(shared(), exist_ok=True)")
     print("\nlogger = logging.getLogger(__name__)")
     print("logging.basicConfig(")
     print('    filename=f"log.txt",')
