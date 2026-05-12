@@ -11,6 +11,8 @@ import polars as pl
 import re
 import subprocess
 
+os.makedirs(shared(), exist_ok=True)
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     filename=f"log.txt",
@@ -64,7 +66,9 @@ content='''def carry_over(source_glob, destination_folder):
     os.makedirs(destination_folder, exist_ok=True)
     if "*" not in source_glob:
         source_glob += "/*"
-    for src in sorted(glob.glob(source_glob)):
+    sources = glob.glob(source_glob)
+    assert sources != [], f"Pattern '{source_glob}' did not match any files"
+    for src in sorted(sources):
         basename = os.path.basename(src)
         src = os.path.relpath(src, start=destination_folder)
         dst = f"{destination_folder}/{basename}"
@@ -72,13 +76,24 @@ content='''def carry_over(source_glob, destination_folder):
 
 [[Preamble]]
 content='''def link(src, dst):
-    dir = os.path.dirname(dst)
-    os.makedirs(dir, exist_ok=True)
-    os.symlink(src=os.path.abspath(src), dst=dst)'''
+    assert os.path.isfile(src), f"Cannot find file '{src}'"
+    destination_folder = os.path.dirname(dst)
+    os.makedirs(destination_folder, exist_ok=True)
+    src = os.path.relpath(src, start=destination_folder)
+    os.symlink(src=src, dst=dst)'''
 
 [[Preamble]]
 content='''def shared():
     return "output/shared"'''
+
+[[Preamble]]
+content='''def already_exists(path):
+    if not os.path.isdir(path):
+        return False
+    for file in os.listdir(path):
+        if not file.startswith("."):
+            return True
+    return False'''
 
 [Type.SeqReads]
 params.qc = "Bool"
@@ -292,25 +307,25 @@ for sample in sample_sheet.rows(named=True):
     if sample["reverse_location"]:
         # --cores number of cores, -m 1 remove reads <1, -a forward adapter
         # -A reverse adapter, -o forward output, -o reverse output
-        bash(f"""uv run cutadapt \\
-                    --cores={CORES} \\
-                    -m 1 \\
-                    -a {FORWARD_ADAPTER} \\
-                    -A {REVERSE_ADAPTER} \\
-                    -o {__hb_ret.path}/{sample["forward_location"]} \\
-                    -p {__hb_ret.path}/{sample["reverse_location"]} \\
-                    {__hb_reads.path}/{sample["forward_location"]} \\
+        bash(f"""uv run cutadapt
+                    --cores={CORES}
+                    -m 1
+                    -a {FORWARD_ADAPTER}
+                    -A {REVERSE_ADAPTER}
+                    -o {__hb_ret.path}/{sample["forward_location"]}
+                    -p {__hb_ret.path}/{sample["reverse_location"]}
+                    {__hb_reads.path}/{sample["forward_location"]}
                     {__hb_reads.path}/{sample["reverse_location"]}""")
 
     # Single-end
     else:
         # --cores number of cores, -m 1 remove reads <1, -a forward adapter
         # -o forward output
-        bash(f"""uv run cutadapt \\
-                    --cores={CORES} \\
-                    -m 1 \\
-                    -a {FORWARD_ADAPTER} \\
-                    -o {__hb_ret.path}/{sample["forward_location"]} \\
+        bash(f"""uv run cutadapt
+                    --cores={CORES}
+                    -m 1
+                    -a {FORWARD_ADAPTER}
+                    -o {__hb_ret.path}/{sample["forward_location"]}
                     {__hb_reads.path}/{sample["forward_location"]}""")'''
 
 [Function.minimap2]
@@ -339,11 +354,11 @@ info.hyperparameters = [
 info.code = '''for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
-        minimap2 -a \\
-            -x map-ont \\
-            --sam-hit-only \\
-            "{shared()}/reference/reference.fasta" \\
-            "{path}" \\
+        minimap2 -a
+            -x map-ont
+            --sam-hit-only
+            "{shared()}/reference/reference.fasta"
+            "{path}"
             > "{__hb_ret.path}/{sample_name}.sam"
     """)'''
 
@@ -564,12 +579,16 @@ info.title = "RNA-seq"
 [Type.SalmonIndex]
 params = {}
 info.title = "@intermediate:Salmon index"
-info.description = """TODO"""
+info.description = """The goal of this step is to create an index for the
+[salmon](https://salmon.readthedocs.io/en/latest/)
+transcript abundance quantifier."""
 info.code = '''@dataclass
 class SalmonIndex:
     """@intermediate:Salmon index
 
-    TODO"""
+    The goal of this step is to create an index for the
+    [salmon](https://salmon.readthedocs.io/en/latest/)
+    transcript abundance quantifier."""
 
     path: str'''
 
@@ -817,11 +836,13 @@ for sample in sample_sheet.rows(named=True):
             new_file = file + ".fastq.gz"
 
             # Download the file
+            # -x 16 -s 16 means to use 16 concurrent streams to download the
+            # files; please do not set this number too high out of respect
+            # for the EBI's bandwidth!
             bash(f"""
-                 wget
-                     --progress=bar:force
-                     --no-clobber
-                     --directory-prefix={__hb_ret.path}
+                 aria2c
+                     -x 16 -s 16
+                     --dir={__hb_ret.path}
                      {base_url}{new_file}
             """)
 
@@ -913,27 +934,27 @@ for sample in sample_sheet.rows(named=True):
     if sample["reverse_location"]:
         # --cores number of cores, -m 1 remove reads <1, -a forward adapter
         # -A reverse adapter, -o forward output, -o reverse output
-        bash(f"""uv run cutadapt \\
-                    --cores={CORES} \\
-                    -m 1 \\
-                    --poly-a \\
-                    -a {FORWARD_ADAPTER} \\
-                    -A {REVERSE_ADAPTER} \\
-                    -o {__hb_ret.path}/{sample["forward_location"]} \\
-                    -p {__hb_ret.path}/{sample["reverse_location"]} \\
-                    {__hb_reads.path}/{sample["forward_location"]} \\
+        bash(f"""uv run cutadapt
+                    --cores={CORES}
+                    -m 1
+                    --poly-a
+                    -a {FORWARD_ADAPTER}
+                    -A {REVERSE_ADAPTER}
+                    -o {__hb_ret.path}/{sample["forward_location"]}
+                    -p {__hb_ret.path}/{sample["reverse_location"]}
+                    {__hb_reads.path}/{sample["forward_location"]}
                     {__hb_reads.path}/{sample["reverse_location"]}""")
 
     # Single-end
     else:
         # --cores number of cores, -m 1 remove reads <1, -a forward adapter
         # -o forward output
-        bash(f"""uv run cutadapt \\
-                    --cores={CORES} \\
-                    -m 1 \\
-                    --poly-a \\
-                    -a {FORWARD_ADAPTER} \\
-                    -o {__hb_ret.path}/{sample["forward_location"]} \\
+        bash(f"""uv run cutadapt
+                    --cores={CORES}
+                    -m 1
+                    --poly-a
+                    -a {FORWARD_ADAPTER}
+                    -o {__hb_ret.path}/{sample["forward_location"]}
                     {__hb_reads.path}/{sample["forward_location"]}""")'''
 
 [Function.use_existing_kallisto_index]
@@ -1001,9 +1022,9 @@ info.hyperparameters = [
 ]
 info.code = '''# -t number of cores, -i output filename for index
 bash(f"""
-    kallisto index \\
-        -t {CORES} \\
-        -i {__hb_ret.path}/kallisto.idx \\
+    kallisto index
+        -t {CORES}
+        -i {__hb_ret.path}/kallisto.idx
         {TRANSCRIPTOME_PATH}
 """)'''
 
@@ -1013,9 +1034,10 @@ ret = "SalmonIndex"
 condition = [
 ]
 info.title = "Use existing index"
-info.description = """TODO"""
+info.description = """If you already have a salmon index for the transcriptome you'd like to
+use, you can use this code to skip creating a new one."""
 info.hyperparameters = [
-    {name = 'SALMON_INDEX', default = '"salmon_index"', comment = 'The location of the kallisto transcriptome index on your computer' },
+    {name = 'SALMON_INDEX', default = '"salmon_index"', comment = 'The location of the salmon transcriptome index on your computer' },
 ]
 info.code = '''link(
     SALMON_INDEX,
@@ -1027,8 +1049,12 @@ params = {}
 ret = "SalmonIndex"
 condition = [
 ]
-info.title = "Create new index from transcriptome"
-info.description = """TODO"""
+info.title = "New from OTHER transcriptome"
+info.description = """This code creates a salmon index from an existing transcriptome file on
+your computer. This transcriptome file should contain the complementary
+DNA (cDNA) for your transcripts of interest. A good place to download
+transcriptome files is the
+[Ensembl genome repository](https://www.ensembl.org/)."""
 info.search = false
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
@@ -1036,9 +1062,39 @@ info.hyperparameters = [
 ]
 info.code = '''# -p number of cores, -t path to transcriptome, -i output filename for index
 bash(f"""
-    salmon index \\
-        -p {CORES} \\
-        -t {TRANSCRIPTOME_PATH} \\
+    salmon index
+        -p {CORES}
+        -t {TRANSCRIPTOME_PATH}
+        -i {__hb_ret.path}/salmon_index
+""")'''
+
+[Function.create_hg38_salmon_index]
+params = {}
+ret = "KallistoIndex"
+condition = [
+]
+info.title = "New from HUMAN transcriptome (hg38)"
+info.description = """This code creates a salmon index from the human transcriptome (hg38). It
+automatically downloads the human transcriptome for you from
+[Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+info.search = false
+info.hyperparameters = [
+    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
+    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
+]
+info.code = '''bash(f"""
+    wget
+        --progress=bar:force
+        --no-clobber
+        --directory-prefix {shared()}/transcriptomes
+        https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+""")
+
+# -p number of cores, -t path to transcriptome, -i output filename for index
+bash(f"""
+    salmon index
+        -p {CORES}
+        -t {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
         -i {__hb_ret.path}/salmon_index
 """)'''
 
@@ -1135,18 +1191,36 @@ for sample in sample_sheet.rows(named=True):
     # Paired-end
     if sample["reverse_location"]:
         # -b number of bootstrap resamplings, -t number of cores,
-        # -i kallisto index, -o output folder
-        bash(f"""kallisto quant \\
+        # -i kallisto index, -o output folder (--plaintext sets output
+        # format)
+        bash(f"""kallisto quant
+                     --plaintext
                     -b {KALLISTO_BOOTSTRAPS}
-                    -t {CORES} \\
-                    -i {__hb_idx.path} \\
-                    -o {__hb_ret.path}/{sample["sample_name"]}/kallisto.idx \\
-                    {__hb_reads.path}/{sample["forward_location"]} \\
+                    -t {CORES}
+                    -i {__hb_idx.path}/kallisto.idx
+                    -o {__hb_ret.path}/{sample["sample_name"]}
+                    {__hb_reads.path}/{sample["forward_location"]}
                     {__hb_reads.path}/{sample["reverse_location"]}""")
 
     # Singe-end
     else:
-        raise NotImplementedError'''
+        # IMPORTANT: For single-end reads, you *must* set fragment length
+        # and standard deviation of the library! These can be determined
+        # from, e.g., a TapeStation. The kallisto creators note:
+        #     Typical Illumina libraries produce fragment lengths ranging
+        #     from 180–200 bp but it's best to determine this from a library
+        #     quantification with an instrument such as an Agilent
+        #     Bioanalyzer.
+        #                     - https://pachterlab.github.io/kallisto/manual
+        bash(f"""kallisto quant
+                     --plaintext
+                    -b {KALLISTO_BOOTSTRAPS}
+                    --fragment-length=200
+                    --sd=20
+                    -t {CORES}
+                    -i {__hb_idx.path}/kallisto.idx
+                    -o {__hb_ret.path}/{sample["sample_name"]}
+                    {__hb_reads.path}/{sample["forward_location"]}""")'''
 
 [Function.salmon]
 params.idx = "SalmonIndex"
@@ -1173,15 +1247,21 @@ info.hyperparameters = [
 ]
 info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
-for sample in sample_sheet["sample_name"]:
-    # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
-    # reads, -o output folder
-    bash(f"""salmon quant \\
-                -p {CORES} \\
-                -i {__hb_idx.path} \\
-                -1 {__hb_reads.path}/{sample["forward_location"]} \\
-                -2 {__hb_reads.path}/{sample["reverse_location"]} \\
-                -o {__hb_ret.path}/{sample["sample_name"]}""")
+for sample in sample_sheet.rows(named=True):
+    # Paired-end
+    if sample["reverse_location"]:
+        # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+        # reads, -o output folder
+        bash(f"""salmon quant
+                    -p {CORES}
+                    -i {__hb_idx.path}
+                    -1 {__hb_reads.path}/{sample["forward_location"]}
+                    -2 {__hb_reads.path}/{sample["reverse_location"]}
+                    -o {__hb_ret.path}/{sample["sample_name"]}""")
+
+    # Single-end
+    else:
+        raise NotImplementedError  # single-end for salmon coming soon!
 
     # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
     # compatability
@@ -1221,12 +1301,12 @@ info.hyperparameters = [
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''bash(f"""
-    Rscript environment/tximport.r \\
-        {ENSEMBL_VERSION} \\
-        {ENSEMBL_DATASET} \\
-        {shared()}/sample_sheet.csv \\
-        {__hb_data.path} \\
-        {__hb_ret.path}""")'''
+    Rscript environment/tximport.r
+        --ensembl_version={ENSEMBL_VERSION}
+        --ensembl_dataset={ENSEMBL_DATASET}
+        --sample_sheet={shared()}/sample_sheet.csv
+        --input={__hb_data.path}
+        --output={__hb_ret.path}""")'''
 
 [Function.deseq2]
 params.data = "GeneMatrices"
@@ -1263,13 +1343,13 @@ info.hyperparameters = [
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''bash(f"""
-    Rscript environment/deseq2.r \\
-        {ENSEMBL_VERSION} \\
-        {ENSEMBL_DATASET} \\
-        {shared()}/sample_sheet.csv \\
-        {shared()}/comparison_sheet.csv \\
-        {__hb_data.path}/counts.csv \\
-        {__hb_ret.path}""")'''
+    Rscript environment/deseq2.r
+        --ensembl_version={ENSEMBL_VERSION}
+        --ensembl_dataset={ENSEMBL_DATASET}
+        --sample_sheet={shared()}/sample_sheet.csv
+        --comparison_sheet={shared()}/comparison_sheet.csv
+        --input{__hb_data.path}/counts.csv
+        --output={__hb_ret.path}""")'''
 
 [Function.sleuth]
 params.data = "TranscriptMatrices"
@@ -1294,13 +1374,13 @@ info.hyperparameters = [
     {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
 info.code = '''bash(f"""
-    Rscript environment/sleuth.r \\
-        {ENSEMBL_VERSION} \\
-        {ENSEMBL_DATASET} \\
-        {shared()}/sample_sheet.csv \\
-        {shared()}/comparison_sheet.csv \\
-        {__hb_data.path} \\
-        {__hb_ret.path}""")'''
+    Rscript environment/sleuth.r
+        --ensembl_version={ENSEMBL_VERSION}
+        --ensembl_dataset={ENSEMBL_DATASET}
+        --sample_sheet={shared()}/sample_sheet.csv
+        --comparison_sheet={shared()}/comparison_sheet.csv
+        --input{__hb_data.path}
+        --output={__hb_ret.path}""")'''
 
 [Type.LocalLemonSeq]
 params.path = "Str"
@@ -1902,13 +1982,13 @@ info.hyperparameters = [
 info.code = '''for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
-        macs3 callpeak \\
-            -t "{path}" \\
-            -f BAMPE \\
-            -g {GENOME_SIZE} \\
-            --nomodel \\
-            --keep-dup all \\
-            -n {sample_name} \\
+        macs3 callpeak
+            -t "{path}"
+            -f BAMPE
+            -g {GENOME_SIZE}
+            --nomodel
+            --keep-dup all
+            -n {sample_name}
             --outdir "{__hb_ret.path}"
     """)
 
