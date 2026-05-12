@@ -221,7 +221,7 @@ impl<'a> Context<'a> {
             Some(imp) => {
                 s += &format!("\n\nif already_exists({}.path):\n", var_name);
                 s += &format!(
-                    r#"    print(f"'{{{}.path}}' already exists, skipping step")"#,
+                    r#"    print(f"'{{{}.path}}' already exists, skipping step (delete folder to re-run)")"#,
                     var_name
                 );
                 s += &format!(

@@ -38,16 +38,23 @@ RUN apt-get install -y wget
 RUN apt-get install -y cmake
 RUN apt-get install -y aria2
 RUN apt-get install -y salmon
+RUN apt-get install -y libhdf5-dev
+RUN apt-get install -y autoconf
+RUN apt-get install -y zlib1g-dev
 
 # kallisto
 
 RUN wget https://github.com/pachterlab/kallisto/archive/refs/tags/v0.52.0.zip
 RUN unzip v0.52.0.zip && \
     cd kallisto-0.52.0 && \
+    cd ext/htslib && \
+    autoheader && \
+    autoconf && \
+    cd ../../ && \
     mkdir build && \
     cd build && \
-    cmake .. && \
-    make
+    cmake -DUSE_HDF5=ON -DHDF5_ROOT=/usr/include/hdf5/serial -DHDF5_LIBRARIES=/usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so -DCMAKE_CXX_FLAGS="-I/usr/include/hdf5/serial" .. && \
+    make 
 RUN mkdir -p /root/.local/bin/
 RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
 RUN rm v0.52.0.zip

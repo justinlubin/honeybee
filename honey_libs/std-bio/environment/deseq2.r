@@ -67,32 +67,42 @@ OUTPUT_DIR = opt$output
 
 # Get gene metadata
 
-print("Connecting to Ensembl...")
+gene_metadata_filename = "output/shared/gene_metadata.csv"
 
-mart = useEnsembl(
-    biomart = "ensembl",
-    dataset = ENSEMBL_DATASET,
-    version = ENSEMBL_VERSION
-)
+if (file.exists(gene_metadata_filename)) {
+    print("Gene metadata already exists; loading it now...")
 
-print("Fetching gene metadata...")
-
-gene_metadata = getBM(
-    attributes = c(
-          "ensembl_gene_id",
-          "ensembl_gene_id_version",
-          "chromosome_name",
-          "start_position",
-          "end_position",
-          "external_gene_name",
-          "gene_biotype"
-    ),
-    mart = mart
-)
-
-print("Saving gene metadata...")
-
-write_csv(gene_metadata, file.path(OUTPUT_DIR, "gene_metadata.csv"))
+    gene_metadata = read.csv(gene_metadata_filename, header=TRUE)
+} else {
+    print("Gene metadata does not exist yet; fetching it now...")
+    
+    print("Connecting to Ensembl...")
+    
+    mart = useEnsembl(
+        biomart = "ensembl",
+        dataset = ENSEMBL_DATASET,
+        version = ENSEMBL_VERSION
+    )
+    
+    print("Fetching gene metadata...")
+    
+    gene_metadata = getBM(
+        attributes = c(
+              "ensembl_gene_id",
+              "ensembl_gene_id_version",
+              "chromosome_name",
+              "start_position",
+              "end_position",
+              "external_gene_name",
+              "gene_biotype"
+        ),
+        mart = mart
+    )
+    
+    print("Saving gene metadata...")
+    
+    write_csv(gene_metadata, gene_metadata_filename)
+}
 
 print("Filtering to protein-coding genes...")
 
@@ -133,6 +143,8 @@ counts = counts[
 # Run comparisons
 
 for (i in 1:nrow(comparisons)) {
+    row = comparisons[i,]
+    
     paste(
         "Running DESeq2 with control '",
         row$control_condition,

@@ -70,7 +70,9 @@ def link(src, dst):
 
 @Helper
 def shared():
-    return "output/shared"
+    path = "output/shared"
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 @Helper
@@ -229,7 +231,7 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "ret.trimmed = true",
     "ret.long = reads.long",
     "ret.type = reads.type",
-    use="to skip adapter trimming (because your sequencing provider already did adapter trimming for you)",
+    use="to skip adapter trimming (e.g. because your sequencing provider already did adapter trimming for you)",
     search=False,
 )
 def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
@@ -253,10 +255,10 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     citation="Marcel Martin. Cutadapt removes adapter sequences from "
     "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "
     "http://dx.doi.org/10.14806/ej.17.1.200",
-    use="to remove sequencing adapters",
+    use="to remove sequencing adapters from DNA",
 )
 def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt (include poly(A) tails)
+    """cutadapt - include poly(A) tails
 
     # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
@@ -480,10 +482,10 @@ class TranscriptMatrices:
     quantification without alignment is generally a good choice due to their
     orders-of-magnitude speedup over alignment-based procedures.
 
-    These matrices can be used for plotting, differential expression testing,
+    These tables can be used for plotting, differential expression testing,
     clustering, and many other downstream analyses. The following review
     provides an overview of RNA-seq data analysis, including information about
-    read count matrices (Fig 2a and 2b are especially relevant):
+    read count tables (Fig 2a and 2b are especially relevant):
 
     > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -518,10 +520,10 @@ class GeneMatrices:
     quantification without alignment is generally a good choice due to their
     orders-of-magnitude speedup over alignment-based procedures.
 
-    These matrices can be used for plotting, differential expression testing,
+    These tables can be used for plotting, differential expression testing,
     clustering, and many other downstream analyses. The following review
     provides an overview of RNA-seq data analysis, including information about
-    read count matrices (Fig 2a and 2b are especially relevant):
+    read count tables (Fig 2a and 2b are especially relevant):
 
     > Conesa, A., Madrigal, P., Tarazona, S. et al. A survey of best practices
     > for RNA-seq data analysis. Genome Biol 17, 13 (2016).
@@ -635,9 +637,9 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
             for j in range(i + 1, len(conditions)):
                 controls.append(conditions[i])
                 treatments.append(conditions[j])
-        pl.DataFrame({"control": controls, "treatment": treatments}).write_csv(
-            f"{shared()}/comparison_sheet.csv"
-        )
+        pl.DataFrame(
+            {"control_condition": controls, "treatment_condition": treatments}
+        ).write_csv(f"{shared()}/comparison_sheet.csv")
 
 
 @Function(
@@ -652,10 +654,10 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
     citation="Marcel Martin. Cutadapt removes adapter sequences from "
     "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "
     "http://dx.doi.org/10.14806/ej.17.1.200",
-    use="to remove the Illumina universal adapter and poly(A)-tails from mRNA",
+    use="to remove sequencing adapters AND poly(A)-tails from mRNA",
 )
 def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt (remove poly(A) tails)
+    """cutadapt - remove poly(A) tails
 
     # Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
 
@@ -875,7 +877,7 @@ def create_salmon_index(__hb_ret: SalmonIndex):
 @Function(
     search=False,
 )
-def create_hg38_salmon_index(__hb_ret: KallistoIndex):
+def create_hg38_salmon_index(__hb_ret: SalmonIndex):
     """New from HUMAN transcriptome (hg38)
 
     This code creates a salmon index from the human transcriptome (hg38). It
@@ -1091,7 +1093,13 @@ def salmon(
 
         # Single-end
         else:
-            raise NotImplementedError  # single-end for salmon coming soon!
+            # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+            # reads, -o output folder
+            bash(f"""salmon quant
+                        -p {CORES}
+                        -i {__hb_idx.path}
+                        -r {__hb_reads.path}/{sample["forward_location"]}
+                        -o {__hb_ret.path}/{sample["sample_name"]}""")
 
         # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
         # compatability
@@ -1198,9 +1206,9 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
     pmid="28581496",
     citation="Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted "
     "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
-    "quantification uncertainty, Nature Methods (2017), advanced access "
+    "quantification uncertainty, Nature Methods (2017), "
     "http://dx.doi.org/10.1038/nmeth.4324.",
-    use="a **lesser-used (but still very common)** tool that **does** give you error bars.",
+    use="a **lesser-used (but still common)** tool that **does** give you error bars.",
 )
 def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     """sleuth
@@ -1213,6 +1221,9 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     sleuth also has a collection of [walkthroughs](https://pachterlab.github.io/sleuth/walkthroughs)
     that demonstrate how to use it to analyze RNA-seq datasets."""
 
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
     # PARAMETER: The version of Ensembl to use for gene annotations
     ENSEMBL_VERSION = "115"
 
@@ -1221,11 +1232,12 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
 
     bash(f"""
         Rscript environment/sleuth.r
+            --cores={CORES}
             --ensembl_version={ENSEMBL_VERSION}
             --ensembl_dataset={ENSEMBL_DATASET}
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
-            --input{__hb_data.path}
+            --input={__hb_data.path}
             --output={__hb_ret.path}""")
 
 
