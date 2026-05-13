@@ -6576,7 +6576,7 @@ var $elm$core$Maybe$map2 = F3(
 var $author$project$Complete$complete = F2(
 	function (_v0, prog) {
 		var allowGoalHoles = _v0.allowGoalHoles;
-		return A3(
+		return $elm$core$List$isEmpty(prog.props) ? $elm$core$Maybe$Nothing : A3(
 			$elm$core$Maybe$map2,
 			F2(
 				function (p, g) {
@@ -6833,7 +6833,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.6.1';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+3e64ff2';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+608838c';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,
