@@ -1433,6 +1433,17 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
             --input{__hb_data.path}/counts.csv
             --output={__hb_ret.path}""")
 
+    comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+    for comparison in comparisons.iter_rows(named=True):
+        filename = (
+            f"{comparison['control_condition']}-{comparison['treatment_condition']}.csv"
+        )
+        results = pl.read_csv(
+            f"output/060-sleuth/{filename}",
+            null_values=["NA"],
+        )
+        print(results)
+
 
 @Function(
     "data.bootstrapped = true",

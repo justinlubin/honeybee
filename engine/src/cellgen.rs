@@ -307,11 +307,11 @@ impl<'a> Context<'a> {
                     },
                     has_path: implementation.is_some(),
                     priority: if input {
-                        0
+                        2
                     } else if implementation.is_some() {
                         3
                     } else {
-                        2
+                        1
                     },
                     title: format!(
                         "{}{}",
@@ -398,7 +398,7 @@ impl<'a> Context<'a> {
                 open_when_editing: false,
                 open_when_exporting: true,
                 has_path: false,
-                priority: 1,
+                priority: 0,
                 number_id: None,
             },
         );
@@ -439,7 +439,7 @@ impl<'a> Context<'a> {
                 open_when_editing: false,
                 open_when_exporting: true,
                 has_path: false,
-                priority: 1,
+                priority: 0,
                 number_id: None,
             },
         );
