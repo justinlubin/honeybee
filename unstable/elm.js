@@ -6833,7 +6833,7 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Version$shortVersion = '0.6.1';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+c55e40f';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+3e64ff2';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,
