@@ -61,7 +61,7 @@ def carry_over(source_glob, destination_folder):
 
 @Helper
 def link(src, dst):
-    assert os.path.isfile(src), f"Cannot find file '{src}'"
+    assert os.path.exists(src), f"Cannot find file/folder '{src}'"
     destination_folder = os.path.dirname(dst)
     os.makedirs(destination_folder, exist_ok=True)
     src = os.path.relpath(src, start=destination_folder)
@@ -361,6 +361,135 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
         """)
 
 
+# https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+
+
+@Output
+class Bowtie2Index:
+    """@intermediate:Bowtie 2 index
+
+    The goal of this step is to create an index for the
+    [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+    read aligner."""
+
+    path: str
+
+
+@Function(
+    search=False,
+)
+def use_existing_bowtie2_index(__hb_ret: Bowtie2Index):
+    """Use existing index
+
+    If you already have a Bowtie 2 index for the reference genome you'd like to
+    use, you can use this code to skip creating a new one."""
+
+    # PARAMETER: The location of the Bowtie 2 reference genome index on your computer
+    BOWTIE2_INDEX = "folder/"
+
+    link(
+        BOWTIE2_INDEX,
+        f"{__hb_ret.path}/reference",
+    )
+
+
+@Function(
+    search=False,
+)
+def create_bowtie2_index(__hb_ret: Bowtie2Index):
+    """New from reference genome
+
+    This code creates a Bowtie 2 index from an existing reference genome file on
+    your computer. A good place to download reference genomes is the
+    [Ensembl genome repository](https://www.ensembl.org/)."""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The location of the reference genome on your computer (FASTA format)
+    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+
+    # --threads number of cores, first argument reference path, second argument
+    # output path
+    bash(f"""
+            bowtie2-build
+                --threads {CORES}
+                {REFERENCE_GENOME_PATH}
+                {__hb_ret.path}/reference
+    """)
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+    "ret.compressed = false",
+    google_scholar_id="4636016874467197548",
+    pmid="22388286",
+    citation="Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. Nat Methods. 2012 Mar 4;9(4):357-9. doi: 10.1038/nmeth.1923. PMID: 22388286; PMCID: PMC3322381.",
+)
+def bowtie2(
+    __hb_idx: Bowtie2Index,
+    __hb_reads: SeqReads,
+    __hb_ret: SeqAlignment,
+):
+    """Bowtie 2
+
+    # Align reads to a reference genome with [Bowtie 2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+
+    Bowtie 2 aligns DNA reads to a reference genome, which is useful, for
+    example, when studying the genome of an organism or doing a metagemoics
+    analysis. Some genomics assays that could make excellent use of Bowtie 2
+    include ATAC-seq, ChIP-seq, and EM-seq.
+
+    Bowtie 2 should **not** be used when aligning mRNA transcripts to the
+    complementary DNA, as it is not splice-aware like
+    [STAR](https://github.com/alexdobin/STAR)'s. (Most RNA-seq experiments
+    should use a transcript quantifier like
+    [kallisto](https://pachterlab.github.io/kallisto/) or
+    [Salmon](https://salmon.readthedocs.io/en/latest/index.html).)"""
+
+    # bash(f"""
+    #     bowtie2 \
+    #         -x "{index_path}" \
+    #         -1 "{m1}" \
+    #         -2 "{m2}" \
+    #         -S "{__hb_ret.path}/{name}.sam"
+    # """)
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # -x name of reference, -t number of cores, -1 forward reads, -2
+            # reverse reads, -S output file
+            bash(f"""
+                 bowtie2
+                     -x reference
+                     -t {CORES}
+                     -1 {__hb_reads.path}/{sample["forward_location"]}
+                     -2 {__hb_reads.path}/{sample["reverse_location"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}
+            """)
+
+        # Single-end
+        else:
+            # -x name of reference, -t number of cores, -U unpaired reads,
+            # -S output file
+            bash(f"""
+                 bowtie2
+                     -x reference
+                     -t {CORES}
+                     -U {__hb_reads.path}/{sample["forward_location"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}
+            """)
+
+
 ################################################################################
 # %% RNA-seq analysis
 
@@ -609,9 +738,9 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
             # Otherwise, symlink the file path (on the local machine)
             else:
                 new_file = os.path.basename(file)
-                os.symlink(
+                link(
                     src=file,
-                    dst=__hb_ret.path + "/" + new_file,
+                    dst=f"{__hb_ret.path}/{new_file}",
                 )
             new_files[file] = new_file
 
@@ -1629,21 +1758,46 @@ def bismark_methylation_extractor(
 ################################################################################
 # %% ATAC-seq analysis
 
-
-# REFER TO https://nbis-workshop-epigenomics.readthedocs.io/en/latest/content/tutorials/ATACseq/lab-atacseq-bulk.html#
-
-# missing from ^: shifting alignments
+# Tutorial: https://nbis-workshop-epigenomics.readthedocs.io/en/latest/content/tutorials/ATACseq/lab-atacseq-bulk.html#
 
 
 @Input
 class AtacSeq:
-    "ATAC-seq"
+    """ATAC-seq"""
 
-    path: str
-    """TODO"""
+    sample_sheet: str
+    """Path to sample sheet CSV
 
-    reference: str
-    """TODO"""
+    @example:/Users/barb/Desktop/MyExperiment/metadata/sample_sheet.csv
+
+    Here is an example CSV file (the headers must match exactly):
+
+    | sample_name | condition | forward_location                | reverse_location                |
+    |-------------|-----------|---------------------------------|---------------------------------|
+    | BM001_t1    | treated   | /Users/barb/Exp1/t1_R1.fastq.gz | /Users/barb/Exp1/t1_R2.fastq.gz |
+    | BM002_t2    | treated   | /Users/barb/Exp1/t2_R1.fastq.gz | /Users/barb/Exp1/t1_R2.fastq.gz |
+    | BM003_u1    | untreated | SRR34323943_1                   | SRR3423943_2                    |
+    | BM004_u2    | untreated | SRR34323942_1                   | SRR3423942_2                    |
+
+    Each row is one sample. Here is what each column means:
+    - **`sample_name`** is a unique identifier for each sample (it can be
+      whatever you want as long as it is unique).
+    - **`condition`** is the label for the experimental condition for each
+      sample (this label can be whatever you want, such as "control" and
+      "treatment"). Multiple samples with the same condition are considered
+      **biological replicates**.
+    - **`forward_location`** is the path to the raw ATAC-seq data of forward
+      reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
+      the filename is likely to end in something resembling `_1.fastq.gz` or
+      `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
+      their SRA "run accession" (SRR) identifier. These identifiers are of the
+      form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
+      paired-end data, add a _1 to the end of the SRR identifier.
+    - **`reverse_location`** (for **paired-end data only**) is the path to the
+      reverse reads. This path should be similar to the `forward_location` path
+      but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
+      to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
+      identifier."""
 
 
 @Output
@@ -1660,148 +1814,112 @@ class AtacPeaks:
     "ret.type = 'atac'",
     search=False,
 )
-def load_local_atac_seq(__hb_local: AtacSeq, __hb_ret: SeqReads):
-    """TODO"""
+def load_atac_seq(__hb_atac: AtacSeq, __hb_ret: SeqReads):
+    """Load ATAC-seq data from sample sheet
 
-    # symlink on fastqc files and path to reference
-    # When loading data, save the reference sheet symlinked to reference/reference.fasta
-    carry_over(__hb_local.path, __hb_ret.path)
+    This code collects all the ATAC-seq data defined in the sample sheet. It
+    downloads samples identified with SRR accession identifiers from the
+    [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 
-    link(
-        __hb_local.reference,
-        f"{__hb_ret.path}/reference/reference.fasta",
-    )
+    sample_sheet = pl.read_csv(__hb_atac.sample_sheet)
 
+    # Store the resulting filenames for the new sample sheet we will create
+    new_files = {}
 
-@Function(
-    "reads.qc = true",
-    "reads.trimmed = true",
-    "reads.long = false",
-    "ret.type = reads.type",
-    "ret.compressed = false",
-)
-def bowtie2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """TODO"""
+    # Loop through each sample in the sample sheet
+    for sample in sample_sheet.rows(named=True):
+        # Collect the list of files to symlink/download for this sample
+        files = [sample["forward_location"]]
+        if sample["reverse_location"]:
+            files.append(sample["reverse_location"])
 
-    carry_over(__hb_reads, __hb_ret, file="reference")
+        # Loop through each file
+        for file in files:
+            # If the file starts with "SRR", download it from ENA
+            if file.startswith("SRR"):
+                assert file[-2:] in {"_1", "_2"}, f"SRR '{file}' must end in _1 or _2"
 
-    index_path = f"{__hb_ret.path}/index"
+                # Construct the URL
+                srr = file[:-2]  # remove _1 or _2
+                base_url = "ftp://ftp.sra.ebi.ac.uk/vol1/fastq/"
+                base_url += srr[:6] + "/"
+                base_url += srr[9:].zfill(3) + "/"
+                base_url += srr + "/"
 
-    bash(f"""
-        bowtie2-build \
-            -f {__hb_reads.path}/reference/reference.fasta \
-            {index_path} \
-            > out.txt
-    """)
+                new_file = file + ".fastq.gz"
 
-    # get lists of mate1 and mate2 files
-    mate1 = []
-    mate2 = []
-    for path in glob.glob(f"{__hb_reads.path}/*.fastq*"):
-        sample_name = os.path.splitext(os.path.basename(path))[0]
-        if sample_name[-9:] == "_R1.fastq":
-            mate1.append(path)
-        elif sample_name[-9:] == "_R2.fastq":
-            mate2.append(path)
+                # Download the file
+                # -x 16 -s 16 means to use 16 concurrent streams to download the
+                # files; please do not set this number too high out of respect
+                # for the EBI's bandwidth!
+                bash(f"""
+                     aria2c
+                         -x 16 -s 16
+                         --dir={__hb_ret.path}
+                         {base_url}{new_file}
+                """)
 
-    # make sure mate1 and mate2 are same len, names match in pairs, are sorted to be at same index
-    for i in range(len(mate1)):
-        m1 = mate1[i]
-        m2 = mate2[i]
-        lastslash = m1.rfind("/")
-        if lastslash == -1:
-            lastslash = 0
-        name = m1[lastslash:-12]
+            # Otherwise, symlink the file path (on the local machine)
+            else:
+                new_file = os.path.basename(file)
+                link(
+                    src=file,
+                    dst=f"{__hb_ret.path}/{new_file}",
+                )
+            new_files[file] = new_file
 
-        bash(f"""
-            bowtie2 \
-                -x "{index_path}" \
-                -1 "{m1}" \
-                -2 "{m2}" \
-                -S "{__hb_ret.path}/{name}.sam"
-        """)
-
-
-@Function(
-    "reads.qc = true",
-    "reads.trimmed = true",
-    "reads.long = false",
-    "ret.type = reads.type",
-    "ret.compressed = false",
-)
-def bwa(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-    """TODO"""
-
-    carry_over(__hb_reads, __hb_ret, file="reference")
-
-    ref = f"{__hb_ret.path}/reference/reference.fasta"
-
-    bash(f"""
-        bwa index "{ref}"
-    """)
-
-    # get lists of mate1 and mate2 files
-    mate1 = []
-    mate2 = []
-    for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")):
-        sample_name = os.path.splitext(os.path.basename(path))[0]
-        if sample_name[-9:] == "_R1.fastq":
-            mate1.append(path)
-        elif sample_name[-9:] == "_R2.fastq":
-            mate2.append(path)
-
-    # make sure mate1 and mate2 are same len, names match in pairs, are sorted to be at same index
-    for i in range(len(mate1)):
-        m1 = mate1[i]
-        m2 = mate2[i]
-        lastslash = m1.rfind("/")
-        if lastslash == -1:
-            lastslash = 0
-        name = m1[lastslash:-12]
-
-        s1 = f"{__hb_reads.path}/{name}_R1.sai"
-        s2 = f"{__hb_reads.path}/{name}_R2.sai"
-
-        bash(f"""
-            bwa aln "{ref}" "{m1}" > "{s1}"
-        """)
-
-        bash(f"""
-            bwa aln "{ref}" "{m2}" > "{s2}"
-        """)
-
-        bash(f"""
-            bwa sampe "{ref}" "{s1}" "{s2}" "{m1}" "{m2}" > "{__hb_ret.path}/{name}.sam"
-        """)
+    # Create the new sample sheet with updated filenames
+    sample_sheet.with_columns(
+        forward_location=pl.col("forward_location").replace(new_files),
+        reverse_location=pl.col("reverse_location").replace(new_files),
+    ).write_csv(f"{shared()}/sample_sheet.csv")
 
 
 @Function(
-    "bam.compressed = true",
-    "bam.type = 'atac'",
+    "align.compressed = true",
+    "align.type = 'atac'",
 )
-def macs3(__hb_bam: SeqAlignment, __hb_ret: AtacPeaks):
-    """TODO"""
+def macs3(__hb_align: SeqAlignment, __hb_ret: AtacPeaks):
+    """MACS3
 
-    # PARAMETER: Effective genome size (use hs for human, mm for mouse, or a number)
+    # Call chromatin accessibility peaks with [MACS3](https://macs3-project.github.io/MACS/index.html)
+
+    "Peaks" of chromatin accessibility are regions that are regions of DNA that
+    are significantly enriched in a sample compared to the background. Detecting
+    these regions is useful for DNA enrichment assays such as ATAC-seq and
+    ChIP-seq."""
+
+    # PARAMETER: Effective genome size (hs for human, mm for mouse, or a number; see https://deeptools.readthedocs.io/en/develop/content/feature/effectiveGenomeSize.html)
     GENOME_SIZE = "hs"
 
-    for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
-        sample_name = os.path.splitext(os.path.basename(path))[0]
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            format = "BAMPE"
+        # Single-end
+        else:
+            format = "BAM"
+
+        # -t input (treatment), -f format, -g genome size, -n output name,
+        # --outdir output directory
         bash(f"""
-            macs3 callpeak
-                -t "{path}"
-                -f BAMPE
-                -g {GENOME_SIZE}
-                --nomodel
-                --keep-dup all
-                -n {sample_name}
-                --outdir "{__hb_ret.path}"
+             macs3 callpeak
+                 -t {__hb_align.path}/{sample["sample_name"]}.bam
+                 -f {format}
+                 -g {GENOME_SIZE}
+                 -n {sample["sample_name"]}
+                 --outdir {__hb_ret.path}
         """)
 
         # Convert xls output (tab-separated with comment headers) to .csv
-        xls_path = f"{__hb_ret.path}/{sample_name}_peaks.xls"
-        pl.read_csv(xls_path, separator="\t", comment_prefix="#").write_csv(
-            f"{__hb_ret.path}/{sample_name}_peaks.csv"
+        pl.read_csv(
+            f"{__hb_ret.path}/{sample['sample_name']}_peaks.xls",
+            separator="\t",
+            comment_prefix="#",
+        ).write_csv(
+            f"{__hb_ret.path}/{sample['sample_name']}_peaks.csv",
         )
 
 
