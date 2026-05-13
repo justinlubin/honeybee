@@ -1522,10 +1522,10 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
 
 
 @Input
-class LocalLemonSeq:
+class LemonSeq:
     "LEMONmethyl-seq"
 
-    path: str
+    fastq_path: str
     """Path to the directory containing the LEMONmethyl-seq data
 
     @example:/Users/barb/Desktop/MyExperiment/raw-fastq-reads/
@@ -1570,13 +1570,13 @@ class MethylationCalls:
 @Function(
     search=False,
 )
-def load_local_lemon_seq(__hb_local: LocalLemonSeq, __hb_ret: UnconvertedLemonSeq):
+def load_local_lemon_seq(__hb_local: LemonSeq, __hb_ret: UnconvertedLemonSeq):
     """Load LEMONmethyl-seq data from hard drive
 
     The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
     file format."""
 
-    carry_over(__hb_local.path, __hb_ret.path)
+    carry_over(__hb_local.fastq_path, __hb_ret.path)
 
     link(
         __hb_local.reference,
@@ -1611,7 +1611,7 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
             | sed '/^>/s/$/ (in silico C -> T converted)/' \
             | sed '/^[^>]/s/C/T/g' \
             | sed '/^[^>]/s/c/t/g' \
-            > "{__hb_ret.path}/reference/reference.fasta"
+            > "{shared()}/reference/reference.fasta"
     """)
 
 
