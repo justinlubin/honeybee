@@ -490,6 +490,237 @@ def bowtie2(
             """)
 
 
+@Output
+class Bowtie2Index:
+    """@intermediate:Bowtie 2 index
+
+    The goal of this step is to create an index for the
+    [bowtie2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+    read aligner."""
+
+    path: str
+
+
+@Function(
+    search=False,
+)
+def use_existing_bowtie2_index(__hb_ret: Bowtie2Index):
+    """Use existing index
+
+    If you already have a Bowtie 2 index for the reference genome you'd like to
+    use, you can use this code to skip creating a new one."""
+
+    # PARAMETER: The location of the Bowtie 2 reference genome index on your computer
+    BOWTIE2_INDEX = "folder/"
+
+    link(
+        BOWTIE2_INDEX,
+        f"{__hb_ret.path}/reference",
+    )
+
+
+@Function(
+    search=False,
+)
+def create_bowtie2_index(__hb_ret: Bowtie2Index):
+    """New from reference genome
+
+    This code creates a Bowtie 2 index from an existing reference genome file on
+    your computer. A good place to download reference genomes is the
+    [Ensembl genome repository](https://www.ensembl.org/)."""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The location of the reference genome on your computer (FASTA format)
+    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+
+    # --threads number of cores, first argument reference path, second argument
+    # output path
+    bash(f"""
+            bowtie2-build
+                --threads {CORES}
+                {REFERENCE_GENOME_PATH}
+                {__hb_ret.path}/reference
+    """)
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+    "ret.compressed = false",
+    google_scholar_id="4636016874467197548",
+    pmid="22388286",
+    citation="Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. Nat Methods. 2012 Mar 4;9(4):357-9. doi: 10.1038/nmeth.1923. PMID: 22388286; PMCID: PMC3322381.",
+)
+def bowtie2(
+    __hb_idx: Bowtie2Index,
+    __hb_reads: SeqReads,
+    __hb_ret: SeqAlignment,
+):
+    """Bowtie 2
+
+    # Align reads to a reference genome with [Bowtie 2](https://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+
+    Bowtie 2 aligns DNA reads to a reference genome, which is useful, for
+    example, when studying the genome of an organism or doing a metagemoics
+    analysis. Some genomics assays that could make excellent use of Bowtie 2
+    include ATAC-seq, ChIP-seq, and EM-seq.
+
+    Bowtie 2 should **not** be used when aligning mRNA transcripts to the
+    complementary DNA, as it is not splice-aware like
+    [STAR](https://github.com/alexdobin/STAR)'s. (Most RNA-seq experiments
+    should use a transcript quantifier like
+    [kallisto](https://pachterlab.github.io/kallisto/) or
+    [Salmon](https://salmon.readthedocs.io/en/latest/index.html).)"""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # -x name of reference, -t number of cores, -1 forward reads, -2
+            # reverse reads, -S output file
+            bash(f"""
+                 bowtie2
+                     -x reference
+                     -t {CORES}
+                     -1 {__hb_reads.path}/{sample["forward_location"]}
+                     -2 {__hb_reads.path}/{sample["reverse_location"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}
+            """)
+
+        # Single-end
+        else:
+            # -x name of reference, -t number of cores, -U unpaired reads,
+            # -S output file
+            bash(f"""
+                 bowtie2
+                     -x reference
+                     -t {CORES}
+                     -U {__hb_reads.path}/{sample["forward_location"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}
+            """)
+
+
+@Output
+class BWAIndex:
+    """@intermediate:BWA index
+
+    The goal of this step is to create an index for the
+    [BWA MEM](https://bio-bwa.sourceforge.net/)
+    read aligner."""
+
+    path: str
+
+
+@Function(
+    search=False,
+)
+def use_existing_bwa_index(__hb_ret: BWAIndex):
+    """Use existing index
+
+    If you already have a BWA index for the reference genome you'd like to
+    use, you can use this code to skip creating a new one."""
+
+    # PARAMETER: The location of the Bowtie 2 reference genome index on your computer
+    BWA_INDEX = "folder/"
+
+    link(
+        BWA_INDEX,
+        f"{__hb_ret.path}/reference",
+    )
+
+
+@Function(
+    search=False,
+)
+def create_bwa_index(__hb_ret: BWAIndex):
+    """New from reference genome
+
+    This code creates a BWA index from an existing reference genome file on
+    your computer. A good place to download reference genomes is the
+    [Ensembl genome repository](https://www.ensembl.org/)."""
+
+    # PARAMETER: The location of the reference genome on your computer (FASTA format)
+    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+
+    # -p output path
+    bash(f"""
+        bwa index
+            -p {__hb_ret.path}/reference
+            {REFERENCE_GENOME_PATH}
+    """)
+
+
+@Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "ret.type = reads.type",
+    "ret.compressed = false",
+    google_scholar_id="4636016874467197548",
+    pmid="22388286",
+    citation="Li H. and Durbin R. (2009) Fast and accurate short read alignment with Burrows-Wheeler Transform. Bioinformatics, 25:1754-60. [PMID: 19451168]",
+)
+def bwa_mem(
+    __hb_idx: BWAIndex,
+    __hb_reads: SeqReads,
+    __hb_ret: SeqAlignment,
+):
+    """BWA-MEM
+
+    # Align reads to a reference genome with [BWA-MEM](https://bio-bwa.sourceforge.net/)
+
+    BWA-MEM aligns DNA reads to a reference genome, which is useful, for
+    example, when studying the genome of an organism or doing a metagemoics
+    analysis. Some genomics assays that could make excellent use of BWA-MEM
+    include ATAC-seq, ChIP-seq, and EM-seq.
+
+    BWA-MEM should **not** be used when aligning mRNA transcripts to the
+    complementary DNA, as it is not splice-aware like
+    [STAR](https://github.com/alexdobin/STAR)'s. (Most RNA-seq experiments
+    should use a transcript quantifier like
+    [kallisto](https://pachterlab.github.io/kallisto/) or
+    [Salmon](https://salmon.readthedocs.io/en/latest/index.html).)"""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    for sample in sample_sheet.rows(named=True):
+        # Paired-end
+        if sample["reverse_location"]:
+            # -x name of reference, -t number of cores, -1 forward reads, -2
+            # reverse reads, -S output file
+            bash(f"""
+                 bwa mem
+                     -x {__hb_idx.path}/reference
+                     -t {CORES}
+                     -1 {__hb_reads.path}/{sample["forward_location"]}
+                     -2 {__hb_reads.path}/{sample["reverse_location"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}
+            """)
+
+        # Single-end
+        else:
+            # -x name of reference, -t number of cores, -U unpaired reads,
+            # -S output file
+            bash(f"""
+                 bowtie2
+                     -x reference
+                     -t {CORES}
+                     -U {__hb_reads.path}/{sample["forward_location"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}
+            """)
+
+
 ################################################################################
 # %% RNA-seq analysis
 
@@ -1905,7 +2136,7 @@ def macs3(__hb_align: SeqAlignment, __hb_ret: AtacPeaks):
         # -t input (treatment), -f format, -g genome size, -n output name,
         # --outdir output directory
         bash(f"""
-             macs3 callpeak
+             uv run macs3 callpeak
                  -t {__hb_align.path}/{sample["sample_name"]}.bam
                  -f {format}
                  -g {GENOME_SIZE}

@@ -60,6 +60,10 @@ RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
 RUN rm v0.52.0.zip
 RUN rm -rf kallisto-0.52.0
 
+# (Temporary: some more apt packages)
+RUN apt-get install -y bwa
+RUN apt-get install -y bowtie2
+
 # uv
 
 RUN apt-get -y install curl
@@ -74,11 +78,14 @@ RUN uv add cutadapt
 RUN uv add multiqc
 RUN uv add polars
 RUN uv add --dev jupyter
+RUN uv add macs3
+RUN uv add "altair[all]"
 
 RUN uv sync
 RUN rm main.py
 
 RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
+
 
 # Final setup
 
