@@ -1677,9 +1677,9 @@ def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
     for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         bash(f"""
-            uv run LEMONmC.py \
+            uv run environment/LEMONmC.py \
                 --ref "{shared()}/reference/unconverted.fasta" \
-                --bam "{path}" \
+                --bam "{path}"
                 --tsv "{__hb_ret.path}/{sample_name}.tsv"
         """)
 

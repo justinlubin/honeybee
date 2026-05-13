@@ -63,6 +63,8 @@ RUN rm -rf kallisto-0.52.0
 # (Temporary: some more apt packages)
 RUN apt-get install -y bwa
 RUN apt-get install -y bowtie2
+RUN apt-get install -y samtools
+RUN apt-get install -y minimap2
 
 # uv
 
@@ -81,6 +83,7 @@ RUN uv add --dev jupyter
 RUN uv add macs3
 RUN uv add "altair[all]"
 RUN uv add ipython
+RUN uv add pysam
 
 RUN uv sync
 RUN rm main.py
