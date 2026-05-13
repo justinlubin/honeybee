@@ -80,6 +80,7 @@ RUN uv add polars
 RUN uv add --dev jupyter
 RUN uv add macs3
 RUN uv add "altair[all]"
+RUN uv add ipython
 
 RUN uv sync
 RUN rm main.py

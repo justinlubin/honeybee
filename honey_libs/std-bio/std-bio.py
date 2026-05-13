@@ -3,6 +3,8 @@ import os
 import re
 import subprocess
 import polars as pl
+import altair as alt
+from IPython.display import display
 
 from honey_lang import Function, Helper, Input, Output, initialize, log
 
@@ -1430,19 +1432,48 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
             --ensembl_dataset={ENSEMBL_DATASET}
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
-            --input{__hb_data.path}/counts.csv
+            --input={__hb_data.path}/counts.csv
             --output={__hb_ret.path}""")
 
+    gene_metadata = pl.read_csv(f"{shared()}/gene_metadata.csv")
     comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
     for comparison in comparisons.iter_rows(named=True):
         filename = (
             f"{comparison['control_condition']}-{comparison['treatment_condition']}.csv"
         )
-        results = pl.read_csv(
-            f"output/060-sleuth/{filename}",
-            null_values=["NA"],
+        results = (
+            pl.read_csv(
+                f"{__hb_ret.path}/{filename}",
+                null_values=["NA"],
+            )
+            .rename({"": "ensembl_gene_id_version"})
+            .join(gene_metadata, on="ensembl_gene_id_version")
+            .with_columns(
+                sig=pl.col("padj").log10().neg(),
+                group=pl.when(pl.col("padj") >= 0.05)
+                .then(pl.lit("ns"))
+                .when(pl.col("log2FoldChange") > 0)
+                .then(pl.lit("up"))
+                .otherwise(pl.lit("down")),
+            )
         )
-        print(results)
+
+        display(
+            alt.Chart(results)
+            .mark_point()
+            .encode(
+                x="log2FoldChange:Q",
+                y="sig:Q",
+                color=alt.Color(
+                    "group:N",
+                    scale=alt.Scale(
+                        domain=["up", "down", "ns"],
+                        range=["crimson", "steelblue", "black"],
+                    ),
+                ),
+                tooltip="external_gene_name",
+            ),
+        )
 
 
 @Function(
