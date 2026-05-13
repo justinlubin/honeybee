@@ -1,3 +1,7 @@
+# Please see
+#   https://github.com/Nunez-Lab/LEMONmethyl-seq
+# for the original LEMONmC.py file!
+
 import argparse
 import sys
 
