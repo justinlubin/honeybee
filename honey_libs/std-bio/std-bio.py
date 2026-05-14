@@ -493,7 +493,7 @@ class BWAIndex:
     """@intermediate:BWA index
 
     The goal of this step is to create an index for the
-    [BWA MEM](https://bio-bwa.sourceforge.net/)
+    [BWA-MEM](https://bio-bwa.sourceforge.net/)
     read aligner."""
 
     path: str
@@ -530,10 +530,12 @@ def create_bwa_index(__hb_ret: BWAIndex):
     # PARAMETER: The location of the reference genome on your computer (FASTA format)
     REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
 
+    bash(f"""mkdir -p {__hb_ret.path}/reference""")
+
     # -p output path
     bash(f"""
         bwa index
-            -p {__hb_ret.path}/reference
+            -p {__hb_ret.path}/reference/ref
             {REFERENCE_GENOME_PATH}
     """)
 
@@ -572,6 +574,8 @@ def bwa_mem(
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    index_name = stem(glob.glob(f"{__hb_idx.path}/reference/*.amb")[0])
+
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
@@ -581,7 +585,7 @@ def bwa_mem(
         bash(f"""
              bwa mem
                  -t {CORES}
-                 {__hb_idx.path}/reference
+                 {__hb_idx.path}/reference/{index_name}
                  {__hb_reads.path}/{sample["forward_location"]}
                  {__hb_reads.path}/{sample["reverse_location"]}
                      > {__hb_ret.path}/{sample["sample_name"]}.sam
@@ -2037,17 +2041,17 @@ def macs3(__hb_align: SeqAlignment, __hb_ret: AtacPeaks):
     for sample in sample_sheet.rows(named=True):
         # Paired-end
         if sample["reverse_location"]:
-            format = "BAMPE"
+            input_format = "BAMPE"
         # Single-end
         else:
-            format = "BAM"
+            input_format = "BAM"
 
         # -t input (treatment), -f format, -g genome size, -n output name,
         # --outdir output directory
         bash(f"""
              uv run macs3 callpeak
                  -t {__hb_align.path}/{sample["sample_name"]}.bam
-                 -f {format}
+                 -f {input_format}
                  -g {GENOME_SIZE}
                  -n {sample["sample_name"]}
                  --outdir {__hb_ret.path}
