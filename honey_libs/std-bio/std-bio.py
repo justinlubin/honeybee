@@ -455,32 +455,34 @@ def bowtie2(
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    index_name = stem(glob.glob(f"{__hb_idx.path}/reference/*.bt2")[0])
+
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
         # Paired-end
         if sample["reverse_location"]:
-            # -x name of reference, -t number of cores, -1 forward reads, -2
+            # -x name of reference, -p number of cores, -1 forward reads, -2
             # reverse reads, -S output file
             bash(f"""
                  bowtie2
-                     -x reference
-                     -t {CORES}
+                     -p {CORES}
+                     -x {__hb_idx.path}/reference/{index_name}
                      -1 {__hb_reads.path}/{sample["forward_location"]}
                      -2 {__hb_reads.path}/{sample["reverse_location"]}
-                     -S {__hb_ret.path}/{sample["sample_name"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}.sam
             """)
 
         # Single-end
         else:
-            # -x name of reference, -t number of cores, -U unpaired reads,
+            # -x name of reference, -p number of cores, -U unpaired reads,
             # -S output file
             bash(f"""
                  bowtie2
-                     -x reference
-                     -t {CORES}
+                     -p {CORES}
+                     -x {__hb_idx.path}/reference/{index_name}
                      -U {__hb_reads.path}/{sample["forward_location"]}
-                     -S {__hb_ret.path}/{sample["sample_name"]}
+                     -S {__hb_ret.path}/{sample["sample_name"]}.sam
             """)
 
 
@@ -2059,15 +2061,6 @@ def macs3(__hb_align: SeqAlignment, __hb_ret: AtacPeaks):
                  -n {sample["sample_name"]}
                  --outdir {__hb_ret.path}
         """)
-
-        # Convert xls output (tab-separated with comment headers) to .csv
-        pl.read_csv(
-            f"{__hb_ret.path}/{sample['sample_name']}_peaks.xls",
-            separator="\t",
-            comment_prefix="#",
-        ).write_csv(
-            f"{__hb_ret.path}/{sample['sample_name']}_peaks.csv",
-        )
 
 
 ################################################################################
