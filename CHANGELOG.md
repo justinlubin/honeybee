@@ -5,6 +5,11 @@ of Honeybee.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-14
+
+This release should be stable for the first Honeybee workshop at the
+[CZ Biohub San Francisco](https://biohub.org/)!
+
 ### Added
 
 - We now create official .tar.gz images for Standard Bio Docker image

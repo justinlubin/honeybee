@@ -1,4 +1,4 @@
-HB_VERSION = 0.6.1
+HB_VERSION = 0.7.0
 USER_FILES = user-files
 
 .PHONY: check

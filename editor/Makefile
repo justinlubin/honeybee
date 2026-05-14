@@ -24,10 +24,10 @@ all: \
 
 .PHONY: clean
 clean:
-	rm $(OUT_DIR)/elm.js
-	rm $(OUT_DIR)/pkg/honeybee.js
-	rm $(OUT_DIR)/std-bio.hblib.toml
-	rm $(OUT_DIR)/assets/diagrams/svg/*.svg
+	rm -f $(OUT_DIR)/elm.js
+	rm -f $(OUT_DIR)/pkg/honeybee.js
+	rm -f $(OUT_DIR)/std-bio.hblib.toml
+	rm -f $(OUT_DIR)/assets/diagrams/svg/*.svg
 
 # Depends on honeybee.js to ensure versions are in-sync
 $(OUT_DIR)/elm.js: $(wildcard src/*.elm) $(OUT_DIR)/pkg/honeybee.js

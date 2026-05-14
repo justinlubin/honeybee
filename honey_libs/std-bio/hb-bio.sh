@@ -2,12 +2,12 @@
 
 set -e
 
-HB_VERSION=0.6.1
+HB_VERSION=0.7.0
 
 if [[ "$1" != "amd64" && "$1" != "arm64" ]]; then
   echo "Usage: $(basename "$0") <arch>" >&2
   echo >&2
-  echo "  arch  Target architecture. Must be one of:" >&2
+  echo "  arch  Target architecture, must be one of:" >&2
   echo "          amd64    x86-64 (e.g. Intel/AMD)" >&2
   echo "          arm64    AArch64 (e.g. Apple Silicon)" >&2
   echo >&2
