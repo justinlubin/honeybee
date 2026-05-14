@@ -262,7 +262,7 @@ bash(f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}"
 params.reads = "SeqReads"
 ret = "SeqReads"
 condition = [
-    "reads.qc = true",
+    "reads.qc = false",
     "reads.trimmed = false",
     "ret.qc = false",
     "ret.trimmed = true",
@@ -436,15 +436,17 @@ your computer. A good place to download reference genomes is the
 info.search = false
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
-    {name = 'REFERENCE_GENOME_PATH', default = '"Homo_sapiens.GRCh38.dna.primary_assembly.fa"', comment = 'The location of the reference genome on your computer (FASTA format)' },
+    {name = 'REFERENCE_GENOME_PATH', default = '"Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"', comment = 'The location of the reference genome on your computer (FASTA format)' },
 ]
-info.code = '''# --threads number of cores, first argument reference path, second argument
+info.code = '''bash(f"""mkdir -p {__hb_ret.path}/reference""")
+
+# --threads number of cores, first argument reference path, second argument
 # output path
 bash(f"""
         bowtie2-build
             --threads {CORES}
             {REFERENCE_GENOME_PATH}
-            {__hb_ret.path}/reference
+            {__hb_ret.path}/reference/ref
 """)'''
 
 [Function.bowtie2]
@@ -478,46 +480,48 @@ info.citation = "Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+info.code = '''index_name = stem(glob.glob(f"{__hb_idx.path}/reference/*.bt2")[0])
+
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
 for sample in sample_sheet.rows(named=True):
     # Paired-end
     if sample["reverse_location"]:
-        # -x name of reference, -t number of cores, -1 forward reads, -2
+        # -x name of reference, -p number of cores, -1 forward reads, -2
         # reverse reads, -S output file
         bash(f"""
              bowtie2
-                 -x reference
-                 -t {CORES}
+                 -p {CORES}
+                 -x {__hb_idx.path}/reference/{index_name}
                  -1 {__hb_reads.path}/{sample["forward_location"]}
                  -2 {__hb_reads.path}/{sample["reverse_location"]}
-                 -S {__hb_ret.path}/{sample["sample_name"]}
+                 -S {__hb_ret.path}/{sample["sample_name"]}.sam
         """)
 
     # Single-end
     else:
-        # -x name of reference, -t number of cores, -U unpaired reads,
+        # -x name of reference, -p number of cores, -U unpaired reads,
         # -S output file
         bash(f"""
              bowtie2
-                 -x reference
-                 -t {CORES}
+                 -p {CORES}
+                 -x {__hb_idx.path}/reference/{index_name}
                  -U {__hb_reads.path}/{sample["forward_location"]}
-                 -S {__hb_ret.path}/{sample["sample_name"]}
+                 -S {__hb_ret.path}/{sample["sample_name"]}.sam
         """)'''
 
 [Type.BWAIndex]
 params = {}
 info.title = "@intermediate:BWA index"
 info.description = """The goal of this step is to create an index for the
-[BWA MEM](https://bio-bwa.sourceforge.net/)
+[BWA-MEM](https://bio-bwa.sourceforge.net/)
 read aligner."""
 info.code = '''@dataclass
 class BWAIndex:
     """@intermediate:BWA index
 
     The goal of this step is to create an index for the
-    [BWA MEM](https://bio-bwa.sourceforge.net/)
+    [BWA-MEM](https://bio-bwa.sourceforge.net/)
     read aligner."""
 
     path: str'''
@@ -550,12 +554,14 @@ your computer. A good place to download reference genomes is the
 [Ensembl genome repository](https://www.ensembl.org/)."""
 info.search = false
 info.hyperparameters = [
-    {name = 'REFERENCE_GENOME_PATH', default = '"Homo_sapiens.GRCh38.dna.primary_assembly.fa"', comment = 'The location of the reference genome on your computer (FASTA format)' },
+    {name = 'REFERENCE_GENOME_PATH', default = '"Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"', comment = 'The location of the reference genome on your computer (FASTA format)' },
 ]
-info.code = '''# -p output path
+info.code = '''bash(f"""mkdir -p {__hb_ret.path}/reference""")
+
+# -p output path
 bash(f"""
     bwa index
-        -p {__hb_ret.path}/reference
+        -p {__hb_ret.path}/reference/ref
         {REFERENCE_GENOME_PATH}
 """)'''
 
@@ -590,33 +596,22 @@ info.citation = "Li H. and Durbin R. (2009) Fast and accurate short read alignme
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+info.code = '''index_name = stem(glob.glob(f"{__hb_idx.path}/reference/*.amb")[0])
+
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
 for sample in sample_sheet.rows(named=True):
-    # Paired-end
-    if sample["reverse_location"]:
-        # -x name of reference, -t number of cores, -1 forward reads, -2
-        # reverse reads, -S output file
-        bash(f"""
-             bwa mem
-                 -x {__hb_idx.path}/reference
-                 -t {CORES}
-                 -1 {__hb_reads.path}/{sample["forward_location"]}
-                 -2 {__hb_reads.path}/{sample["reverse_location"]}
-                 -S {__hb_ret.path}/{sample["sample_name"]}
-        """)
+    # Works for paired-end and single-end
 
-    # Single-end
-    else:
-        # -x name of reference, -t number of cores, -U unpaired reads,
-        # -S output file
-        bash(f"""
-             bowtie2
-                 -x reference
-                 -t {CORES}
-                 -U {__hb_reads.path}/{sample["forward_location"]}
-                 -S {__hb_ret.path}/{sample["sample_name"]}
-        """)'''
+    # -t number of cores
+    bash(f"""
+         bwa mem
+             -t {CORES}
+             {__hb_idx.path}/reference/{index_name}
+             {__hb_reads.path}/{sample["forward_location"]}
+             {__hb_reads.path}/{sample["reverse_location"]}
+                 > {__hb_ret.path}/{sample["sample_name"]}.sam
+    """)'''
 
 [Type.RnaSeq]
 params.sample_sheet = "Str"
@@ -2092,11 +2087,13 @@ Here is an example CSV file (the headers must match exactly):
 |-------------|-----------|-------------------------|-------------------------|
 | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
 | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM003_untreated | SRR343239       | SRR3423943_2            |
-| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2       raw-datarow is one sample. Here is what each column means:
-- **`sample_nraw-dataue identifier for each sample (it can be
+| BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
+| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
+
+Each row is one sample. Here is what each column means:
+- **`sample_name`** is a unique identifier for each sample (it can be
 whatever you want as long as it is unique).
-dition`** is the label for thmental condition for each
+- **`condition`** is the label for the experimental condition for each
 sample (this label can be whatever you want, such as "control" and
 "treatment"). Multiple samples with the same condition are considered
 **biological replicates**.
@@ -2128,11 +2125,13 @@ class AtacSeq:
     |-------------|-----------|-------------------------|-------------------------|
     | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
     | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM003_untreated | SRR343239       | SRR3423943_2            |
-    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2       raw-datarow is one sample. Here is what each column means:
-    - **`sample_nraw-dataue identifier for each sample (it can be
+    | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
+    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
+
+    Each row is one sample. Here is what each column means:
+    - **`sample_name`** is a unique identifier for each sample (it can be
       whatever you want as long as it is unique).
-    dition`** is the label for thmental condition for each
+    - **`condition`** is the label for the experimental condition for each
       sample (this label can be whatever you want, such as "control" and
       "treatment"). Multiple samples with the same condition are considered
       **biological replicates**.
@@ -2160,11 +2159,13 @@ Here is an example CSV file (the headers must match exactly):
 |-------------|-----------|-------------------------|-------------------------|
 | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
 | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM003_untreated | SRR343239       | SRR3423943_2            |
-| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2       raw-datarow is one sample. Here is what each column means:
-- **`sample_nraw-dataue identifier for each sample (it can be
+| BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
+| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
+
+Each row is one sample. Here is what each column means:
+- **`sample_name`** is a unique identifier for each sample (it can be
 whatever you want as long as it is unique).
-dition`** is the label for thmental condition for each
+- **`condition`** is the label for the experimental condition for each
 sample (this label can be whatever you want, such as "control" and
 "treatment"). Multiple samples with the same condition are considered
 **biological replicates**.
@@ -2290,28 +2291,19 @@ info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 for sample in sample_sheet.rows(named=True):
     # Paired-end
     if sample["reverse_location"]:
-        format = "BAMPE"
+        input_format = "BAMPE"
     # Single-end
     else:
-        format = "BAM"
+        input_format = "BAM"
 
     # -t input (treatment), -f format, -g genome size, -n output name,
     # --outdir output directory
     bash(f"""
          uv run macs3 callpeak
              -t {__hb_align.path}/{sample["sample_name"]}.bam
-             -f {format}
+             -f {input_format}
              -g {GENOME_SIZE}
              -n {sample["sample_name"]}
              --outdir {__hb_ret.path}
-    """)
-
-    # Convert xls output (tab-separated with comment headers) to .csv
-    pl.read_csv(
-        f"{__hb_ret.path}/{sample['sample_name']}_peaks.xls",
-        separator="\t",
-        comment_prefix="#",
-    ).write_csv(
-        f"{__hb_ret.path}/{sample['sample_name']}_peaks.csv",
-    )'''
+    """)'''
 

@@ -480,7 +480,7 @@ a:hover {
     border-radius: var(--rounding);
     margin-bottom: 10px;
     overflow: hidden;
-    scroll-margin-top: 9px;
+    scroll-margin-top: calc(10px + var(--menu-bar-height));
     position: relative;
 
     --card-accent: #333;
