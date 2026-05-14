@@ -11,5 +11,5 @@
 4. Push commit
 5. Add version tag: `git tag -a vX.Y.Z -m "Version X.Y.Z"`
 6. Push version tag `git push origin vX.Y.Z`
-7. Run `./publish.sh new-version` in `editor`
+7. Run `./stable-publish.sh` in `editor`
 8. Also run `make publish` in `honey_libs/std-bio` to publish the Docker images
