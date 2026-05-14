@@ -29,15 +29,12 @@ RUN Rscript -e 'BiocManager::install("rhdf5")'
 
 RUN Rscript -e 'devtools::install_github("pachterlab/sleuth")'
 
-# System packages
+# System packages for kallisto (and niceties)
 
-RUN apt-get install -y fastqc
-RUN apt-get install -y less
 RUN apt-get install -y python3-dev
+RUN apt-get install -y less
 RUN apt-get install -y wget
 RUN apt-get install -y cmake
-RUN apt-get install -y aria2
-RUN apt-get install -y salmon
 RUN apt-get install -y libhdf5-dev
 RUN apt-get install -y autoconf
 RUN apt-get install -y zlib1g-dev
@@ -60,7 +57,11 @@ RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
 RUN rm v0.52.0.zip
 RUN rm -rf kallisto-0.52.0
 
-# (Temporary: some more apt packages)
+# Remaining system packages
+
+RUN apt-get install -y aria2
+RUN apt-get install -y fastqc
+RUN apt-get install -y salmon
 RUN apt-get install -y bwa
 RUN apt-get install -y bowtie2
 RUN apt-get install -y samtools

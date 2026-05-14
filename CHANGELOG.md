@@ -5,6 +5,20 @@ of Honeybee.
 
 ## [Unreleased]
 
+### Added
+
+- We now create official .tar.gz images for Standard Bio Docker image
+
+### Changed
+
+- Improvements to Standard Bio library and Docker image. Pipelines for RNA-seq,
+  ATAC-seq, and LEMONmethyl-seq should all be quite usable now!
+
+### Fixed
+
+- Fixed scroll bug where "Next CHOICE" button did not go high enough
+- Fixed bug where "Start navigating" button was clickable too early
+
 ## [0.6.1] - 2026-05-01
 
 ### Changed
