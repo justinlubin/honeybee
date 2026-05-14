@@ -409,7 +409,9 @@ def create_bowtie2_index(__hb_ret: Bowtie2Index):
     CORES = 4
 
     # PARAMETER: The location of the reference genome on your computer (FASTA format)
-    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
+
+    bash(f"""mkdir -p {__hb_ret.path}/reference""")
 
     # --threads number of cores, first argument reference path, second argument
     # output path
@@ -417,7 +419,7 @@ def create_bowtie2_index(__hb_ret: Bowtie2Index):
             bowtie2-build
                 --threads {CORES}
                 {REFERENCE_GENOME_PATH}
-                {__hb_ret.path}/reference
+                {__hb_ret.path}/reference/ref
     """)
 
 
@@ -526,7 +528,7 @@ def create_bwa_index(__hb_ret: BWAIndex):
     [Ensembl genome repository](https://www.ensembl.org/)."""
 
     # PARAMETER: The location of the reference genome on your computer (FASTA format)
-    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+    REFERENCE_GENOME_PATH = "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
 
     # -p output path
     bash(f"""
@@ -573,30 +575,17 @@ def bwa_mem(
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     for sample in sample_sheet.rows(named=True):
-        # Paired-end
-        if sample["reverse_location"]:
-            # -x name of reference, -t number of cores, -1 forward reads, -2
-            # reverse reads, -S output file
-            bash(f"""
-                 bwa mem
-                     -x {__hb_idx.path}/reference
-                     -t {CORES}
-                     -1 {__hb_reads.path}/{sample["forward_location"]}
-                     -2 {__hb_reads.path}/{sample["reverse_location"]}
-                     -S {__hb_ret.path}/{sample["sample_name"]}
-            """)
+        # Works for paired-end and single-end
 
-        # Single-end
-        else:
-            # -x name of reference, -t number of cores, -U unpaired reads,
-            # -S output file
-            bash(f"""
-                 bowtie2
-                     -x reference
-                     -t {CORES}
-                     -U {__hb_reads.path}/{sample["forward_location"]}
-                     -S {__hb_ret.path}/{sample["sample_name"]}
-            """)
+        # -t number of cores
+        bash(f"""
+             bwa mem
+                 -t {CORES}
+                 {__hb_idx.path}/reference
+                 {__hb_reads.path}/{sample["forward_location"]}
+                 {__hb_reads.path}/{sample["reverse_location"]}
+                     > {__hb_ret.path}/{sample["sample_name"]}.sam
+        """)
 
 
 ################################################################################
@@ -1927,11 +1916,13 @@ class AtacSeq:
     |-------------|-----------|-------------------------|-------------------------|
     | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
     | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM003_untreated | SRR343239       | SRR3423943_2            |
-    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2       raw-datarow is one sample. Here is what each column means:
-    - **`sample_nraw-dataue identifier for each sample (it can be
+    | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
+    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
+
+    Each row is one sample. Here is what each column means:
+    - **`sample_name`** is a unique identifier for each sample (it can be
       whatever you want as long as it is unique).
-    dition`** is the label for thmental condition for each
+    - **`condition`** is the label for the experimental condition for each
       sample (this label can be whatever you want, such as "control" and
       "treatment"). Multiple samples with the same condition are considered
       **biological replicates**.
