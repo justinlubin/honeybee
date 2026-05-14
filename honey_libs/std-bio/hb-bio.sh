@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -e
-set -x
 
 HB_VERSION=0.6.1
 
@@ -17,6 +16,8 @@ if [[ "$1" != "amd64" && "$1" != "arm64" ]]; then
   echo "  $(basename "$0") arm64" >&2
   exit 1
 fi
+
+echo "Running version ${HB_VERSION}"
 
 CMD=""
 IMAGE_NAME=ghcr.io/justinlubin/hb-bio:${HB_VERSION}-$1
@@ -39,6 +40,8 @@ if [[ "$3" == "interactive" ]]; then
 fi
 
 mkdir -p user-files
+
+set -x
 
 $CMD run -it \
   -p 8888:8888 \
