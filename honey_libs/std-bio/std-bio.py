@@ -227,7 +227,7 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
 
 
 @Function(
-    "reads.qc = true",
+    "reads.qc = false",
     "reads.trimmed = false",
     "ret.qc = false",
     "ret.trimmed = true",
