@@ -15,6 +15,8 @@ RUN apt-get install -y libfribidi-dev
 RUN apt-get install -y libfreetype6-dev
 RUN apt-get install -y libpng-dev libtiff5-dev libjpeg-dev libwebp-dev
 
+RUN mkdir ~/.R && echo 'MAKEFLAGS = -j13' >> ~/.R/Makevars
+
 RUN Rscript -e 'install.packages("optparse")'
 RUN Rscript -e 'install.packages("devtools")'
 RUN Rscript -e 'install.packages("remotes")'
@@ -50,8 +52,12 @@ RUN unzip v0.52.0.zip && \
     cd ../../ && \
     mkdir build && \
     cd build && \
-    cmake -DUSE_HDF5=ON -DHDF5_ROOT=/usr/include/hdf5/serial -DHDF5_LIBRARIES=/usr/lib/aarch64-linux-gnu/hdf5/serial/libhdf5.so -DCMAKE_CXX_FLAGS="-I/usr/include/hdf5/serial" .. && \
-    make 
+    cmake \
+      -DUSE_HDF5=ON \
+      -DHDF5_LIBRARIES=$(find /usr -name "libhdf5*" 2>/dev/null | grep libhdf5.so) \
+      -DCMAKE_CXX_FLAGS="-I/usr/include/hdf5/serial" \
+      .. && \
+    make
 RUN mkdir -p /root/.local/bin/
 RUN mv kallisto-0.52.0/build/src/kallisto /root/.local/bin/kallisto
 RUN rm v0.52.0.zip
