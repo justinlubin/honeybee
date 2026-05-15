@@ -1016,6 +1016,16 @@ view model =
                     ]
                 , text " (say hi, ask for help)"
                 ]
+            , span []
+                [ text "📓 "
+                , b []
+                    [ a
+                        [ A.href "hb-bio.sh"
+                        , A.download "hb-bio.sh"
+                        ]
+                        [ text "Download notebook launcher" ]
+                    ]
+                ]
             ]
             []
             [ span
