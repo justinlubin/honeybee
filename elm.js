@@ -6832,8 +6832,11 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$Attributes$download = function (fileName) {
+	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
+};
 var $author$project$Version$shortVersion = '0.7.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+69795be';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+166b97e';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,
@@ -8912,6 +8915,30 @@ var $author$project$View$view = function (model) {
 											]))
 									])),
 								$elm$html$Html$text(' (say hi, ask for help)')
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('📓 '),
+								A2(
+								$elm$html$Html$b,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$a,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$href('hb-bio.sh'),
+												$elm$html$Html$Attributes$download('hb-bio.sh')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Download notebook launcher')
+											]))
+									]))
 							]))
 					]),
 				_List_Nil,
