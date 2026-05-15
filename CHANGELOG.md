@@ -13,6 +13,7 @@ This release should be stable for the first Honeybee workshop at the
 ### Added
 
 - We now create official .tar.gz images for Standard Bio Docker image
+- (In a patch, 166b97e: download link for notebook launcher)
 
 ### Changed
 
