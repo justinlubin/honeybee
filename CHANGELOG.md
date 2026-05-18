@@ -13,7 +13,9 @@ This release should be stable for the first Honeybee workshop at the
 ### Added
 
 - We now create official .tar.gz images for Standard Bio Docker image
-- (In a patch, 166b97e: download link for notebook launcher)
+- In patch 166b97e: Add download link for notebook launcher
+- In patch a2a9a50: Updated editor styles (thank you Brian Hempel for the
+  honeycomb idea!)
 
 ### Changed
 
@@ -24,6 +26,8 @@ This release should be stable for the first Honeybee workshop at the
 
 - Fixed scroll bug where "Next CHOICE" button did not go high enough
 - Fixed bug where "Start navigating" button was clickable too early
+- In patch 166b97e: Fixed bug where code in cells would get cut off when
+  too long
 
 ## [0.6.1] - 2026-05-01
 
