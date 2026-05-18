@@ -6836,7 +6836,7 @@ var $elm$html$Html$Attributes$download = function (fileName) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
 };
 var $author$project$Version$shortVersion = '0.7.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+166b97e';
+var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+1676342';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,
