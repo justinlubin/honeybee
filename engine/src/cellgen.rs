@@ -176,7 +176,7 @@ impl<'a> Context<'a> {
         }
 
         if !citations.is_empty() {
-            ret += "**Please cite:**{}\n\n";
+            ret += "**Please cite:**\n\n";
             for cit in citations {
                 ret += &format!("- {}\n", cit);
             }
@@ -219,12 +219,9 @@ impl<'a> Context<'a> {
 
         match implementation {
             Some(imp) => {
+                s += &format!("\n\nif already_exists({}.path):\n", var_name);
                 s += &format!(
-                    "\n\nif os.path.isdir({}.path) and os.listdir({}.path):\n",
-                    var_name, var_name
-                );
-                s += &format!(
-                    r#"    print(f"'{{{}.path}}' already exists, skipping step")"#,
+                    r#"    print(f"'{{{}.path}}' already exists, skipping step (delete folder to re-run)")"#,
                     var_name
                 );
                 s += &format!(
@@ -300,6 +297,8 @@ impl<'a> Context<'a> {
 
                 let implementation = f_sig.info_string("code");
 
+                let input = is_input(&self.library, &f_sig.ret);
+
                 self.cells.push(Cell::Code {
                     number_id: if implementation.is_some() {
                         Some(number_id)
@@ -307,14 +306,16 @@ impl<'a> Context<'a> {
                         None
                     },
                     has_path: implementation.is_some(),
-                    priority: if implementation.is_some() { 2 } else { 1 },
+                    priority: if input {
+                        2
+                    } else if implementation.is_some() {
+                        3
+                    } else {
+                        1
+                    },
                     title: format!(
                         "{}{}",
-                        if is_input(&self.library, &f_sig.ret) {
-                            "Input: "
-                        } else {
-                            ""
-                        },
+                        if input { "Input: " } else { "" },
                         f_sig.info_string("title").unwrap_or(f.name.0.clone())
                     ),
                     description: Self::description(f_sig),

@@ -736,7 +736,6 @@ cell ctx c =
                 (cardHeading []
                     [ span []
                         [ text "Choice"
-                        , cardHeadingSubtitle [] [ text x.varName ]
                         ]
                     ]
                     [ text (cellTitle c) ]
@@ -1016,6 +1015,16 @@ view model =
                         [ text "Zulip" ]
                     ]
                 , text " (say hi, ask for help)"
+                ]
+            , span []
+                [ text "📓 "
+                , b []
+                    [ a
+                        [ A.href "hb-bio.sh"
+                        , A.download "hb-bio.sh"
+                        ]
+                        [ text "Download notebook launcher" ]
+                    ]
                 ]
             ]
             []

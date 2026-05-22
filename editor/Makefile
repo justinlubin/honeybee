@@ -21,13 +21,14 @@ all: \
 	$(OUT_DIR)/elm.js \
 	$(OUT_DIR)/pkg/honeybee.js \
 	$(OUT_DIR)/std-bio.hblib.toml \
+	$(OUT_DIR)/hb-bio.sh
 
 .PHONY: clean
 clean:
-	rm $(OUT_DIR)/elm.js
-	rm $(OUT_DIR)/pkg/honeybee.js
-	rm $(OUT_DIR)/std-bio.hblib.toml
-	rm $(OUT_DIR)/assets/diagrams/svg/*.svg
+	rm -f $(OUT_DIR)/elm.js
+	rm -f $(OUT_DIR)/pkg/honeybee.js
+	rm -f $(OUT_DIR)/std-bio.hblib.toml
+	rm -f $(OUT_DIR)/hb-bio.sh
 
 # Depends on honeybee.js to ensure versions are in-sync
 $(OUT_DIR)/elm.js: $(wildcard src/*.elm) $(OUT_DIR)/pkg/honeybee.js
@@ -58,3 +59,6 @@ $(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DI
 		> $(OUT_DIR)/std-bio.hblib.toml && \
 	cd $(ENGINE_DIR) && \
 	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/std-bio.hblib.toml
+
+$(OUT_DIR)/hb-bio.sh: $(GLUE_DIR)/hb-bio.sh
+	cp $(GLUE_DIR)/hb-bio.sh $(OUT_DIR)/hb-bio.sh

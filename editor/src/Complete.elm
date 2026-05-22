@@ -49,11 +49,15 @@ complete :
     -> WorkingProgram
     -> Maybe CompleteProgram
 complete { allowGoalHoles } prog =
-    Maybe.map2 (\p g -> { props = p, goal = g })
-        (prog.props
-            |> List.map (Maybe.andThen (fact False))
-            |> Util.sequence
-        )
-        (prog.goal
-            |> Maybe.andThen (fact allowGoalHoles)
-        )
+    if List.isEmpty prog.props then
+        Nothing
+
+    else
+        Maybe.map2 (\p g -> { props = p, goal = g })
+            (prog.props
+                |> List.map (Maybe.andThen (fact False))
+                |> Util.sequence
+            )
+            (prog.goal
+                |> Maybe.andThen (fact allowGoalHoles)
+            )
