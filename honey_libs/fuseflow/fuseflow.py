@@ -3,8 +3,9 @@ import datetime
 import polars as pl
 import json
 
-from honey_lang import Helper, Input, Output, Function, __hb_bash
+from honey_lang import Helper, Input, Output, Function, initialize
 
+initialize()
 
 @Helper
 class Dir:
