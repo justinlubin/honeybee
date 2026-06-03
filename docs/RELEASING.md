@@ -1,15 +1,28 @@
-1. Bump version numbers in the following files:
-  - `editor/src/Version.elm`
-  - `engine/Cargo.toml`
-  - `honey_lang/pyproject.toml`
-  - `honey_libs/fuseflow/pyproject.toml`
-  - `honey_libs/bio/pyproject.toml`
-  - `honey_libs/bio/Makefile`
-  - `honey_libs/bio/hb-bio.sh`
-2. Run `make clean && make` in `editor` to update lock files
-3. Update CHANGELOG section
-4. Push commit
-5. Add version tag: `git tag -a vX.Y.Z -m "Version X.Y.Z"`
-6. Push version tag `git push origin vX.Y.Z`
-7. Run `./stable-publish.sh` in `editor`
-8. Also run `make publish` in `honey_libs/bio` to publish the Docker images
+**Note on versioning:** Everything is unversioned (pinned to 0.7.0) _except for_
+the Honeybee Biology Library and Honeybee Biology Container. The versioning
+scheme for those two are in lockstep and start go "Release 8", "Release 9", etc.
+for _any_ possible change to the output scripts or environment, including new
+or different:
+- Cell/codegen
+- Building blocks
+- Environment (defined via the Dockerfile)
+- IO behavior of Honey or Honeybee engine
+and so on.
+
+# To release
+
+If there is a change in the Honeybee Biology Release (see above), take the
+following steps (otherwise skip):
+
+1. Bump release numbers in the following files:
+  - `libs/bio/Makefile`
+  - `libs/bio/bio.sh`
+  - `libs/bio/launch-notebook.sh`
+2. Run `make publish` in `libs/bio`
+
+Then, to publish the latest editor/engine etc. to the web:
+
+1. Run `make clean && make` in `editor`
+2. Make and push a commit
+3. Run `publish.sh` in `editor` to publish an unstable build;
+   OR run `publish.sh stable` in `editor` to publish a stable build

@@ -13,7 +13,7 @@ git clone git@github.com:justinlubin/honeybee.git \
 cd "$TO"
 git checkout gh-pages
 
-if [ "$1" == "new-version" ]; then
+if [ "$1" == "stable" ]; then
     rm -rf !(.git)
     cd ../
     make clean

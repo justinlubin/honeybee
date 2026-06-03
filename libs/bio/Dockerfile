@@ -98,7 +98,7 @@ RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announce
 
 # Final setup
 
-COPY images-files/environment environment
+COPY image-files/environment environment
 COPY image-files/edit-warning.md DO_NOT_EDIT_HERE.md
 
 COPY image-files/entrypoint.sh entrypoint.sh
