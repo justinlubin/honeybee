@@ -1,17 +1,12 @@
-module Version exposing (fullVersion, stable)
+module Version exposing (build, stable)
 
 -- Note: The <<<X>>> tags in this file get replaced after compilation; see the
 --       Makefile for how this gets done!
 
 
-shortVersion : String
-shortVersion =
-    "0.7.0"
-
-
-fullVersion : String
-fullVersion =
-    shortVersion ++ "+<<<COMMIT-SHORT-HASH>>>"
+build : String
+build =
+    "<<<COMMIT-SHORT-HASH>>>"
 
 
 stable : Bool

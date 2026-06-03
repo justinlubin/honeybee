@@ -17,7 +17,7 @@ initialize()
 @Helper
 def bash(command, redirect_stderr=True):
     command = command.replace("\\\n", "\n")
-    command = re.sub(r"\s+", " ", command)
+    command = re.sub(r"\s+", " ", command).strip()
 
     log("### Running bash command:\n")
     log(command + "\n")
@@ -1580,6 +1580,12 @@ def load_local_lemon_seq(__hb_local: LemonSeq, __hb_ret: UnconvertedLemonSeq):
         f"{shared()}/reference/unconverted.fasta",
     )
 
+    log("Start of unconverted reference:\n")
+
+    bash(f"""
+        head "{shared()}/reference/unconverted.fasta"
+    """)
+
 
 @Function(
     "ret.qc = false",
@@ -1609,6 +1615,12 @@ def sed_in_silico_em(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads):
             | sed '/^[^>]/s/C/T/g' \
             | sed '/^[^>]/s/c/t/g' \
             > "{shared()}/reference/reference.fasta"
+    """)
+
+    log("Start of converted reference:\n")
+
+    bash(f"""
+        head "{shared()}/reference/reference.fasta"
     """)
 
 
@@ -1647,6 +1659,12 @@ def use_existing_em_reference(__hb_data: UnconvertedLemonSeq, __hb_ret: SeqReads
         EM_REFERENCE_PATH,
         f"{shared()}/reference/reference.fasta",
     )
+
+    log("Start of previously-converted reference:\n")
+
+    bash(f"""
+        head "{shared()}/reference/reference.fasta"
+    """)
 
 
 @Function(

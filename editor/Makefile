@@ -11,8 +11,8 @@
 OPTIMIZE_ELM := false
 HERE_DIR := editor
 ENGINE_DIR := ../engine
-LANG_DIR := ../honey_lang
-GLUE_DIR := ../honey_libs/bio
+LANG_DIR := ../honey
+GLUE_DIR := ../libs/bio
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 
