@@ -2,6 +2,7 @@ import ast
 import inspect
 import re
 from dataclasses import dataclass
+import subprocess
 
 
 def _deindent(s):
@@ -319,7 +320,7 @@ def Helper(obj):
     return obj
 
 
-def initialize(erase_static=True):
+def initialize(name=None, erase_static=True):
     global _initialize_ran
 
     if _initialize_ran:
@@ -328,6 +329,14 @@ def initialize(erase_static=True):
     # Add config
 
     print("[Config]")
+    if name:
+        commit = subprocess.run(
+            "git rev-parse --short HEAD",
+            shell=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+        print('name = "' + name.replace("<<<COMMIT>>>", commit) + '"')
     print("erase_static =", "true" if erase_static else "false")
     print()
 

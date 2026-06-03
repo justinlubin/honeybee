@@ -73,6 +73,10 @@ impl Codegen for PlainTextNotebook {
 ////////////////////////////////////////////////////////////////////////////////
 // Jupyter Notebook style
 
+fn get_name(lib: &Library) -> Option<&str> {
+    lib.config.as_ref()?.get("name")?.as_str()
+}
+
 pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
     let mut cells: Vec<ipynb::Cell> = cellgen::exp(lib, e)
         .into_iter()
@@ -158,6 +162,11 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
         })
         .collect();
 
+    let name = match get_name(lib) {
+        Some(n) => format!(" with the {}", n),
+        None => "".to_owned(),
+    };
+
     cells.insert(
         0,
         ipynb::Cell::Markdown(ipynb::MarkdownCell {
@@ -166,8 +175,8 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
             attachments: Some(HashMap::new()),
             source: vec![
                 format!(
-                    "Script originally created using [Honeybee](https://honeybee-lang.org) (version {}).\n\n",
-                    env!("HONEYBEE_VERSION"),
+                    "Script originally created using [Honeybee](https://honeybee-lang.org){}.\n\n",
+                    name,
                 ),
                 "**Please cite:** Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
         }),

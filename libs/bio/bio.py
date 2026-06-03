@@ -8,7 +8,7 @@ from IPython.display import display
 
 from honey_lang import Function, Helper, Input, Output, initialize, log
 
-initialize()
+initialize(name="Honeybee Biology Library Release 8 (<<<COMMIT>>>)")
 
 ################################################################################
 # %% Helper

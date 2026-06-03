@@ -9,7 +9,7 @@ echo "    >>> Success!! <<<"
 echo
 echo "You've loaded:"
 echo
-echo "    Honeybee Biology Container, Release ${HONEYBEE_RELEASE} (${HONEYBEE_COMMIT})"
+echo "    Honeybee Biology Container Release ${HONEYBEE_RELEASE} (${HONEYBEE_COMMIT})"
 echo
 echo "Starting Jupyter Lab..."
 echo
