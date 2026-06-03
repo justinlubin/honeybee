@@ -1,9 +1,11 @@
 # Changelog
 
 This changelog tracks the notable changes for downstream users in each version
-of Honeybee. 
+of Honeybee. Everything in Honeybee is rolling release / unversioned except for
+the Honeybee Biology Library/Container, which are released in lockstep for
+compatability and reproducibility.
 
-## [Unreleased]
+# Older versions
 
 ## [0.7.0] - 2026-05-14
 
