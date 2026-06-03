@@ -2,25 +2,25 @@
 
 set -e
 
-HB_VERSION=0.7.0
+RELEASE=0
 
-if [[ "$1" != "amd64" && "$1" != "arm64" ]]; then
-  echo "Usage: $(basename "$0") <arch>" >&2
-  echo >&2
-  echo "  arch  Target architecture, must be one of:" >&2
-  echo "          amd64    x86-64 (e.g. Intel/AMD)" >&2
-  echo "          arm64    AArch64 (e.g. Apple Silicon)" >&2
-  echo >&2
-  echo "Examples:" >&2
-  echo "  $(basename "$0") amd64" >&2
-  echo "  $(basename "$0") arm64" >&2
-  exit 1
+ARCH="$1"
+
+if [ -z "${ARCH}" ]; then
+  case $(uname -m) in
+      x86_64) ARCH="amd64" ;;
+      arm64) ARCH="arm64" ;;
+  esac
 fi
 
-echo "Running version ${HB_VERSION}"
+if [ -z "${ARCH}" ]; then
+  echo "error: could not automatically determine architecture"
+  echo "Please re-run with first argument as either 'amd64' or 'arm64'"
+fi
+
+IMAGE_NAME=ghcr.io/justinlubin/hb-bio:${RELEASE}-${ARCH}
 
 CMD=""
-IMAGE_NAME=ghcr.io/justinlubin/hb-bio:${HB_VERSION}-$1
 
 if [[ "$2" == "local" ]]; then
   echo "Using 'docker' for local image..."
@@ -30,7 +30,7 @@ else
   podman machine info 2>/dev/null \
     | grep -q "machinestate: Running" \
     || podman machine start
-  podman pull ghcr.io/justinlubin/hb-bio:${HB_VERSION}-$1
+  podman pull ${IMAGE_NAME}
   CMD="podman"
 fi
 

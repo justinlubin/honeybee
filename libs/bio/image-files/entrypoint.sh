@@ -11,6 +11,8 @@ echo "You've loaded:"
 echo
 echo "    Honeybee Biology Container, Release ${HONEYBEE_RELEASE} (${HONEYBEE_COMMIT})"
 echo
+echo "Starting Jupyter Lab..."
+echo
 
 uv run jupyter lab \
   --log-level=CRITICAL \

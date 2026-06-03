@@ -79,8 +79,6 @@ RUN apt-get -y install curl
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 RUN uv init \
-  --name "hb-stdbio-docker" \
-  --description "Honeybee Standard Bio Docker Image" \
   --no-readme \
   --python 3.12
 RUN uv add cutadapt
@@ -100,10 +98,10 @@ RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announce
 
 # Final setup
 
-COPY environment environment
-COPY edit-warning.md DO_NOT_EDIT_HERE.md
+COPY images-files/environment environment
+COPY image-files/edit-warning.md DO_NOT_EDIT_HERE.md
 
-COPY entrypoint.sh entrypoint.sh
+COPY image-files/entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
 ARG RELEASE
