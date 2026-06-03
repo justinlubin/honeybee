@@ -6797,7 +6797,7 @@ var $author$project$Update$update = F2(
 	});
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$b = _VirtualDom_node('b');
-var $author$project$Version$build = '4a8aca3';
+var $author$project$Version$build = '5e966d5';
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
