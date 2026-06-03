@@ -15,10 +15,10 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-honey-lang = { path = "../../honey_lang", editable = true }
+honey-lang = { path = "../../honey", editable = true }
 
 [tool.ty.environment]
-extra-paths = ["../../honey_lang"]
+extra-paths = ["../../honey"]
 
 [tool.ty.src]
 include = ["bio.py"]
@@ -27,5 +27,6 @@ include = ["bio.py"]
 dev = [
     "globus-cli>=3.41.0",
     "ipython>=9.9.0",
+    "jupyter>=1.1.1",
     "ty>=0.0.12",
 ]
