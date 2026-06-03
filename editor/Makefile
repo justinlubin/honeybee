@@ -12,7 +12,7 @@ OPTIMIZE_ELM := false
 HERE_DIR := editor
 ENGINE_DIR := ../engine
 LANG_DIR := ../honey_lang
-GLUE_DIR := ../honey_libs/std-bio
+GLUE_DIR := ../honey_libs/bio
 OUT_DIR := www
 CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 
@@ -20,14 +20,14 @@ CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 all: \
 	$(OUT_DIR)/elm.js \
 	$(OUT_DIR)/pkg/honeybee.js \
-	$(OUT_DIR)/std-bio.hblib.toml \
+	$(OUT_DIR)/bio.hblib.toml \
 	$(OUT_DIR)/hb-bio.sh
 
 .PHONY: clean
 clean:
 	rm -f $(OUT_DIR)/elm.js
 	rm -f $(OUT_DIR)/pkg/honeybee.js
-	rm -f $(OUT_DIR)/std-bio.hblib.toml
+	rm -f $(OUT_DIR)/bio.hblib.toml
 	rm -f $(OUT_DIR)/hb-bio.sh
 
 # Depends on honeybee.js to ensure versions are in-sync
@@ -51,14 +51,14 @@ $(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
 		--out-dir ../$(HERE_DIR)/$(OUT_DIR)/pkg \
 		--target web
 
-$(OUT_DIR)/std-bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
+$(OUT_DIR)/bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
 	cd $(GLUE_DIR) && ty check
 	uv run \
 		--project $(GLUE_DIR) \
-		$(GLUE_DIR)/std-bio.py \
-		> $(OUT_DIR)/std-bio.hblib.toml && \
+		$(GLUE_DIR)/bio.py \
+		> $(OUT_DIR)/bio.hblib.toml && \
 	cd $(ENGINE_DIR) && \
-	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/std-bio.hblib.toml
+	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/bio.hblib.toml
 
 $(OUT_DIR)/hb-bio.sh: $(GLUE_DIR)/hb-bio.sh
 	cp $(GLUE_DIR)/hb-bio.sh $(OUT_DIR)/hb-bio.sh

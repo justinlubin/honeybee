@@ -21,7 +21,7 @@ honey-lang = { path = "../../honey_lang", editable = true }
 extra-paths = ["../../honey_lang"]
 
 [tool.ty.src]
-include = ["std-bio.py"]
+include = ["bio.py"]
 
 [dependency-groups]
 dev = [
