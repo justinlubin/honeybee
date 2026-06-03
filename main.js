@@ -51,7 +51,7 @@ import init, * as Honeybee from "./pkg/honeybee.js";
 
 await init();
 
-const libraryResponse = await fetch("std-bio.hblib.toml");
+const libraryResponse = await fetch("bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 

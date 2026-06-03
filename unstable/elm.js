@@ -6797,6 +6797,7 @@ var $author$project$Update$update = F2(
 	});
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$b = _VirtualDom_node('b');
+var $author$project$Version$build = '4a8aca3';
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6835,8 +6836,6 @@ var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$Attributes$download = function (fileName) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
 };
-var $author$project$Version$shortVersion = '0.7.0';
-var $author$project$Version$fullVersion = $author$project$Version$shortVersion + '+1676342';
 var $elm$html$Html$Attributes$height = function (n) {
 	return A2(
 		_VirtualDom_attribute,
@@ -8952,7 +8951,7 @@ var $author$project$View$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(' version ' + $author$project$Version$fullVersion),
+								$elm$html$Html$text(' build ' + $author$project$Version$build),
 								(!$author$project$Version$stable) ? A2(
 								$elm$html$Html$span,
 								_List_fromArray(
