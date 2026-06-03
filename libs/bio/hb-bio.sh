@@ -2,7 +2,7 @@
 
 set -e
 
-RELEASE=0
+HONEYBEE_RELEASE=8
 
 ARCH="$1"
 
@@ -18,7 +18,7 @@ if [ -z "${ARCH}" ]; then
   echo "Please re-run with first argument as either 'amd64' or 'arm64'"
 fi
 
-IMAGE_NAME=ghcr.io/justinlubin/hb-bio:${RELEASE}-${ARCH}
+IMAGE_NAME=ghcr.io/justinlubin/hb-bio:${HONEYBEE_RELEASE}-${ARCH}
 
 CMD=""
 
