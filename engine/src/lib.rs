@@ -10,6 +10,7 @@ mod dl_oracle;
 mod egglog;
 mod enumerate;
 mod eval;
+mod machine_readable;
 mod parse;
 mod top_down;
 mod traditional_synthesis;

@@ -59,6 +59,7 @@ fn load_problem(
 pub fn interact(
     library: PathBuf,
     program: PathBuf,
+    machine_readable: bool,
     style: menu::CodegenStyle,
     quiet: bool,
     out: PathBuf,
@@ -91,6 +92,10 @@ pub fn interact(
 
     let timer = util::Timer::infinite();
     let mut controller = algorithm.controller(timer, problem, false);
+
+    if machine_readable {
+        return machine_readable::interact(controller);
+    }
 
     let mut round = 0;
     while !controller.valid() {

@@ -77,6 +77,10 @@ enum Command {
         #[arg(short, long, value_name = "FILE")]
         library: PathBuf,
 
+        // Run in machine-readable input/output mode
+        #[arg(short, long, action)]
+        machine_readable: bool,
+
         /// The codegen style to use
         #[arg(
             short,
@@ -175,6 +179,7 @@ impl Command {
             Self::Interact {
                 library,
                 program,
+                machine_readable,
                 style,
                 quiet,
                 out,
@@ -183,6 +188,7 @@ impl Command {
             } => main_handler::interact(
                 library,
                 program,
+                machine_readable,
                 style,
                 quiet,
                 out,
