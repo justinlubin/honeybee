@@ -1,4 +1,4 @@
-use crate::{core, top_down, unparse, util};
+use crate::{cellgen, core, top_down, unparse, util};
 
 use jsonrpcmsg::{Error, Id, Params, Request, Response};
 use serde::Serialize;
@@ -14,10 +14,10 @@ pub enum DeciderMessage {
     Quit,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize)]
 pub enum ProviderMessage {
     WorkingExpression(String),
-    Steps(Vec<String>),
+    Steps(Vec<cellgen::FunctionChoice>),
     AckDecide,
     AckQuit,
 }
@@ -26,7 +26,12 @@ fn out_of_time() -> Error {
     Error::new(1, "Allocated time expired (early cutoff)".to_owned())
 }
 
+fn no_more_steps() -> Error {
+    Error::new(2, "No more steps".to_owned())
+}
+
 fn handle(
+    library: &core::Library,
     controller: &mut pbn::Controller<
         util::Timer,
         top_down::TopDownStep<core::ParameterizedFunction>,
@@ -41,9 +46,21 @@ fn handle(
         }
         DeciderMessage::Provide => {
             let options = controller.provide().map_err(|_| out_of_time())?;
-            Ok(ProviderMessage::Steps(
-                options.iter().map(|_| "test".to_owned()).collect(),
-            ))
+            let function_choices = cellgen::fill(
+                library,
+                &options,
+                cellgen::exp(&library, &controller.working_expression()),
+            )
+            .unwrap()
+            .into_iter()
+            .find_map(|c| match c {
+                cellgen::Cell::Choice {
+                    function_choices, ..
+                } => Some(function_choices),
+                _ => None,
+            })
+            .ok_or_else(|| no_more_steps())?;
+            Ok(ProviderMessage::Steps(function_choices))
         }
         DeciderMessage::Decide { index } => {
             let mut options =
@@ -137,6 +154,7 @@ fn maybe_respond_success(v: serde_json::Value, id: Option<Id>) {
 // Main
 
 pub fn interact(
+    library: &core::Library,
     controller: &mut pbn::Controller<
         util::Timer,
         top_down::TopDownStep<core::ParameterizedFunction>,
@@ -159,19 +177,21 @@ pub fn interact(
             }
         };
 
-        let provider_message = match handle(controller, &decider_message) {
-            Ok(pm) => pm,
-            Err(e) => {
-                maybe_respond_error(e, request.id);
-                continue;
-            }
-        };
+        let provider_message =
+            match handle(library, controller, &decider_message) {
+                Ok(pm) => pm,
+                Err(e) => {
+                    maybe_respond_error(e, request.id);
+                    continue;
+                }
+            };
 
         let response = message_to_response(&provider_message);
         maybe_respond_success(response, request.id);
 
-        if provider_message == ProviderMessage::AckQuit {
-            break;
+        match provider_message {
+            ProviderMessage::AckQuit => break,
+            _ => (),
         }
     }
 

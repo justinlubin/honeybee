@@ -91,11 +91,14 @@ pub fn interact(
     let gen = style.codegen(problem.library.clone())?;
 
     let timer = util::Timer::infinite();
-    let mut controller = algorithm.controller(timer, problem, false);
 
     if machine_readable {
-        return machine_readable::interact(&mut controller);
+        let lib = problem.library.clone();
+        let mut controller = algorithm.controller(timer, problem, false);
+        return machine_readable::interact(&lib, &mut controller);
     }
+
+    let mut controller = algorithm.controller(timer, problem, false);
 
     let mut round = 0;
     while !controller.valid() {
