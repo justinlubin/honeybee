@@ -94,7 +94,7 @@ pub fn interact(
     let mut controller = algorithm.controller(timer, problem, false);
 
     if machine_readable {
-        return machine_readable::interact(controller);
+        return machine_readable::interact(&mut controller);
     }
 
     let mut round = 0;
