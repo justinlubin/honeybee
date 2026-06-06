@@ -2,6 +2,7 @@ use crate::{cellgen, core, top_down, unparse, util};
 
 use jsonrpcmsg::{Error, Id, Params, Request, Response};
 use serde::Serialize;
+use serde_json::json;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Message types and interaction handling
@@ -103,7 +104,14 @@ fn request_to_message(r: &Request) -> Result<DeciderMessage, Error> {
 fn message_to_response(
     provider_message: &ProviderMessage,
 ) -> serde_json::Value {
-    serde_json::to_value(provider_message).unwrap()
+    match provider_message {
+        ProviderMessage::WorkingExpression(e) => json!(e),
+        ProviderMessage::Steps(function_choices) => {
+            serde_json::to_value(function_choices).unwrap()
+        }
+        ProviderMessage::AckDecide => json!("ack_decide"),
+        ProviderMessage::AckQuit => json!("ack_quit"),
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
