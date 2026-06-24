@@ -1,0 +1,132 @@
+[Goal]
+name = 'FuseFlowSchedule'
+
+    [Goal.args]
+
+[[Prop]]
+name = 'P_MlirProgram'
+
+    [Prop.args]
+    num_loops = 10
+    num_tensors = 5
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't0'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 0
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't1'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 1
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't2'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 2
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't3'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 3
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't4'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 4
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i0'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 0
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i1'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 1
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i2'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 2
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i3'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 3
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i4'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 4
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i5'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 5
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i6'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 6
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i7'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 7
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i8'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 8
+
+[[Prop]]
+name = 'P_LoopIndex'
+
+    [Prop.args]
+    name = 'i9'
+    path = '../tests/sam_fused.mlir'
+    loop_order = 9

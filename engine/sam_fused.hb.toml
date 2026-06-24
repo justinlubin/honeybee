@@ -1,0 +1,199 @@
+[Goal]
+name = 'FuseFlowSchedule'
+
+    [Goal.args]
+
+[[Prop]]
+name = 'P_MlirProgram'
+
+    [Prop.args]
+    num_loops = 10
+    num_tensors = 5
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't0'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 0
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't1'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 1
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't2'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 2
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't3'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 3
+
+[[Prop]]
+name = 'P_TensorInfo'
+
+    [Prop.args]
+    name = 't4'
+    path = '../tests/sam_fused.mlir'
+    tensor_order = 4
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i5 i6 i7 i8 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i5 i6 i8 i7 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i5 i6 i8 i9 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i5 i8 i6 i7 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i5 i8 i6 i9 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i5 i8 i9 i6 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i5 i7 i8 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i5 i8 i7 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i5 i8 i9 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i7 i5 i8 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i7 i8 i5 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i7 i8 i9 i5 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i8 i5 i7 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i8 i5 i9 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i8 i7 i5 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i8 i7 i9 i5 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i8 i9 i5 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i6 i8 i9 i7 i5 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i8 i5 i6 i7 i9 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i8 i5 i6 i9 i7 i3'
+    path = '../tests/sam_fused.mlir'
+
+[[Prop]]
+name = 'P_LoopOrderOption'
+
+    [Prop.args]
+    order = 'i0 i1 i2 i4 i8 i5 i9 i6 i7 i3'
+    path = '../tests/sam_fused.mlir'
