@@ -10,10 +10,10 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-honey-lang = { path = "../../honey_lang", editable = true }
+honey-lang = { path = "../../honey", editable = true }
 
 [tool.ty.environment]
-extra-paths = ["../../honey_lang"]
+extra-paths = ["../../honey"]
 
 [dependency-groups]
 dev = [

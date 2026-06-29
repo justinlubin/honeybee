@@ -55,7 +55,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "honey-lang", editable = "../../honey_lang" },
+    { name = "honey-lang", editable = "../../honey" },
     { name = "polars", specifier = ">=1.41.0" },
 ]
 
@@ -68,7 +68,7 @@ dev = [
 [[package]]
 name = "honey-lang"
 version = "0.7.0"
-source = { editable = "../../honey_lang" }
+source = { editable = "../../honey" }
 
 [[package]]
 name = "ipython"
