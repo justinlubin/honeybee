@@ -53,3 +53,5 @@ interface. Stay tuned to our website
 and our
 [GitHub repository](https://github.com/justinlubin/honeybee)
 to stay up-to-date on our project! 
+
+![Farm to table software](https://jlubin.net/assets/farm-to-table.png)
