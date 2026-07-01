@@ -228,6 +228,7 @@ mod honeybee {
 
     use pyo3::exceptions::PyValueError;
     use pyo3::prelude::*;
+    use pythonize::pythonize;
 
     #[pyclass(unsendable)]
     struct Controller {
@@ -314,15 +315,17 @@ mod honeybee {
             })
         }
 
-        fn working_expression(&self) -> String {
-            unparse::exp(self._controller.working_expression()).unwrap()
+        fn working_expression(&self, py: Python) -> Py<PyAny> {
+            pythonize(py, self._controller.working_expression())
+                .unwrap()
+                .unbind()
         }
 
-        fn provide(&mut self) -> PyResult<Vec<String>> {
+        fn provide(&mut self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
             let options =
                 self._controller.provide().map_err(|_| out_of_time())?;
 
-            let function_choices: Vec<String> = cellgen::fill(
+            let function_choices: Vec<_> = cellgen::fill(
                 &self._library,
                 &options,
                 cellgen::exp(
@@ -340,7 +343,7 @@ mod honeybee {
             })
             .ok_or_else(|| no_more_steps())?
             .iter()
-            .map(|fc| serde_json::to_string(fc).unwrap())
+            .map(|fc| pythonize(py, fc).unwrap().unbind())
             .collect();
 
             Ok(function_choices)

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "honeybee",
     "jsonrpyc>=1.3.1",
     "requests>=2.34.2",
 ]
@@ -14,3 +15,15 @@ dependencies = [
 dev = [
     "ipython>=9.14.1",
 ]
+
+[tool.uv]
+# https://github.com/PyO3/maturin/issues/2314#issuecomment-2488542771
+cache-keys = [
+    {file = "../engine/pyproject.toml"},
+    {file = "../engine/Cargo.toml"},
+    {file = "../engine/**/*.rs"},
+    {file = "honeybee.pyi"},
+]
+
+[tool.uv.sources]
+honeybee = { path = "../engine", editable = true }

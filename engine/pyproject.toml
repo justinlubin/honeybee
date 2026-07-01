@@ -1,3 +1,22 @@
+[project]
+name = "honeybee"
+version = "0.1.0"
+requires-python = ">=3.8"
+
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
+
+[dependency-groups]
+dev = [
+    "ipython>=8.12.3",
+]
+
+[tool.uv]
+# https://github.com/PyO3/maturin/issues/2314#issuecomment-2488542771
+cache-keys = [
+    {file = "pyproject.toml"},
+    {file = "Cargo.toml"},
+    {file = "**/*.rs"},
+    {file = "honeybee.pyi"},
+]

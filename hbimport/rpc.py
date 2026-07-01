@@ -1,17 +1,33 @@
-import re
+# %%
 
+import re
+import subprocess
+from typing import Any
+
+import jsonrpyc
 import requests
 from bs4 import BeautifulSoup
 
-import honeybee
-
 ###############################################################################
-# Load PBN
+# Monkey patching
 
-pbn = honeybee.Controller(
-    library="../editor/www/bio.hblib.toml",
-    program="../editor/www/example.hb.toml",
-)
+original_request = jsonrpyc.Spec.request
+
+
+@classmethod
+def patched_request(
+    cls,
+    method: str,
+    /,
+    id: str | int | None = None,
+    params: dict[str, Any] | None = None,
+) -> str:
+    if params is not None:
+        params = params["args"]
+    return original_request(method, id=id, params=params)
+
+
+jsonrpyc.Spec.request = patched_request
 
 ###############################################################################
 # Methods fetching + parsing
@@ -26,10 +42,25 @@ methods = [m.text for m in methods]
 methods
 
 ###############################################################################
+# JSON-RPC setup
+
+p = subprocess.Popen(
+    ["bash", "server.sh"],
+    stdin=subprocess.PIPE,
+    stdout=subprocess.PIPE,
+)
+
+assert p
+assert p.stdin
+assert p.stdout
+
+rpc = jsonrpyc.RPC(stdout=p.stdin, stdin=p.stdout)  # type:ignore
+
+###############################################################################
 # Main loop
 
 while True:
-    steps = pbn.provide()
+    steps: type[Any] = rpc.call("provide", block=0.1)  # type: ignore
 
     choices = {}
     for s in steps:
@@ -50,10 +81,13 @@ while True:
         index = choices[choice]
 
     print("selection:", choice)
-    pbn.decide(index)
+    rpc.call("decide", args=(index,), block=0.1)
 
-print(pbn.working_expression())
 
+print("Quitting:", rpc("quit", block=1))
+p.stdin.close()
+p.stdout.close()
+p.terminate()
 
 ###############################################################################
 # Get PRJNA
