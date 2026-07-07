@@ -28,16 +28,16 @@ class Extractor(ABC):
                 return cls
         raise ValueError("No matching extractor for URL:", url)
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def matches(url: str) -> bool: ...
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def methods(soup: BeautifulSoup) -> list[str]: ...
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def prjna(soup: BeautifulSoup) -> str: ...
 
 

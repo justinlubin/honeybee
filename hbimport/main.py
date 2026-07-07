@@ -1,8 +1,6 @@
-##############################################################################
-# %% Imports
-
-
-from bs4 import BeautifulSoup
+import scrape
+import step
+import honeybee
 
 
 def pretty(e):
@@ -18,16 +16,32 @@ def pretty(e):
         raise ValueError("Unknown expression")
 
 
-# %%
+def hbimport(url: str):
+    # TODO: need to do goal inference
+    pbn = honeybee.Controller(
+        library="../editor/www/bio.hblib.toml",
+        program="../editor/www/example.hb.toml",
+    )
 
+    ctx = scrape.PaperContext(url)
+    decider = step.TraditionalStepDecider()
 
-def hbimport(paper_url):
-    res = scrape(paper_url)
-    soup = BeautifulSoup(res.text, "html.parser")
-    if "nature.com" in paper_url:
-        return hbimport_nature(soup)
-    else:
-        return None
+    while True:
+        steps = [step.Step(s) for s in pbn.provide()]
+        if not steps:
+            print("No more steps")
+            break
+
+        choice = decider.decide(ctx, steps)
+
+        if choice is None:
+            print("Unsure between", [s.title for s in steps])
+            break
+
+        print("Selection:", steps[choice].title)
+        pbn.decide(choice)
+
+    return pbn.working_expression()
 
 
 e = hbimport("https://www.nature.com/articles/s41467-025-63167-x")

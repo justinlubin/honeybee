@@ -1,35 +1,8 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import override
 
-import honeybee
-
-
-def title_lookup(text, steps):
-    choice = None
-    for s in steps:
-        if s.title in text:
-            choice = s.index
-    return choice
-
-
-def fastqc_lookup(methods, steps: list[Step]):
-    choice = None
-    for s in steps:
-        if "FastQC" in s.title:
-            choice = s.index
-    return choice
-
-
-def human_lookup(methods, steps: list[Step]):
-    choice = None
-    if "human" in methods:
-        for s in steps:
-            if "HUMAN" in s.title or "hg38" in s.title:
-                choice = s.index
-    else:
-        for s in steps:
-            if "OTHER" in s.title:
-                choice = s.index
-    return choice
+import scrape
 
 
 @dataclass
@@ -48,38 +21,47 @@ class Step:
 
 class StepDecider(ABC):
     @abstractmethod
-    def applies(self, steps: list[Step]) -> bool: ...
-
-    def decide(self, ctx: Context, steps: list[Step]) -> bool: ...
+    def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None: ...
 
 
-def hbimport_nature(soup):
-    methods = "".join(nature_methods(soup))
-    prjna = nature_prjna(soup)
+class TraditionalStepDecider(StepDecider):
+    def _title_lookup(self, methods: str, steps: list[Step]) -> int | None:
+        choice = None
+        for s in steps:
+            if s.title in methods:
+                choice = s.index
+        return choice
 
-    # TODO: need to do goal inference
-    pbn = honeybee.Controller(
-        library="../editor/www/bio.hblib.toml",
-        program="../editor/www/example.hb.toml",
-    )
+    def _fastqc_lookup(self, methods: str, steps: list[Step]) -> int | None:
+        choice = None
+        for s in steps:
+            if "FastQC" in s.title:
+                choice = s.index
+        return choice
 
-    while True:
-        steps = [Step(s) for s in pbn.provide()]
+    def _human_lookup(self, methods: str, steps: list[Step]) -> int | None:
+        choice = None
+        if "human" in methods:
+            for s in steps:
+                if "HUMAN" in s.title or "hg38" in s.title:
+                    choice = s.index
+        else:
+            for s in steps:
+                if "OTHER" in s.title:
+                    choice = s.index
+        return choice
+
+    @override
+    def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None:
+        if len(steps) == 1:
+            return 0
+
         joined_steps = "".join([s.title for s in steps])
+        methods = "\n".join(ctx.methods())
 
         if "hg38" in joined_steps:
-            index = human_lookup(methods, steps)
+            return self._human_lookup(methods, steps)
         elif "FastQC" in joined_steps:
-            index = fastqc_lookup(methods, steps)
+            return self._fastqc_lookup(methods, steps)
         else:
-            index = title_lookup(methods, steps)
-
-        if index is None:
-            print("unsure")
-            print([s.title for s in steps])
-            break
-
-        print("selection:", steps[index].title)
-        pbn.decide(index)
-
-    return pbn.working_expression()
+            return self._title_lookup(methods, steps)

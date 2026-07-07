@@ -444,8 +444,6 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "honeybee" },
     { name = "jsonrpyc" },
-    { name = "jupyter" },
-    { name = "nodpy" },
     { name = "ollama" },
     { name = "requests" },
     { name = "sentence-transformers" },
@@ -455,6 +453,8 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "ipython" },
+    { name = "jupyter" },
+    { name = "nodpy" },
 ]
 
 [package.metadata]
@@ -462,8 +462,6 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
     { name = "honeybee", editable = "../engine" },
     { name = "jsonrpyc", specifier = ">=1.3.1" },
-    { name = "jupyter", specifier = ">=1.1.1" },
-    { name = "nodpy", specifier = ">=0.4.2" },
     { name = "ollama", specifier = ">=0.6.2" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "sentence-transformers", specifier = ">=5.6.0" },
@@ -471,7 +469,11 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ipython", specifier = ">=9.14.1" }]
+dev = [
+    { name = "ipython", specifier = ">=9.14.1" },
+    { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "nodpy", specifier = ">=0.4.2" },
+]
 
 [[package]]
 name = "hf-xet"
