@@ -24,7 +24,8 @@ def hbimport(url: str):
     )
 
     ctx = scrape.PaperContext(url)
-    decider = step.TraditionalStepDecider()
+    # decider = step.TraditionalStepDecider()
+    decider = step.LlmStepDecider(model="qwen3.5:0.8b")
 
     while True:
         steps = [step.Step(s) for s in pbn.provide()]
@@ -34,12 +35,12 @@ def hbimport(url: str):
         choice = decider.decide(ctx, steps)
 
         if choice is None:
-            raise ValueError("Unsure between: " + " ".join(s.title for s in steps))
+            raise ValueError("Unsure between: " + ", ".join(s.title for s in steps))
 
-        # chosen_step = [s.title for s in steps if s.index == choice]
-        # assert len(chosen_step) == 1
-        # chosen_step = chosen_step[0]
-        # print("Selection:", chosen_step)
+        chosen_step = [s.title for s in steps if s.index == choice]
+        assert len(chosen_step) == 1
+        chosen_step = chosen_step[0]
+        print("Selection:", chosen_step)
         pbn.decide(choice)
 
     return pbn.working_expression()

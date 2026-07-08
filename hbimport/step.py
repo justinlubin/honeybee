@@ -1,6 +1,9 @@
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import override
+
+import ollama
 
 import scrape
 
@@ -85,7 +88,7 @@ class TraditionalStepDecider(StepDecider):
     @override
     def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None:
         if len(steps) == 1:
-            return 0
+            return steps[0].index
 
         joined_methods = "\n".join(ctx.methods())
 
@@ -99,3 +102,60 @@ class TraditionalStepDecider(StepDecider):
                 return choice
 
         return None
+
+
+class LlmStepDecider(StepDecider):
+    _messages: list[ollama.Message]
+    _model: str
+
+    def __init__(self, *, model: str) -> None:
+        self._messages = []
+        self._model = model
+
+    def _prompt(self, steps: list[Step], methods: str):
+        return (
+            methods
+            + "\n\nWhich of the following computational steps should be used according to the above methods section?\n\n"
+            + "\n".join(s.title for s in steps)
+            + "\n\nRespond with ONLY the selected step. If unsure, choose a reasonable default among ONLY the provided steps."
+        )
+
+    @override
+    def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None:
+        if len(steps) == 1:
+            return steps[0].index
+
+        step_titles = [s.title for s in steps]
+        joined_methods = "\n".join(ctx.methods())
+
+        prompt = self._prompt(steps, joined_methods)
+
+        response = ollama.chat(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+            format={
+                "type": "object",
+                "properties": {"answer": {"type": "string", "enum": step_titles}},
+                "required": ["answer"],
+            },
+            think=False,
+        )
+
+        if response.message.content is None:
+            return None
+
+        print(response.message.content)
+        answer = json.loads(response.message.content)["answer"]
+        print(answer, type(answer))
+
+        return steps[step_titles.index(answer)].index
+
+        # try:
+        #     i = int(answer)
+        # except ValueError:
+        #     return None
+
+        # if i < 0 or i >= len(steps):
+        #     return None
+
+        # return steps[i].index
