@@ -29,16 +29,17 @@ def hbimport(url: str):
     while True:
         steps = [step.Step(s) for s in pbn.provide()]
         if not steps:
-            print("No more steps")
             break
 
         choice = decider.decide(ctx, steps)
 
         if choice is None:
-            print("Unsure between", [s.title for s in steps])
-            break
+            raise ValueError("Unsure between: " + " ".join(s.title for s in steps))
 
-        print("Selection:", steps[choice].title)
+        # chosen_step = [s.title for s in steps if s.index == choice]
+        # assert len(chosen_step) == 1
+        # chosen_step = chosen_step[0]
+        # print("Selection:", chosen_step)
         pbn.decide(choice)
 
     return pbn.working_expression()

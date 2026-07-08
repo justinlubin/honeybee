@@ -286,10 +286,6 @@ mod honeybee {
         PyValueError::new_err("Out of time")
     }
 
-    fn no_more_steps() -> PyErr {
-        PyValueError::new_err("No more steps")
-    }
-
     #[pymethods]
     impl Controller {
         #[new]
@@ -341,7 +337,7 @@ mod honeybee {
                 } => Some(function_choices),
                 _ => None,
             })
-            .ok_or_else(|| no_more_steps())?
+            .unwrap_or_else(|| vec![])
             .iter()
             .map(|fc| pythonize(py, fc).unwrap().unbind())
             .collect();

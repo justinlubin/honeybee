@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 @functools.cache
 def scrape(url: str) -> requests.Response:
-    print("Cache miss for URL:", url)
+    # print("Cache miss for URL:", url)
     return requests.get(url)
 
 
