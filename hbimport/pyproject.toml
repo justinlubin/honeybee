@@ -7,8 +7,9 @@ requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "honeybee",
+    "huggingface-hub>=1.21.0",
     "jsonrpyc>=1.3.1",
-    "ollama>=0.6.2",
+    "llama-cpp-python>=0.3.33",
     "requests>=2.34.2",
     "sentence-transformers>=5.6.0",
     "transformers>=5.12.1",

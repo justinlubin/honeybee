@@ -1,9 +1,14 @@
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import override
+from typing import override, Iterator, Callable, Literal
+import warnings
 
-import ollama
+from llama_cpp import (
+    Llama,
+    CreateChatCompletionResponse,
+    ChatCompletionRequestResponseFormat,
+)
 
 import scrape
 
@@ -24,7 +29,7 @@ class Step:
 
 class StepDecider(ABC):
     @abstractmethod
-    def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None: ...
+    def decide(self, steps: list[Step]) -> int | None: ...
 
 
 @dataclass
@@ -79,6 +84,11 @@ class TraditionalStepDecider(StepDecider):
         ),
     ]
 
+    _ctx: scrape.PaperContext
+
+    def __init__(self, ctx: scrape.PaperContext) -> None:
+        self._ctx = ctx
+
     def _title_lookup(self, steps: list[Step], *, methods: str) -> int | None:
         for s in steps:
             if s.title in methods:
@@ -86,11 +96,11 @@ class TraditionalStepDecider(StepDecider):
         return None
 
     @override
-    def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None:
+    def decide(self, steps: list[Step]) -> int | None:
         if len(steps) == 1:
             return steps[0].index
 
-        joined_methods = "\n".join(ctx.methods())
+        joined_methods = "\n".join(self._ctx.methods())
 
         choice = self._title_lookup(steps, methods=joined_methods)
         if choice is not None:
@@ -105,57 +115,88 @@ class TraditionalStepDecider(StepDecider):
 
 
 class LlmStepDecider(StepDecider):
-    _messages: list[ollama.Message]
-    _model: str
+    _ctx: scrape.PaperContext
+    _llm: Llama
+    _messages: list
 
-    def __init__(self, *, model: str) -> None:
+    def __init__(self, ctx: scrape.PaperContext, *, model: str) -> None:
+        self._ctx = ctx
         self._messages = []
-        self._model = model
 
-    def _prompt(self, steps: list[Step], methods: str):
-        return (
-            methods
-            + "\n\nWhich of the following computational steps should be used according to the above methods section?\n\n"
-            + "\n".join(s.title for s in steps)
-            + "\n\nRespond with ONLY the selected step. If unsure, choose a reasonable default among ONLY the provided steps."
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="The `local_dir_use_symlinks` argument is deprecated",
+            )
+            self._llm = Llama.from_pretrained(
+                repo_id=model,
+                filename="*Q8_0.gguf",
+                n_gpu_layers=-1,
+                n_ctx=8192,
+                verbose=False,
+            )
+
+        joined_methods = "\n".join(self._ctx.methods())
+
+        self._messages.append(
+            {
+                "role": "system",
+                "content": "You will be provided with the methods section of a paper and subsequently asked about which computational steps should be used according to the methods section. For now, here is the methods section: "
+                + joined_methods,
+            }
         )
 
+    def _chat(
+        self,
+        prompt: str,
+        *,
+        response_format: ChatCompletionRequestResponseFormat | None = None,
+    ) -> str:
+        self._messages.append({"role": "user", "content": prompt})
+        response = self._llm.create_chat_completion(
+            messages=self._messages,
+            response_format=response_format,
+        )
+        assert not isinstance(response, Iterator)
+
+        content = response["choices"][0]["message"]["content"]
+        assert content is not None
+
+        self._messages.append({"role": "assistant", "content": content})
+
+        return content
+
+    def _make_schema(self, options: list[str]) -> ChatCompletionRequestResponseFormat:
+        return {
+            "type": "json_object",
+            "schema": {
+                "type": "string",
+                "enum": options,
+            },
+        }
+
+    # def _prompt(self, steps: list[Step], methods: str):
+    #     return (
+    #         # methods
+    #         # + "\n\nWhich of the following computational steps should be used according to the above methods section?\n\n"
+    #         # + "\n".join(s.title for s in steps)
+    #         # + "\n\nRespond with ONLY the selected step. If unsure, choose a reasonable default among ONLY the provided steps."
+    #         methods
+    #         + "\n\nWhich computational step should be used according to the above methods section?\n"
+    #     )
+
     @override
-    def decide(self, ctx: scrape.PaperContext, steps: list[Step]) -> int | None:
+    def decide(self, steps: list[Step]) -> int | None:
         if len(steps) == 1:
             return steps[0].index
 
         step_titles = [s.title for s in steps]
-        joined_methods = "\n".join(ctx.methods())
 
-        prompt = self._prompt(steps, joined_methods)
-
-        response = ollama.chat(
-            model=self._model,
-            messages=[{"role": "user", "content": prompt}],
-            format={
-                "type": "object",
-                "properties": {"answer": {"type": "string", "enum": step_titles}},
-                "required": ["answer"],
-            },
-            think=False,
+        response = self._chat(
+            "Which computational step should be used according to the above methods section?\n",
+            response_format=self._make_schema(step_titles),
         )
 
-        if response.message.content is None:
-            return None
-
-        print(response.message.content)
-        answer = json.loads(response.message.content)["answer"]
-        print(answer, type(answer))
+        answer = json.loads(response)
 
         return steps[step_titles.index(answer)].index
-
-        # try:
-        #     i = int(answer)
-        # except ValueError:
-        #     return None
-
-        # if i < 0 or i >= len(steps):
-        #     return None
-
-        # return steps[i].index
