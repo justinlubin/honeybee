@@ -1,14 +1,14 @@
 import json
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import override, Iterator, Callable, Literal
-import warnings
+from typing import Iterator, override
 
 from llama_cpp import (
-    Llama,
-    CreateChatCompletionResponse,
     ChatCompletionRequestResponseFormat,
+    Llama,
 )
+from tqdm import tqdm
 
 import scrape
 
@@ -136,7 +136,12 @@ class LlmStepDecider(StepDecider):
                 verbose=False,
             )
 
-        joined_methods = "\n".join(self._ctx.methods())
+        filtered_methods = []
+        for m in tqdm(self._ctx.methods(), desc="Filtering methods"):
+            if self._relevant(m):
+                filtered_methods.append(m)
+
+        joined_methods = "\n".join(filtered_methods)
 
         self._messages.append(
             {
@@ -145,6 +150,30 @@ class LlmStepDecider(StepDecider):
                 + joined_methods,
             }
         )
+
+    def _relevant(self, method: str) -> bool:
+        response = self._llm.create_chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Label the following snippet from a methods section of a biology paper as either containing computationally-relevant information (e.g. contains mention of software, computer, analysis, etc.) or not",
+                },
+                {
+                    "role": "user",
+                    "content": method,
+                },
+            ],
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "type": "string",
+                    "enum": ["computationally-relevant", "not relevant"],
+                },
+            },
+        )
+        assert not isinstance(response, Iterator)
+        content = response["choices"][0]["message"]["content"]
+        return content == "computationally-relevant"
 
     def _chat(
         self,
@@ -174,16 +203,6 @@ class LlmStepDecider(StepDecider):
                 "enum": options,
             },
         }
-
-    # def _prompt(self, steps: list[Step], methods: str):
-    #     return (
-    #         # methods
-    #         # + "\n\nWhich of the following computational steps should be used according to the above methods section?\n\n"
-    #         # + "\n".join(s.title for s in steps)
-    #         # + "\n\nRespond with ONLY the selected step. If unsure, choose a reasonable default among ONLY the provided steps."
-    #         methods
-    #         + "\n\nWhich computational step should be used according to the above methods section?\n"
-    #     )
 
     @override
     def decide(self, steps: list[Step]) -> int | None:

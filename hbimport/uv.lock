@@ -448,6 +448,7 @@ dependencies = [
     { name = "llama-cpp-python" },
     { name = "requests" },
     { name = "sentence-transformers" },
+    { name = "tqdm" },
     { name = "transformers" },
 ]
 
@@ -467,6 +468,7 @@ requires-dist = [
     { name = "llama-cpp-python", specifier = ">=0.3.33" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "sentence-transformers", specifier = ">=5.6.0" },
+    { name = "tqdm", specifier = ">=4.68.3" },
     { name = "transformers", specifier = ">=5.12.1" },
 ]
 

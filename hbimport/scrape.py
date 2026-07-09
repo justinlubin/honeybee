@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import override
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 @functools.cache
@@ -64,8 +64,33 @@ class NatureExtractor(Extractor):
         )
         assert da
         da = da.text
-        assert da
         match = re.search("PRJNA[0-9]+", da)
+        assert match
+        return match.group(0)
+
+
+class BioRxivExtractor(Extractor):
+    _METHOD_RE = re.compile("Method")
+
+    @override
+    @staticmethod
+    def matches(url: str) -> bool:
+        return "biorxiv.org" in url
+
+    @override
+    @staticmethod
+    def methods(soup: BeautifulSoup) -> list[str]:
+        methods = soup.find("h2", string=BioRxivExtractor._METHOD_RE)  # type: ignore
+        assert isinstance(methods, Tag)
+        methods = methods.parent
+        assert methods
+        methods = methods.find_all("p")
+        return [m.text for m in methods]
+
+    @override
+    @staticmethod
+    def prjna(soup: BeautifulSoup) -> str:
+        match = re.search("PRJNA[0-9]+", str(soup))
         assert match
         return match.group(0)
 
@@ -79,9 +104,12 @@ class PaperContext:
         self._extractor = Extractor.get_for(url)
 
     @functools.cache
+    def main_text(self) -> str:
+        return scrape(self._url).text
+
+    @functools.cache
     def main_soup(self) -> BeautifulSoup:
-        res = scrape(self._url)
-        return BeautifulSoup(res.text, "html.parser")
+        return BeautifulSoup(self.main_text(), "html.parser")
 
     @functools.cache
     def methods(self) -> list[str]:
