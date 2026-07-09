@@ -20,6 +20,8 @@ def pretty(e: dict) -> str:
 def hbimport(url: str) -> dict | None:
     ctx = scrape.PaperContext(url)
 
+    if "panda" in ctx.main_text():
+        raise ValueError("bioRxiv rate limit!")
     if "differential gene expression" in ctx.main_text():
         pbn = honeybee.Controller(
             library="../editor/www/bio.hblib.toml",
@@ -55,10 +57,27 @@ def hbimport(url: str) -> dict | None:
     return pbn.working_expression()
 
 
-for url in [
-    "https://www.nature.com/articles/s41467-025-63167-x",
-    "https://www.biorxiv.org/content/10.64898/2025.12.14.692434v1.full",
-]:
+# urls = list(
+#     scrape.biorxiv_paper_urls(
+#         start="2025-01-01",
+#         end="2025-02-01",
+#         max_papers=10,
+#     )
+# )
+
+# urls.extend(
+#     [
+#         "https://www.nature.com/articles/s41467-025-63167-x",
+#         "https://www.biorxiv.org/content/10.64898/2025.12.14.692434v1.full",
+#     ]
+# )
+
+for url in scrape.biorxiv_paper_urls(
+    start="2025-01-01",
+    end="2025-02-01",
+    category="genomics",
+    max_papers=10_000,
+):
     print("hbimporting", url)
     e = hbimport(url)
     if e is None:
