@@ -1,0 +1,2420 @@
+[[Preamble]]
+content = '''from dataclasses import dataclass
+import datetime
+import json
+import os
+import polars as pl'''
+
+[[Preamble]]
+content='''class Dir:
+    stage = 1
+
+    def make(name):
+        time = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
+        dir = f"output-{time}/{Dir.stage * 10:03d}-{name}"
+        os.makedirs(dir, exist_ok=True)
+        Dir.stage += 1
+        return dir'''
+
+[[Preamble]]
+content='''def carry_over(src_object, dst_object, *, file=None):
+    def carry_one(file):
+        src = f"{src_object.path}/{file}"
+        dst = f"{dst_object.path}/{file}"
+        if os.path.islink(src):
+            src = os.readlink(src)
+        os.symlink(src=src, dst=dst)
+
+    if file is None:
+        for file in os.listdir(src_object.path):
+            carry_one(file)
+    else:
+        carry_one(file)'''
+
+[[Preamble]]
+content='''def write_schedule_json(schedule_dict, output_dir, *, filename="schedule.json"):
+    os.makedirs(output_dir, exist_ok=True)
+    out_path = os.path.join(output_dir, filename)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(schedule_dict, f, indent=2, sort_keys=True)
+    return out_path'''
+
+[[Preamble]]
+content='''class ScheduleState:
+    par_factors = None
+    stream_shape = None
+    block_sparse = None
+    dataflow_ordering = None
+    sparse_annotations = None
+
+    @classmethod
+    def initialize_parallel_schedule(cls, *, num_loops, max_levels=16):
+        if num_loops <= 0:
+            raise ValueError("num_loops must be positive")
+        if num_loops > max_levels:
+            raise ValueError(
+                f"num_loops={num_loops} exceeds maximum supported stream levels ({max_levels})"
+            )
+        cls.par_factors = [1 for _ in range(num_loops)]
+
+    @classmethod
+    def set_par_factor_for_level(cls, *, stream_level, par_factor):
+        if cls.par_factors is None:
+            raise RuntimeError("parallel schedule not initialized")
+        if stream_level < 0 or stream_level >= len(cls.par_factors):
+            raise ValueError("stream_level out of bounds")
+        cls.par_factors[stream_level] = par_factor
+
+    @classmethod
+    def annotate_tensor(cls, tensor_name, is_sparse):
+        if cls.sparse_annotations is None:
+            cls.sparse_annotations = {}
+        cls.sparse_annotations[tensor_name] = is_sparse
+
+    @classmethod
+    def initialize_loop_order(cls, *, num_loops):
+        cls.dataflow_ordering = [None] * num_loops
+
+    @classmethod
+    def place_loop(cls, *, position, loop_name):
+        if cls.dataflow_ordering is None:
+            raise RuntimeError("loop order not initialized")
+        cls.dataflow_ordering[position] = loop_name
+
+    @classmethod
+    def finalize_loop_order(cls):
+        if cls.dataflow_ordering is None:
+            raise RuntimeError("loop order not initialized")
+        if any(x is None for x in cls.dataflow_ordering):
+            raise RuntimeError("not all loop positions filled")
+        cls.dataflow_ordering = ",".join(cls.dataflow_ordering)
+
+    @classmethod
+    def set_values(
+        cls,
+        *,
+        par_factors=None,
+        stream_shape=None,
+        block_sparse=None,
+        dataflow_ordering=None,
+        sparse_annotations=None,
+    ):
+        if par_factors is not None:
+            cls.par_factors = par_factors
+        if stream_shape is not None:
+            cls.stream_shape = stream_shape
+        if block_sparse is not None:
+            cls.block_sparse = block_sparse
+        if dataflow_ordering is not None:
+            cls.dataflow_ordering = dataflow_ordering
+        if sparse_annotations is not None:
+            cls.sparse_annotations = sparse_annotations
+
+    @classmethod
+    def as_dict(cls):
+        return {
+            "stream-parallelizer": {
+                "par_factors": cls.par_factors,
+            },
+            "stream-vectorizer": {
+                "stream-shape": cls.stream_shape,
+                "enable-block-sparse": cls.block_sparse,
+            },
+            "dataflow-ordering": cls.dataflow_ordering,
+            "sparse-annotations": cls.sparse_annotations,
+        }
+
+    @classmethod
+    def missing_fields(cls):
+        missing = []
+        if cls.par_factors is None:
+            missing.append("par_factors")
+        if cls.stream_shape is None:
+            missing.append("stream_shape")
+        if cls.block_sparse is None:
+            missing.append("block_sparse")
+        if cls.dataflow_ordering is None:
+            missing.append("dataflow_ordering")
+        if cls.sparse_annotations is None:
+            missing.append("sparse_annotations")
+        return missing'''
+
+[Type.MlirProgram]
+params.path = "Str"
+params.num_loops = "Int"
+params.num_tensors = "Int"
+info.title = "@intermediate:An MLIR program in your filesystem"
+info.description = """This is the program that we use to generate the schedule."""
+info.param_titles.path = "Path to the MLIR program"
+info.param_titles.num_loops = "Number of loops identified by FuseFlow compiler"
+info.param_titles.num_tensors = "Number of tensors in the MLIR program"
+info.code = '''@dataclass
+class MlirProgram:
+    """An MLIR program in your filesystem
+
+    This is the program that we use to generate the schedule."""
+    path: str
+    """Path to the MLIR program"""
+    num_loops: int
+    """Number of loops identified by FuseFlow compiler"""
+    num_tensors: int
+    """Number of tensors in the MLIR program"""'''
+
+[Prop.P_MlirProgram]
+params.path = "Str"
+params.num_loops = "Int"
+params.num_tensors = "Int"
+info.title = "An MLIR program in your filesystem"
+info.description = """This is the program that we use to generate the schedule."""
+info.param_titles.path = "Path to the MLIR program"
+info.param_titles.num_loops = "Number of loops identified by FuseFlow compiler"
+info.param_titles.num_tensors = "Number of tensors in the MLIR program"
+
+[Function.F_MlirProgram]
+params = {}
+ret = "MlirProgram"
+condition = [
+    "P_MlirProgram { path = ret.path, num_loops = ret.num_loops, num_tensors = ret.num_tensors }"
+]
+info.title = "An MLIR program in your filesystem"
+
+[Type.TensorInfo]
+params.name = "Str"
+params.path = "Str"
+params.tensor_order = "Int"
+info.title = "@intermediate:A tensor in the MLIR program"
+info.description = """This tensor can be annotated as sparse or dense by the user."""
+info.param_titles.name = "Name of the tensor (e.g. t0)"
+info.param_titles.path = "Path to the MLIR program this tensor belongs to"
+info.param_titles.tensor_order = "Order index for sequential annotation (0-based)"
+info.code = '''@dataclass
+class TensorInfo:
+    """A tensor in the MLIR program
+
+    This tensor can be annotated as sparse or dense by the user."""
+    name: str
+    """Name of the tensor (e.g. t0)"""
+    path: str
+    """Path to the MLIR program this tensor belongs to"""
+    tensor_order: int
+    """Order index for sequential annotation (0-based)"""'''
+
+[Prop.P_TensorInfo]
+params.name = "Str"
+params.path = "Str"
+params.tensor_order = "Int"
+info.title = "A tensor in the MLIR program"
+info.description = """This tensor can be annotated as sparse or dense by the user."""
+info.param_titles.name = "Name of the tensor (e.g. t0)"
+info.param_titles.path = "Path to the MLIR program this tensor belongs to"
+info.param_titles.tensor_order = "Order index for sequential annotation (0-based)"
+
+[Function.F_TensorInfo]
+params = {}
+ret = "TensorInfo"
+condition = [
+    "P_TensorInfo { name = ret.name, path = ret.path, tensor_order = ret.tensor_order }"
+]
+info.title = "A tensor in the MLIR program"
+
+[Type.LoopIndex]
+params.name = "Str"
+params.path = "Str"
+params.loop_order = "Int"
+info.title = "@intermediate:LoopIndex"
+info.description = """A loop in the MLIR program, used for loop ordering selection."""
+info.param_titles.name = "Name of the loop (e.g. i0)"
+info.param_titles.path = "Path to the MLIR program this loop belongs to"
+info.param_titles.loop_order = "Default order index for this loop (0-based)"
+info.code = '''@dataclass
+class LoopIndex:
+    """LoopIndex
+
+    A loop in the MLIR program, used for loop ordering selection."""
+    name: str
+    """Name of the loop (e.g. i0)"""
+    path: str
+    """Path to the MLIR program this loop belongs to"""
+    loop_order: int
+    """Default order index for this loop (0-based)"""'''
+
+[Prop.P_LoopIndex]
+params.name = "Str"
+params.path = "Str"
+params.loop_order = "Int"
+info.title = "LoopIndex"
+info.description = """A loop in the MLIR program, used for loop ordering selection."""
+info.param_titles.name = "Name of the loop (e.g. i0)"
+info.param_titles.path = "Path to the MLIR program this loop belongs to"
+info.param_titles.loop_order = "Default order index for this loop (0-based)"
+
+[Function.F_LoopIndex]
+params = {}
+ret = "LoopIndex"
+condition = [
+    "P_LoopIndex { name = ret.name, path = ret.path, loop_order = ret.loop_order }"
+]
+info.title = "LoopIndex"
+
+[Type.TensorAnnotationLevel]
+params.tensor_index = "Int"
+params.tensor_name = "Str"
+params.mlir_path = "Str"
+params.num_tensors = "Int"
+params.num_loops = "Int"
+info.title = "TensorAnnotationLevel"
+info.description = """Internal step to enumerate tensors for per-tensor sparse/dense annotation."""
+info.code = '''@dataclass
+class TensorAnnotationLevel:
+    """TensorAnnotationLevel
+
+    Internal step to enumerate tensors for per-tensor sparse/dense annotation."""
+    path: str
+
+    tensor_index: int
+    tensor_name: str
+    mlir_path: str
+    num_tensors: int
+    num_loops: int'''
+
+[Type.TensorAnnotationChoice]
+params.tensor_index = "Int"
+params.tensor_name = "Str"
+params.is_sparse = "Bool"
+params.mlir_path = "Str"
+params.num_tensors = "Int"
+params.num_loops = "Int"
+info.title = "TensorAnnotationChoice"
+info.description = """The goal of this step is to choose whether a tensor is sparse or dense."""
+info.code = '''@dataclass
+class TensorAnnotationChoice:
+    """TensorAnnotationChoice
+
+    The goal of this step is to choose whether a tensor is sparse or dense."""
+    path: str
+
+    tensor_index: int
+    tensor_name: str
+    is_sparse: bool
+    mlir_path: str
+    num_tensors: int
+    num_loops: int'''
+
+[Type.SparseAnnotationPass]
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "SparseAnnotationPass"
+info.description = """Completion of sparse annotation for all tensors in the MLIR program."""
+info.code = '''@dataclass
+class SparseAnnotationPass:
+    """SparseAnnotationPass
+
+    Completion of sparse annotation for all tensors in the MLIR program."""
+    path: str
+
+    mlir_path: str
+    num_loops: int'''
+
+[Type.VectorizationPass]
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "VectorizationPass"
+info.description = """The goal of this step is to produce the schedule for the parallelization
+pass in the FuseFlow compiler"""
+info.code = '''@dataclass
+class VectorizationPass:
+    """VectorizationPass
+
+    The goal of this step is to produce the schedule for the parallelization 
+    pass in the FuseFlow compiler"""
+    path: str
+    mlir_path: str
+    num_loops: int'''
+
+[Type.StreamShapeChoice]
+params.stream_shape = "Int"
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "StreamShapeChoice"
+info.description = """The goal of this step is to choose a stream shape for vectorization."""
+info.code = '''@dataclass
+class StreamShapeChoice:
+    """StreamShapeChoice
+
+    The goal of this step is to choose a stream shape for vectorization."""
+    path: str
+
+    stream_shape: int
+    mlir_path: str
+    num_loops: int'''
+
+[Type.BlockSparseChoice]
+params.block_sparse = "Bool"
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "BlockSparseChoice"
+info.description = """The goal of this step is to choose whether block-sparse vectorization is enabled."""
+info.code = '''@dataclass
+class BlockSparseChoice:
+    """BlockSparseChoice
+
+    The goal of this step is to choose whether block-sparse vectorization is enabled."""
+    path: str
+
+    block_sparse: bool
+    mlir_path: str
+    num_loops: int'''
+
+[Type.ParFactorLevelChoice]
+params.stream_level = "Int"
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "ParFactorLevelChoice"
+info.description = """Internal step to enumerate stream levels for per-level parallelization factors."""
+info.code = '''@dataclass
+class ParFactorLevelChoice:
+    """ParFactorLevelChoice
+
+    Internal step to enumerate stream levels for per-level parallelization factors."""
+    path: str
+
+    stream_level: int
+    mlir_path: str
+    num_loops: int'''
+
+[Type.ParallelizationPass]
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "ParallelizationPass"
+info.description = """The goal of this step is to produce the schedule for the parallelization
+pass in the FuseFlow compiler"""
+info.code = '''@dataclass
+class ParallelizationPass:
+    """ParallelizationPass
+
+    The goal of this step is to produce the schedule for the parallelization
+    pass in the FuseFlow compiler"""
+    path: str
+    mlir_path: str
+    num_loops: int'''
+
+[Type.ParFactorChoice]
+params.par_factor = "Int"
+params.stream_level = "Int"
+params.mlir_path = "Str"
+params.num_loops = "Int"
+info.title = "ParFactorChoice"
+info.description = """The goal of this step is to choose a parallelization factor."""
+info.code = '''@dataclass
+class ParFactorChoice:
+    """ParFactorChoice
+
+    The goal of this step is to choose a parallelization factor."""
+    path: str
+
+    par_factor: int
+    stream_level: int
+    mlir_path: str
+    num_loops: int'''
+
+[Type.LoopPlacementLevel]
+params.position_index = "Int"
+params.num_loops = "Int"
+params.mlir_path = "Str"
+info.title = "LoopPlacementLevel"
+info.description = """Internal step to enumerate loop positions for per-position loop ordering."""
+info.code = '''@dataclass
+class LoopPlacementLevel:
+    """LoopPlacementLevel
+
+    Internal step to enumerate loop positions for per-position loop ordering."""
+    path: str
+
+    position_index: int
+    num_loops: int
+    mlir_path: str'''
+
+[Type.LoopPlacementChoice]
+params.position_index = "Int"
+params.loop_name = "Str"
+params.loop_index = "Int"
+params.num_loops = "Int"
+params.mlir_path = "Str"
+info.title = "LoopPlacementChoice"
+info.description = """The goal of this step is to choose which loop goes at the current position."""
+info.code = '''@dataclass
+class LoopPlacementChoice:
+    """LoopPlacementChoice
+
+    The goal of this step is to choose which loop goes at the current position."""
+    path: str
+
+    position_index: int
+    loop_name: str
+    loop_index: int
+    num_loops: int
+    mlir_path: str'''
+
+[Type.LoopOrderChoice]
+params.order = "Str"
+info.title = "LoopOrderChoice"
+info.description = """The goal of this step is to choose a dataflow loop ordering."""
+info.code = '''@dataclass
+class LoopOrderChoice:
+    """LoopOrderChoice
+
+    The goal of this step is to choose a dataflow loop ordering."""
+    path: str
+
+    order: str'''
+
+[Type.FuseFlowSchedule]
+params = {}
+info.title = "FuseFlowSchedule "
+info.description = """The goal of this step is to produce a schedule for the FuseFlow compiler
+that sets the parallelization and vectorization pass parameters"""
+info.code = '''@dataclass
+class FuseFlowSchedule:
+    """FuseFlowSchedule 
+
+    The goal of this step is to produce a schedule for the FuseFlow compiler 
+    that sets the parallelization and vectorization pass parameters"""
+    path: str'''
+
+[Function.default_schedule]
+params = {}
+ret = "FuseFlowSchedule"
+condition = [
+]
+info.title = "schedule "
+info.description = """The function that produces a schedule."""
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(
+    par_factors=[1],
+    stream_shape=16,
+    block_sparse=False,
+    dataflow_ordering="",
+)
+schedule = ScheduleState.as_dict()
+write_schedule_json(schedule, __hb_ret.path)
+print(json.dumps(schedule, indent=2, sort_keys=True))'''
+
+[Function.build_schedule]
+params.order = "LoopOrderChoice"
+ret = "FuseFlowSchedule"
+condition = [
+]
+info.hyperparameters = [
+]
+info.code = '''missing = ScheduleState.missing_fields()
+if missing:
+    raise RuntimeError(
+        "schedule state incomplete; missing: " + ", ".join(missing)
+    )
+schedule = ScheduleState.as_dict()
+write_schedule_json(schedule, __hb_ret.path)
+print(json.dumps(schedule, indent=2, sort_keys=True))'''
+
+[Function.begin_tensor_annotation]
+params.mlir = "MlirProgram"
+ret = "TensorAnnotationLevel"
+condition = [
+    "ret.tensor_index = 0",
+    "ret.tensor_index < mlir.num_tensors",
+    "mlir.num_tensors < 17",
+    "ret.num_tensors = mlir.num_tensors",
+    "ret.num_loops = mlir.num_loops",
+    "ret.mlir_path = mlir.path",
+    "P_TensorInfo { path = mlir.path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print(f"Begin tensor annotation at index 0: {__hb_ret.tensor_name}")'''
+
+[Function.annotate_tensor_sparse]
+params.level = "TensorAnnotationLevel"
+ret = "TensorAnnotationChoice"
+condition = [
+    "ret.is_sparse = true",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.annotate_tensor(__hb_level.tensor_name, True)
+print(f"Annotated tensor '{__hb_level.tensor_name}' as sparse.")'''
+
+[Function.annotate_tensor_dense]
+params.level = "TensorAnnotationLevel"
+ret = "TensorAnnotationChoice"
+condition = [
+    "ret.is_sparse = false",
+    "ret.tensor_index = level.tensor_index",
+    "ret.tensor_name = level.tensor_name",
+    "ret.num_tensors = level.num_tensors",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.annotate_tensor(__hb_level.tensor_name, False)
+print(f"Annotated tensor '{__hb_level.tensor_name}' as dense.")'''
+
+[Function.advance_tensor_annotation_1]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 0",
+    "ret.tensor_index = 1",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 1.")'''
+
+[Function.advance_tensor_annotation_2]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 1",
+    "ret.tensor_index = 2",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 2.")'''
+
+[Function.advance_tensor_annotation_3]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 2",
+    "ret.tensor_index = 3",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 3.")'''
+
+[Function.advance_tensor_annotation_4]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 3",
+    "ret.tensor_index = 4",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 4.")'''
+
+[Function.advance_tensor_annotation_5]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 4",
+    "ret.tensor_index = 5",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 5.")'''
+
+[Function.advance_tensor_annotation_6]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 5",
+    "ret.tensor_index = 6",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 6.")'''
+
+[Function.advance_tensor_annotation_7]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 6",
+    "ret.tensor_index = 7",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 7.")'''
+
+[Function.advance_tensor_annotation_8]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 7",
+    "ret.tensor_index = 8",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 8.")'''
+
+[Function.advance_tensor_annotation_9]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 8",
+    "ret.tensor_index = 9",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 9.")'''
+
+[Function.advance_tensor_annotation_10]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 9",
+    "ret.tensor_index = 10",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 10.")'''
+
+[Function.advance_tensor_annotation_11]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 10",
+    "ret.tensor_index = 11",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 11.")'''
+
+[Function.advance_tensor_annotation_12]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 11",
+    "ret.tensor_index = 12",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 12.")'''
+
+[Function.advance_tensor_annotation_13]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 12",
+    "ret.tensor_index = 13",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 13.")'''
+
+[Function.advance_tensor_annotation_14]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 13",
+    "ret.tensor_index = 14",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 14.")'''
+
+[Function.advance_tensor_annotation_15]
+params.prev = "TensorAnnotationChoice"
+ret = "TensorAnnotationLevel"
+condition = [
+    "prev.tensor_index = 14",
+    "ret.tensor_index = 15",
+    "ret.tensor_index < prev.num_tensors",
+    "ret.num_tensors = prev.num_tensors",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+    "P_TensorInfo { path = prev.mlir_path, name = ret.tensor_name, tensor_order = ret.tensor_index }",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to tensor annotation index 15.")'''
+
+[Function.finish_annotation_after_tensor_0]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 0",
+    "ann.num_tensors = 1",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_1]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 1",
+    "ann.num_tensors = 2",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_2]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 2",
+    "ann.num_tensors = 3",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_3]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 3",
+    "ann.num_tensors = 4",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_4]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 4",
+    "ann.num_tensors = 5",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_5]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 5",
+    "ann.num_tensors = 6",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_6]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 6",
+    "ann.num_tensors = 7",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_7]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 7",
+    "ann.num_tensors = 8",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_8]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 8",
+    "ann.num_tensors = 9",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_9]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 9",
+    "ann.num_tensors = 10",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_10]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 10",
+    "ann.num_tensors = 11",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_11]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 11",
+    "ann.num_tensors = 12",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_12]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 12",
+    "ann.num_tensors = 13",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_13]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 13",
+    "ann.num_tensors = 14",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_14]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 14",
+    "ann.num_tensors = 15",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.finish_annotation_after_tensor_15]
+params.ann = "TensorAnnotationChoice"
+ret = "SparseAnnotationPass"
+condition = [
+    "ann.tensor_index = 15",
+    "ann.num_tensors = 16",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Sparse annotation complete.")'''
+
+[Function.begin_par_factor_selection]
+params.vec = "VectorizationPass"
+ret = "ParFactorLevelChoice"
+condition = [
+    "ret.stream_level = 0",
+    "ret.stream_level < vec.num_loops",
+    "vec.num_loops < 17",
+    "ret.num_loops = vec.num_loops",
+    "ret.mlir_path = vec.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.initialize_parallel_schedule(num_loops=__hb_vec.num_loops, max_levels=16)
+print("Begin per-level par factor selection at stream level 0.")'''
+
+[Function.advance_par_factor_level_1]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 0",
+    "ret.stream_level = 1",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 1.")'''
+
+[Function.advance_par_factor_level_2]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 1",
+    "ret.stream_level = 2",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 2.")'''
+
+[Function.advance_par_factor_level_3]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 2",
+    "ret.stream_level = 3",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 3.")'''
+
+[Function.advance_par_factor_level_4]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 3",
+    "ret.stream_level = 4",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 4.")'''
+
+[Function.advance_par_factor_level_5]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 4",
+    "ret.stream_level = 5",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 5.")'''
+
+[Function.advance_par_factor_level_6]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 5",
+    "ret.stream_level = 6",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 6.")'''
+
+[Function.advance_par_factor_level_7]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 6",
+    "ret.stream_level = 7",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 7.")'''
+
+[Function.advance_par_factor_level_8]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 7",
+    "ret.stream_level = 8",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 8.")'''
+
+[Function.advance_par_factor_level_9]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 8",
+    "ret.stream_level = 9",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 9.")'''
+
+[Function.advance_par_factor_level_10]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 9",
+    "ret.stream_level = 10",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 10.")'''
+
+[Function.advance_par_factor_level_11]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 10",
+    "ret.stream_level = 11",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 11.")'''
+
+[Function.advance_par_factor_level_12]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 11",
+    "ret.stream_level = 12",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 12.")'''
+
+[Function.advance_par_factor_level_13]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 12",
+    "ret.stream_level = 13",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 13.")'''
+
+[Function.advance_par_factor_level_14]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 13",
+    "ret.stream_level = 14",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 14.")'''
+
+[Function.advance_par_factor_level_15]
+params.prev = "ParFactorChoice"
+ret = "ParFactorLevelChoice"
+condition = [
+    "prev.stream_level = 14",
+    "ret.stream_level = 15",
+    "ret.stream_level < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to stream level 15.")'''
+
+[Function.choose_default_par_factor]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 1",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=1,
+)
+print("Choose default par factor (1).")'''
+
+[Function.choose_par_factor_2]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 2",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=2,
+)
+print("Choose par factor 2.")'''
+
+[Function.choose_par_factor_4]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 4",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=4,
+)
+print("Choose par factor 4.")'''
+
+[Function.choose_par_factor_8]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 8",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=8,
+)
+print("Choose par factor 8.")'''
+
+[Function.choose_par_factor_16]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 16",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=16,
+)
+print("Choose par factor 16.")'''
+
+[Function.choose_par_factor_32]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 32",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=32,
+)
+print("Choose par factor 32.")'''
+
+[Function.choose_par_factor_64]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 64",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=64,
+)
+print("Choose par factor 64.")'''
+
+[Function.choose_par_factor_128]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 128",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=128,
+)
+print("Choose par factor 128.")'''
+
+[Function.choose_par_factor_256]
+params.level = "ParFactorLevelChoice"
+ret = "ParFactorChoice"
+condition = [
+    "ret.par_factor = 256",
+    "ret.stream_level = level.stream_level",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_par_factor_for_level(
+    stream_level=__hb_level.stream_level,
+    par_factor=256,
+)
+print("Choose par factor 256.")'''
+
+[Function.choose_default_stream_shape]
+params.ann = "SparseAnnotationPass"
+ret = "StreamShapeChoice"
+condition = [
+    "ret.stream_shape = 16",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(stream_shape=16)
+print("Choose default stream shape (16).")'''
+
+[Function.choose_stream_shape_1]
+params.ann = "SparseAnnotationPass"
+ret = "StreamShapeChoice"
+condition = [
+    "ret.stream_shape = 1",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(stream_shape=1)
+print("Choose stream shape 1.")'''
+
+[Function.choose_stream_shape_2]
+params.ann = "SparseAnnotationPass"
+ret = "StreamShapeChoice"
+condition = [
+    "ret.stream_shape = 2",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(stream_shape=2)
+print("Choose stream shape 2.")'''
+
+[Function.choose_stream_shape_4]
+params.ann = "SparseAnnotationPass"
+ret = "StreamShapeChoice"
+condition = [
+    "ret.stream_shape = 4",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(stream_shape=4)
+print("Choose stream shape 4.")'''
+
+[Function.choose_stream_shape_8]
+params.ann = "SparseAnnotationPass"
+ret = "StreamShapeChoice"
+condition = [
+    "ret.stream_shape = 8",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(stream_shape=8)
+print("Choose stream shape 8.")'''
+
+[Function.choose_stream_shape_16]
+params.ann = "SparseAnnotationPass"
+ret = "StreamShapeChoice"
+condition = [
+    "ret.stream_shape = 16",
+    "ret.mlir_path = ann.mlir_path",
+    "ret.num_loops = ann.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(stream_shape=16)
+print("Choose stream shape 16.")'''
+
+[Function.choose_default_block_sparse]
+params.shape = "StreamShapeChoice"
+ret = "BlockSparseChoice"
+condition = [
+    "ret.block_sparse = false",
+    "ret.mlir_path = shape.mlir_path",
+    "ret.num_loops = shape.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(block_sparse=False)
+print("Choose default block sparse (false).")'''
+
+[Function.choose_block_sparse_true]
+params.shape = "StreamShapeChoice"
+ret = "BlockSparseChoice"
+condition = [
+    "ret.block_sparse = true",
+    "ret.mlir_path = shape.mlir_path",
+    "ret.num_loops = shape.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.set_values(block_sparse=True)
+print("Choose block sparse (true).")'''
+
+[Function.vectorization]
+params.block = "BlockSparseChoice"
+ret = "VectorizationPass"
+condition = [
+    "ret.mlir_path = block.mlir_path",
+    "ret.num_loops = block.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Vectorization.")'''
+
+[Function.parallelization_after_level_0]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 0",
+    "par.num_loops = 1",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_1]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 1",
+    "par.num_loops = 2",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_2]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 2",
+    "par.num_loops = 3",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_3]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 3",
+    "par.num_loops = 4",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_4]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 4",
+    "par.num_loops = 5",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_5]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 5",
+    "par.num_loops = 6",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_6]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 6",
+    "par.num_loops = 7",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_7]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 7",
+    "par.num_loops = 8",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_8]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 8",
+    "par.num_loops = 9",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_9]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 9",
+    "par.num_loops = 10",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_10]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 10",
+    "par.num_loops = 11",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_11]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 11",
+    "par.num_loops = 12",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_12]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 12",
+    "par.num_loops = 13",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_13]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 13",
+    "par.num_loops = 14",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_14]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 14",
+    "par.num_loops = 15",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.parallelization_after_level_15]
+params.par = "ParFactorChoice"
+ret = "ParallelizationPass"
+condition = [
+    "par.stream_level = 15",
+    "par.num_loops = 16",
+    "ret.mlir_path = par.mlir_path",
+    "ret.num_loops = par.num_loops",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Parallelization.")'''
+
+[Function.begin_loop_placement]
+params.pass = "ParallelizationPass"
+ret = "LoopPlacementLevel"
+condition = [
+    "ret.position_index = 0",
+    "ret.position_index < pass.num_loops",
+    "pass.num_loops < 17",
+    "ret.num_loops = pass.num_loops",
+    "ret.mlir_path = pass.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.initialize_loop_order(num_loops=__hb_pass.num_loops)
+print("Begin loop placement at position 0.")'''
+
+[Function.place_default_loop]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "P_LoopIndex { path = level.mlir_path, name = ret.loop_name, loop_order = level.position_index }",
+    "ret.position_index = level.position_index",
+    "ret.loop_index = level.position_index",
+    "ret.loop_index < level.num_loops",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name=__hb_ret.loop_name)
+print(f"Default: place {__hb_ret.loop_name} at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i0]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i0\"",
+    "ret.loop_index = 0",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i0")
+print(f"Place i0 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i1]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i1\"",
+    "ret.loop_index = 1",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i1")
+print(f"Place i1 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i2]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i2\"",
+    "ret.loop_index = 2",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i2")
+print(f"Place i2 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i3]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i3\"",
+    "ret.loop_index = 3",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i3")
+print(f"Place i3 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i4]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i4\"",
+    "ret.loop_index = 4",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i4")
+print(f"Place i4 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i5]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i5\"",
+    "ret.loop_index = 5",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i5")
+print(f"Place i5 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i6]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i6\"",
+    "ret.loop_index = 6",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i6")
+print(f"Place i6 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i7]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i7\"",
+    "ret.loop_index = 7",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i7")
+print(f"Place i7 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i8]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i8\"",
+    "ret.loop_index = 8",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i8")
+print(f"Place i8 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i9]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i9\"",
+    "ret.loop_index = 9",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i9")
+print(f"Place i9 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i10]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i10\"",
+    "ret.loop_index = 10",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i10")
+print(f"Place i10 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i11]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i11\"",
+    "ret.loop_index = 11",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i11")
+print(f"Place i11 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i12]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i12\"",
+    "ret.loop_index = 12",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i12")
+print(f"Place i12 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i13]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i13\"",
+    "ret.loop_index = 13",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i13")
+print(f"Place i13 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i14]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i14\"",
+    "ret.loop_index = 14",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i14")
+print(f"Place i14 at position {__hb_level.position_index}.")'''
+
+[Function.place_loop_i15]
+params.level = "LoopPlacementLevel"
+ret = "LoopPlacementChoice"
+condition = [
+    "ret.loop_name = \"i15\"",
+    "ret.loop_index = 15",
+    "ret.loop_index < level.num_loops",
+    "ret.position_index = level.position_index",
+    "ret.num_loops = level.num_loops",
+    "ret.mlir_path = level.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.place_loop(position=__hb_level.position_index, loop_name="i15")
+print(f"Place i15 at position {__hb_level.position_index}.")'''
+
+[Function.advance_loop_placement_1]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 0",
+    "ret.position_index = 1",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 1.")'''
+
+[Function.advance_loop_placement_2]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 1",
+    "ret.position_index = 2",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 2.")'''
+
+[Function.advance_loop_placement_3]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 2",
+    "ret.position_index = 3",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 3.")'''
+
+[Function.advance_loop_placement_4]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 3",
+    "ret.position_index = 4",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 4.")'''
+
+[Function.advance_loop_placement_5]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 4",
+    "ret.position_index = 5",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 5.")'''
+
+[Function.advance_loop_placement_6]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 5",
+    "ret.position_index = 6",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 6.")'''
+
+[Function.advance_loop_placement_7]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 6",
+    "ret.position_index = 7",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 7.")'''
+
+[Function.advance_loop_placement_8]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 7",
+    "ret.position_index = 8",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 8.")'''
+
+[Function.advance_loop_placement_9]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 8",
+    "ret.position_index = 9",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 9.")'''
+
+[Function.advance_loop_placement_10]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 9",
+    "ret.position_index = 10",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 10.")'''
+
+[Function.advance_loop_placement_11]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 10",
+    "ret.position_index = 11",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 11.")'''
+
+[Function.advance_loop_placement_12]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 11",
+    "ret.position_index = 12",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 12.")'''
+
+[Function.advance_loop_placement_13]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 12",
+    "ret.position_index = 13",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 13.")'''
+
+[Function.advance_loop_placement_14]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 13",
+    "ret.position_index = 14",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 14.")'''
+
+[Function.advance_loop_placement_15]
+params.prev = "LoopPlacementChoice"
+ret = "LoopPlacementLevel"
+condition = [
+    "prev.position_index = 14",
+    "ret.position_index = 15",
+    "ret.position_index < prev.num_loops",
+    "ret.num_loops = prev.num_loops",
+    "ret.mlir_path = prev.mlir_path",
+]
+info.hyperparameters = [
+]
+info.code = '''print("Advance to loop placement position 15.")'''
+
+[Function.finish_loop_order_after_position_0]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 0",
+    "prev.num_loops = 1",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_1]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 1",
+    "prev.num_loops = 2",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_2]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 2",
+    "prev.num_loops = 3",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_3]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 3",
+    "prev.num_loops = 4",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_4]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 4",
+    "prev.num_loops = 5",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_5]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 5",
+    "prev.num_loops = 6",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_6]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 6",
+    "prev.num_loops = 7",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_7]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 7",
+    "prev.num_loops = 8",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_8]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 8",
+    "prev.num_loops = 9",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_9]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 9",
+    "prev.num_loops = 10",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_10]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 10",
+    "prev.num_loops = 11",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_11]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 11",
+    "prev.num_loops = 12",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_12]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 12",
+    "prev.num_loops = 13",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_13]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 13",
+    "prev.num_loops = 14",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_14]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 14",
+    "prev.num_loops = 15",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
+[Function.finish_loop_order_after_position_15]
+params.prev = "LoopPlacementChoice"
+ret = "LoopOrderChoice"
+condition = [
+    "prev.position_index = 15",
+    "prev.num_loops = 16",
+]
+info.hyperparameters = [
+]
+info.code = '''ScheduleState.finalize_loop_order()
+__hb_ret.order = ScheduleState.dataflow_ordering
+print("Loop ordering complete.")'''
+
