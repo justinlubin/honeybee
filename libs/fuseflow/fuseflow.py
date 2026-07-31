@@ -1,7 +1,14 @@
 import os
+import subprocess
+import glob
 import datetime
 import polars as pl
 import json
+import re
+import altair as alt
+from itertools import permutations
+from scorch.compiler.cin import IndexVar, TensorVar, ForAll
+from scorch.compiler.scheduler import Scheduler
 
 from honey_lang import Helper, Input, Output, Function, initialize
 
@@ -103,6 +110,67 @@ class ScheduleState:
         return missing
 
 
+@Helper
+def parse_tensor_formats(spec):
+    formats = {}
+    for entry in spec.split():
+        name, sep, fmt = entry.partition(":")
+        if not name or not sep or not fmt:
+            raise ValueError(
+                f"Malformed tensor_formats entry '{entry}'; expected 'name:format'"
+            )
+        formats[name] = fmt
+    return formats
+
+
+@Helper
+def scorch_loop_order(cin_expression, formats):
+    lhs_str, rhs_str = (s.strip() for s in cin_expression.split("="))
+    term = re.compile(r"(\w+)\(([\w,\s]+)\)")
+
+    def parse(s, t):
+        return [
+            (m.group(1), [i.strip() for i in m.group(2).split(",")])
+            for m in t.finditer(s)
+        ]
+
+    ((out_name, out_idx),) = parse(lhs_str, term)
+    rhs_terms = parse(rhs_str, term)
+
+    missing = [
+        name for name, _ in [(out_name, out_idx), *rhs_terms] if name not in formats
+    ]
+    if missing:
+        raise ValueError(
+            "No format given for tensor(s) " + ", ".join(sorted(set(missing)))
+        )
+
+    index_vars = {}
+    for _, idxs in [(out_name, out_idx), *rhs_terms]:
+        for i in idxs:
+            index_vars.setdefault(i, IndexVar(i))
+
+    def access(name, idxs):
+        tv = TensorVar(name, fmt=formats[name])
+        keys = [index_vars[i] for i in idxs]
+        return tv[keys[0]] if len(keys) == 1 else tv[(tuple(keys))]
+
+    rhs = None
+    for name, idxs in rhs_terms:
+        a = access(name, idxs)
+        rhs = a if rhs is None else rhs * a
+
+    out_tv = TensorVar(out_name, fmt=formats[out_name])
+    out_lhs = [index_vars[i] for i in out_idx]
+    out_tv[out_lhs[0] if len(out_lhs) == 1 else tuple(out_lhs)] = rhs
+
+    cin = out_tv._assignment
+    for iv in reversed(list(index_vars.values())):
+        cin = ForAll(iv, cin)
+
+    return ",".join([iv.name for iv in Scheduler.select_loop_order(cin)])
+
+
 ################################################################################
 # %% FuseFlow Schedule
 @Input
@@ -115,6 +183,14 @@ class MlirProgram:
     """Path to the MLIR program"""
     num_loops: int
     """Number of loops identified by FuseFlow compiler"""
+
+    cin_expression: str
+    """The tensor index expression for the given operation
+
+    @example:tOut1(i0, i3) = t0(i0, i1) * t1(i1, i2) * t2(i2, i3)"""
+
+    tensor_formats: str
+    """Per-tensor sparse formats, as space-separated 'name:format' pairs"""
 
 
 @Input
@@ -462,3 +538,259 @@ def parallelization(__hb_par: ParFactorChoice, __hb_ret: ParallelizationPass):
 def choose_loop_order(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
     ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
     print("Choose dataflow loop order.")
+
+
+@Function(
+    'ret.order = ""',
+)
+def use_scorch_loop_order(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Let Scorch choose the dataflow order"""
+    expr = MLIR_PROGRAM.cin_expression
+    formats = parse_tensor_formats(MLIR_PROGRAM.tensor_formats)
+    order = scorch_loop_order(expr, formats)
+    ScheduleState.set_values(dataflow_ordering=order)
+    print(f"Choose scorch-generated dataflow loop order: {order}")
+
+
+MAX_LOOPS = 4
+
+LOOP_ORDER_CONDITIONS = [
+    (
+        f"P_MlirProgram {{ path = pass.mlir_path, num_loops = {n}, "
+        f"cin_expression = _, tensor_formats = _ }}",
+        f'ret.order = "{" ".join(p)}"',
+    )
+    for n in range(1, MAX_LOOPS + 1)
+    for p in permutations([f"i{k}" for k in range(n)])
+]
+
+
+@Function(*LOOP_ORDER_CONDITIONS[0])
+def choose_loop_order_0(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[1])
+def choose_loop_order_1(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[2])
+def choose_loop_order_2(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[3])
+def choose_loop_order_3(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[4])
+def choose_loop_order_4(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[5])
+def choose_loop_order_5(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[6])
+def choose_loop_order_6(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[7])
+def choose_loop_order_7(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[8])
+def choose_loop_order_8(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[9])
+def choose_loop_order_9(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[10])
+def choose_loop_order_10(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[11])
+def choose_loop_order_11(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[12])
+def choose_loop_order_12(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[13])
+def choose_loop_order_13(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[14])
+def choose_loop_order_14(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[15])
+def choose_loop_order_15(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[16])
+def choose_loop_order_16(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[17])
+def choose_loop_order_17(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[18])
+def choose_loop_order_18(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[19])
+def choose_loop_order_19(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[20])
+def choose_loop_order_20(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[21])
+def choose_loop_order_21(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[22])
+def choose_loop_order_22(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[23])
+def choose_loop_order_23(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[24])
+def choose_loop_order_24(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[25])
+def choose_loop_order_25(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[26])
+def choose_loop_order_26(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[27])
+def choose_loop_order_27(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[28])
+def choose_loop_order_28(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[29])
+def choose_loop_order_29(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[30])
+def choose_loop_order_30(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[31])
+def choose_loop_order_31(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
+
+
+@Function(*LOOP_ORDER_CONDITIONS[32])
+def choose_loop_order_32(__hb_pass: ParallelizationPass, __hb_ret: LoopOrderChoice):
+    """Choose dataflow loop order"""
+    ScheduleState.set_values(dataflow_ordering=__hb_ret.order)
+    print(f"Choose dataflow loop order ({__hb_ret.order}).")
