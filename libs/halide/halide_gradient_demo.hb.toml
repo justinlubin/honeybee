@@ -1,0 +1,11 @@
+[[Prop]]
+name = 'P_HalideFunc'
+
+    [Prop.args]
+    name = 'gradient'
+    definition = 'gradient(x, y) = x + y'
+    variables = 'x y'
+
+[Goal]
+name = 'HalideSchedule'
+args = {}
