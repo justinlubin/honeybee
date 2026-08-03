@@ -1,0 +1,22 @@
+[project]
+name = "hblib-halide"
+version = "0.7.0"
+description = "Halide Honeybee Library"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "altair[all]>=6.1.0",
+    "honey-lang",
+]
+
+[tool.uv.sources]
+honey-lang = { path = "../../honey", editable = true }
+
+[tool.ty.environment]
+extra-paths = ["../../honey"]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.9.0",
+    "ty>=0.0.12",
+]
