@@ -1,0 +1,3 @@
+[submodule "libs/fuseflow/scorch"]
+	path = libs/fuseflow/scorch
+	url = https://github.com/bobbyyyan/scorch.git

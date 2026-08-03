@@ -1,0 +1,13 @@
+[Goal]
+name = 'FuseFlowSchedule'
+
+    [Goal.args]
+
+[[Prop]]
+name = 'P_MlirProgram'
+
+    [Prop.args]
+    num_loops = 4
+    path = 'nested_matmuls'
+    cin_expression = 'tOut1(i0, i3) = t0(i0, i1) * t1(i1, i2) * t2(i2, i3)'
+    tensor_formats = 't0:ss t1:dd t2:dd tOut1:dd'

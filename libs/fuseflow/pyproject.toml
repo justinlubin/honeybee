@@ -7,10 +7,17 @@ requires-python = ">=3.13"
 dependencies = [
     "honey-lang",
     "polars>=1.41.0",
+    "altair",
+    "torch",
+    "scorch",
 ]
 
 [tool.uv.sources]
 honey-lang = { path = "../../honey", editable = true }
+scorch = { path = "scorch", editable = true }
+
+[tool.uv.extra-build-dependencies]
+scorch = ["torch", "setuptools"]
 
 [tool.ty.environment]
 extra-paths = ["../../honey"]
