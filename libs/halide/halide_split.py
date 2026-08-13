@@ -91,11 +91,11 @@ class Directives:
 
     The goal of this step is to build the chain of scheduling directives
     (parallelize, vectorize, unroll) for a loop that will not be split
-    further."""
+    further. Which loop this chain applies to is determined by where it sits
+    in the schedule expression; loop variable names are assigned
+    automatically when the final schedule is built."""
 
     path: str
-
-    var: str
 
 
 @Output
@@ -104,11 +104,14 @@ class LoopSchedule:
 
     The goal of this step is to schedule one loop: either split it into an
     outer and an inner loop (each of which is then scheduled on its own), or
-    stop splitting and attach a chain of directives."""
+    stop splitting and attach a chain of directives. Which loop this
+    schedules is determined by where it sits in the schedule expression: the
+    slots of build_schedule are the function's original loops, and a split's
+    outer/inner arguments are the two loops it creates (named v_o and v_i
+    for a split of v when the final schedule is built)."""
 
     path: str
 
-    var: str
     extent: int
 
 
@@ -125,29 +128,10 @@ class HalideSchedule:
 # The universe of factors available to choose_factor.
 EdbProp("P_Factor", value="Int")
 
-# The loop variables (original and split-created) that directive chains may
-# be built for.
-EdbProp("P_LoopVar", var="Str")
+EdbProp("P_Div", dividend="Int", divisor="Int", quotient="Int")
 
-# Extent-based split legality: a loop `parent` of extent `pextent` may be
-# split by `factor` into `outer`/`inner` with extents `oextent`/`iextent`.
-# These facts are enumerated by the program generator by walking the
-# divide-down closure from each loop's extent, so splitting bottoms out when
-# a loop's extent has no legal factor left (rather than at a fixed depth).
-EdbProp(
-    "P_Split",
-    parent="Str",
-    pextent="Int",
-    factor="Int",
-    outer="Str",
-    oextent="Int",
-    inner="Str",
-    iextent="Int",
-)
-
-# Ties a function's original loop variables (and their extents) to the
-# per-loop schedule slots of build_schedule.
-EdbProp("P_FuncLoop", func="Str", pos="Int", var="Str", extent="Int")
+# The extents of a function's original loop variables, by position.
+EdbProp("P_FuncLoop", func="Str", pos="Int", extent="Int")
 
 
 @Function(
@@ -161,70 +145,58 @@ def choose_factor(__hb_ret: Factor):
     print(f"Factor: {__hb_ret.value}.")
 
 
-@Function(
-    "P_LoopVar { var = ret.var }",
-)
+@Function()
 def leaf(__hb_ret: Directives):
     """Plain loop (end of directives)
 
     End the directive chain for this loop."""
-    __hb_ret.directives = []
-    print(f"Loop '{__hb_ret.var}': end of directives.")
+    __hb_ret.chain = []
+    print("End of directives.")
 
 
-@Function(
-    "ret.var = rest.var",
-)
+@Function()
 def parallelize(__hb_f: Factor, __hb_rest: Directives, __hb_ret: Directives):
     """Parallelize this loop
 
     Distribute the iterations of this loop across threads, processing them
     in tasks of the given factor (Halide's parallel(var, task_size))."""
-    __hb_ret.directives = [
-        f"parallel({__hb_ret.var}, {__hb_f.value})"
-    ] + __hb_rest.directives
-    print(f"Parallelize '{__hb_ret.var}' with task size {__hb_f.value}.")
+    __hb_ret.chain = [("parallel", __hb_f.value)] + __hb_rest.chain
+    print(f"Parallelize this loop with task size {__hb_f.value}.")
 
 
-@Function(
-    "ret.var = rest.var",
-)
+@Function()
 def vectorize(__hb_rest: Directives, __hb_ret: Directives):
     """Vectorize this loop
 
     Execute this loop's iterations as a single vector operation. The vector
     width is this loop's extent, so this is usually applied to an inner loop
     produced by a split (Halide's vectorize(var))."""
-    __hb_ret.directives = [f"vectorize({__hb_ret.var})"] + __hb_rest.directives
-    print(f"Vectorize '{__hb_ret.var}'.")
+    __hb_ret.chain = [("vectorize", None)] + __hb_rest.chain
+    print("Vectorize this loop.")
 
 
-@Function(
-    "ret.var = rest.var",
-)
+@Function()
 def unroll(__hb_rest: Directives, __hb_ret: Directives):
     """Unroll this loop
 
     Unroll this loop completely over its extent (Halide's unroll(var))."""
-    __hb_ret.directives = [f"unroll({__hb_ret.var})"] + __hb_rest.directives
-    print(f"Unroll '{__hb_ret.var}'.")
+    __hb_ret.chain = [("unroll", None)] + __hb_rest.chain
+    print("Unroll this loop.")
 
 
-@Function(
-    "ret.var = q.var",
-)
+@Function()
 def inject(__hb_q: Directives, __hb_ret: LoopSchedule):
     """Do not split this loop
 
     Stop splitting this loop and schedule it with the given directive
     chain."""
-    __hb_ret.splits = []
-    __hb_ret.directives = __hb_q.directives
-    print(f"Loop '{__hb_ret.var}' (extent {__hb_ret.extent}): not split further.")
+    __hb_ret.tree = ("leaf", __hb_q.chain)
+    print(f"Loop of extent {__hb_ret.extent}: not split further.")
 
 
 @Function(
-    "P_Split { parent = ret.var, pextent = ret.extent, factor = f.value, outer = outer.var, oextent = outer.extent, inner = inner.var, iextent = inner.extent }",
+    "P_Div { dividend = ret.extent, divisor = f.value, quotient = outer.extent }",
+    "inner.extent = f.value",
 )
 def simple_split(
     __hb_f: Factor,
@@ -236,24 +208,19 @@ def simple_split(
 
     Split this loop into an outer and an inner loop, where the inner loop
     does factor-many iterations (Halide's split(var, outer, inner, factor)).
-    Each new loop is then scheduled on its own."""
-    __hb_ret.splits = (
-        [f"split({__hb_ret.var}, {__hb_outer.var}, {__hb_inner.var}, {__hb_f.value})"]
-        + __hb_outer.splits
-        + __hb_inner.splits
-    )
-    __hb_ret.directives = __hb_outer.directives + __hb_inner.directives
+    Each new loop is then scheduled on its own; when the final schedule is
+    built, a split of loop v names its new loops v_o and v_i."""
+    __hb_ret.tree = ("split", __hb_f.value, __hb_outer.tree, __hb_inner.tree)
     print(
-        f"Split '{__hb_ret.var}' (extent {__hb_ret.extent}) into "
-        f"'{__hb_outer.var}' (outer, extent {__hb_outer.extent}) and "
-        f"'{__hb_inner.var}' (inner, extent {__hb_inner.extent}) "
-        f"with factor {__hb_f.value}."
+        f"Split this loop (extent {__hb_ret.extent}) into an outer loop "
+        f"(extent {__hb_outer.extent}) and an inner loop "
+        f"(extent {__hb_inner.extent}) with factor {__hb_f.value}."
     )
 
 
 @Function(
-    "P_FuncLoop { func = func.name, pos = 0, var = a0.var, extent = a0.extent }",
-    "P_FuncLoop { func = func.name, pos = 1, var = a1.var, extent = a1.extent }",
+    "P_FuncLoop { func = func.name, pos = 0, extent = a0.extent }",
+    "P_FuncLoop { func = func.name, pos = 1, extent = a1.extent }",
 )
 def build_schedule(
     __hb_func: HalideFunc,
@@ -264,9 +231,32 @@ def build_schedule(
     """build_schedule
 
     Combine the per-loop schedules of a two-dimensional Halide function into
-    the final schedule; all splits first"""
+    the final schedule: all splits first (parents before children), then all
+    directives. Loop variable names are assigned here, top-down: a split of
+    loop v names its new loops v_o and v_i."""
+    splits = []
+    directives = []
+
+    def walk(var, tree):
+        if tree[0] == "split":
+            _, factor, outer, inner = tree
+            splits.append(f"split({var}, {var}_o, {var}_i, {factor})")
+            walk(f"{var}_o", outer)
+            walk(f"{var}_i", inner)
+        else:
+            _, chain = tree
+            for op, arg in chain:
+                if arg is None:
+                    directives.append(f"{op}({var})")
+                else:
+                    directives.append(f"{op}({var}, {arg})")
+
+    loop_vars = __hb_func.variables.split()
+    for var, tree in zip(loop_vars, [__hb_a0.tree, __hb_a1.tree]):
+        walk(var, tree)
+
     schedule = __hb_func.name
-    for op in __hb_a0.splits + __hb_a1.splits + __hb_a0.directives + __hb_a1.directives:
+    for op in splits + directives:
         schedule += f".{op}"
     write_schedule_file(schedule, __hb_ret.path)
     print(schedule)
