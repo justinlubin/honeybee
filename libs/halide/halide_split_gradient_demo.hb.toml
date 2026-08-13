@@ -1,0 +1,251 @@
+[[Prop]]
+name = 'P_HalideFunc'
+args = { name = 'gradient', definition = 'gradient(x, y) = x + y', variables = 'x y' }
+
+[[Prop]]
+name = 'P_Factor'
+args = { value = 2 }
+
+[[Prop]]
+name = 'P_Factor'
+args = { value = 4 }
+
+[[Prop]]
+name = 'P_Factor'
+args = { value = 8 }
+
+[[Prop]]
+name = 'P_FuncLoop'
+args = { func = 'gradient', pos = 0, var = 'x', extent = 16 }
+
+[[Prop]]
+name = 'P_FuncLoop'
+args = { func = 'gradient', pos = 1, var = 'y', extent = 16 }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i_i_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i_i_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i_o_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_i_o_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o_i_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o_i_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o_o_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'x_o_o_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i_i_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i_i_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i_o_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_i_o_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o_i_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o_i_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o_o' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o_o_i' }
+
+[[Prop]]
+name = 'P_LoopVar'
+args = { var = 'y_o_o_o' }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x', pextent = 16, factor = 2, outer = 'x_o', oextent = 8, inner = 'x_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_o', pextent = 8, factor = 2, outer = 'x_o_o', oextent = 4, inner = 'x_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_o_o', pextent = 4, factor = 2, outer = 'x_o_o_o', oextent = 2, inner = 'x_o_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_o', pextent = 8, factor = 4, outer = 'x_o_o', oextent = 2, inner = 'x_o_i', iextent = 4 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_o_i', pextent = 4, factor = 2, outer = 'x_o_i_o', oextent = 2, inner = 'x_o_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x', pextent = 16, factor = 4, outer = 'x_o', oextent = 4, inner = 'x_i', iextent = 4 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_o', pextent = 4, factor = 2, outer = 'x_o_o', oextent = 2, inner = 'x_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_i', pextent = 4, factor = 2, outer = 'x_i_o', oextent = 2, inner = 'x_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x', pextent = 16, factor = 8, outer = 'x_o', oextent = 2, inner = 'x_i', iextent = 8 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_i', pextent = 8, factor = 2, outer = 'x_i_o', oextent = 4, inner = 'x_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_i_o', pextent = 4, factor = 2, outer = 'x_i_o_o', oextent = 2, inner = 'x_i_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_i', pextent = 8, factor = 4, outer = 'x_i_o', oextent = 2, inner = 'x_i_i', iextent = 4 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'x_i_i', pextent = 4, factor = 2, outer = 'x_i_i_o', oextent = 2, inner = 'x_i_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y', pextent = 16, factor = 2, outer = 'y_o', oextent = 8, inner = 'y_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_o', pextent = 8, factor = 2, outer = 'y_o_o', oextent = 4, inner = 'y_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_o_o', pextent = 4, factor = 2, outer = 'y_o_o_o', oextent = 2, inner = 'y_o_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_o', pextent = 8, factor = 4, outer = 'y_o_o', oextent = 2, inner = 'y_o_i', iextent = 4 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_o_i', pextent = 4, factor = 2, outer = 'y_o_i_o', oextent = 2, inner = 'y_o_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y', pextent = 16, factor = 4, outer = 'y_o', oextent = 4, inner = 'y_i', iextent = 4 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_o', pextent = 4, factor = 2, outer = 'y_o_o', oextent = 2, inner = 'y_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_i', pextent = 4, factor = 2, outer = 'y_i_o', oextent = 2, inner = 'y_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y', pextent = 16, factor = 8, outer = 'y_o', oextent = 2, inner = 'y_i', iextent = 8 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_i', pextent = 8, factor = 2, outer = 'y_i_o', oextent = 4, inner = 'y_i_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_i_o', pextent = 4, factor = 2, outer = 'y_i_o_o', oextent = 2, inner = 'y_i_o_i', iextent = 2 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_i', pextent = 8, factor = 4, outer = 'y_i_o', oextent = 2, inner = 'y_i_i', iextent = 4 }
+
+[[Prop]]
+name = 'P_Split'
+args = { parent = 'y_i_i', pextent = 4, factor = 2, outer = 'y_i_i_o', oextent = 2, inner = 'y_i_i_i', iextent = 2 }
+
+[Goal]
+name = 'HalideSchedule'
+args = {}
