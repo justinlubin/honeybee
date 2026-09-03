@@ -72,15 +72,15 @@ def hbimport(url: str) -> dict | None:
 #     ]
 # )
 
-for url in scrape.biorxiv_paper_urls(
-    start="2025-01-01",
-    end="2025-02-01",
-    category="genomics",
-    max_papers=10_000,
-):
-    print("hbimporting", url)
-    e = hbimport(url)
-    if e is None:
-        print("None")
-    else:
-        print(pretty(e))
+# for url in scrape.biorxiv_paper_urls(
+#     start="2025-01-01",
+#     end="2025-02-01",
+#     category="genomics",
+#     max_papers=10_000,
+# ):
+#     print("hbimporting", url)
+#     e = hbimport(url)
+#     if e is None:
+#         print("None")
+#     else:
+#         print(pretty(e))
