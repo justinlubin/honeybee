@@ -1,94 +1,76 @@
 # Changelog
 
-This changelog tracks the notable changes for downstream users in each version
-of Honeybee. Everything in Honeybee is rolling release / unversioned except for
-the Honeybee Biology Library/Container, which are released in lockstep for
-compatability and reproducibility.
+This changelog tracks the notable changes for downstream users in each version of Honeybee.
+Everything in Honeybee is rolling release / unversioned except for the Honeybee Biology Library/Container, which are released in lockstep for compatability and reproducibility.
 
 # Older versions
 
-## [0.7.0] - 2026-05-14
+Previously (until v0.7.0), all Honeybee components were versioned and released in lock step.
+Now, all components are set to 0.7.0 and are released unversioned (i.e., only tracked via git commit hashes).
 
-This release should be stable for the first Honeybee workshop at the
-[CZ Biohub San Francisco](https://biohub.org/)!
+## \[0.7.0\] - 2026-05-14
+
+This release should be stable for the first Honeybee workshop at the [CZ Biohub San Francisco](https://biohub.org/)!
 
 ### Added
 
 - We now create official .tar.gz images for Standard Bio Docker image
 - In patch 166b97e: Add download link for notebook launcher
-- In patch a2a9a50: Updated editor styles (thank you Brian Hempel for the
-  honeycomb idea!)
+- In patch a2a9a50: Updated editor styles (thank you Brian Hempel for the honeycomb idea!)
 
 ### Changed
 
-- Improvements to Standard Bio library and Docker image. Pipelines for RNA-seq,
-  ATAC-seq, and LEMONmethyl-seq should all be quite usable now!
+- Improvements to Standard Bio library and Docker image. Pipelines for RNA-seq, ATAC-seq, and LEMONmethyl-seq should all be quite usable now!
 
 ### Fixed
 
 - Fixed scroll bug where "Next CHOICE" button did not go high enough
 - Fixed bug where "Start navigating" button was clickable too early
-- In patch 166b97e: Fixed bug where code in cells would get cut off when
-  too long
+- In patch 166b97e: Fixed bug where code in cells would get cut off when too long
 
-## [0.6.1] - 2026-05-01
+## \[0.6.1\] - 2026-05-01
 
 ### Changed
 
 - Minor improvements to Standard Bio library and Docker image
 
-## [0.6.0] - 2026-04-29
+## \[0.6.0\] - 2026-04-29
 
 ### Added
 
 - Added erasure of static information
-- Added Honeybee Standard Bio Docker image (still WIP, but has a lot of
-  functionality)
+- Added Honeybee Standard Bio Docker image (still WIP, but has a lot of functionality)
 - Added basic EM-seq support
 
 ### Changed
 
-- Paths are now statically embedded in the output program instead of dynamically
-  via Dir.make()
+- Paths are now statically embedded in the output program instead of dynamically via Dir.make()
 - std-bio now has static erasure enabled
 - Added a lot of polish (changes) to std-bio library
 
-## [0.5.0] - 2026-02-23
+## \[0.5.0\] - 2026-02-23
 
 ### Added
 
-- Add additional UI + information to help fill out information in the first
-  phase of Honeybee
-  ([#109](https://github.com/justinlubin/honeybee/pull/109))
-- Add "use hints" that allow for quick comparison between tools
-  ([#101](https://github.com/justinlubin/honeybee/pull/101))
+- Add additional UI + information to help fill out information in the first phase of Honeybee ([#109](https://github.com/justinlubin/honeybee/pull/109))
+- Add "use hints" that allow for quick comparison between tools ([#101](https://github.com/justinlubin/honeybee/pull/101))
 - Add /unstable route for accessing latest pushed unreleased version
 - Add hover text for complex concepts
 - Add "Undo" button to frontend
 - Add Honeybee citation to output script
 - Add citation backreferences via Google Scholar
 - Add tool search via Google and DuckDuckGo
-- Add reference to PubMed entry (PMID) for each tool
-  ([#102](https://github.com/justinlubin/honeybee/pull/102))
+- Add reference to PubMed entry (PMID) for each tool ([#102](https://github.com/justinlubin/honeybee/pull/102))
 - Add GoatCounter private analytics
 - Add website (https://honeybee-lang.org), including video demo
 - Add link to Zulip chat
 
 ### Changed
 
-- Emit Jupyter Notebooks instead of Python files
-  ([#115](https://github.com/justinlubin/honeybee/pull/115))
-- Overhaul glue annotations into the Honey language, resulting in much
-  more ergnomic definitions for building blocks, better codegen, and a
-  smoother editor experience, including auto-selecting the "functions" that
-  declare the user's workflow
-  ([#95](https://github.com/justinlubin/honeybee/pull/95))
+- Emit Jupyter Notebooks instead of Python files ([#115](https://github.com/justinlubin/honeybee/pull/115))
+- Overhaul glue annotations into the Honey language, resulting in much more ergnomic definitions for building blocks, better codegen, and a smoother editor experience, including auto-selecting the "functions" that declare the user's workflow ([#95](https://github.com/justinlubin/honeybee/pull/95))
 - Move "Next CHOICE" button (and new "Undo" button) to bottom of screen
-- Make variable names in generated code nicer (e.g. `TRANSCRIPT_MATRICES`,
-  not `TRANSCRIPTMATRICES`)
+- Make variable names in generated code nicer (e.g. `TRANSCRIPT_MATRICES`, not `TRANSCRIPTMATRICES`)
 - Make "Go to download" button simply a "Download" button
-- Make code preview nicer (shows holes as circles)
-  ([#107](https://github.com/justinlubin/honeybee/pull/107))
-- Made the menu bar sticky
-  ([#103](https://github.com/justinlubin/honeybee/pull/103),
-  [#108](https://github.com/justinlubin/honeybee/pull/108))
+- Make code preview nicer (shows holes as circles) ([#107](https://github.com/justinlubin/honeybee/pull/107))
+- Made the menu bar sticky ([#103](https://github.com/justinlubin/honeybee/pull/103), [#108](https://github.com/justinlubin/honeybee/pull/108))
