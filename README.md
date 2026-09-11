@@ -3,7 +3,7 @@
 Honeybee is a programming tool scientists can use to help them write Python code to analyze experimental data.
 Its goal is to enable scientists to write the programs they need with *only* domain expertise, *not* programming expertise.
 
-The frontend for Honeybee---which currently targets experimental biology---can be accessed via the [Honeybee Editor](https://editor.honeybee-lang.org).
+The frontend for Honeybee (which currently targets experimental biology) can be accessed via the [Honeybee Editor](https://editor.honeybee-lang.org).
 
 Honeybee is based on our recent work on [Programming by Navigation](https://dl.acm.org/doi/10.1145/3729264) appearing in PLDI 2025.
 
