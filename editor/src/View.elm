@@ -1020,8 +1020,8 @@ view model =
                 [ text "📓 "
                 , b []
                     [ a
-                        [ A.href "hb-bio.sh"
-                        , A.download "hb-bio.sh"
+                        [ A.href "launch-notebook.sh"
+                        , A.download "launch-notebook.sh"
                         ]
                         [ text "Download notebook launcher" ]
                     ]

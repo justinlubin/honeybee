@@ -21,14 +21,14 @@ all: \
 	$(OUT_DIR)/elm.js \
 	$(OUT_DIR)/pkg/honeybee.js \
 	$(OUT_DIR)/bio.hblib.toml \
-	$(OUT_DIR)/hb-bio.sh
+	$(OUT_DIR)/launch-notebook.sh
 
 .PHONY: clean
 clean:
 	rm -f $(OUT_DIR)/elm.js
 	rm -f $(OUT_DIR)/pkg/honeybee.js
 	rm -f $(OUT_DIR)/bio.hblib.toml
-	rm -f $(OUT_DIR)/hb-bio.sh
+	rm -f $(OUT_DIR)/launch-notebook.sh
 
 # Depends on honeybee.js to ensure versions are in-sync
 $(OUT_DIR)/elm.js: $(wildcard src/*.elm) $(OUT_DIR)/pkg/honeybee.js
@@ -60,5 +60,5 @@ $(OUT_DIR)/bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*
 	cd $(ENGINE_DIR) && \
 	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/bio.hblib.toml
 
-$(OUT_DIR)/hb-bio.sh: $(GLUE_DIR)/hb-bio.sh
-	cp $(GLUE_DIR)/hb-bio.sh $(OUT_DIR)/hb-bio.sh
+$(OUT_DIR)/launch-notebook.sh: $(GLUE_DIR)/launch-notebook.sh
+	cp $(GLUE_DIR)/launch-notebook.sh $(OUT_DIR)/launch-notebook.sh
