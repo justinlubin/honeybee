@@ -1,0 +1,10 @@
+*.beam
+*.ez
+/build
+erl_crash.dump
+
+www/editor2.js
+
+#Added automatically by Lustre Dev Tools
+/.lustre
+/dist
