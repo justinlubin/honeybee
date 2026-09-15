@@ -1,0 +1,32 @@
+[package]
+name = "honeybee-cli"
+version = "0.7.0"
+authors = ["Justin Lubin <justin@jlubin.net>"]
+description = "Honeybee Engine CLI"
+edition = "2021"
+readme = "README.md"
+repository = "https://github.com/justinlubin/honeybee"
+license = "BSD-3-Clause"
+
+[dependencies]
+ansi_term = "0.12.1"
+clap = { version = "4.6.7", features = ["derive"] }
+csv = "1.4.0"
+env_logger = "0.11.11"
+getrandom = "0.4.3"
+glob = "0.3.4"
+honeybee = { path = "../engine" }
+indexmap = "2.14.2"
+instant = "0.1.13"
+jsonrpcmsg = "0.1.2"
+pbn = "0.3.0"
+rayon = "1.12.0"
+serde = "1.0.229"
+serde-wasm-bindgen = "0.6.5"
+serde_json = "1.0.151"
+termtree = "1.0.0"
+wasm-bindgen = "0.2.128"
+
+[profile.release]
+opt-level = "z"
+lto = true

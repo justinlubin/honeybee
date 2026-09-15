@@ -4,6 +4,8 @@
 
 use crate::*;
 
+use honeybee::{codegen, core, dl_oracle, egglog, menu, parse, top_down, typecheck, unparse, util};
+
 use ansi_term::Color::*;
 use codegen::Codegen;
 use instant::Duration;
@@ -18,24 +20,17 @@ fn write_file(path: PathBuf, s: &str) -> Result<(), String> {
     }
 }
 
-fn load_problem(
-    library: PathBuf,
-    program: PathBuf,
-) -> Result<core::Problem, String> {
-    let lib_string = std::fs::read_to_string(library).map_err(|e| {
-        format!("error while reading library file: {}", e.to_string())
-    })?;
-    let prog_string = std::fs::read_to_string(program).map_err(|e| {
-        format!("error while reading program file: {}", e.to_string())
-    })?;
+fn load_problem(library: PathBuf, program: PathBuf) -> Result<core::Problem, String> {
+    let lib_string = std::fs::read_to_string(library)
+        .map_err(|e| format!("error while reading library file: {}", e.to_string()))?;
+    let prog_string = std::fs::read_to_string(program)
+        .map_err(|e| format!("error while reading program file: {}", e.to_string()))?;
 
-    let library = parse::library(&lib_string).map_err(|e| {
-        format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
-    })?;
+    let library = parse::library(&lib_string)
+        .map_err(|e| format!("{}\n{}", Red.bold().paint("parse error (library):"), e))?;
 
-    let program = parse::program(&prog_string).map_err(|e| {
-        format!("{}\n{}", Red.bold().paint("parse error (program):"), e)
-    })?;
+    let program = parse::program(&prog_string)
+        .map_err(|e| format!("{}\n{}", Red.bold().paint("parse error (program):"), e))?;
 
     let problem = core::Problem { library, program };
 
@@ -116,11 +111,7 @@ pub fn interact(
         if !quiet {
             println!(
                 "{}\n\n{}\n\n{}\n\n{}\n",
-                Fixed(8).paint(format!(
-                    "══ Round {} {}",
-                    round,
-                    "═".repeat(40)
-                )),
+                Fixed(8).paint(format!("══ Round {} {}", round, "═".repeat(40))),
                 Cyan.bold().paint("Working expression:"),
                 gen.exp(&controller.working_expression())?,
                 Cyan.bold().paint("Possible next steps:"),
@@ -139,9 +130,7 @@ pub fn interact(
                             Yellow.paint(format!(
                                 "{} ↦ {}",
                                 top_down::pretty_hole_string(h),
-                                codegen::Simple::single(
-                                    &top_down::Sketch::App(f, args),
-                                ),
+                                codegen::Simple::single(&top_down::Sketch::App(f, args),),
                             ))
                         )
                     }
@@ -230,13 +219,11 @@ pub fn check(library: PathBuf, program: PathBuf) -> Result<(), String> {
 
 /// Check if a Honeybee library is parseable and well-typed
 pub fn validate(library: PathBuf) -> Result<(), String> {
-    let lib_string = std::fs::read_to_string(library).map_err(|e| {
-        format!("error while reading library file: {}", e.to_string())
-    })?;
+    let lib_string = std::fs::read_to_string(library)
+        .map_err(|e| format!("error while reading library file: {}", e.to_string()))?;
 
-    let library = parse::library(&lib_string).map_err(|e| {
-        format!("{}\n{}", Red.bold().paint("parse error (library):"), e)
-    })?;
+    let library = parse::library(&lib_string)
+        .map_err(|e| format!("{}\n{}", Red.bold().paint("parse error (library):"), e))?;
 
     typecheck::library(&library).map_err(|e| {
         format!(
@@ -258,8 +245,7 @@ pub fn validate(library: PathBuf) -> Result<(), String> {
 
 /// Translate a serialized json file to a Python program
 pub fn translate(path: PathBuf, print_size: bool) -> Result<(), String> {
-    let exp_string =
-        std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let exp_string = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let exp = parse::exp(&exp_string)?;
     let gen = codegen::Simple {
         indent: 0,
