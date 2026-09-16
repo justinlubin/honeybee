@@ -1,8 +1,6 @@
 #[pyo3::pymodule]
 mod honeybee {
-    use crate::unparse;
-
-    use super::{cellgen, core, menu, parse, top_down, typecheck, util};
+    use honeybee::{cellgen, core, menu, parse, top_down, typecheck, util};
 
     use pyo3::exceptions::PyValueError;
     use pyo3::prelude::*;

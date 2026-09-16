@@ -26,11 +26,12 @@ dev = [
 [tool.uv]
 # https://github.com/PyO3/maturin/issues/2314#issuecomment-2488542771
 cache-keys = [
-    {file = "../engine/pyproject.toml"},
-    {file = "../engine/Cargo.toml"},
+    {file = "../engine-py/pyproject.toml"},
+    {file = "../engine-py/Cargo.toml"},
+    {file = "../engine-py/**/*.rs"},
     {file = "../engine/**/*.rs"},
     {file = "honeybee.pyi"},
 ]
 
 [tool.uv.sources]
-honeybee = { path = "../engine", editable = true }
+honeybee = { path = "../engine-py", editable = true }
