@@ -9,6 +9,8 @@ repository = "https://github.com/justinlubin/honeybee"
 license = "BSD-3-Clause"
 
 [dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
 honeybee = { path = "../engine" }
 indexmap = "2.14.2"
 pbn = "0.3.0"

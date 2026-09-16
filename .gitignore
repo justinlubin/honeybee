@@ -18,11 +18,4 @@ __pycache__
 DOCKER_MOUNT
 pldi25ae-honeybee.tar.gz
 
-# Editor
-editor/www/elm.js
-editor/elm-stuff
-editor/www/pkg
-editor/www/bio.hblib.toml
-editor/www/hb-bio.sh
-
 **/mnt/
