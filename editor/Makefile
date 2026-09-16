@@ -4,13 +4,13 @@
 #   uglifyjs
 #   uv
 #   wasm-bindgen
-#     cargo install -f wasm-bindgen-cli --version 0.2.108
 #   wasm32-unknown-unknown Rust target
 #     rustup target add wasm32-unknown-unknown
 
 OPTIMIZE_ELM := false
 HERE_DIR := editor
 ENGINE_DIR := ../engine
+JS_DIR := ../engine-js
 LANG_DIR := ../honey
 GLUE_DIR := ../libs/bio
 OUT_DIR := www
@@ -19,19 +19,19 @@ CURRENT_COMMIT := $(shell git rev-parse --short HEAD)
 .PHONY: all
 all: \
 	$(OUT_DIR)/elm.js \
-	$(OUT_DIR)/pkg/honeybee.js \
+	$(OUT_DIR)/pkg \
 	$(OUT_DIR)/bio.hblib.toml \
 	$(OUT_DIR)/launch-notebook.sh
 
 .PHONY: clean
 clean:
 	rm -f $(OUT_DIR)/elm.js
-	rm -f $(OUT_DIR)/pkg/honeybee.js
+	rm -f $(OUT_DIR)/pkg
 	rm -f $(OUT_DIR)/bio.hblib.toml
 	rm -f $(OUT_DIR)/launch-notebook.sh
 
 # Depends on honeybee.js to ensure versions are in-sync
-$(OUT_DIR)/elm.js: $(wildcard src/*.elm) $(OUT_DIR)/pkg/honeybee.js
+$(OUT_DIR)/elm.js: $(wildcard src/*.elm) $(OUT_DIR)/pkg
 ifeq ($(OPTIMIZE_ELM),true)
 	elm make src/Main.elm --optimize --output=$(OUT_DIR)/elm.js || touch $(OUT_DIR)/elm.js
 	uglifyjs $(OUT_DIR)/elm.js --compress "pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe" | uglifyjs --mangle --output $(OUT_DIR)/elm.min.js
@@ -44,12 +44,11 @@ endif
 	> $(OUT_DIR)/elm.js.tmp
 	mv $(OUT_DIR)/elm.js.tmp $(OUT_DIR)/elm.js
 
-$(OUT_DIR)/pkg/honeybee.js: $(wildcard $(ENGINE_DIR)/src/*.rs)
-	cd $(ENGINE_DIR) && \
-	cargo build --lib --target wasm32-unknown-unknown --release && \
-	wasm-bindgen target/wasm32-unknown-unknown/release/honeybee.wasm \
-		--out-dir ../$(HERE_DIR)/$(OUT_DIR)/pkg \
-		--target web
+$(OUT_DIR)/pkg: $(wildcard $(JS_DIR)/src/*.rs)
+	cd $(JS_DIR) && \
+	make pkg && \
+	rm -rf $(OUT_DIR)/pkg && \
+	cp -r pkg ../$(HERE_DIR)/$(OUT_DIR)/pkg
 
 $(OUT_DIR)/bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)
 	cd $(GLUE_DIR) && ty check

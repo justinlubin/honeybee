@@ -1,4 +1,6 @@
-use honeybee::main_handler;
+mod benchmark;
+mod machine_readable;
+mod main_handler;
 
 use ansi_term::Color::*;
 use clap::{builder::styling::*, Parser, Subcommand};
@@ -16,10 +18,7 @@ mod custom_parse {
         }
     }
 
-    pub fn one_or_more_paths(
-        s: &str,
-        option: &str,
-    ) -> Result<Vec<PathBuf>, String> {
+    pub fn one_or_more_paths(s: &str, option: &str) -> Result<Vec<PathBuf>, String> {
         if s.is_empty() {
             Err(format!("{} must be nonempty", option))
         } else {
@@ -82,12 +81,7 @@ enum Command {
         machine_readable: bool,
 
         /// The codegen style to use
-        #[arg(
-            short,
-            long,
-            value_name = "STYLE",
-            default_value = "PlainTextNotebook"
-        )]
+        #[arg(short, long, value_name = "STYLE", default_value = "PlainTextNotebook")]
         style: honeybee::menu::CodegenStyle,
 
         /// Whether or not to use "quiet" mode
@@ -103,12 +97,7 @@ enum Command {
         json: String,
 
         /// The algorithm to use
-        #[arg(
-            short,
-            long,
-            value_name = "ALGORITHM",
-            default_value = "PBNHoneybee"
-        )]
+        #[arg(short, long, value_name = "ALGORITHM", default_value = "PBNHoneybee")]
         algorithm: honeybee::menu::Algorithm,
     },
 
@@ -195,9 +184,7 @@ impl Command {
                 custom_parse::at_most_one_path(&json),
                 algorithm,
             ),
-            Self::Check { library, program } => {
-                main_handler::check(library, program)
-            }
+            Self::Check { library, program } => main_handler::check(library, program),
             Self::Validate { library } => main_handler::validate(library),
             Self::Benchmark {
                 suite,
@@ -216,9 +203,7 @@ impl Command {
                 parallel,
                 custom_parse::limit(&limit),
             ),
-            Self::Translate { path, size } => {
-                main_handler::translate(path, size)
-            }
+            Self::Translate { path, size } => main_handler::translate(path, size),
         }
     }
 }

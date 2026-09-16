@@ -6,8 +6,8 @@
 //! To use this code, create a [`Runner`] object using [`Runner::new`],
 //! then call [`Runner::suites`] to run a set of benchmark suits.
 
-use crate::util::{EarlyCutoff, Timer};
-use crate::{core, menu, parse, top_down, typecheck};
+use honeybee::util::{EarlyCutoff, Timer};
+use honeybee::{core, menu, parse, top_down, typecheck};
 
 use instant::{Duration, Instant};
 use pbn::Step;
@@ -69,10 +69,7 @@ impl Runner {
     /// Create a new benchmark runner (start here!). The `writer` argument is
     /// the location that the benchmark results will get written to
     /// (e.g., stdout).
-    pub fn new(
-        config: Config,
-        writer: impl io::Write + Send + 'static,
-    ) -> Self {
+    pub fn new(config: Config, writer: impl io::Write + Send + 'static) -> Self {
         Self {
             wtr: Arc::new(Mutex::new(
                 csv::WriterBuilder::new()
@@ -93,13 +90,11 @@ impl Runner {
             let lib_string = std::fs::read_to_string(lib_path).unwrap();
             let library = parse::library(&lib_string).unwrap();
 
-            for prog_path in
-                glob::glob(suite_path.join("*.hb.toml").to_str().unwrap())
-                    .unwrap()
-                    .filter_map(Result::ok)
+            for prog_path in glob::glob(suite_path.join("*.hb.toml").to_str().unwrap())
+                .unwrap()
+                .filter_map(Result::ok)
             {
-                let prog_path_noext =
-                    prog_path.with_extension("").with_extension("");
+                let prog_path_noext = prog_path.with_extension("").with_extension("");
 
                 let entry_name = prog_path_noext
                     .file_name()
@@ -140,8 +135,7 @@ impl Runner {
                         .to_str()
                         .unwrap()
                         .to_owned();
-                    let solution_string =
-                        std::fs::read_to_string(&solution_path).unwrap();
+                    let solution_string = std::fs::read_to_string(&solution_path).unwrap();
                     let solution = parse::exp(&solution_string).unwrap();
 
                     solutions.push((solution_name, Some(solution)));
@@ -188,8 +182,7 @@ impl Runner {
             }
 
             match options.into_iter().find(|opt| {
-                let tentative =
-                    opt.apply(controller.working_expression()).unwrap();
+                let tentative = opt.apply(controller.working_expression()).unwrap();
                 tentative.pattern_match(&solution).is_some()
             }) {
                 Some(step) => controller.decide(step),
@@ -213,9 +206,7 @@ impl Runner {
         let now = Instant::now();
 
         let synthesis_result = match e.solution {
-            Some(sol) => {
-                self.entry_particular(e.algorithm.clone(), e.problem, sol)
-            }
+            Some(sol) => self.entry_particular(e.algorithm.clone(), e.problem, sol),
             None => self.entry_any(e.algorithm.clone(), e.problem),
         };
 

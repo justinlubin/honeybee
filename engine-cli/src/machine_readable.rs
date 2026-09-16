@@ -1,4 +1,4 @@
-use crate::{cellgen, core, top_down, unparse, util};
+use honeybee::{cellgen, core, top_down, unparse, util};
 
 use jsonrpcmsg::{Error, Id, Params, Request, Response};
 use serde::Serialize;
@@ -40,11 +40,9 @@ fn handle(
     decider_message: &DeciderMessage,
 ) -> Result<ProviderMessage, Error> {
     match decider_message {
-        DeciderMessage::WorkingExpression => {
-            Ok(ProviderMessage::WorkingExpression(
-                unparse::exp(controller.working_expression()).unwrap(),
-            ))
-        }
+        DeciderMessage::WorkingExpression => Ok(ProviderMessage::WorkingExpression(
+            unparse::exp(controller.working_expression()).unwrap(),
+        )),
         DeciderMessage::Provide => {
             let options = controller.provide().map_err(|_| out_of_time())?;
             let function_choices = cellgen::fill(
@@ -64,8 +62,7 @@ fn handle(
             Ok(ProviderMessage::Steps(function_choices))
         }
         DeciderMessage::Decide { index } => {
-            let mut options =
-                controller.provide().map_err(|_| out_of_time())?;
+            let mut options = controller.provide().map_err(|_| out_of_time())?;
             controller.decide(options.swap_remove(*index));
             Ok(ProviderMessage::AckDecide)
         }
@@ -80,35 +77,29 @@ fn request_to_message(r: &Request) -> Result<DeciderMessage, Error> {
     match r.method.as_str() {
         "working_expression" => Ok(DeciderMessage::WorkingExpression),
         "provide" => Ok(DeciderMessage::Provide),
-        "decide" => {
-            match r.params.as_ref().ok_or_else(|| Error::invalid_params())? {
-                Params::Array(values) => {
-                    if values.len() == 1 {
-                        let index = values[0]
-                            .as_u64()
-                            .and_then(|v| usize::try_from(v).ok())
-                            .ok_or_else(|| Error::invalid_params())?;
-                        Ok(DeciderMessage::Decide { index })
-                    } else {
-                        Err(Error::invalid_params())
-                    }
+        "decide" => match r.params.as_ref().ok_or_else(|| Error::invalid_params())? {
+            Params::Array(values) => {
+                if values.len() == 1 {
+                    let index = values[0]
+                        .as_u64()
+                        .and_then(|v| usize::try_from(v).ok())
+                        .ok_or_else(|| Error::invalid_params())?;
+                    Ok(DeciderMessage::Decide { index })
+                } else {
+                    Err(Error::invalid_params())
                 }
-                Params::Object(_) => Err(Error::invalid_params()),
             }
-        }
+            Params::Object(_) => Err(Error::invalid_params()),
+        },
         "quit" => Ok(DeciderMessage::Quit),
         _ => Err(Error::method_not_found()),
     }
 }
 
-fn message_to_response(
-    provider_message: &ProviderMessage,
-) -> serde_json::Value {
+fn message_to_response(provider_message: &ProviderMessage) -> serde_json::Value {
     match provider_message {
         ProviderMessage::WorkingExpression(e) => json!(e),
-        ProviderMessage::Steps(function_choices) => {
-            serde_json::to_value(function_choices).unwrap()
-        }
+        ProviderMessage::Steps(function_choices) => serde_json::to_value(function_choices).unwrap(),
         ProviderMessage::AckDecide => json!("ack_decide"),
         ProviderMessage::AckQuit => json!("ack_quit"),
     }
@@ -122,16 +113,12 @@ fn parse_input() -> Result<Request, Error> {
     std::io::stdin()
         .read_line(&mut input)
         .map_err(|_| Error::parse_error())?;
-    let json =
-        serde_json::from_str(&input).map_err(|_| Error::parse_error())?;
-    jsonrpcmsg::deserialize::from_request_value(json)
-        .map_err(|_| Error::invalid_request())
+    let json = serde_json::from_str(&input).map_err(|_| Error::parse_error())?;
+    jsonrpcmsg::deserialize::from_request_value(json).map_err(|_| Error::invalid_request())
 }
 
 fn definitely_respond_error(e: Error, id: Option<Id>) {
-    let res =
-        jsonrpcmsg::serialize::to_response_string(&Response::error(e, id))
-            .unwrap();
+    let res = jsonrpcmsg::serialize::to_response_string(&Response::error(e, id)).unwrap();
 
     println!("{}", res);
 }
@@ -149,11 +136,7 @@ fn maybe_respond_success(v: serde_json::Value, id: Option<Id>) {
         None => return,
     };
 
-    let res = jsonrpcmsg::serialize::to_response_string(&Response::success(
-        v,
-        Some(id),
-    ))
-    .unwrap();
+    let res = jsonrpcmsg::serialize::to_response_string(&Response::success(v, Some(id))).unwrap();
 
     println!("{}", res);
 }
@@ -185,14 +168,13 @@ pub fn interact(
             }
         };
 
-        let provider_message =
-            match handle(library, controller, &decider_message) {
-                Ok(pm) => pm,
-                Err(e) => {
-                    maybe_respond_error(e, request.id);
-                    continue;
-                }
-            };
+        let provider_message = match handle(library, controller, &decider_message) {
+            Ok(pm) => pm,
+            Err(e) => {
+                maybe_respond_error(e, request.id);
+                continue;
+            }
+        };
 
         let response = message_to_response(&provider_message);
         maybe_respond_success(response, request.id);

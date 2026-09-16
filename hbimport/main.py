@@ -65,12 +65,21 @@ def hbimport(url: str) -> dict | None:
 #     )
 # )
 
-# urls.extend(
-#     [
-#         "https://www.nature.com/articles/s41467-025-63167-x",
-#         "https://www.biorxiv.org/content/10.64898/2025.12.14.692434v1.full",
-#     ]
-# )
+urls = []
+urls.extend(
+    [
+        "https://www.nature.com/articles/s41467-025-63167-x",
+        "https://www.biorxiv.org/content/10.64898/2025.12.14.692434v1.full",
+    ]
+)
+
+for url in urls:
+    print("hbimporting", url)
+    e = hbimport(url)
+    if e is None:
+        print("None")
+    else:
+        print(pretty(e))
 
 # for url in scrape.biorxiv_paper_urls(
 #     start="2025-01-01",
