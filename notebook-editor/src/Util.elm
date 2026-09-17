@@ -162,3 +162,8 @@ joinMaybe mmx =
 
         Just (Just x) ->
             Just x
+
+
+last : List a -> Maybe a
+last xs =
+    xs |> List.reverse |> List.head

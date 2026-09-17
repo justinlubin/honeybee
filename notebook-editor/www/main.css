@@ -17,6 +17,7 @@
   --rounding: 5px;
   --ff: "Inter", sans-serif;
   --text-spacing: 10px;
+  --choice-color: #ff4d37;
 }
 
 body {
@@ -78,21 +79,40 @@ button {
   position: sticky;
   top: 0;
   background-color: white;
+  background: repeating-linear-gradient(180deg,
+      white,
+      white 3px,
+      #EEE 3px,
+      #EEE 6px);
   text-align: center;
-  border-bottom: 1px dotted #000000;
-  padding: 5px;
+  /* border-bottom: 1px dotted #000000; */
+  margin: 5px 10px;
+}
+
+.panel header h1 {
+  background-color: white;
+  display: inline-block;
+  padding: 0 10px;
 }
 
 .panel footer {
   text-align: right;
   padding: 20px;
-  background-color: red;
+}
+
+.panel footer button {
+  margin-left: 20px;
 }
 
 .panel>section {
   padding: 20px;
   flex: 1;
-  overflow-y: scroll;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.panel p {
+  margin-bottom: var(--text-spacing);
 }
 
 .cell+.cell {
@@ -125,7 +145,8 @@ h1 {
 
 #control-panel {
   flex: 0 0 600px;
-  height: 400px;
+  /* height: 400px; */
+  height: 100%;
 }
 
 .code-container {
@@ -135,4 +156,50 @@ h1 {
   overflow-x: auto;
   padding: 5px;
   min-height: 2em;
+}
+
+.panel img {
+  width: 100%;
+}
+
+.choice {
+  background-color: var(--choice-color);
+  color: white;
+  font-style: normal;
+  padding: 0px 3px 0 3px;
+  text-transform: uppercase;
+  font-weight: var(--bold);
+  border-radius: var(--rounding);
+}
+
+label {}
+
+.panel details {
+  margin-left: 30px;
+}
+
+.panel summary {
+  cursor: default;
+  user-select: none;
+}
+
+strong {
+  font-weight: var(--bold);
+}
+
+.panel li {
+  margin-bottom: var(--text-spacing);
+}
+
+.use {
+  color: #888;
+  font-size: 0.8em;
+}
+
+.markdown.inline {
+  display: inline;
+}
+
+.markdown.inline>* {
+  display: inline;
 }

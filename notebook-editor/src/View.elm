@@ -8,10 +8,29 @@ import Core
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
+import Incoming
 import Json.Encode
+import Markdown
 import Model exposing (Model)
 import Update exposing (Msg(..))
 import Util
+
+
+markdown : List (Attribute msg) -> String -> Html msg
+markdown attrs s =
+    Markdown.toHtmlWith
+        { githubFlavored = Just { tables = True, breaks = False }
+        , defaultHighlighting = Nothing
+        , sanitize = False
+        , smartypants = True
+        }
+        (A.class "markdown" :: attrs)
+        s
+
+
+inlineMarkdown : List (Attribute msg) -> String -> Html msg
+inlineMarkdown attrs s =
+    markdown (A.class "inline" :: attrs) s
 
 
 fancyCode : List (Attribute msg) -> { language : String, code : String } -> Html msg
@@ -212,16 +231,133 @@ cell c =
                 ]
 
 
+choice : Incoming.PbnStatusMessage -> Panel
+choice status =
+    let
+        nextChoice =
+            status.cells
+                |> List.indexedMap
+                    (\i c ->
+                        case c of
+                            Cell.Code _ ->
+                                Nothing
+
+                            Cell.Choice cc ->
+                                Just ( i, cc )
+                    )
+                |> Util.justs
+                |> Util.last
+
+        header =
+            [ h1 [] [ text "Control Panel" ] ]
+    in
+    case nextChoice of
+        Just ( cellIndex, cc ) ->
+            let
+                selectionMade =
+                    case cc.selectedFunctionChoice of
+                        Just _ ->
+                            True
+
+                        Nothing ->
+                            False
+            in
+            { header = header
+            , body =
+                [ h2 []
+                    [ span [ A.class "choice" ] [ text "Choice" ]
+                    , text " "
+                    , text cc.typeTitle
+                    ]
+                , case cc.typeDescription of
+                    Just desc ->
+                        markdown [] desc
+
+                    Nothing ->
+                        text ""
+                , ul
+                    []
+                    (List.indexedMap
+                        (\functionIndex fc ->
+                            functionChoice
+                                { cellIndex = cellIndex
+                                , functionIndex = functionIndex
+                                , selected =
+                                    Just functionIndex == cc.selectedFunctionChoice
+                                }
+                                fc
+                        )
+                        cc.functionChoices
+                    )
+                ]
+            , footer =
+                Just
+                    [ button
+                        [ A.disabled (not selectionMade)
+                        , E.onClick <|
+                            UserDeselectedFunction
+                                { cellIndex = cellIndex }
+                        ]
+                        [ text "Clear selection" ]
+                    , button [ A.disabled (not selectionMade) ] [ text "Continue" ]
+                    ]
+            }
+
+        Nothing ->
+            { header = header, body = [ text "all done!" ], footer = Nothing }
+
+
+functionChoice :
+    { cellIndex : Int, functionIndex : Int, selected : Bool }
+    -> Cell.FunctionChoice
+    -> Html Msg
+functionChoice ctx fc =
+    li []
+        [ label []
+            [ input
+                [ A.name "function-choice"
+                , A.type_ "radio"
+
+                -- , A.value fc.functionTitle
+                , A.checked ctx.selected
+                , E.onInput <|
+                    \_ ->
+                        UserSelectedFunction
+                            { cellIndex = ctx.cellIndex }
+                            ctx.functionIndex
+                ]
+                []
+            , strong [] [ text fc.functionTitle ]
+            , case fc.use of
+                Just use ->
+                    span
+                        [ A.class "use" ]
+                        [ text " ("
+                        , inlineMarkdown [] use
+                        , text ")"
+                        ]
+
+                Nothing ->
+                    text ""
+            ]
+        , details
+            []
+            [ summary [] [ text "More Info" ]
+            , p [] [ text "what's up" ]
+            ]
+        ]
+
+
 controlPanel : Model -> Html Msg
 controlPanel model =
     panel
         [ A.id "control-panel" ]
-        (case Debug.log "status" model.pbnStatus of
+        (case model.pbnStatus of
             Nothing ->
                 goalSpecification model
 
-            Just _ ->
-                { header = [], body = [], footer = Nothing }
+            Just status ->
+                choice status
         )
 
 
