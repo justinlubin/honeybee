@@ -155,7 +155,7 @@ syncGoalSuggestions : ( Model, Cmd msg ) -> ( Model, Cmd msg )
 syncGoalSuggestions ( model, cmd ) =
     case
         model.program
-            |> Complete.complete { allowGoalHoles = True }
+            |> Complete.complete { allowPropHoles = True, allowGoalHoles = True }
             |> Maybe.map Compile.compile
     of
         Just programSource ->
@@ -231,11 +231,22 @@ update msg model =
                             model
 
                         Just sig ->
-                            { model
-                                | program =
+                            let
+                                intermediateProgram =
                                     Core.set pi
                                         (Just (Core.fresh name sig))
                                         model.program
+
+                                newProgram =
+                                    case pi of
+                                        Goal ->
+                                            intermediateProgram
+
+                                        Prop _ ->
+                                            { intermediateProgram | goal = Nothing }
+                            in
+                            { model
+                                | program = newProgram
                                 , pbnStatus = Nothing
                             }
             in
@@ -243,9 +254,15 @@ update msg model =
 
         UserClearedStep pi ->
             let
+                intermediateProgram =
+                    Core.set pi Nothing model.program
+
+                newProgram =
+                    { intermediateProgram | goal = Nothing }
+
                 newModel =
                     { model
-                        | program = Core.set pi Nothing model.program
+                        | program = newProgram
                         , pbnStatus = Nothing
                     }
             in
@@ -270,8 +287,8 @@ update msg model =
         UserStartedNavigation x ->
             ( model
             , Cmd.batch
-                [ Outgoing.oScrollIntoView { selector = "#navigation-pane" }
-                , Outgoing.oPbnInit x
+                [ -- Outgoing.oScrollIntoView { selector = "#navigation-pane" }
+                  Outgoing.oPbnInit x
                 ]
             )
 

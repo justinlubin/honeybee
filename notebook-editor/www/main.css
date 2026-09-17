@@ -32,9 +32,17 @@ body {
   line-height: 1.3;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 main {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  height: 100%;
+  gap: 20px;
+  padding: 20px;
 }
 
 h2 {
@@ -43,23 +51,42 @@ h2 {
   margin-bottom: var(--text-spacing);
 }
 
-p {
+select {
   margin-bottom: var(--text-spacing);
+  width: 100%;
+  font-size: 1.1em;
+  padding: 5px;
+}
+
+button {
+  padding: 10px;
+  font-size: 1.1em;
 }
 
 .panel {
-  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   background-color: white;
-  margin: 20px;
   border: 2px solid #000000;
   box-shadow: var(--shadow);
   border-radius: var(--rounding);
 }
 
-header {
+.panel header {
   text-align: center;
   border-bottom: 1px dotted #000000;
   padding: 5px;
+}
+
+.panel footer {
+  text-align: right;
+  padding: 20px;
+}
+
+.panel section {
+  padding: 20px;
+  flex: 1;
 }
 
 h1 {
@@ -67,6 +94,26 @@ h1 {
   font-size: 1.3em;
 }
 
-section {
-  padding: 20px;
+.waiting {
+  text-align: center;
+}
+
+.pane-inactive {
+  cursor: not-allowed;
+  color: #888;
+}
+
+
+.pane+.pane {
+  margin-top: 10px;
+}
+
+#code-panel {
+  flex: 1;
+  height: 100%;
+}
+
+#control-panel {
+  flex: 0 0 600px;
+  height: 400px;
 }

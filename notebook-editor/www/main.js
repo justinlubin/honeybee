@@ -182,11 +182,11 @@ const app = Elm.Main.init({
 ////////////////////////////////////////////////////////////////////////////////
 // Elm ports
 
-app.ports.oScrollIntoView.subscribe((msg) => {
-  window.setTimeout(() => {
-    document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
-  }, 100);
-});
+// app.ports.oScrollIntoView.subscribe((msg) => {
+//   window.setTimeout(() => {
+//     document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
+//   }, 100);
+// });
 
 // PBN
 
