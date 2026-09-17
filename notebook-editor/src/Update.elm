@@ -332,9 +332,20 @@ update msg model =
             )
 
         UserClickedUndo ->
-            ( model
-            , Outgoing.oPbnUndo {}
-            )
+            case model.pbnStatus of
+                Just status ->
+                    if status.canUndo then
+                        ( model
+                        , Outgoing.oPbnUndo {}
+                        )
+
+                    else
+                        ( { model | pbnStatus = Nothing }
+                        , Cmd.none
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         BackendSentPbnStatus status ->
             ( { model | pbnStatus = Just status }

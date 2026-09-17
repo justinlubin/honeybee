@@ -324,7 +324,11 @@ choice status =
                 ]
             , footer =
                 Just
-                    [ button [ A.class "left" ] [ text "Undo" ]
+                    [ button
+                        [ A.class "left"
+                        , E.onClick UserClickedUndo
+                        ]
+                        [ text "Undo" ]
                     , button
                         [ A.disabled (not selectionMade)
                         , E.onClick <|
