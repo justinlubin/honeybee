@@ -337,3 +337,7 @@ strong {
   border-radius: var(--rounding);
   border: 1px dashed #888;
 }
+
+#active-choice-cell {
+  scroll-margin-top: 10px;
+}
