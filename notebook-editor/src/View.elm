@@ -227,13 +227,39 @@ codePanel model =
                     ]
 
                 Just status ->
-                    List.map cell status.cells
+                    let
+                        lastChoiceIndex =
+                            status.cells
+                                |> List.indexedMap
+                                    (\i c ->
+                                        case c of
+                                            Cell.Choice _ ->
+                                                Just i
+
+                                            Cell.Code _ ->
+                                                Nothing
+                                    )
+                                |> Util.justs
+                                |> Util.last
+                    in
+                    List.indexedMap
+                        (\i c ->
+                            cell
+                                { lastChoiceIndex = lastChoiceIndex
+                                , index = i
+                                }
+                                c
+                        )
+                        status.cells
         , footer = Nothing
         }
 
 
-cell : Cell.Cell -> Html Msg
-cell c =
+cell :
+    { lastChoiceIndex : Maybe Int, index : Int }
+    -> Cell.Cell
+    -> Html Msg
+cell ctx c =
     case c of
         Cell.Code cc ->
             section
@@ -247,11 +273,22 @@ cell c =
                     ]
                 ]
 
-        Cell.Choice cc ->
-            section
-                [ A.class "cell", A.style "color" "red" ]
-                [ h2 [] [ text "CHOICE" ]
-                ]
+        Cell.Choice _ ->
+            if Just ctx.index == ctx.lastChoiceIndex then
+                section
+                    [ A.id "active-choice-cell"
+                    , A.class "cell"
+                    , A.class "cell-choice"
+                    ]
+                    [ text "Underway"
+                    ]
+
+            else
+                section
+                    [ A.class "cell", A.class "cell-choice" ]
+                    [ text "The code that goes here filled out using the control panel "
+                    , strong [] [ text "in a future step" ]
+                    ]
 
 
 choice : Incoming.PbnStatusMessage -> Panel

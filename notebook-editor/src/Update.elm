@@ -318,7 +318,10 @@ update msg model =
 
         UserMadePbnChoice choice ->
             ( model
-            , Outgoing.oPbnChoose { choice = choice }
+            , Cmd.batch
+                [ Outgoing.oPbnChoose { choice = choice }
+                , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                ]
             )
 
         UserRequestedDownload x ->
@@ -336,7 +339,10 @@ update msg model =
                 Just status ->
                     if status.canUndo then
                         ( model
-                        , Outgoing.oPbnUndo {}
+                        , Cmd.batch
+                            [ Outgoing.oPbnUndo {}
+                            , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                            ]
                         )
 
                     else

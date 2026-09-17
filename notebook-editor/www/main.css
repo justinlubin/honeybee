@@ -173,6 +173,7 @@ h1 {
   overflow-x: auto;
   padding: 5px;
   min-height: 2em;
+  margin-bottom: 20px;
 }
 
 .markdown img {
@@ -327,4 +328,12 @@ strong {
   position: absolute;
   bottom: -15px;
   left: calc(50% - 15px);
+}
+
+.cell-choice {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  border-radius: var(--rounding);
+  border: 1px dashed #888;
 }
