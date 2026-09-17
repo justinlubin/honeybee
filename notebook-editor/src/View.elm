@@ -360,7 +360,7 @@ functionChoice :
     -> Cell.FunctionChoice
     -> Html Msg
 functionChoice ctx fc =
-    li []
+    li [ A.classList [ ( "selected", ctx.selected ) ] ]
         [ label []
             [ input
                 [ A.name "function-choice"

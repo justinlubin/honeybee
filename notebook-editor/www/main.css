@@ -212,7 +212,12 @@ strong {
 }
 
 .function-choices>li {
-  margin-bottom: var(--text-spacing);
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.function-choices>li.selected {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .use {
