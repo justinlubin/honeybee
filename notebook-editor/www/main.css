@@ -44,6 +44,7 @@ main {
   min-height: 0;
   display: flex;
   align-items: center;
+  flex-direction: row;
   gap: 20px;
   padding: 20px;
 }
@@ -275,83 +276,6 @@ strong {
   top: 2px;
 }
 
-.markdown li {
-  margin-bottom: var(--text-spacing);
-}
-
-.markdown blockquote {
-  color: #888;
-  border-left: 5px solid #888;
-  padding: 0 10px;
-  margin-bottom: 10px;
-}
-
-.markdown h1 {
-
-  margin-bottom: var(--text-spacing);
-}
-
-.markdown em,
-.markdown i {
-  font-style: italic;
-}
-
-.markdown strong,
-.markdown b {
-  font-weight: var(--bold);
-}
-
-.markdown .more-info {
-  cursor: help;
-  text-decoration: underline;
-  text-decoration-style: dashed;
-  position: relative;
-}
-
-.markdown .more-info>span {
-  display: block !important;
-  visibility: hidden;
-  background-color: #fff;
-  width: 300px;
-  font-size: 0.8em;
-  padding: 10px;
-  border: 2px solid black;
-  border-radius: var(--rounding);
-  position: absolute;
-  bottom: 3em;
-  left: calc(50% - 150px);
-  z-index: 5;
-}
-
-.markdown .more-info:hover>span {
-  visibility: visible;
-}
-
-.markdown .more-info>span:before {
-  content: "";
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-top: 12px solid #fff;
-  position: absolute;
-  bottom: -12px;
-  left: calc(50% - 12px);
-  z-index: 6;
-}
-
-.markdown .more-info>span:after {
-  content: "";
-  width: 0;
-  height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-top: 15px solid black;
-  position: absolute;
-  bottom: -15px;
-  left: calc(50% - 15px);
-}
-
 .cell.speculating {
   padding: 10px;
   border: 5px solid var(--choice-color);
@@ -439,4 +363,169 @@ strong {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+/* Markdown */
+
+.markdown.inline {
+  display: inline;
+}
+
+.markdown.inline>* {
+  display: inline;
+}
+
+.markdown h1 {
+  font-weight: var(--bold);
+  font-size: 1.1em;
+  margin-bottom: 10px;
+}
+
+.markdown h2 {
+  font-weight: var(--bold);
+  font-size: 1.05em;
+  margin-bottom: 10px;
+}
+
+.markdown blockquote {
+  color: #888;
+  border-left: 5px solid #888;
+  padding: 0 10px;
+  margin-bottom: 10px;
+}
+
+.markdown em,
+.markdown i {
+  font-style: italic;
+}
+
+.markdown strong,
+.markdown b {
+  font-weight: var(--bold);
+}
+
+.markdown ul,
+.markdown ol {
+  margin-bottom: 10px;
+}
+
+.markdown li {
+  margin-bottom: 0;
+  margin-left: 30px;
+}
+
+.markdown ol li {
+  list-style-type: decimal;
+}
+
+.markdown ul li {
+  list-style-type: disc;
+}
+
+.markdown code {
+  background-color: rgba(0, 0, 0, 0.05);
+  font-family: monospace;
+}
+
+.markdown table {
+  width: 100%;
+
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--rounding);
+  overflow: hidden;
+
+  margin-bottom: 10px;
+}
+
+.markdown td,
+.markdown th {
+  padding: 5px 10px;
+  border: 1px solid black;
+  border-style: none solid solid none;
+}
+
+.markdown th {
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.1);
+
+  border-top-style: solid;
+}
+
+.markdown td {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+
+.markdown th:first-child {
+  border-left-style: solid;
+  border-top-left-radius: var(--rounding);
+}
+
+.markdown th:last-child {
+  border-top-right-radius: var(--rounding);
+}
+
+.markdown td:first-child {
+  border-left-style: solid;
+}
+
+.markdown tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--rounding);
+}
+
+.markdown tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--rounding);
+}
+
+
+.markdown .more-info {
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  position: relative;
+}
+
+.markdown .more-info>span {
+  display: block !important;
+  visibility: hidden;
+  background-color: #fff;
+  width: 300px;
+  font-size: 0.8em;
+  padding: 10px;
+  border: 2px solid black;
+  border-radius: var(--rounding);
+  position: absolute;
+  bottom: 3em;
+  left: calc(50% - 150px);
+  z-index: 5;
+}
+
+.markdown .more-info:hover>span {
+  visibility: visible;
+}
+
+.markdown .more-info>span:before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid #fff;
+  position: absolute;
+  bottom: -12px;
+  left: calc(50% - 12px);
+  z-index: 6;
+}
+
+.markdown .more-info>span:after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 15px solid black;
+  position: absolute;
+  bottom: -15px;
+  left: calc(50% - 15px);
 }
