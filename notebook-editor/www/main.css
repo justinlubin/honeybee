@@ -20,6 +20,7 @@
   /* --choice-color: #22c051; */
   --choice-color-light: #edfcf1;
   --choice-color: #18923d;
+  --menu-bar-height: 30px;
 }
 
 body {
@@ -39,9 +40,10 @@ body {
 }
 
 main {
+  flex-grow: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
-  height: 100%;
   gap: 20px;
   padding: 20px;
 }
@@ -92,20 +94,35 @@ a:hover {
 .panel header {
   position: sticky;
   top: 0;
-  background-color: white;
-  background: repeating-linear-gradient(180deg,
-      white,
-      white 3px,
-      #EEE 3px,
-      #EEE 6px);
   text-align: center;
-  /* border-bottom: 1px dotted #000000; */
-  margin: 5px 10px;
+  border-bottom: 1px dotted #000000;
+  padding: 5px;
+}
+
+.bg-line {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  border-bottom: 1px dashed #888;
+  z-index: -1;
+}
+
+.bg-line:nth-child(1) {
+  top: 25%;
+}
+
+.bg-line:nth-child(2) {
+  top: 50%;
+}
+
+.bg-line:nth-child(3) {
+  top: 75%;
 }
 
 .panel header h1 {
-  background-color: white;
   display: inline-block;
+  background-color: white;
   padding: 0 10px;
 }
 
@@ -164,6 +181,7 @@ h1 {
 
 #control-panel {
   flex: 0 0 600px;
+  /* align-self: flex-start; */
   /* height: 400px; */
   height: 100%;
 }
@@ -210,6 +228,7 @@ h1 {
   margin-bottom: var(--text-spacing);
 }
 
+b,
 strong {
   font-weight: var(--bold);
 }
@@ -366,4 +385,58 @@ strong {
 .choices-header {
   color: var(--choice-color);
   margin-top: 20px;
+}
+
+/* Menu bar */
+
+.menu-bar {
+  display: flex;
+  justify-content: space-between;
+  background-color: #333;
+  color: #fff;
+  padding: 0 6px;
+  border-bottom: 1px solid #000;
+
+  line-height: var(--menu-bar-height);
+}
+
+.menu-bar-left>span {
+  margin-right: 30px;
+}
+
+.menu-bar img {
+  width: calc(var(--menu-bar-height) - 12px);
+  height: calc(var(--menu-bar-height) - 12px);
+  margin-bottom: 0;
+  vertical-align: sub;
+}
+
+.menu-bar a {
+  color: inherit;
+}
+
+.menu-bar a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.version-number {
+  color: rgba(255, 255, 255, 0.25);
+  margin-left: 10px;
+}
+
+.unstable-indicator {
+  display: inline-block;
+  background-color: red;
+  color: white;
+  font-weight: bold;
+  margin-left: 5px;
+  padding: 1px 3px;
+  line-height: 1.3;
+  border-radius: var(--rounding);
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }

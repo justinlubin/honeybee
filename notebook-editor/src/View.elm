@@ -15,6 +15,7 @@ import Markdown
 import Model exposing (Model)
 import Update exposing (Msg(..))
 import Util
+import Version
 
 
 type SearchEngine
@@ -143,9 +144,13 @@ type alias Panel =
 
 panel : List (Html.Attribute Msg) -> Panel -> Html Msg
 panel attrs p =
+    let
+        bgLine =
+            span [ A.class "bg-line" ] []
+    in
     div
         (A.class "panel" :: attrs)
-        [ header [] p.header
+        [ header [] ([ bgLine, bgLine, bgLine ] ++ p.header)
         , section [] p.body
         , case p.footer of
             Just f ->
@@ -614,9 +619,65 @@ controlPanel model =
         )
 
 
+mainMenuBar : Html Msg
+mainMenuBar =
+    div
+        [ A.class "menu-bar" ]
+        [ div [ A.class "menu-bar-left" ]
+            [ span []
+                [ text "🐝 "
+                , b
+                    []
+                    [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
+                    ]
+                , text " (homepage)"
+                ]
+            , span []
+                [ img
+                    [ A.src "assets/zulip-icon-circle.svg"
+                    , A.width 20
+                    , A.height 20
+                    ]
+                    []
+                , text " "
+                , b []
+                    [ a
+                        [ A.href "https://chat.honeybee-lang.org" ]
+                        [ text "Zulip" ]
+                    ]
+                , text " (say hi, ask for help)"
+                ]
+            , span []
+                [ text "📓 "
+                , b []
+                    [ a
+                        [ A.href "launch-notebook.sh"
+                        , A.download "launch-notebook.sh"
+                        ]
+                        [ text "Download notebook launcher" ]
+                    ]
+                ]
+            ]
+        , div [ A.class "menu-bar-right" ]
+            [ span
+                [ A.class "version-number" ]
+                [ text <| " build " ++ Version.build
+                , if not Version.stable then
+                    span [ A.class "unstable-indicator" ] [ text " UNSTABLE" ]
+
+                  else
+                    text ""
+                ]
+            ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
-    main_ []
-        [ codePanel model
-        , controlPanel model
+    div [ A.id "root" ]
+        [ mainMenuBar
+        , main_ []
+            [ codePanel model
+            , controlPanel model
+            ]
         ]
