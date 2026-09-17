@@ -8,7 +8,7 @@
 #     rustup target add wasm32-unknown-unknown
 
 OPTIMIZE_ELM := false
-HERE_DIR := editor
+HERE_DIR := notebook-editor
 ENGINE_DIR := ../engine
 JS_DIR := ../engine-js
 LANG_DIR := ../honey
