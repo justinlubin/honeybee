@@ -276,6 +276,15 @@ choice status =
     case nextChoice of
         Just ( cellIndex, cc ) ->
             let
+                maybePbnChoiceIndex =
+                    cc.selectedFunctionChoice
+                        |> Maybe.andThen
+                            (\fci -> Util.at fci cc.functionChoices)
+                        |> Maybe.andThen
+                            (\fc -> Util.at fc.selectedMetadataChoice fc.metadataChoices)
+                        |> Maybe.map
+                            (\mc -> mc.choiceIndex)
+
                 selectionMade =
                     case cc.selectedFunctionChoice of
                         Just _ ->
@@ -289,7 +298,7 @@ choice status =
                 [ h2 []
                     [ span [ A.class "choice" ] [ text "Choice" ]
                     , text " "
-                    , text cc.typeTitle
+                    , text (Annotations.removeAll cc.typeTitle)
                     ]
                 , case cc.typeDescription of
                     Just desc ->
@@ -323,7 +332,17 @@ choice status =
                                 { cellIndex = cellIndex }
                         ]
                         [ text "Clear selection" ]
-                    , button [ A.disabled (not selectionMade) ] [ text "Continue" ]
+                    , button
+                        ([ A.disabled (not selectionMade) ]
+                            ++ (case maybePbnChoiceIndex of
+                                    Just i ->
+                                        [ E.onClick (UserMadePbnChoice i) ]
+
+                                    Nothing ->
+                                        []
+                               )
+                        )
+                        [ text "Continue" ]
                     ]
             }
 
