@@ -26,7 +26,7 @@ all: \
 .PHONY: clean
 clean:
 	rm -f $(OUT_DIR)/elm.js
-	rm -f $(OUT_DIR)/pkg
+	rm -rf $(OUT_DIR)/pkg
 	rm -f $(OUT_DIR)/bio.hblib.toml
 	rm -f $(OUT_DIR)/launch-notebook.sh
 

@@ -139,3 +139,26 @@ at i xs =
     xs
         |> List.drop i
         |> List.head
+
+
+asSingleton : List a -> Maybe a
+asSingleton xs =
+    case xs of
+        [ x ] ->
+            Just x
+
+        _ ->
+            Nothing
+
+
+joinMaybe : Maybe (Maybe a) -> Maybe a
+joinMaybe mmx =
+    case mmx of
+        Nothing ->
+            Nothing
+
+        Just Nothing ->
+            Nothing
+
+        Just (Just x) ->
+            Just x
