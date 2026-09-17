@@ -16,7 +16,7 @@ type alias Model =
 init : Library -> Model
 init library =
     { library = library
-    , program = Core.empty
+    , program = Core.example library -- Core.empty
     , pbnStatus = Nothing
     , goalSuggestions = []
     }

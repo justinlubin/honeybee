@@ -71,9 +71,13 @@ button {
   border: 2px solid #000000;
   box-shadow: var(--shadow);
   border-radius: var(--rounding);
+  min-width: 0;
 }
 
 .panel header {
+  position: sticky;
+  top: 0;
+  background-color: white;
   text-align: center;
   border-bottom: 1px dotted #000000;
   padding: 5px;
@@ -82,16 +86,22 @@ button {
 .panel footer {
   text-align: right;
   padding: 20px;
+  background-color: red;
 }
 
-.panel section {
+.panel>section {
   padding: 20px;
   flex: 1;
+  overflow-y: scroll;
+}
+
+.cell+.cell {
+  margin-top: 10px;
 }
 
 h1 {
   font-weight: var(--bold);
-  font-size: 1.3em;
+  font-size: 1.1em;
 }
 
 .waiting {
@@ -116,4 +126,13 @@ h1 {
 #control-panel {
   flex: 0 0 600px;
   height: 400px;
+}
+
+.code-container {
+  border: 1px solid #E0E0E0;
+  background-color: #F5F5F5;
+  width: 100%;
+  overflow-x: auto;
+  padding: 5px;
+  min-height: 2em;
 }

@@ -1,3 +1,4 @@
 user-files/
 log.txt
 images/*.gz
+.ipynb_checkpoints
