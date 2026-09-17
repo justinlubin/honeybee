@@ -16,6 +16,28 @@ import Update exposing (Msg(..))
 import Util
 
 
+type SearchEngine
+    = Google
+    | DuckDuckGo
+
+
+searchEngineUrl : SearchEngine -> String -> String
+searchEngineUrl se query =
+    let
+        prefix =
+            case se of
+                Google ->
+                    "https://google.com/search?q="
+
+                DuckDuckGo ->
+                    "https://duckduckgo.com/?q="
+
+        encodedQuery =
+            String.replace " " "+" query
+    in
+    prefix ++ encodedQuery
+
+
 markdown : List (Attribute msg) -> String -> Html msg
 markdown attrs s =
     Markdown.toHtmlWith
@@ -275,8 +297,9 @@ choice status =
 
                     Nothing ->
                         text ""
+                , h3 [] [ text "Choices for next step" ]
                 , ul
-                    []
+                    [ A.class "function-choices" ]
                     (List.indexedMap
                         (\functionIndex fc ->
                             functionChoice
@@ -292,7 +315,8 @@ choice status =
                 ]
             , footer =
                 Just
-                    [ button
+                    [ button [ A.class "left" ] [ text "Undo" ]
+                    , button
                         [ A.disabled (not selectionMade)
                         , E.onClick <|
                             UserDeselectedFunction
@@ -317,8 +341,6 @@ functionChoice ctx fc =
             [ input
                 [ A.name "function-choice"
                 , A.type_ "radio"
-
-                -- , A.value fc.functionTitle
                 , A.checked ctx.selected
                 , E.onInput <|
                     \_ ->
@@ -332,19 +354,141 @@ functionChoice ctx fc =
                 Just use ->
                     span
                         [ A.class "use" ]
-                        [ text " ("
+                        [ text " "
                         , inlineMarkdown [] use
-                        , text ")"
                         ]
 
                 Nothing ->
                     text ""
             ]
-        , details
-            []
-            [ summary [] [ text "More Info" ]
-            , p [] [ text "what's up" ]
-            ]
+        , ul [ A.class "tool-search-info" ] <|
+            List.concat
+                [ if fc.search then
+                    let
+                        searchEngineQuery =
+                            fc.functionTitle ++ " bioinformatics"
+                    in
+                    [ li []
+                        [ img [ A.src "assets/google.webp" ] []
+                        , a
+                            [ A.href (searchEngineUrl Google searchEngineQuery) ]
+                            [ text "Google" ]
+                        ]
+                    , li []
+                        [ img [ A.src "assets/duckduckgo.png" ] []
+                        , a
+                            [ A.href (searchEngineUrl DuckDuckGo searchEngineQuery) ]
+                            [ text "DuckDuckGo" ]
+                        ]
+                    ]
+
+                  else
+                    []
+                , case fc.pmid of
+                    Just pmid ->
+                        [ li []
+                            [ img [ A.src "assets/nih.png" ] []
+                            , a
+                                [ A.href <|
+                                    "https://pubmed.ncbi.nlm.nih.gov/"
+                                        ++ pmid
+                                        ++ "/"
+                                ]
+                                [ text "PubMed" ]
+                            ]
+                        ]
+
+                    Nothing ->
+                        []
+                , case fc.googleScholarId of
+                    Just gsid ->
+                        [ li []
+                            [ img [ A.src "assets/google_scholar.png" ] []
+                            , a
+                                [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
+                                [ text "Google Scholar" ]
+                            ]
+                        ]
+
+                    Nothing ->
+                        []
+                ]
+        , case fc.functionDescription of
+            Just desc ->
+                details
+                    []
+                    [ summary [] [ text "More info…" ]
+                    , div []
+                        [ markdown [] desc
+                        , if List.isEmpty fc.hyperparameters then
+                            text ""
+
+                          else
+                            details []
+                                [ summary [] [ text "Parameters you’ll need to set…" ]
+                                , div [ A.class "markdown" ]
+                                    [ p []
+                                        [ text "Once you download your script, you will need to set the following parameters at the top of the file:"
+                                        ]
+                                    , ul []
+                                        (List.map
+                                            (\h ->
+                                                li []
+                                                    [ code [] [ text h.name ]
+                                                    , text <|
+                                                        ": "
+                                                            ++ h.comment
+                                                            ++ " (default: "
+                                                            ++ h.default
+                                                            ++ ")"
+                                                    ]
+                                            )
+                                            fc.hyperparameters
+                                        )
+                                    ]
+                                ]
+                        , case fc.citation of
+                            Just citation ->
+                                details [] <|
+                                    [ summary [] [ text "Citation information..." ]
+                                    , div [ A.class "markdown" ] <|
+                                        [ p []
+                                            [ text <|
+                                                "If you use "
+                                                    ++ fc.functionTitle
+                                                    ++ ", please cite it as:"
+                                            ]
+                                        , blockquote [] [ text citation ]
+                                        ]
+                                            ++ (case fc.additionalCitations of
+                                                    Just acs ->
+                                                        [ p [] [ text "Please also cite:" ]
+                                                        ]
+                                                            ++ List.map
+                                                                (\c ->
+                                                                    blockquote
+                                                                        []
+                                                                        [ text c ]
+                                                                )
+                                                                acs
+
+                                                    Nothing ->
+                                                        []
+                                               )
+                                    ]
+
+                            Nothing ->
+                                text ""
+                        , if List.length fc.metadataChoices > 1 then
+                            text "TODO"
+
+                          else
+                            text ""
+                        ]
+                    ]
+
+            Nothing ->
+                text ""
         ]
 
 
