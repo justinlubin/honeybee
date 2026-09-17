@@ -240,6 +240,16 @@ app.ports.oPbnChoose.subscribe((msg) => {
   }
 });
 
+app.ports.oPbnSpeculate.subscribe((msg) => {
+  try {
+    const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
+    Honeybee.pbn_undo();
+    app.ports.iPbnSpeculativeStatus_.send(pbnStatusMessage);
+  } catch (e) {
+    console.error(e);
+  }
+});
+
 app.ports.oPbnUndo.subscribe((_msg) => {
   try {
     const pbnStatusMessage = elmify(Honeybee.pbn_undo());

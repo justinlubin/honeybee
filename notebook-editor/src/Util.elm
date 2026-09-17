@@ -11,6 +11,12 @@ findFirst f xs =
     List.head (List.filter f xs)
 
 
+findFirst2 : (a -> b -> Bool) -> List a -> List b -> Maybe ( a, b )
+findFirst2 f xs ys =
+    List.map2 (\x y -> ( x, y )) xs ys
+        |> findFirst (\( x, y ) -> f x y)
+
+
 indexedFilter : (Int -> a -> Bool) -> List a -> List a
 indexedFilter pred xs =
     xs

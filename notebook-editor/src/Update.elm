@@ -27,7 +27,7 @@ type
     | UserRemovedStep Int
     | UserSetArgument ProgramIndex String String
     | UserStartedNavigation { programSource : String }
-    | UserSelectedFunction { cellIndex : Int } Int
+    | UserSelectedFunction { cellIndex : Int } Int (Maybe Int)
     | UserDeselectedFunction { cellIndex : Int }
     | UserSelectedMetadata { cellIndex : Int, functionIndex : Int } Int
     | UserMadePbnChoice Int
@@ -35,7 +35,7 @@ type
     | UserClickedExample
     | UserClickedUndo
       -- Backend actions
-    | BackendSentPbnStatus Incoming.PbnStatusMessage
+    | BackendSentPbnStatus { speculative : Bool } Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
 
 
@@ -287,23 +287,31 @@ update msg model =
         UserStartedNavigation x ->
             ( model
             , Cmd.batch
-                [ -- Outgoing.oScrollIntoView { selector = "#navigation-pane" }
-                  Outgoing.oPbnInit x
+                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                , Outgoing.oPbnInit x
                 ]
             )
 
-        UserSelectedFunction { cellIndex } functionIndex ->
+        UserSelectedFunction { cellIndex } functionIndex speculateChoice ->
             ( setFunctionChoice
                 { cellIndex = cellIndex, functionIndex = Just functionIndex }
                 model
-            , Cmd.none
+            , Cmd.batch
+                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                , case speculateChoice of
+                    Just choice ->
+                        Outgoing.oPbnSpeculate { choice = choice }
+
+                    Nothing ->
+                        Cmd.none
+                ]
             )
 
         UserDeselectedFunction { cellIndex } ->
             ( setFunctionChoice
                 { cellIndex = cellIndex, functionIndex = Nothing }
-                model
-            , Cmd.none
+                { model | speculativePbnStatus = Nothing }
+            , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
             )
 
         UserSelectedMetadata { cellIndex, functionIndex } metadataIndex ->
@@ -353,8 +361,15 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        BackendSentPbnStatus status ->
-            ( { model | pbnStatus = Just status }
+        BackendSentPbnStatus { speculative } status ->
+            ( if speculative then
+                { model | speculativePbnStatus = Just status }
+
+              else
+                { model
+                    | pbnStatus = Just status
+                    , speculativePbnStatus = Nothing
+                }
             , Cmd.none
             )
 
@@ -388,14 +403,30 @@ subscriptions _ =
             \psResult ->
                 case psResult of
                     Ok ps ->
-                        BackendSentPbnStatus ps
+                        BackendSentPbnStatus { speculative = False } ps
 
                     Err e ->
                         let
                             _ =
-                                Debug.log "error" e
+                                Debug.log "status error" e
                         in
-                        BackendSentPbnStatus
+                        BackendSentPbnStatus { speculative = False }
+                            { cells = []
+                            , output = Nothing
+                            , canUndo = False
+                            }
+        , Incoming.iPbnSpeculativeStatus <|
+            \psResult ->
+                case psResult of
+                    Ok ps ->
+                        BackendSentPbnStatus { speculative = True } ps
+
+                    Err e ->
+                        let
+                            _ =
+                                Debug.log "speculative status error" e
+                        in
+                        BackendSentPbnStatus { speculative = True }
                             { cells = []
                             , output = Nothing
                             , canUndo = False

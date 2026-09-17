@@ -133,9 +133,17 @@ decodePbnStatus =
 port iPbnStatus_ : (D.Value -> msg) -> Sub msg
 
 
+port iPbnSpeculativeStatus_ : (D.Value -> msg) -> Sub msg
+
+
 iPbnStatus : (Result D.Error PbnStatusMessage -> msg) -> Sub msg
 iPbnStatus f =
     iPbnStatus_ (D.decodeValue decodePbnStatus >> f)
+
+
+iPbnSpeculativeStatus : (Result D.Error PbnStatusMessage -> msg) -> Sub msg
+iPbnSpeculativeStatus f =
+    iPbnSpeculativeStatus_ (D.decodeValue decodePbnStatus >> f)
 
 
 

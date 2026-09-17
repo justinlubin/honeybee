@@ -14,10 +14,12 @@
 
   --bold: 600;
   --shadow: 2px 2px 0px #333;
-  --rounding: 5px;
+  --rounding: 7px;
   --ff: "Inter", sans-serif;
   --text-spacing: 10px;
-  --choice-color: #ff4d37;
+  /* --choice-color: #22c051; */
+  --choice-color-light: #edfcf1;
+  --choice-color: #18923d;
 }
 
 body {
@@ -218,11 +220,12 @@ strong {
 }
 
 .function-choices>li.selected {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--choice-color-light);
+  border: 5px solid var(--choice-color);
 }
 
 .use {
-  color: #888;
+  color: #666;
   font-size: 0.8em;
 }
 
@@ -330,7 +333,24 @@ strong {
   left: calc(50% - 15px);
 }
 
-.cell-choice {
+.cell.speculating {
+  padding: 10px;
+  border: 5px solid var(--choice-color);
+  border-radius: var(--rounding);
+  background-color: var(--choice-color-light);
+}
+
+.cell.waiting-for-speculation {
+  padding: 20px;
+  text-align: center;
+  color: var(--choice-color);
+  border-radius: var(--rounding);
+  border: 2px dashed var(--choice-color);
+  background-color: var(--choice-color-light);
+  font-size: 1.1em;
+}
+
+.cell.dormant {
   padding: 20px;
   text-align: center;
   color: #888;
@@ -338,6 +358,12 @@ strong {
   border: 1px dashed #888;
 }
 
-#active-choice-cell {
+
+.cell {
   scroll-margin-top: 10px;
+}
+
+.choices-header {
+  color: var(--choice-color);
+  margin-top: 20px;
 }

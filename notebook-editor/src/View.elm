@@ -247,6 +247,23 @@ codePanel model =
                             cell
                                 { lastChoiceIndex = lastChoiceIndex
                                 , index = i
+                                , diff =
+                                    case model.speculativePbnStatus of
+                                        Just specStatus ->
+                                            Util.findFirst2
+                                                (\x y ->
+                                                    case ( x, y ) of
+                                                        ( Cell.Choice _, Cell.Code _ ) ->
+                                                            True
+
+                                                        _ ->
+                                                            False
+                                                )
+                                                (List.reverse status.cells)
+                                                (List.reverse specStatus.cells)
+
+                                        Nothing ->
+                                            Nothing
                                 }
                                 c
                         )
@@ -256,7 +273,10 @@ codePanel model =
 
 
 cell :
-    { lastChoiceIndex : Maybe Int, index : Int }
+    { lastChoiceIndex : Maybe Int
+    , index : Int
+    , diff : Maybe ( Cell.Cell, Cell.Cell )
+    }
     -> Cell.Cell
     -> Html Msg
 cell ctx c =
@@ -275,19 +295,36 @@ cell ctx c =
 
         Cell.Choice _ ->
             if Just ctx.index == ctx.lastChoiceIndex then
-                section
-                    [ A.id "active-choice-cell"
-                    , A.class "cell"
-                    , A.class "cell-choice"
-                    ]
-                    [ text "Underway"
-                    ]
+                case ctx.diff of
+                    Just ( _, Cell.Code specCode ) ->
+                        section
+                            [ A.id "active-choice-cell"
+                            , A.class "cell"
+                            , A.class "speculating"
+                            ]
+                            [ h2 [] [ text specCode.title ]
+                            , div [ A.class "code-container" ]
+                                [ fancyCode []
+                                    { language = "python"
+                                    , code = specCode.code
+                                    }
+                                ]
+                            ]
+
+                    _ ->
+                        section
+                            [ A.id "active-choice-cell"
+                            , A.class "cell"
+                            , A.class "waiting-for-speculation"
+                            ]
+                            [ span [ A.class "choice" ] [ text "Choice" ]
+                            , text " Choose code for this slot in the control panel"
+                            ]
 
             else
                 section
-                    [ A.class "cell", A.class "cell-choice" ]
-                    [ text "The code that goes here filled out using the control panel "
-                    , strong [] [ text "in a future step" ]
+                    [ A.class "cell", A.class "dormant" ]
+                    [ text "The code that goes here will be filled out using the control panel later"
                     ]
 
 
@@ -344,7 +381,9 @@ choice status =
 
                     Nothing ->
                         text ""
-                , h3 [] [ text "Choices for next step" ]
+                , h3
+                    [ A.class "choices-header" ]
+                    [ text "Choices for next step" ]
                 , ul
                     [ A.class "function-choices" ]
                     (List.indexedMap
@@ -397,6 +436,11 @@ functionChoice :
     -> Cell.FunctionChoice
     -> Html Msg
 functionChoice ctx fc =
+    let
+        maybePbnChoiceIndex =
+            Util.at fc.selectedMetadataChoice fc.metadataChoices
+                |> Maybe.map (\mc -> mc.choiceIndex)
+    in
     li [ A.classList [ ( "selected", ctx.selected ) ] ]
         [ label []
             [ input
@@ -408,6 +452,7 @@ functionChoice ctx fc =
                         UserSelectedFunction
                             { cellIndex = ctx.cellIndex }
                             ctx.functionIndex
+                            maybePbnChoiceIndex
                 ]
                 []
             , strong [] [ text fc.functionTitle ]
