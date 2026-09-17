@@ -86,6 +86,7 @@ factSelect lib blankName pi mfact enabled =
         wrap key title =
             option
                 [ A.value key
+                , A.selected (Just key == selectedName)
                 ]
                 [ text title
                 ]
