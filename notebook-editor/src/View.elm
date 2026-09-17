@@ -8,6 +8,7 @@ import Core
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
+import Html.Keyed
 import Incoming
 import Json.Encode
 import Markdown
@@ -384,17 +385,19 @@ choice status =
                 , h3
                     [ A.class "choices-header" ]
                     [ text "Choices for next step" ]
-                , ul
+                , Html.Keyed.ul
                     [ A.class "function-choices" ]
                     (List.indexedMap
                         (\functionIndex fc ->
-                            functionChoice
+                            ( fc.functionTitle
+                            , functionChoice
                                 { cellIndex = cellIndex
                                 , functionIndex = functionIndex
                                 , selected =
                                     Just functionIndex == cc.selectedFunctionChoice
                                 }
                                 fc
+                            )
                         )
                         cc.functionChoices
                     )
