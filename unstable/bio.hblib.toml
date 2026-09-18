@@ -1,5 +1,5 @@
 [Config]
-name = "Honeybee Biology Library Release 8 (650b12f)"
+name = "Honeybee Biology Library Release 8 (e11c0de)"
 erase_static = true
 
 [[Preamble]]

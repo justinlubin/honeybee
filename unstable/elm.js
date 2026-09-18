@@ -8382,7 +8382,7 @@ var $author$project$View$controlPanel = function (model) {
 		}());
 };
 var $elm$html$Html$b = _VirtualDom_node('b');
-var $author$project$Version$build = '650b12f';
+var $author$project$Version$build = 'e11c0de';
 var $elm$html$Html$Attributes$download = function (fileName) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
 };
