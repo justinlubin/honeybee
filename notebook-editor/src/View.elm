@@ -354,89 +354,125 @@ choice status =
         header =
             [ h1 [] [ text "Control Panel" ] ]
     in
-    case nextChoice of
-        Just ( cellIndex, cc ) ->
-            let
-                maybePbnChoiceIndex =
-                    cc.selectedFunctionChoice
-                        |> Maybe.andThen
-                            (\fci -> Util.at fci cc.functionChoices)
-                        |> Maybe.andThen
-                            (\fc -> Util.at fc.selectedMetadataChoice fc.metadataChoices)
-                        |> Maybe.map
-                            (\mc -> mc.choiceIndex)
-
-                selectionMade =
-                    case cc.selectedFunctionChoice of
-                        Just _ ->
-                            True
-
-                        Nothing ->
-                            False
-            in
+    case status.output of
+        Just output ->
             { header = header
             , body =
-                [ h2 []
-                    [ span [ A.class "choice" ] [ text "Choice" ]
-                    , text " "
-                    , text (Annotations.removeAll cc.typeTitle)
+                [ h2 [] [ text "All done!" ]
+                , div [ A.class "markdown" ]
+                    [ p [] [ text "You have completed all the choices you need to make." ]
+                    , p [] [ text "Here’s what to do next:" ]
+                    , ol []
+                        [ li [] [ text "Download the notebook using the button below." ]
+                        , li [] [ text "Open the notebook in Jupyter Lab." ]
+                        , li [] [ text "Set the parameter variables at the top of the notebook." ]
+                        , li [] [ text "Fill out any necessary sample sheets in a spreadsheet editor." ]
+                        , li [] [ text "Run the code on your data!" ]
+                        ]
                     ]
-                , case cc.typeDescription of
-                    Just desc ->
-                        markdown [] desc
-
-                    Nothing ->
-                        text ""
-                , h3
-                    [ A.class "choices-header" ]
-                    [ text "Choices for next step" ]
-                , Html.Keyed.ul
-                    [ A.class "function-choices" ]
-                    (List.indexedMap
-                        (\functionIndex fc ->
-                            ( fc.functionTitle
-                            , functionChoice
-                                { cellIndex = cellIndex
-                                , functionIndex = functionIndex
-                                , selected =
-                                    Just functionIndex == cc.selectedFunctionChoice
-                                }
-                                fc
-                            )
-                        )
-                        cc.functionChoices
-                    )
                 ]
             , footer =
                 Just
                     [ button
-                        [ A.class "left"
-                        , E.onClick UserClickedUndo
+                        [ A.class "big"
+                        , E.onClick
+                            (UserRequestedDownload
+                                { filename = "pipeline.ipynb"
+                                , text = output
+                                }
+                            )
                         ]
-                        [ text "Undo" ]
-                    , button
-                        [ A.disabled (not selectionMade)
-                        , E.onClick <|
-                            UserDeselectedFunction
-                                { cellIndex = cellIndex }
-                        ]
-                        [ text "Clear selection" ]
-                    , button
-                        ([ A.disabled (not selectionMade) ]
-                            ++ (case maybePbnChoiceIndex of
-                                    Just i ->
-                                        [ E.onClick (UserMadePbnChoice i) ]
-
-                                    Nothing ->
-                                        []
-                               )
-                        )
-                        [ text "Continue" ]
+                        [ text "Download notebook" ]
                     ]
             }
 
         Nothing ->
-            { header = header, body = [ text "all done!" ], footer = Nothing }
+            case nextChoice of
+                Just ( cellIndex, cc ) ->
+                    let
+                        maybePbnChoiceIndex =
+                            cc.selectedFunctionChoice
+                                |> Maybe.andThen
+                                    (\fci -> Util.at fci cc.functionChoices)
+                                |> Maybe.andThen
+                                    (\fc -> Util.at fc.selectedMetadataChoice fc.metadataChoices)
+                                |> Maybe.map
+                                    (\mc -> mc.choiceIndex)
+
+                        selectionMade =
+                            case cc.selectedFunctionChoice of
+                                Just _ ->
+                                    True
+
+                                Nothing ->
+                                    False
+                    in
+                    { header = header
+                    , body =
+                        [ h2 []
+                            [ span [ A.class "choice" ] [ text "Choice" ]
+                            , text " "
+                            , text (Annotations.removeAll cc.typeTitle)
+                            ]
+                        , case cc.typeDescription of
+                            Just desc ->
+                                markdown [] desc
+
+                            Nothing ->
+                                text ""
+                        , h3
+                            [ A.class "choices-header" ]
+                            [ text "Choices for next step" ]
+                        , Html.Keyed.ul
+                            [ A.class "function-choices" ]
+                            (List.indexedMap
+                                (\functionIndex fc ->
+                                    ( fc.functionTitle
+                                    , functionChoice
+                                        { cellIndex = cellIndex
+                                        , functionIndex = functionIndex
+                                        , selected =
+                                            Just functionIndex == cc.selectedFunctionChoice
+                                        }
+                                        fc
+                                    )
+                                )
+                                cc.functionChoices
+                            )
+                        ]
+                    , footer =
+                        Just
+                            [ button
+                                [ A.class "left"
+                                , E.onClick UserClickedUndo
+                                ]
+                                [ text "Undo" ]
+                            , button
+                                [ A.disabled (not selectionMade)
+                                , E.onClick <|
+                                    UserDeselectedFunction
+                                        { cellIndex = cellIndex }
+                                ]
+                                [ text "Clear selection" ]
+                            , button
+                                ([ A.disabled (not selectionMade) ]
+                                    ++ (case maybePbnChoiceIndex of
+                                            Just i ->
+                                                [ E.onClick (UserMadePbnChoice i) ]
+
+                                            Nothing ->
+                                                []
+                                       )
+                                )
+                                [ text "Continue" ]
+                            ]
+                    }
+
+                Nothing ->
+                    { header = header
+                    , body = [ p [] [ text "Something has gone wrong… please try refreshing the page!" ] ]
+                    , footer = Nothing
+                    }
 
 
 functionChoice :
