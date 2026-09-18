@@ -18,6 +18,17 @@ import Util
 import Version
 
 
+cellTitle : Cell.Cell -> String
+cellTitle c =
+    Annotations.removeAll <|
+        case c of
+            Cell.Code { title } ->
+                title
+
+            Cell.Choice { typeTitle } ->
+                typeTitle
+
+
 type SearchEngine
     = Google
     | DuckDuckGo
@@ -221,7 +232,47 @@ codePanel : Model -> Html Msg
 codePanel model =
     panel
         [ A.id "code-panel" ]
-        { header = [ h1 [] [ text "Code Panel" ] ]
+        { header =
+            [ h1 [] [ text "Code Panel" ]
+            , case model.pbnStatus of
+                Nothing ->
+                    text ""
+
+                Just status ->
+                    text ""
+
+            -- Outline!
+            -- div
+            --     [ A.id "outline" ]
+            --     [ details []
+            --         [ summary [] [ text "Outline" ]
+            --         , ul [] <|
+            --             List.indexedMap
+            --                 (\_ c ->
+            --                     li []
+            --                         [ a
+            --                             [ A.href "#" ]
+            --                           <|
+            --                             (if Cell.isChoice c then
+            --                                 [ span
+            --                                     [ A.class "card-reference"
+            --                                     , A.class "cell-choice"
+            --                                     ]
+            --                                     [ text "Choice"
+            --                                     ]
+            --                                 , text " "
+            --                                 ]
+            --                              else
+            --                                 []
+            --                             )
+            --                                 ++ [ text (cellTitle c)
+            --                                    ]
+            --                         ]
+            --                 )
+            --                 status.cells
+            --         ]
+            --     ]
+            ]
         , body =
             case model.pbnStatus of
                 Nothing ->
