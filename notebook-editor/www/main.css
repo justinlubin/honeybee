@@ -237,7 +237,7 @@ strong {
 .function-choices>li {
   padding: 5px;
   border: 5px solid white;
-  border-radius: 5px;
+  border-radius: var(--rounding);
 }
 
 .function-choices>li.selected {
