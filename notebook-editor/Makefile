@@ -10,6 +10,7 @@
 OPTIMIZE_ELM := false
 HERE_DIR := notebook-editor
 ENGINE_DIR := ../engine
+CLI_DIR := ../engine-cli
 JS_DIR := ../engine-js
 LANG_DIR := ../honey
 GLUE_DIR := ../libs/bio
@@ -56,7 +57,7 @@ $(OUT_DIR)/bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*
 		--project $(GLUE_DIR) \
 		$(GLUE_DIR)/bio.py \
 		> $(OUT_DIR)/bio.hblib.toml && \
-	cd $(ENGINE_DIR) && \
+	cd $(CLI_DIR) && \
 	cargo run -- validate -l ../$(HERE_DIR)/$(OUT_DIR)/bio.hblib.toml
 
 $(OUT_DIR)/launch-notebook.sh: $(GLUE_DIR)/launch-notebook.sh
