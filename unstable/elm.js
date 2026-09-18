@@ -5259,9 +5259,72 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Core$empty = {goal: $elm$core$Maybe$Nothing, props: _List_Nil};
+var $author$project$Core$VTStr = {$: 'VTStr'};
+var $author$project$Assoc$get = F2(
+	function (k, a) {
+		get:
+		while (true) {
+			if (!a.b) {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var _v1 = a.a;
+				var k2 = _v1.a;
+				var v = _v1.b;
+				var tl = a.b;
+				if (_Utils_eq(k2, k)) {
+					return $elm$core$Maybe$Just(v);
+				} else {
+					var $temp$k = k,
+						$temp$a = tl;
+					k = $temp$k;
+					a = $temp$a;
+					continue get;
+				}
+			}
+		}
+	});
+var $author$project$Core$example = function (library) {
+	var propName = 'P_RnaSeq';
+	var goalName = 'DifferentialGeneExpression';
+	var _v0 = _Utils_Tuple2(
+		A2($author$project$Assoc$get, propName, library.props),
+		A2($author$project$Assoc$get, goalName, library.types));
+	if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
+		var propSig = _v0.a.a;
+		var typeSig = _v0.b.a;
+		return {
+			goal: $elm$core$Maybe$Just(
+				{args: _List_Nil, name: goalName, sig: typeSig}),
+			props: _List_fromArray(
+				[
+					$elm$core$Maybe$Just(
+					{
+						args: _List_fromArray(
+							[
+								_Utils_Tuple2(
+								'sample_sheet',
+								_Utils_Tuple2('sample_sheet.csv', $author$project$Core$VTStr)),
+								_Utils_Tuple2(
+								'comparison_sheet',
+								_Utils_Tuple2('comparison_sheet.csv', $author$project$Core$VTStr))
+							]),
+						name: propName,
+						sig: propSig
+					})
+				])
+		};
+	} else {
+		return {goal: $elm$core$Maybe$Nothing, props: _List_Nil};
+	}
+};
 var $author$project$Model$init = function (library) {
-	return {goalSuggestions: _List_Nil, library: library, pbnStatus: $elm$core$Maybe$Nothing, program: $author$project$Core$empty};
+	return {
+		goalSuggestions: _List_Nil,
+		library: library,
+		pbnStatus: $elm$core$Maybe$Nothing,
+		program: $author$project$Core$example(library),
+		speculativePbnStatus: $elm$core$Maybe$Nothing
+	};
 };
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$at = F2(
@@ -5405,7 +5468,6 @@ var $elm$json$Json$Decode$maybe = function (decoder) {
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Core$VTBool = {$: 'VTBool'};
 var $author$project$Core$VTInt = {$: 'VTInt'};
-var $author$project$Core$VTStr = {$: 'VTStr'};
 var $elm$json$Json$Decode$andThen = _Json_andThen;
 var $elm$json$Json$Decode$fail = _Json_fail;
 var $author$project$Incoming$valueType = A2(
@@ -5498,9 +5560,10 @@ var $elm$core$Result$mapError = F2(
 	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Update$BackendSentPbnStatus = function (a) {
-	return {$: 'BackendSentPbnStatus', a: a};
-};
+var $author$project$Update$BackendSentPbnStatus = F2(
+	function (a, b) {
+		return {$: 'BackendSentPbnStatus', a: a, b: b};
+	});
 var $author$project$Update$BackendSentValidGoalMetadata = function (a) {
 	return {$: 'BackendSentValidGoalMetadata', a: a};
 };
@@ -5764,6 +5827,14 @@ var $author$project$Incoming$decodePbnStatus = A4(
 		'output',
 		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
 	A2($elm$json$Json$Decode$field, 'can_undo', $elm$json$Json$Decode$bool));
+var $author$project$Incoming$iPbnSpeculativeStatus_ = _Platform_incomingPort('iPbnSpeculativeStatus_', $elm$json$Json$Decode$value);
+var $author$project$Incoming$iPbnSpeculativeStatus = function (f) {
+	return $author$project$Incoming$iPbnSpeculativeStatus_(
+		A2(
+			$elm$core$Basics$composeR,
+			$elm$json$Json$Decode$decodeValue($author$project$Incoming$decodePbnStatus),
+			f));
+};
 var $author$project$Incoming$iPbnStatus_ = _Platform_incomingPort('iPbnStatus_', $elm$json$Json$Decode$value);
 var $author$project$Incoming$iPbnStatus = function (f) {
 	return $author$project$Incoming$iPbnStatus_(
@@ -5801,11 +5872,33 @@ var $author$project$Update$subscriptions = function (_v0) {
 				function (psResult) {
 					if (psResult.$ === 'Ok') {
 						var ps = psResult.a;
-						return $author$project$Update$BackendSentPbnStatus(ps);
+						return A2(
+							$author$project$Update$BackendSentPbnStatus,
+							{speculative: false},
+							ps);
 					} else {
 						var e = psResult.a;
-						var _v2 = A2($elm$core$Debug$log, 'error', e);
-						return $author$project$Update$BackendSentPbnStatus(
+						var _v2 = A2($elm$core$Debug$log, 'status error', e);
+						return A2(
+							$author$project$Update$BackendSentPbnStatus,
+							{speculative: false},
+							{canUndo: false, cells: _List_Nil, output: $elm$core$Maybe$Nothing});
+					}
+				}),
+				$author$project$Incoming$iPbnSpeculativeStatus(
+				function (psResult) {
+					if (psResult.$ === 'Ok') {
+						var ps = psResult.a;
+						return A2(
+							$author$project$Update$BackendSentPbnStatus,
+							{speculative: true},
+							ps);
+					} else {
+						var e = psResult.a;
+						var _v4 = A2($elm$core$Debug$log, 'speculative status error', e);
+						return A2(
+							$author$project$Update$BackendSentPbnStatus,
+							{speculative: true},
 							{canUndo: false, cells: _List_Nil, output: $elm$core$Maybe$Nothing});
 					}
 				}),
@@ -5865,29 +5958,6 @@ var $author$project$Assoc$all = F2(
 				return A2(p, x, y);
 			},
 			a);
-	});
-var $author$project$Assoc$get = F2(
-	function (k, a) {
-		get:
-		while (true) {
-			if (!a.b) {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var _v1 = a.a;
-				var k2 = _v1.a;
-				var v = _v1.b;
-				var tl = a.b;
-				if (_Utils_eq(k2, k)) {
-					return $elm$core$Maybe$Just(v);
-				} else {
-					var $temp$k = k,
-						$temp$a = tl;
-					k = $temp$k;
-					a = $temp$a;
-					continue get;
-				}
-			}
-		}
 	});
 var $author$project$Core$Blank = {$: 'Blank'};
 var $author$project$Core$ParseFail = {$: 'ParseFail'};
@@ -6070,40 +6140,6 @@ var $author$project$Update$consistentSuggestions = F2(
 				}),
 			goalFact.args);
 	});
-var $author$project$Core$example = function (library) {
-	var propName = 'P_RnaSeq';
-	var goalName = 'DifferentialGeneExpression';
-	var _v0 = _Utils_Tuple2(
-		A2($author$project$Assoc$get, propName, library.props),
-		A2($author$project$Assoc$get, goalName, library.types));
-	if ((_v0.a.$ === 'Just') && (_v0.b.$ === 'Just')) {
-		var propSig = _v0.a.a;
-		var typeSig = _v0.b.a;
-		return {
-			goal: $elm$core$Maybe$Just(
-				{args: _List_Nil, name: goalName, sig: typeSig}),
-			props: _List_fromArray(
-				[
-					$elm$core$Maybe$Just(
-					{
-						args: _List_fromArray(
-							[
-								_Utils_Tuple2(
-								'sample_sheet',
-								_Utils_Tuple2('sample_sheet.csv', $author$project$Core$VTStr)),
-								_Utils_Tuple2(
-								'comparison_sheet',
-								_Utils_Tuple2('comparison_sheet.csv', $author$project$Core$VTStr))
-							]),
-						name: propName,
-						sig: propSig
-					})
-				])
-		};
-	} else {
-		return {goal: $elm$core$Maybe$Nothing, props: _List_Nil};
-	}
-};
 var $author$project$Core$fresh = F2(
 	function (name, sig) {
 		return {
@@ -6219,6 +6255,17 @@ var $author$project$Outgoing$oPbnInit = _Platform_outgoingPort(
 					_Utils_Tuple2(
 					'programSource',
 					$elm$json$Json$Encode$string($.programSource))
+				]));
+	});
+var $author$project$Outgoing$oPbnSpeculate = _Platform_outgoingPort(
+	'oPbnSpeculate',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'choice',
+					$elm$json$Json$Encode$int($.choice))
 				]));
 	});
 var $author$project$Outgoing$oPbnUndo = _Platform_outgoingPort(
@@ -6575,6 +6622,7 @@ var $elm$core$Maybe$map2 = F3(
 	});
 var $author$project$Complete$complete = F2(
 	function (_v0, prog) {
+		var allowPropHoles = _v0.allowPropHoles;
 		var allowGoalHoles = _v0.allowGoalHoles;
 		return $elm$core$List$isEmpty(prog.props) ? $elm$core$Maybe$Nothing : A3(
 			$elm$core$Maybe$map2,
@@ -6586,7 +6634,7 @@ var $author$project$Complete$complete = F2(
 				A2(
 					$elm$core$List$map,
 					$elm$core$Maybe$andThen(
-						$author$project$Complete$fact(false)),
+						$author$project$Complete$fact(allowPropHoles)),
 					prog.props)),
 			A2(
 				$elm$core$Maybe$andThen,
@@ -6612,7 +6660,7 @@ var $author$project$Update$syncGoalSuggestions = function (_v0) {
 		$author$project$Compile$compile,
 		A2(
 			$author$project$Complete$complete,
-			{allowGoalHoles: true},
+			{allowGoalHoles: true, allowPropHoles: true},
 			model.program));
 	if (_v1.$ === 'Just') {
 		var programSource = _v1.a;
@@ -6660,29 +6708,37 @@ var $author$project$Update$update = F2(
 						return model;
 					} else {
 						var sig = _v1.a;
+						var intermediateProgram = A3(
+							$author$project$Core$set,
+							pi,
+							$elm$core$Maybe$Just(
+								A2($author$project$Core$fresh, name, sig)),
+							model.program);
+						var newProgram = function () {
+							if (pi.$ === 'Goal') {
+								return intermediateProgram;
+							} else {
+								return _Utils_update(
+									intermediateProgram,
+									{goal: $elm$core$Maybe$Nothing});
+							}
+						}();
 						return _Utils_update(
 							model,
-							{
-								pbnStatus: $elm$core$Maybe$Nothing,
-								program: A3(
-									$author$project$Core$set,
-									pi,
-									$elm$core$Maybe$Just(
-										A2($author$project$Core$fresh, name, sig)),
-									model.program)
-							});
+							{pbnStatus: $elm$core$Maybe$Nothing, program: newProgram});
 					}
 				}();
 				return $author$project$Update$syncGoalSuggestions(
 					_Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
 			case 'UserClearedStep':
 				var pi = msg.a;
+				var intermediateProgram = A3($author$project$Core$set, pi, $elm$core$Maybe$Nothing, model.program);
+				var newProgram = _Utils_update(
+					intermediateProgram,
+					{goal: $elm$core$Maybe$Nothing});
 				var newModel = _Utils_update(
 					model,
-					{
-						pbnStatus: $elm$core$Maybe$Nothing,
-						program: A3($author$project$Core$set, pi, $elm$core$Maybe$Nothing, model.program)
-					});
+					{pbnStatus: $elm$core$Maybe$Nothing, program: newProgram});
 				return $author$project$Update$syncGoalSuggestions(
 					_Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
 			case 'UserRemovedStep':
@@ -6711,12 +6767,13 @@ var $author$project$Update$update = F2(
 						_List_fromArray(
 							[
 								$author$project$Outgoing$oScrollIntoView(
-								{selector: '#navigation-pane'}),
+								{selector: '#active-choice-cell'}),
 								$author$project$Outgoing$oPbnInit(x)
 							])));
 			case 'UserSelectedFunction':
 				var cellIndex = msg.a.cellIndex;
 				var functionIndex = msg.b;
+				var speculateChoice = msg.c;
 				return _Utils_Tuple2(
 					A2(
 						$author$project$Update$setFunctionChoice,
@@ -6725,15 +6782,32 @@ var $author$project$Update$update = F2(
 							functionIndex: $elm$core$Maybe$Just(functionIndex)
 						},
 						model),
-					$elm$core$Platform$Cmd$none);
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								$author$project$Outgoing$oScrollIntoView(
+								{selector: '#active-choice-cell'}),
+								function () {
+								if (speculateChoice.$ === 'Just') {
+									var choice = speculateChoice.a;
+									return $author$project$Outgoing$oPbnSpeculate(
+										{choice: choice});
+								} else {
+									return $elm$core$Platform$Cmd$none;
+								}
+							}()
+							])));
 			case 'UserDeselectedFunction':
 				var cellIndex = msg.a.cellIndex;
 				return _Utils_Tuple2(
 					A2(
 						$author$project$Update$setFunctionChoice,
 						{cellIndex: cellIndex, functionIndex: $elm$core$Maybe$Nothing},
-						model),
-					$elm$core$Platform$Cmd$none);
+						_Utils_update(
+							model,
+							{speculativePbnStatus: $elm$core$Maybe$Nothing})),
+					$author$project$Outgoing$oScrollIntoView(
+						{selector: '#active-choice-cell'}));
 			case 'UserSelectedMetadata':
 				var cellIndex = msg.a.cellIndex;
 				var functionIndex = msg.a.functionIndex;
@@ -6748,8 +6822,14 @@ var $author$project$Update$update = F2(
 				var choice = msg.a;
 				return _Utils_Tuple2(
 					model,
-					$author$project$Outgoing$oPbnChoose(
-						{choice: choice}));
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								$author$project$Outgoing$oPbnChoose(
+								{choice: choice}),
+								$author$project$Outgoing$oScrollIntoView(
+								{selector: '#active-choice-cell'})
+							])));
 			case 'UserRequestedDownload':
 				var x = msg.a;
 				return _Utils_Tuple2(
@@ -6764,27 +6844,49 @@ var $author$project$Update$update = F2(
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'UserClickedUndo':
-				return _Utils_Tuple2(
-					model,
-					$author$project$Outgoing$oPbnUndo(
-						{}));
+				var _v4 = model.pbnStatus;
+				if (_v4.$ === 'Just') {
+					var status = _v4.a;
+					return status.canUndo ? _Utils_Tuple2(
+						model,
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									$author$project$Outgoing$oPbnUndo(
+									{}),
+									$author$project$Outgoing$oScrollIntoView(
+									{selector: '#active-choice-cell'})
+								]))) : _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{pbnStatus: $elm$core$Maybe$Nothing}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 			case 'BackendSentPbnStatus':
-				var status = msg.a;
+				var speculative = msg.a.speculative;
+				var status = msg.b;
 				return _Utils_Tuple2(
-					_Utils_update(
+					speculative ? _Utils_update(
 						model,
 						{
-							pbnStatus: $elm$core$Maybe$Just(status)
+							speculativePbnStatus: $elm$core$Maybe$Just(status)
+						}) : _Utils_update(
+						model,
+						{
+							pbnStatus: $elm$core$Maybe$Just(status),
+							speculativePbnStatus: $elm$core$Maybe$Nothing
 						}),
 					$elm$core$Platform$Cmd$none);
 			default:
 				var goalName = msg.a.goalName;
 				var choices = msg.a.choices;
-				var _v2 = model.program.goal;
-				if (_v2.$ === 'Nothing') {
+				var _v5 = model.program.goal;
+				if (_v5.$ === 'Nothing') {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				} else {
-					var goalFact = _v2.a;
+					var goalFact = _v5.a;
 					return (!_Utils_eq(goalFact.name, goalName)) ? _Utils_Tuple2(model, $elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -6795,9 +6897,6 @@ var $author$project$Update$update = F2(
 				}
 		}
 	});
-var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$html$Html$b = _VirtualDom_node('b');
-var $author$project$Version$build = '5e966d5';
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6806,7 +6905,164 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $author$project$View$circled = $elm$html$Html$Attributes$class('circled');
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $elm$virtual_dom$VirtualDom$node = function (tag) {
+	return _VirtualDom_node(
+		_VirtualDom_noScript(tag));
+};
+var $elm$html$Html$node = $elm$virtual_dom$VirtualDom$node;
+var $elm$virtual_dom$VirtualDom$property = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_property,
+			_VirtualDom_noInnerHtmlOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlJson(value));
+	});
+var $elm$html$Html$Attributes$property = $elm$virtual_dom$VirtualDom$property;
+var $author$project$View$fancyCode = F2(
+	function (attrs, _v0) {
+		var language = _v0.language;
+		var code = _v0.code;
+		return A3(
+			$elm$html$Html$node,
+			'fancy-code',
+			_Utils_ap(
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$attribute, 'language', language),
+						A2(
+						$elm$html$Html$Attributes$property,
+						'code',
+						$elm$json$Json$Encode$string(code))
+					]),
+				attrs),
+			_List_Nil);
+	});
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$section = _VirtualDom_node('section');
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$View$cell = F2(
+	function (ctx, c) {
+		if (c.$ === 'Code') {
+			var cc = c.a;
+			return A2(
+				$elm$html$Html$section,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('cell')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h2,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(cc.title)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('code-container')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$author$project$View$fancyCode,
+								_List_Nil,
+								{code: cc.code, language: 'python'})
+							]))
+					]));
+		} else {
+			if (_Utils_eq(
+				$elm$core$Maybe$Just(ctx.index),
+				ctx.lastChoiceIndex)) {
+				var _v1 = ctx.diff;
+				if ((_v1.$ === 'Just') && (_v1.a.b.$ === 'Code')) {
+					var _v2 = _v1.a;
+					var specCode = _v2.b.a;
+					return A2(
+						$elm$html$Html$section,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('active-choice-cell'),
+								$elm$html$Html$Attributes$class('cell'),
+								$elm$html$Html$Attributes$class('speculating')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$h2,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(specCode.title)
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('code-container')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$author$project$View$fancyCode,
+										_List_Nil,
+										{code: specCode.code, language: 'python'})
+									]))
+							]));
+				} else {
+					return A2(
+						$elm$html$Html$section,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('active-choice-cell'),
+								$elm$html$Html$Attributes$class('cell'),
+								$elm$html$Html$Attributes$class('waiting-for-speculation')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('choice')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Choice')
+									])),
+								$elm$html$Html$text(' Choose code for this slot in the control panel')
+							]));
+				}
+			} else {
+				return A2(
+					$elm$html$Html$section,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('cell'),
+							$elm$html$Html$Attributes$class('dormant')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('The code that goes here will be filled out using the control panel later')
+						]));
+			}
+		}
+	});
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -6818,6 +7074,47 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Util$findFirst = F2(
+	function (f, xs) {
+		return $elm$core$List$head(
+			A2($elm$core$List$filter, f, xs));
+	});
+var $author$project$Util$findFirst2 = F3(
+	function (f, xs, ys) {
+		return A2(
+			$author$project$Util$findFirst,
+			function (_v0) {
+				var x = _v0.a;
+				var y = _v0.b;
+				return A2(f, x, y);
+			},
+			A3(
+				$elm$core$List$map2,
+				F2(
+					function (x, y) {
+						return _Utils_Tuple2(x, y);
+					}),
+				xs,
+				ys));
+	});
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $author$project$Util$justs = function (xs) {
+	return A2($elm$core$List$filterMap, $elm$core$Basics$identity, xs);
+};
+var $author$project$Util$last = function (xs) {
+	return $elm$core$List$head(
+		$elm$core$List$reverse(xs));
+};
+var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
@@ -6832,117 +7129,702 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				$elm$core$Tuple$first,
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$Attributes$download = function (fileName) {
-	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
-};
-var $elm$html$Html$Attributes$height = function (n) {
+var $author$project$View$pane = F2(
+	function (active, body) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$classList(
+					_List_fromArray(
+						[
+							_Utils_Tuple2('pane', true),
+							_Utils_Tuple2('pane-inactive', !active)
+						]))
+				]),
+			body);
+	});
+var $elm$html$Html$footer = _VirtualDom_node('footer');
+var $elm$html$Html$header = _VirtualDom_node('header');
+var $author$project$View$panel = F2(
+	function (attrs, p) {
+		var bgLine = A2(
+			$elm$html$Html$span,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('bg-line')
+				]),
+			_List_Nil);
+		return A2(
+			$elm$html$Html$div,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('panel'),
+				attrs),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$header,
+					_List_Nil,
+					_Utils_ap(
+						_List_fromArray(
+							[bgLine, bgLine, bgLine]),
+						p.header)),
+					A2($elm$html$Html$section, _List_Nil, p.body),
+					function () {
+					var _v0 = p.footer;
+					if (_v0.$ === 'Just') {
+						var f = _v0.a;
+						return A2($elm$html$Html$footer, _List_Nil, f);
+					} else {
+						return $elm$html$Html$text('');
+					}
+				}()
+				]));
+	});
+var $author$project$View$codePanel = function (model) {
 	return A2(
-		_VirtualDom_attribute,
-		'height',
-		$elm$core$String$fromInt(n));
+		$author$project$View$panel,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$id('code-panel')
+			]),
+		{
+			body: function () {
+				var _v0 = model.pbnStatus;
+				if (_v0.$ === 'Nothing') {
+					return _List_fromArray(
+						[
+							A2(
+							$author$project$View$pane,
+							false,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('waiting')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('No code yet! Use the control panel on the right.')
+										]))
+								]))
+						]);
+				} else {
+					var status = _v0.a;
+					var lastChoiceIndex = $author$project$Util$last(
+						$author$project$Util$justs(
+							A2(
+								$elm$core$List$indexedMap,
+								F2(
+									function (i, c) {
+										if (c.$ === 'Choice') {
+											return $elm$core$Maybe$Just(i);
+										} else {
+											return $elm$core$Maybe$Nothing;
+										}
+									}),
+								status.cells)));
+					return A2(
+						$elm$core$List$indexedMap,
+						F2(
+							function (i, c) {
+								return A2(
+									$author$project$View$cell,
+									{
+										diff: function () {
+											var _v1 = model.speculativePbnStatus;
+											if (_v1.$ === 'Just') {
+												var specStatus = _v1.a;
+												return A3(
+													$author$project$Util$findFirst2,
+													F2(
+														function (x, y) {
+															var _v2 = _Utils_Tuple2(x, y);
+															if ((_v2.a.$ === 'Choice') && (_v2.b.$ === 'Code')) {
+																return true;
+															} else {
+																return false;
+															}
+														}),
+													$elm$core$List$reverse(status.cells),
+													$elm$core$List$reverse(specStatus.cells));
+											} else {
+												return $elm$core$Maybe$Nothing;
+											}
+										}(),
+										index: i,
+										lastChoiceIndex: lastChoiceIndex
+									},
+									c);
+							}),
+						status.cells);
+				}
+			}(),
+			footer: $elm$core$Maybe$Nothing,
+			header: _List_fromArray(
+				[
+					A2(
+					$elm$html$Html$h1,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Code Panel')
+						])),
+					function () {
+					var _v4 = model.pbnStatus;
+					if (_v4.$ === 'Nothing') {
+						return $elm$html$Html$text('');
+					} else {
+						var status = _v4.a;
+						return $elm$html$Html$text('');
+					}
+				}()
+				])
+		});
 };
+var $author$project$Update$UserClickedUndo = {$: 'UserClickedUndo'};
+var $author$project$Update$UserDeselectedFunction = function (a) {
+	return {$: 'UserDeselectedFunction', a: a};
+};
+var $author$project$Update$UserMadePbnChoice = function (a) {
+	return {$: 'UserMadePbnChoice', a: a};
+};
+var $author$project$Update$UserRequestedDownload = function (a) {
+	return {$: 'UserRequestedDownload', a: a};
+};
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $author$project$Util$at = F2(
+	function (i, xs) {
+		return $elm$core$List$head(
+			A2($elm$core$List$drop, i, xs));
+	});
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $author$project$View$DuckDuckGo = {$: 'DuckDuckGo'};
+var $author$project$View$Google = {$: 'Google'};
+var $author$project$Update$UserSelectedFunction = F3(
+	function (a, b, c) {
+		return {$: 'UserSelectedFunction', a: a, b: b, c: c};
+	});
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$html$Html$blockquote = _VirtualDom_node('blockquote');
+var $elm$html$Html$Attributes$checked = $elm$html$Html$Attributes$boolProperty('checked');
+var $elm$html$Html$code = _VirtualDom_node('code');
+var $elm$html$Html$details = _VirtualDom_node('details');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
-var $elm$html$Html$i = _VirtualDom_node('i');
-var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$img = _VirtualDom_node('img');
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $author$project$View$menuBar = F4(
-	function (attrs, left, middle, right) {
-		return A2(
-			$elm$html$Html$div,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('menu-bar'),
-				attrs),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('menu-bar-left')
-						]),
-					left),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('menu-bar-middle')
-						]),
-					middle),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('menu-bar-right')
-						]),
-					right)
-				]));
-	});
-var $elm$html$Html$ol = _VirtualDom_node('ol');
-var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$html$Html$header = _VirtualDom_node('header');
-var $elm$html$Html$section = _VirtualDom_node('section');
-var $author$project$View$pane = F3(
-	function (attrs, headerContent, bodyContent) {
-		return A2(
-			$elm$html$Html$section,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('pane'),
-				attrs),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$header,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('pane-header')
-						]),
-					_List_fromArray(
-						[headerContent])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('pane-body')
-						]),
-					bodyContent)
-				]));
-	});
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $author$project$View$paneHeading = F2(
-	function (attrs, content) {
-		return A2(
-			$elm$html$Html$h1,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('pane-heading'),
-				attrs),
-			content);
-	});
-var $author$project$Update$UserClickedUndo = {$: 'UserClickedUndo'};
-var $author$project$Update$UserRequestedDownload = function (a) {
-	return {$: 'UserRequestedDownload', a: a};
-};
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $author$project$View$cellId = function (cellIndex) {
-	return 'cell' + $elm$core$String$fromInt(cellIndex);
-};
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
+var $elm$core$Maybe$isJust = function (maybe) {
+	if (maybe.$ === 'Just') {
+		return true;
 	} else {
-		return $elm$core$Maybe$Nothing;
+		return false;
 	}
+};
+var $elm_explorations$markdown$Markdown$toHtmlWith = _Markdown_toHtml;
+var $author$project$View$markdown = F2(
+	function (attrs, s) {
+		return A3(
+			$elm_explorations$markdown$Markdown$toHtmlWith,
+			{
+				defaultHighlighting: $elm$core$Maybe$Nothing,
+				githubFlavored: $elm$core$Maybe$Just(
+					{breaks: false, tables: true}),
+				sanitize: false,
+				smartypants: true
+			},
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('markdown'),
+				attrs),
+			s);
+	});
+var $author$project$View$inlineMarkdown = F2(
+	function (attrs, s) {
+		return A2(
+			$author$project$View$markdown,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('inline'),
+				attrs),
+			s);
+	});
+var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$html$Html$label = _VirtualDom_node('label');
+var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$View$searchEngineUrl = F2(
+	function (se, query) {
+		var prefix = function () {
+			if (se.$ === 'Google') {
+				return 'https://google.com/search?q=';
+			} else {
+				return 'https://duckduckgo.com/?q=';
+			}
+		}();
+		var encodedQuery = A3($elm$core$String$replace, ' ', '+', query);
+		return _Utils_ap(prefix, encodedQuery);
+	});
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
+};
+var $elm$html$Html$strong = _VirtualDom_node('strong');
+var $elm$html$Html$summary = _VirtualDom_node('summary');
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $author$project$View$functionChoice = F2(
+	function (ctx, fc) {
+		var maybePbnChoiceIndex = A2(
+			$elm$core$Maybe$map,
+			function (mc) {
+				return mc.choiceIndex;
+			},
+			A2($author$project$Util$at, fc.selectedMetadataChoice, fc.metadataChoices));
+		return A2(
+			$elm$html$Html$li,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$classList(
+					_List_fromArray(
+						[
+							_Utils_Tuple2('selected', ctx.selected)
+						]))
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$label,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$input,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$name('function-choice'),
+									$elm$html$Html$Attributes$type_('radio'),
+									$elm$html$Html$Attributes$checked(ctx.selected),
+									$elm$html$Html$Events$onInput(
+									function (_v0) {
+										return A3(
+											$author$project$Update$UserSelectedFunction,
+											{cellIndex: ctx.cellIndex},
+											ctx.functionIndex,
+											maybePbnChoiceIndex);
+									})
+								]),
+							_List_Nil),
+							A2(
+							$elm$html$Html$strong,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text(fc.functionTitle)
+								])),
+							function () {
+							var _v1 = fc.use;
+							if (_v1.$ === 'Just') {
+								var use = _v1.a;
+								return A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('use')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(' '),
+											A2($author$project$View$inlineMarkdown, _List_Nil, use)
+										]));
+							} else {
+								return $elm$html$Html$text('');
+							}
+						}()
+						])),
+					A2(
+					$elm$html$Html$ul,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('tool-search-info')
+						]),
+					$elm$core$List$concat(
+						_List_fromArray(
+							[
+								function () {
+								if (fc.search) {
+									var searchEngineQuery = fc.functionTitle + ' bioinformatics';
+									return _List_fromArray(
+										[
+											A2(
+											$elm$html$Html$li,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$img,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$src('assets/google.webp')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$a,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$href(
+															A2($author$project$View$searchEngineUrl, $author$project$View$Google, searchEngineQuery))
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Google')
+														]))
+												])),
+											A2(
+											$elm$html$Html$li,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$img,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$src('assets/duckduckgo.png')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$a,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$href(
+															A2($author$project$View$searchEngineUrl, $author$project$View$DuckDuckGo, searchEngineQuery))
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('DuckDuckGo')
+														]))
+												]))
+										]);
+								} else {
+									return _List_Nil;
+								}
+							}(),
+								function () {
+								var _v2 = fc.pmid;
+								if (_v2.$ === 'Just') {
+									var pmid = _v2.a;
+									return _List_fromArray(
+										[
+											A2(
+											$elm$html$Html$li,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$img,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$src('assets/nih.png')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$a,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$href('https://pubmed.ncbi.nlm.nih.gov/' + (pmid + '/'))
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('PubMed')
+														]))
+												]))
+										]);
+								} else {
+									return _List_Nil;
+								}
+							}(),
+								function () {
+								var _v3 = fc.googleScholarId;
+								if (_v3.$ === 'Just') {
+									var gsid = _v3.a;
+									return _List_fromArray(
+										[
+											A2(
+											$elm$html$Html$li,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$img,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$src('assets/google_scholar.png')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$a,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$href('https://scholar.google.com/scholar?cites=' + gsid)
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Google Scholar')
+														]))
+												]))
+										]);
+								} else {
+									return _List_Nil;
+								}
+							}()
+							]))),
+					function () {
+					var _v4 = fc.functionDescription;
+					if (_v4.$ === 'Just') {
+						var desc = _v4.a;
+						return A2(
+							$elm$html$Html$details,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$summary,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('More info…')
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_Nil,
+									_List_fromArray(
+										[
+											A2($author$project$View$markdown, _List_Nil, desc),
+											$elm$core$List$isEmpty(fc.hyperparameters) ? $elm$html$Html$text('') : A2(
+											$elm$html$Html$details,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$summary,
+													_List_Nil,
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Parameters you’ll need to set…')
+														])),
+													A2(
+													$elm$html$Html$div,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('markdown')
+														]),
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$p,
+															_List_Nil,
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Once you download your script, you will need to set the following parameters at the top of the file:')
+																])),
+															A2(
+															$elm$html$Html$ul,
+															_List_Nil,
+															A2(
+																$elm$core$List$map,
+																function (h) {
+																	return A2(
+																		$elm$html$Html$li,
+																		_List_Nil,
+																		_List_fromArray(
+																			[
+																				A2(
+																				$elm$html$Html$code,
+																				_List_Nil,
+																				_List_fromArray(
+																					[
+																						$elm$html$Html$text(h.name)
+																					])),
+																				$elm$html$Html$text(': ' + (h.comment + (' (default: ' + (h._default + ')'))))
+																			]));
+																},
+																fc.hyperparameters))
+														]))
+												])),
+											function () {
+											var _v5 = fc.citation;
+											if (_v5.$ === 'Just') {
+												var citation = _v5.a;
+												return A2(
+													$elm$html$Html$details,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$summary,
+															_List_Nil,
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Citation information...')
+																])),
+															A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('markdown')
+																]),
+															_Utils_ap(
+																_List_fromArray(
+																	[
+																		A2(
+																		$elm$html$Html$p,
+																		_List_Nil,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$text('If you use ' + (fc.functionTitle + ', please cite it as:'))
+																			])),
+																		A2(
+																		$elm$html$Html$blockquote,
+																		_List_Nil,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$text(citation)
+																			]))
+																	]),
+																function () {
+																	var _v6 = fc.additionalCitations;
+																	if (_v6.$ === 'Just') {
+																		var acs = _v6.a;
+																		return _Utils_ap(
+																			_List_fromArray(
+																				[
+																					A2(
+																					$elm$html$Html$p,
+																					_List_Nil,
+																					_List_fromArray(
+																						[
+																							$elm$html$Html$text('Please also cite:')
+																						]))
+																				]),
+																			A2(
+																				$elm$core$List$map,
+																				function (c) {
+																					return A2(
+																						$elm$html$Html$blockquote,
+																						_List_Nil,
+																						_List_fromArray(
+																							[
+																								$elm$html$Html$text(c)
+																							]));
+																				},
+																				acs));
+																	} else {
+																		return _List_Nil;
+																	}
+																}()))
+														]));
+											} else {
+												return $elm$html$Html$text('');
+											}
+										}(),
+											($elm$core$List$length(fc.metadataChoices) > 1) ? $elm$html$Html$text('TODO') : $elm$html$Html$text('')
+										]))
+								]));
+					} else {
+						return $elm$html$Html$text('');
+					}
+				}()
+				]));
+	});
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$html$Html$ol = _VirtualDom_node('ol');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
 };
 var $author$project$Annotations$Intermediate = {$: 'Intermediate'};
 var $author$project$Annotations$NoSuggest = {$: 'NoSuggest'};
@@ -6981,1400 +7863,319 @@ var $author$project$Annotations$split = function (s) {
 var $author$project$Annotations$removeAll = function (s) {
 	return $author$project$Annotations$split(s).b;
 };
-var $author$project$View$cellTitle = function (c) {
-	return $author$project$Annotations$removeAll(
-		function () {
-			if (c.$ === 'Code') {
-				var title = c.a.title;
-				return title;
-			} else {
-				var typeTitle = c.a.typeTitle;
-				return typeTitle;
-			}
-		}());
-};
-var $author$project$View$Collapsible = function (a) {
-	return {$: 'Collapsible', a: a};
-};
-var $author$project$Update$Nop = {$: 'Nop'};
-var $author$project$Update$UserMadePbnChoice = function (a) {
-	return {$: 'UserMadePbnChoice', a: a};
-};
-var $elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var $author$project$Util$at = F2(
-	function (i, xs) {
-		return $elm$core$List$head(
-			A2($elm$core$List$drop, i, xs));
-	});
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $elm$html$Html$details = _VirtualDom_node('details');
-var $elm$html$Html$summary = _VirtualDom_node('summary');
-var $author$project$View$card = F4(
-	function (config, attrs, headerContent, bodyContent) {
-		var _v0 = function () {
-			var _v1 = config.collapse;
-			if (_v1.$ === 'NotCollapsible') {
-				return _Utils_Tuple2(
-					$elm$html$Html$div(_List_Nil),
-					$elm$html$Html$div(_List_Nil));
-			} else {
-				var openByDefault = _v1.a.openByDefault;
-				return _Utils_Tuple2(
-					$elm$html$Html$details(
-						openByDefault ? _List_fromArray(
-							[
-								A2($elm$html$Html$Attributes$attribute, 'open', '')
-							]) : _List_Nil),
-					$elm$html$Html$summary(_List_Nil));
-			}
-		}();
-		var overallWrapper = _v0.a;
-		var headerWrapper = _v0.b;
-		return A2(
-			$elm$html$Html$section,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('card'),
-				attrs),
-			_List_fromArray(
-				[
-					overallWrapper(
-					_List_fromArray(
-						[
-							headerWrapper(
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$header,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('card-header')
-										]),
-									_List_fromArray(
-										[headerContent]))
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card-body')
-								]),
-							bodyContent)
-						]))
-				]));
-	});
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $author$project$View$cardHeading = F4(
-	function (attrs, prefix, content, suffix) {
-		return A2(
-			$elm$html$Html$div,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('card-heading-wrapper'),
-				attrs),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('card-heading-prefix')
-						]),
-					prefix),
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('card-heading-prefix-separator')
-						]),
-					_List_Nil),
-					A2(
-					$elm$html$Html$h3,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('card-heading')
-						]),
-					content),
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('card-heading-suffix')
-						]),
-					suffix)
-				]));
-	});
-var $elm$html$Html$h4 = _VirtualDom_node('h4');
-var $author$project$View$cardInnerHeading = F2(
-	function (attrs, content) {
-		return A2(
-			$elm$html$Html$h4,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('card-inner-heading'),
-				attrs),
-			content);
-	});
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$bool(bool));
-	});
-var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
-var $elm$virtual_dom$VirtualDom$node = function (tag) {
-	return _VirtualDom_node(
-		_VirtualDom_noScript(tag));
-};
-var $elm$html$Html$node = $elm$virtual_dom$VirtualDom$node;
-var $elm$virtual_dom$VirtualDom$property = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_property,
-			_VirtualDom_noInnerHtmlOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlJson(value));
-	});
-var $elm$html$Html$Attributes$property = $elm$virtual_dom$VirtualDom$property;
-var $author$project$View$fancyCode = F2(
-	function (attrs, _v0) {
-		var language = _v0.language;
-		var code = _v0.code;
-		return A3(
-			$elm$html$Html$node,
-			'fancy-code',
-			_Utils_ap(
-				_List_fromArray(
-					[
-						A2($elm$html$Html$Attributes$attribute, 'language', language),
-						A2(
-						$elm$html$Html$Attributes$property,
-						'code',
-						$elm$json$Json$Encode$string(code))
-					]),
-				attrs),
-			_List_Nil);
-	});
-var $author$project$Update$UserDeselectedFunction = function (a) {
-	return {$: 'UserDeselectedFunction', a: a};
-};
-var $author$project$Update$UserSelectedFunction = F2(
-	function (a, b) {
-		return {$: 'UserSelectedFunction', a: a, b: b};
-	});
-var $author$project$View$DuckDuckGo = {$: 'DuckDuckGo'};
-var $author$project$View$Google = {$: 'Google'};
-var $author$project$Update$UserSelectedMetadata = F2(
-	function (a, b) {
-		return {$: 'UserSelectedMetadata', a: a, b: b};
-	});
-var $elm$html$Html$blockquote = _VirtualDom_node('blockquote');
-var $elm$html$Html$code = _VirtualDom_node('code');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $elm$core$Maybe$isJust = function (maybe) {
-	if (maybe.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm_explorations$markdown$Markdown$toHtmlWith = _Markdown_toHtml;
-var $author$project$View$markdown = F2(
-	function (attrs, s) {
-		return A3(
-			$elm_explorations$markdown$Markdown$toHtmlWith,
-			{
-				defaultHighlighting: $elm$core$Maybe$Nothing,
-				githubFlavored: $elm$core$Maybe$Just(
-					{breaks: false, tables: true}),
-				sanitize: false,
-				smartypants: true
-			},
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('markdown'),
-				attrs),
-			s);
-	});
-var $elm$html$Html$Events$alwaysStop = function (x) {
-	return _Utils_Tuple2(x, true);
-};
-var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var $elm$html$Html$Events$targetValue = A2(
-	$elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	$elm$json$Json$Decode$string);
-var $elm$html$Html$Events$onInput = function (tagger) {
-	return A2(
-		$elm$html$Html$Events$stopPropagationOn,
-		'input',
-		A2(
-			$elm$json$Json$Decode$map,
-			$elm$html$Html$Events$alwaysStop,
-			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
-};
-var $elm$html$Html$option = _VirtualDom_node('option');
-var $elm$core$String$replace = F3(
-	function (before, after, string) {
-		return A2(
-			$elm$core$String$join,
-			after,
-			A2($elm$core$String$split, before, string));
-	});
-var $author$project$View$searchEngineUrl = F2(
-	function (se, query) {
-		var prefix = function () {
-			if (se.$ === 'Google') {
-				return 'https://google.com/search?q=';
-			} else {
-				return 'https://duckduckgo.com/?q=';
-			}
-		}();
-		var encodedQuery = A3($elm$core$String$replace, ' ', '+', query);
-		return _Utils_ap(prefix, encodedQuery);
-	});
-var $elm$html$Html$select = _VirtualDom_node('select');
-var $elm$html$Html$Attributes$src = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'src',
-		_VirtualDom_noJavaScriptOrHtmlUri(url));
-};
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
-var $author$project$View$functionChoice = F2(
-	function (ctx, fc) {
-		var selectAdditionalInformation = _List_fromArray(
-			[
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('tabbed-menu-body-label')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Select additional information…')
-					])),
-				A2(
-				$elm$html$Html$select,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('tabbed-menu-body-dropdown'),
-						$elm$html$Html$Events$onInput(
-						function (v) {
-							var _v5 = $elm$core$String$toInt(v);
-							if (_v5.$ === 'Just') {
-								var n = _v5.a;
-								return A2($author$project$Update$UserSelectedMetadata, ctx, n);
-							} else {
-								return $author$project$Update$Nop;
-							}
-						})
-					]),
-				A2(
-					$elm$core$List$indexedMap,
-					F2(
-						function (i, mc) {
-							return A2(
-								$elm$html$Html$option,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$value(
-										$elm$core$String$fromInt(i))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(
-										A2(
-											$elm$core$String$join,
-											', ',
-											A2(
-												$author$project$Assoc$mapCollapse,
-												F2(
-													function (k, v) {
-														return k + (' = ' + $author$project$Compile$value(v));
-													}),
-												mc.metadata)))
-									]));
-						}),
-					fc.metadataChoices))
-			]);
-		var searchEngineQuery = fc.functionTitle + ' bioinformatics';
-		return {
-			body: A2(
-				$elm$html$Html$div,
-				_List_Nil,
-				_Utils_ap(
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$ul,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('tool-search-info')
-								]),
-							_List_fromArray(
-								[
-									fc.search ? A2(
-									$elm$html$Html$li,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Search for '),
-											$elm$html$Html$text(fc.functionTitle),
-											$elm$html$Html$text(' on '),
-											A2(
-											$elm$html$Html$img,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$src('assets/google.webp')
-												]),
-											_List_Nil),
-											A2(
-											$elm$html$Html$a,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$href(
-													A2($author$project$View$searchEngineUrl, $author$project$View$Google, searchEngineQuery))
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text('Google')
-												])),
-											$elm$html$Html$text(' or '),
-											A2(
-											$elm$html$Html$img,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$src('assets/duckduckgo.png')
-												]),
-											_List_Nil),
-											A2(
-											$elm$html$Html$a,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$href(
-													A2($author$project$View$searchEngineUrl, $author$project$View$DuckDuckGo, searchEngineQuery))
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text('DuckDuckGo')
-												]))
-										])) : $elm$html$Html$text(''),
-									function () {
-									var _v0 = fc.pmid;
-									if (_v0.$ === 'Just') {
-										var pmid = _v0.a;
-										return A2(
-											$elm$html$Html$li,
-											_List_Nil,
-											_List_fromArray(
-												[
-													$elm$html$Html$text('Read the ' + (fc.functionTitle + ' paper via ')),
-													A2(
-													$elm$html$Html$img,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$src('assets/nih.png')
-														]),
-													_List_Nil),
-													A2(
-													$elm$html$Html$a,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$href('https://pubmed.ncbi.nlm.nih.gov/' + (pmid + '/'))
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text('PubMed')
-														]))
-												]));
-									} else {
-										return $elm$html$Html$text('');
-									}
-								}(),
-									function () {
-									var _v1 = fc.googleScholarId;
-									if (_v1.$ === 'Just') {
-										var gsid = _v1.a;
-										return A2(
-											$elm$html$Html$li,
-											_List_Nil,
-											_List_fromArray(
-												[
-													$elm$html$Html$text('Browse papers that use ' + (fc.functionTitle + ' in ')),
-													A2(
-													$elm$html$Html$img,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$src('assets/google_scholar.png')
-														]),
-													_List_Nil),
-													A2(
-													$elm$html$Html$a,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$href('https://scholar.google.com/scholar?cites=' + gsid)
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text('Google Scholar')
-														]))
-												]));
-									} else {
-										return $elm$html$Html$text('');
-									}
-								}()
-								])),
-							A2(
-							$author$project$View$markdown,
-							_List_Nil,
-							A2($elm$core$Maybe$withDefault, '', fc.functionDescription))
-						]),
-					_Utils_ap(
-						$elm$core$List$isEmpty(fc.hyperparameters) ? _List_Nil : _List_fromArray(
-							[
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('markdown')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$h2,
-										_List_Nil,
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Parameters to set')
-											])),
-										A2(
-										$elm$html$Html$p,
-										_List_Nil,
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Once you download your script, you will need to set the following parameters at the top of the file:')
-											])),
-										A2(
-										$elm$html$Html$ul,
-										_List_Nil,
-										A2(
-											$elm$core$List$map,
-											function (h) {
-												return A2(
-													$elm$html$Html$li,
-													_List_Nil,
-													_List_fromArray(
-														[
-															A2(
-															$elm$html$Html$code,
-															_List_Nil,
-															_List_fromArray(
-																[
-																	$elm$html$Html$text(h.name)
-																])),
-															$elm$html$Html$text(': ' + (h.comment + (' (default: ' + (h._default + ')'))))
-														]));
-											},
-											fc.hyperparameters))
-									]))
-							]),
-						_Utils_ap(
-							function () {
-								var _v2 = fc.citation;
-								if (_v2.$ === 'Just') {
-									var citation = _v2.a;
-									return _List_fromArray(
-										[
-											A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$class('markdown')
-												]),
-											_Utils_ap(
-												_List_fromArray(
-													[
-														A2(
-														$elm$html$Html$h2,
-														_List_Nil,
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Citation')
-															])),
-														A2(
-														$elm$html$Html$p,
-														_List_Nil,
-														_List_fromArray(
-															[
-																$elm$html$Html$text('If you use ' + (fc.functionTitle + ', please cite it as:'))
-															])),
-														A2(
-														$elm$html$Html$blockquote,
-														_List_Nil,
-														_List_fromArray(
-															[
-																$elm$html$Html$text(citation)
-															]))
-													]),
-												function () {
-													var _v3 = fc.additionalCitations;
-													if (_v3.$ === 'Just') {
-														var acs = _v3.a;
-														return _Utils_ap(
-															_List_fromArray(
-																[
-																	A2(
-																	$elm$html$Html$p,
-																	_List_Nil,
-																	_List_fromArray(
-																		[
-																			$elm$html$Html$text('Please also cite:')
-																		]))
-																]),
-															A2(
-																$elm$core$List$map,
-																function (c) {
-																	return A2(
-																		$elm$html$Html$blockquote,
-																		_List_Nil,
-																		_List_fromArray(
-																			[
-																				$elm$html$Html$text(c)
-																			]));
-																},
-																acs));
-													} else {
-														return _List_Nil;
-													}
-												}()))
-										]);
-								} else {
-									return _List_Nil;
-								}
-							}(),
-							_Utils_ap(
-								($elm$core$List$length(fc.metadataChoices) > 1) ? selectAdditionalInformation : _List_Nil,
-								function () {
-									var _v4 = fc.code;
-									if (_v4.$ === 'Nothing') {
-										return _List_Nil;
-									} else {
-										var code = _v4.a;
-										return _List_fromArray(
-											[
-												A2(
-												$elm$html$Html$p,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('tabbed-menu-body-label')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Code preview…')
-													])),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('code-preview')
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$author$project$View$fancyCode,
-														_List_Nil,
-														{code: code, language: 'python'})
-													]))
-											]);
-									}
-								}()))))),
-			heading: $elm$html$Html$text(fc.functionTitle)
-		};
-	});
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $elm$core$List$unzip = function (pairs) {
-	var step = F2(
-		function (_v0, _v1) {
-			var x = _v0.a;
-			var y = _v0.b;
-			var xs = _v1.a;
-			var ys = _v1.b;
-			return _Utils_Tuple2(
-				A2($elm$core$List$cons, x, xs),
-				A2($elm$core$List$cons, y, ys));
-		});
-	return A3(
-		$elm$core$List$foldr,
-		step,
-		_Utils_Tuple2(_List_Nil, _List_Nil),
-		pairs);
-};
-var $author$project$View$tabbedMenu = F3(
-	function (attrs, _v0, content) {
-		var selectionEvent = _v0.selectionEvent;
-		var deselectionEvent = _v0.deselectionEvent;
-		var selectedIndex = _v0.selectedIndex;
-		var _v1 = $elm$core$List$unzip(
-			A2(
-				$elm$core$List$indexedMap,
-				F2(
-					function (i, _v2) {
-						var heading = _v2.heading;
-						var body = _v2.body;
-						var selectedAttr = $elm$html$Html$Attributes$classList(
-							_List_fromArray(
-								[
-									_Utils_Tuple2(
-									'tabbed-menu-selected',
-									_Utils_eq(
-										selectedIndex,
-										$elm$core$Maybe$Just(i)))
-								]));
-						var selected = _Utils_eq(
-							selectedIndex,
-							$elm$core$Maybe$Just(i));
-						return _Utils_Tuple2(
-							A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('tabbed-menu-header'),
-										selectedAttr,
-										$elm$html$Html$Events$onClick(
-										selected ? deselectionEvent : selectionEvent(i))
-									]),
-								_List_fromArray(
-									[heading])),
-							A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('tabbed-menu-body'),
-										selectedAttr
-									]),
-								_List_fromArray(
-									[body])));
-					}),
-				content));
-		var headers = _v1.a;
-		var bodies = _v1.b;
-		return A2(
-			$elm$html$Html$div,
-			_Utils_ap(
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('tabbed-menu'),
-						$elm$html$Html$Attributes$classList(
-						_List_fromArray(
-							[
-								_Utils_Tuple2(
-								'closed',
-								_Utils_eq(selectedIndex, $elm$core$Maybe$Nothing))
-							]))
-					]),
-				attrs),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('tabbed-menu-headers')
-						]),
-					headers),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('tabbed-menu-bodies')
-						]),
-					bodies)
-				]));
-	});
-var $author$project$View$functionChoices = F2(
-	function (ctx, fcs) {
-		return A3(
-			$author$project$View$tabbedMenu,
-			_List_Nil,
-			{
-				deselectionEvent: $author$project$Update$UserDeselectedFunction(
-					{cellIndex: ctx.cellIndex}),
-				selectedIndex: ctx.selectedFunctionChoice,
-				selectionEvent: $author$project$Update$UserSelectedFunction(
-					{cellIndex: ctx.cellIndex})
-			},
-			A2(
-				$elm$core$List$indexedMap,
-				F2(
-					function (i, fc) {
-						return A2(
-							$author$project$View$functionChoice,
-							{cellIndex: ctx.cellIndex, functionIndex: i},
-							fc);
-					}),
-				fcs));
-	});
-var $author$project$View$inlineMarkdown = F2(
-	function (attrs, s) {
-		return A2(
-			$author$project$View$markdown,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('inline'),
-				attrs),
-			s);
-	});
-var $author$project$View$cell = F2(
-	function (ctx, c) {
-		if (c.$ === 'Code') {
-			var code = c.a.code;
-			var openWhenEditing = c.a.openWhenEditing;
-			return A4(
-				$author$project$View$card,
-				{
-					collapse: $author$project$View$Collapsible(
-						{openByDefault: openWhenEditing})
-				},
-				_Utils_ap(
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('cell-code'),
-							$elm$html$Html$Attributes$id(
-							$author$project$View$cellId(ctx.cellIndex))
-						]),
-					openWhenEditing ? _List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$attribute, 'data-popinkey', code)
-						]) : _List_Nil),
-				A4(
-					$author$project$View$cardHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Code')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(
-							$author$project$View$cellTitle(c))
-						]),
-					_List_Nil),
-				_List_fromArray(
-					[
-						$elm$core$String$isEmpty(
-						$elm$core$String$trim(code)) ? A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('nothing-here')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('There\'s nothing here just yet!')
-							])) : A2(
-						$author$project$View$fancyCode,
-						_List_Nil,
-						{code: code, language: 'python'})
-					]));
-		} else {
-			var x = c.a;
-			var suffix = ($elm$core$List$length(x.functionChoices) === 1) ? ' (there\'s only one option in this case)' : '';
-			return A4(
-				$author$project$View$card,
-				{
-					collapse: $author$project$View$Collapsible(
-						{openByDefault: true})
-				},
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('cell-choice'),
-						$elm$html$Html$Attributes$id(
-						$author$project$View$cellId(ctx.cellIndex))
-					]),
-				A4(
-					$author$project$View$cardHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$span,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Choice')
-								]))
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(
-							$author$project$View$cellTitle(c))
-						]),
-					_List_Nil),
-				_List_fromArray(
-					[
-						A2(
-						$author$project$View$markdown,
-						_List_Nil,
-						A2($elm$core$Maybe$withDefault, '', x.typeDescription)),
-						A2(
-						$author$project$View$cardInnerHeading,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Choices for possible next steps' + suffix)
-							])),
-						($elm$core$List$length(x.functionChoices) > 1) ? A2(
-						$elm$html$Html$ul,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('use-hints')
-							]),
-						A2(
-							$elm$core$List$filterMap,
-							function (fc) {
-								var _v1 = fc.use;
-								if (_v1.$ === 'Just') {
-									var use = _v1.a;
-									return $elm$core$Maybe$Just(
-										A2(
-											$elm$html$Html$li,
-											_List_Nil,
-											_List_fromArray(
-												[
-													A2(
-													$elm$html$Html$b,
-													_List_Nil,
-													_List_fromArray(
-														[
-															$elm$html$Html$text('Tip:')
-														])),
-													A2(
-													$elm$html$Html$i,
-													_List_Nil,
-													_List_fromArray(
-														[
-															$elm$html$Html$text(' You may want to use '),
-															A2(
-															$elm$html$Html$b,
-															_List_Nil,
-															_List_fromArray(
-																[
-																	$elm$html$Html$text(fc.functionTitle)
-																])),
-															$elm$html$Html$text(' if you want… ')
-														])),
-													A2($author$project$View$inlineMarkdown, _List_Nil, use)
-												])));
-								} else {
-									return $elm$core$Maybe$Nothing;
-								}
-							},
-							x.functionChoices)) : $elm$html$Html$text(''),
-						A2(
-						$author$project$View$functionChoices,
-						{cellIndex: ctx.cellIndex, selectedFunctionChoice: x.selectedFunctionChoice},
-						x.functionChoices),
-						function () {
-						var maybePbnChoiceIndex = A2(
-							$elm$core$Maybe$map,
-							function (mc) {
-								return mc.choiceIndex;
-							},
-							A2(
-								$elm$core$Maybe$andThen,
-								function (fc) {
-									return A2($author$project$Util$at, fc.selectedMetadataChoice, fc.metadataChoices);
-								},
-								A2(
-									$elm$core$Maybe$andThen,
-									function (fci) {
-										return A2($author$project$Util$at, fci, x.functionChoices);
-									},
-									x.selectedFunctionChoice)));
-						var event = A2(
-							$elm$core$Maybe$withDefault,
-							$author$project$Update$Nop,
-							A2($elm$core$Maybe$map, $author$project$Update$UserMadePbnChoice, maybePbnChoiceIndex));
-						var disabled = _Utils_eq(maybePbnChoiceIndex, $elm$core$Maybe$Nothing);
-						return A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('standout-button'),
-									$elm$html$Html$Attributes$disabled(disabled),
-									$elm$html$Html$Events$onClick(event)
-								]),
-							A2(
-								$elm$core$List$cons,
-								$elm$html$Html$text('Make selection'),
-								disabled ? _List_fromArray(
-									[
-										A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('subtitle')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('(Choose an analysis first)')
-											]))
-									]) : _List_Nil));
-					}()
-					]));
-		}
-	});
-var $author$project$Cell$key = function (c) {
-	if (c.$ === 'Code') {
-		var x = c.a;
-		return x.code;
-	} else {
-		var x = c.a;
-		return x.varName;
-	}
-};
-var $author$project$View$directManipulationPbn = function (cells) {
-	return A2(
-		$elm$core$List$indexedMap,
-		F2(
-			function (i, c) {
-				return _Utils_Tuple2(
-					$author$project$Cell$key(c),
-					A2(
-						$author$project$View$cell,
-						{cellIndex: i},
-						c));
-			}),
-		cells);
-};
-var $elm$html$Html$footer = _VirtualDom_node('footer');
-var $author$project$Cell$isChoice = function (c) {
-	if (c.$ === 'Code') {
-		return false;
-	} else {
-		return true;
-	}
-};
-var $elm$html$Html$nav = _VirtualDom_node('nav');
-var $author$project$Util$findFirst = F2(
-	function (f, xs) {
-		return $elm$core$List$head(
-			A2($elm$core$List$filter, f, xs));
-	});
-var $elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
-	});
-var $author$project$View$nextChoice = function (cells) {
-	return A2(
-		$elm$core$Maybe$map,
-		$elm$core$Tuple$first,
-		A2(
-			$author$project$Util$findFirst,
-			function (_v0) {
-				var c = _v0.b;
-				return $author$project$Cell$isChoice(c);
-			},
-			A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, cells)));
-};
 var $elm$virtual_dom$VirtualDom$keyedNode = function (tag) {
 	return _VirtualDom_keyedNode(
 		_VirtualDom_noScript(tag));
 };
 var $elm$html$Html$Keyed$node = $elm$virtual_dom$VirtualDom$keyedNode;
-var $author$project$View$solutionPrefix = '';
-var $author$project$View$pbnStatus = function (ms) {
-	if (ms.$ === 'Nothing') {
-		return _List_Nil;
-	} else {
-		var cells = ms.a.cells;
-		var output = ms.a.output;
-		var canUndo = ms.a.canUndo;
-		var outline = A2(
-			$elm$html$Html$div,
+var $elm$html$Html$Keyed$ul = $elm$html$Html$Keyed$node('ul');
+var $author$project$View$choice = function (status) {
+	var nextChoice = $author$project$Util$last(
+		$author$project$Util$justs(
+			A2(
+				$elm$core$List$indexedMap,
+				F2(
+					function (i, c) {
+						if (c.$ === 'Code') {
+							return $elm$core$Maybe$Nothing;
+						} else {
+							var cc = c.a;
+							return $elm$core$Maybe$Just(
+								_Utils_Tuple2(i, cc));
+						}
+					}),
+				status.cells)));
+	var header = _List_fromArray(
+		[
+			A2(
+			$elm$html$Html$h1,
+			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('outline-wrapper')
-				]),
-			_List_fromArray(
+					$elm$html$Html$text('Control Panel')
+				]))
+		]);
+	var _v0 = status.output;
+	if (_v0.$ === 'Just') {
+		var output = _v0.a;
+		return {
+			body: _List_fromArray(
 				[
 					A2(
-					$elm$html$Html$nav,
+					$elm$html$Html$h2,
+					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('outline')
+							$elm$html$Html$text('All done!')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('markdown')
 						]),
 					_List_fromArray(
 						[
 							A2(
-							$elm$html$Html$h3,
+							$elm$html$Html$p,
+							_List_Nil,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$class('outline-heading')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Outline')
+									$elm$html$Html$text('You have completed all the choices you need to make.')
 								])),
 							A2(
-							$elm$html$Html$ul,
+							$elm$html$Html$p,
 							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Here’s what to do next:')
+								])),
 							A2(
-								$elm$core$List$indexedMap,
-								F2(
-									function (cellIndex, c) {
-										return A2(
-											$elm$html$Html$li,
-											_List_Nil,
-											_List_fromArray(
-												[
-													A2(
-													$elm$html$Html$a,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$href(
-															'#' + $author$project$View$cellId(cellIndex))
-														]),
-													_Utils_ap(
-														$author$project$Cell$isChoice(c) ? _List_fromArray(
-															[
-																A2(
-																$elm$html$Html$span,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('card-reference'),
-																		$elm$html$Html$Attributes$class('cell-choice')
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('Choice')
-																	])),
-																$elm$html$Html$text(' ')
-															]) : _List_Nil,
-														_List_fromArray(
-															[
-																$elm$html$Html$text(
-																$author$project$View$cellTitle(c))
-															])))
-												]));
-									}),
-								cells))
+							$elm$html$Html$ol,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$li,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Download the notebook using the button below.')
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Open the notebook in Jupyter Lab.')
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Set the parameter variables at the top of the notebook.')
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Fill out any necessary sample sheets in a spreadsheet editor.')
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Run the code on your data!')
+										]))
+								]))
 						]))
-				]));
-		return _List_fromArray(
-			[
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('tip')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Just like in Jupyter notebooks, this interface consists of many '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('card-reference'),
-								$elm$html$Html$Attributes$class('cell-code')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Code')
-							])),
-						$elm$html$Html$text(' cells. However, now there are also '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('card-reference'),
-								$elm$html$Html$Attributes$class('cell-choice')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Choice')
-							])),
-						$elm$html$Html$text(' cells! When you see a '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('card-reference'),
-								$elm$html$Html$Attributes$class('cell-choice')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Choice')
-							])),
-						$elm$html$Html$text(' cell, decide which analysis to run for that part of the code. When you make the selection, the '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('card-reference'),
-								$elm$html$Html$Attributes$class('cell-choice')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Choice')
-							])),
-						$elm$html$Html$text(' cell will become a '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('card-reference'),
-								$elm$html$Html$Attributes$class('cell-code')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Code')
-							])),
-						$elm$html$Html$text(' cell.')
-					])),
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('tip')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Choosing between analyses in a '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('card-reference'),
-								$elm$html$Html$Attributes$class('cell-choice')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Choice')
-							])),
-						$elm$html$Html$text(' cell can be quite challenging. Please take your time, read the information at each step, and search the Internet for resources that could help you make your decision!')
-					])),
-				outline,
-				A3(
-				$elm$html$Html$Keyed$node,
-				'pop-in',
-				_List_Nil,
-				$author$project$View$directManipulationPbn(cells)),
-				A2(
-				$elm$html$Html$footer,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('controls')
-					]),
+				]),
+			footer: $elm$core$Maybe$Just(
 				_List_fromArray(
 					[
 						A2(
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('standout-button'),
-								$elm$html$Html$Attributes$disabled(!canUndo),
-								$elm$html$Html$Events$onClick($author$project$Update$UserClickedUndo)
+								$elm$html$Html$Attributes$class('big'),
+								$elm$html$Html$Events$onClick(
+								$author$project$Update$UserRequestedDownload(
+									{filename: 'pipeline.ipynb', text: output}))
 							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Download notebook')
+							]))
+					])),
+			header: header
+		};
+	} else {
+		if (nextChoice.$ === 'Just') {
+			var _v2 = nextChoice.a;
+			var cellIndex = _v2.a;
+			var cc = _v2.b;
+			var selectionMade = function () {
+				var _v5 = cc.selectedFunctionChoice;
+				if (_v5.$ === 'Just') {
+					return true;
+				} else {
+					return false;
+				}
+			}();
+			var maybePbnChoiceIndex = A2(
+				$elm$core$Maybe$map,
+				function (mc) {
+					return mc.choiceIndex;
+				},
+				A2(
+					$elm$core$Maybe$andThen,
+					function (fc) {
+						return A2($author$project$Util$at, fc.selectedMetadataChoice, fc.metadataChoices);
+					},
+					A2(
+						$elm$core$Maybe$andThen,
+						function (fci) {
+							return A2($author$project$Util$at, fci, cc.functionChoices);
+						},
+						cc.selectedFunctionChoice)));
+			return {
+				body: _List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h2,
+						_List_Nil,
 						_List_fromArray(
 							[
 								A2(
 								$elm$html$Html$span,
-								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Undo')
-									]))
-							])),
-						function () {
-						var _v1 = _Utils_Tuple2(
-							$author$project$View$nextChoice(cells),
-							output);
-						if (_v1.a.$ === 'Just') {
-							var i = _v1.a.a;
-							return A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('standout-button'),
-										$elm$html$Html$Attributes$class('post-popin-attention')
+										$elm$html$Html$Attributes$class('choice')
 									]),
 								_List_fromArray(
 									[
-										A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href(
-												'#' + $author$project$View$cellId(i))
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Next '),
-												A2(
-												$elm$html$Html$span,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('card-reference'),
-														$elm$html$Html$Attributes$class('cell-choice')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Choice')
-													]))
-											]))
-									]));
+										$elm$html$Html$text('Choice')
+									])),
+								$elm$html$Html$text(' '),
+								$elm$html$Html$text(
+								$author$project$Annotations$removeAll(cc.typeTitle))
+							])),
+						function () {
+						var _v3 = cc.typeDescription;
+						if (_v3.$ === 'Just') {
+							var desc = _v3.a;
+							return A2($author$project$View$markdown, _List_Nil, desc);
 						} else {
-							if (_v1.b.$ === 'Just') {
-								var _v2 = _v1.a;
-								var solutionString = _v1.b.a;
-								return A2(
-									$elm$html$Html$button,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('standout-button'),
-											$elm$html$Html$Attributes$class('post-popin-attention'),
-											$elm$html$Html$Attributes$class('extra-standout'),
-											$elm$html$Html$Events$onClick(
-											$author$project$Update$UserRequestedDownload(
-												{
-													filename: 'pipeline.ipynb',
-													text: _Utils_ap($author$project$View$solutionPrefix, solutionString)
-												}))
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Download notebook')
-										]));
-							} else {
-								var _v3 = _v1.a;
-								var _v4 = _v1.b;
-								return $elm$html$Html$text('');
-							}
+							return $elm$html$Html$text('');
 						}
-					}()
-					]))
-			]);
+					}(),
+						A2(
+						$elm$html$Html$h3,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('choices-header')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Choices for next step')
+							])),
+						A2(
+						$elm$html$Html$Keyed$ul,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('function-choices')
+							]),
+						A2(
+							$elm$core$List$indexedMap,
+							F2(
+								function (functionIndex, fc) {
+									return _Utils_Tuple2(
+										fc.functionTitle,
+										A2(
+											$author$project$View$functionChoice,
+											{
+												cellIndex: cellIndex,
+												functionIndex: functionIndex,
+												selected: _Utils_eq(
+													$elm$core$Maybe$Just(functionIndex),
+													cc.selectedFunctionChoice)
+											},
+											fc));
+								}),
+							cc.functionChoices))
+					]),
+				footer: $elm$core$Maybe$Just(
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('left'),
+									$elm$html$Html$Events$onClick($author$project$Update$UserClickedUndo)
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Undo')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$disabled(!selectionMade),
+									$elm$html$Html$Events$onClick(
+									$author$project$Update$UserDeselectedFunction(
+										{cellIndex: cellIndex}))
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Clear selection')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_Utils_ap(
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$disabled(!selectionMade)
+									]),
+								function () {
+									if (maybePbnChoiceIndex.$ === 'Just') {
+										var i = maybePbnChoiceIndex.a;
+										return _List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Update$UserMadePbnChoice(i))
+											]);
+									} else {
+										return _List_Nil;
+									}
+								}()),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Continue')
+								]))
+						])),
+				header: header
+			};
+		} else {
+			return {
+				body: _List_fromArray(
+					[
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Something has gone wrong… please try refreshing the page!')
+							]))
+					]),
+				footer: $elm$core$Maybe$Nothing,
+				header: header
+			};
+		}
 	}
 };
 var $author$project$Core$Goal = {$: 'Goal'};
 var $author$project$Core$Prop = function (a) {
 	return {$: 'Prop', a: a};
 };
-var $author$project$Update$UserAddedBlankStep = {$: 'UserAddedBlankStep'};
-var $author$project$Update$UserClickedExample = {$: 'UserClickedExample'};
-var $author$project$View$group = F3(
-	function (attrs, headerContent, bodyContent) {
-		return A2(
-			$elm$html$Html$section,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('group'),
-				attrs),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$header,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('group-header')
-						]),
-					_List_fromArray(
-						[headerContent])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('group-body')
-						]),
-					bodyContent)
-				]));
-	});
-var $author$project$View$groupHeading = F2(
-	function (attrs, content) {
-		return A2(
-			$elm$html$Html$h2,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('group-heading'),
-				attrs),
-			content);
-	});
-var $author$project$View$NotCollapsible = {$: 'NotCollapsible'};
+var $author$project$Util$asSingleton = function (xs) {
+	if (xs.b && (!xs.b.b)) {
+		var x = xs.a;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
 var $author$project$Update$UserClearedStep = function (a) {
 	return {$: 'UserClearedStep', a: a};
-};
-var $author$project$Update$UserRemovedStep = function (a) {
-	return {$: 'UserRemovedStep', a: a};
 };
 var $author$project$Update$UserSetStep = F2(
 	function (a, b) {
 		return {$: 'UserSetStep', a: a, b: b};
-	});
-var $author$project$Update$UserSetArgument = F3(
-	function (a, b, c) {
-		return {$: 'UserSetArgument', a: a, b: b, c: c};
 	});
 var $author$project$Annotations$getAll = function (s) {
 	return $author$project$Annotations$split(s).a;
@@ -8386,464 +8187,347 @@ var $author$project$Annotations$contains = F2(
 			a,
 			$author$project$Annotations$getAll(s));
 	});
-var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
-var $elm$html$Html$input = _VirtualDom_node('input');
-var $elm$core$List$intersperse = F2(
-	function (sep, xs) {
-		if (!xs.b) {
-			return _List_Nil;
-		} else {
-			var hd = xs.a;
-			var tl = xs.b;
-			var step = F2(
-				function (x, rest) {
-					return A2(
-						$elm$core$List$cons,
-						sep,
-						A2($elm$core$List$cons, x, rest));
-				});
-			var spersed = A3($elm$core$List$foldr, step, _List_Nil, tl);
-			return A2($elm$core$List$cons, hd, spersed);
-		}
-	});
-var $elm$html$Html$label = _VirtualDom_node('label');
-var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $author$project$View$arg = F6(
-	function (pi, argTitles, argDescriptions, argExamples, argName, _v0) {
-		var _v1 = _v0.a;
-		var valueStr = _v1.a;
-		var suggestions = _v0.b;
-		var id = 'step-argument' + (function () {
-			if (pi.$ === 'Goal') {
-				return 'GOAL';
-			} else {
-				var i = pi.a;
-				return $elm$core$String$fromInt(i);
-			}
-		}() + argName);
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('step-arg')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$label,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$for(id),
-							$elm$html$Html$Attributes$class('card-inner-heading')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(
-							A2(
-								$elm$core$Maybe$withDefault,
-								argName,
-								A2(
-									$elm$core$Maybe$map,
-									$author$project$Annotations$removeAll,
-									A2($elm$core$Dict$get, argName, argTitles))))
-						])),
-					A2(
-					$elm$html$Html$input,
-					_List_fromArray(
-						[
-							$elm$html$Html$Events$onInput(
-							A2($author$project$Update$UserSetArgument, pi, argName)),
-							$elm$html$Html$Attributes$id(id),
-							$elm$html$Html$Attributes$placeholder(
-							function () {
-								var _v2 = A2($elm$core$Dict$get, argName, argExamples);
-								if (_v2.$ === 'Just') {
-									var ex = _v2.a;
-									return 'Enter information here, for example: ' + ex;
-								} else {
-									return 'Enter information here…';
-								}
-							}()),
-							$elm$html$Html$Attributes$value(valueStr)
-						]),
-					_List_Nil),
-					($elm$core$List$isEmpty(suggestions) || _Utils_eq(
-					$elm$core$Maybe$Just(true),
-					A2(
-						$elm$core$Maybe$map,
-						$author$project$Annotations$contains($author$project$Annotations$NoSuggest),
-						A2($elm$core$Dict$get, argName, argTitles)))) ? $elm$html$Html$text('') : A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('suggestion-tip')
-						]),
-					A2(
-						$elm$core$List$cons,
-						$elm$html$Html$text('Try one of the following: '),
-						A2(
-							$elm$core$List$intersperse,
-							$elm$html$Html$text(', '),
-							A2(
-								$elm$core$List$map,
-								function (sug) {
-									var s = $author$project$Core$unparse(sug);
-									return A2(
-										$elm$html$Html$button,
-										_List_fromArray(
-											[
-												$elm$html$Html$Events$onClick(
-												A3($author$project$Update$UserSetArgument, pi, argName, s))
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(s)
-											]));
-								},
-								suggestions)))),
-					function () {
-					var _v3 = A2($elm$core$Dict$get, argName, argDescriptions);
-					if (_v3.$ === 'Just') {
-						var desc = _v3.a;
-						return A2($author$project$View$markdown, _List_Nil, desc);
-					} else {
-						return $elm$html$Html$text('');
-					}
-				}()
-				]));
-	});
-var $author$project$View$args = F5(
-	function (pi, argTitles, argDescriptions, argExamples, a) {
-		return A2(
-			$author$project$Assoc$mapCollapse,
-			A4($author$project$View$arg, pi, argTitles, argDescriptions, argExamples),
-			a);
-	});
-var $author$project$Assoc$leftMergeWith = F3(
-	function (missing, left, right) {
-		return A2(
-			$author$project$Assoc$map,
-			F2(
-				function (k, v1) {
-					return _Utils_Tuple2(
-						v1,
-						function () {
-							var _v0 = A2($author$project$Assoc$get, k, right);
-							if (_v0.$ === 'Nothing') {
-								return missing;
-							} else {
-								var v2 = _v0.a;
-								return v2;
-							}
-						}());
-				}),
-			left);
-	});
+var $elm$html$Html$option = _VirtualDom_node('option');
+var $elm$html$Html$select = _VirtualDom_node('select');
 var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
-var $author$project$View$step = F4(
-	function (library, suggestions, pi, s) {
-		var blankName = 'Choose a step…';
-		var inputEvent = $elm$html$Html$Events$onInput(
-			function (k) {
-				return _Utils_eq(k, blankName) ? $author$project$Update$UserClearedStep(pi) : A2($author$project$Update$UserSetStep, pi, k);
-			});
-		var options = A2(
-			$elm$core$List$filter,
-			function (_v6) {
-				var displayName = _v6.b;
-				return !A2($author$project$Annotations$contains, $author$project$Annotations$Intermediate, displayName);
-			},
-			A2(
-				$elm$core$List$cons,
-				_Utils_Tuple2(blankName, blankName),
-				A2(
-					$author$project$Assoc$mapCollapse,
-					F2(
-						function (k, sig) {
-							return _Utils_Tuple2(
-								k,
-								A2($elm$core$Maybe$withDefault, k, sig.title));
-						}),
-					library)));
-		var _v0 = function () {
-			if (s.$ === 'Nothing') {
-				return _Utils_Tuple2(blankName, _List_Nil);
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$View$factSelect = F5(
+	function (lib, blankName, pi, mfact, enabled) {
+		var selectedName = function () {
+			if (mfact.$ === 'Just') {
+				var fact = mfact.a;
+				return $elm$core$Maybe$Just(fact.name);
 			} else {
-				var f = s.a;
-				return _Utils_Tuple2(
-					f.name,
-					A5(
-						$author$project$View$args,
-						pi,
-						f.sig.paramTitles,
-						f.sig.paramDescriptions,
-						f.sig.paramExamples,
-						A3($author$project$Assoc$leftMergeWith, _List_Nil, f.args, suggestions)));
+				return $elm$core$Maybe$Nothing;
 			}
 		}();
-		var selectedName = _v0.a;
-		var extras = _v0.b;
-		var dropdown = A2(
+		var wrap = F2(
+			function (key, title) {
+				return A2(
+					$elm$html$Html$option,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$value(key),
+							$elm$html$Html$Attributes$selected(
+							_Utils_eq(
+								$elm$core$Maybe$Just(key),
+								selectedName))
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text(title)
+						]));
+			});
+		var options = A2(
+			$elm$core$List$cons,
+			A2(wrap, blankName, blankName),
+			A2(
+				$elm$core$List$filterMap,
+				function (_v0) {
+					var key = _v0.a;
+					var sig = _v0.b;
+					var _v1 = sig.title;
+					if (_v1.$ === 'Nothing') {
+						return $elm$core$Maybe$Just(
+							A2(wrap, key, key));
+					} else {
+						var title = _v1.a;
+						return A2($author$project$Annotations$contains, $author$project$Annotations$Intermediate, title) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(
+							A2(wrap, key, title));
+					}
+				},
+				lib));
+		return A2(
 			$elm$html$Html$select,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('step-title'),
-					inputEvent
+					$elm$html$Html$Attributes$disabled(!enabled),
+					$elm$html$Html$Attributes$value(
+					A2($elm$core$Maybe$withDefault, blankName, selectedName)),
+					$elm$html$Html$Events$onInput(
+					function (key) {
+						return _Utils_eq(key, blankName) ? $author$project$Update$UserClearedStep(pi) : A2($author$project$Update$UserSetStep, pi, key);
+					})
 				]),
-			A2(
-				$elm$core$List$map,
-				function (_v5) {
-					var name = _v5.a;
-					var displayName = _v5.b;
-					return A2(
-						$elm$html$Html$option,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$selected(
-								_Utils_eq(name, selectedName)),
-								$elm$html$Html$Attributes$value(name)
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(displayName)
-							]));
-				},
-				A2(
-					$elm$core$List$sortBy,
-					function (_v4) {
-						var displayName = _v4.b;
-						return displayName;
-					},
-					options)));
-		var _v2 = function () {
-			if (pi.$ === 'Prop') {
-				var i = pi.a;
-				return _Utils_Tuple3(
-					'Step',
-					'step',
-					A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('step-delete'),
-								$elm$html$Html$Events$onClick(
-								$author$project$Update$UserRemovedStep(i))
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('×')
-							])));
-			} else {
-				return _Utils_Tuple3(
-					'Goal',
-					'goal',
-					$elm$html$Html$text(''));
-			}
-		}();
-		var prefix = _v2.a;
-		var _class = _v2.b;
-		var deleteButton = _v2.c;
-		return A4(
-			$author$project$View$card,
-			{collapse: $author$project$View$NotCollapsible},
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class(_class)
-				]),
-			A4(
-				$author$project$View$cardHeading,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text(prefix)
-					]),
-				_List_fromArray(
-					[dropdown]),
-				_List_fromArray(
-					[deleteButton])),
-			extras);
+			options);
 	});
-var $author$project$View$program = F2(
-	function (ctx, prog) {
-		return _List_fromArray(
-			[
-				A3(
-				$author$project$View$group,
-				_List_Nil,
-				$elm$html$Html$text(''),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$p,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('tip')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Fill out your experimental workflow below, or '),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick($author$project$Update$UserClickedExample)
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('click here to try an example!')
-									]))
-							]))
-					])),
-				A3(
-				$author$project$View$group,
-				_List_Nil,
-				A2(
-					$author$project$View$groupHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Experimental workflow')
-						])),
-				_Utils_ap(
-					A2(
-						$elm$core$List$indexedMap,
-						F2(
-							function (i, s) {
-								return A4(
-									$author$project$View$step,
-									ctx.library.props,
-									_List_Nil,
-									$author$project$Core$Prop(i),
-									s);
-							}),
-						prog.props),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('step-add'),
-									$elm$html$Html$Events$onClick($author$project$Update$UserAddedBlankStep)
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Add step')
-								]))
-						]))),
-				A3(
-				$author$project$View$group,
-				_List_Nil,
-				A2(
-					$author$project$View$groupHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Goal of experiment')
-						])),
-				_List_fromArray(
-					[
-						A4($author$project$View$step, ctx.library.types, ctx.goalSuggestions, $author$project$Core$Goal, prog.goal)
-					]))
-			]);
-	});
-var $author$project$Version$stable = 'UNSTABLE' === 'STABLE';
+var $author$project$Util$joinMaybe = function (mmx) {
+	if (mmx.$ === 'Nothing') {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		if (mmx.a.$ === 'Nothing') {
+			var _v1 = mmx.a;
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var x = mmx.a.a;
+			return $elm$core$Maybe$Just(x);
+		}
+	}
+};
 var $author$project$Update$UserStartedNavigation = function (a) {
 	return {$: 'UserStartedNavigation', a: a};
 };
-var $author$project$View$startNavigationButton = function (prog) {
-	var _v0 = function () {
-		var _v1 = A2(
+var $author$project$View$startNavigationButton = function (model) {
+	var attrs = function () {
+		var _v0 = A2(
 			$elm$core$Maybe$map,
 			$author$project$Compile$compile,
 			A2(
 				$author$project$Complete$complete,
-				{allowGoalHoles: false},
-				prog));
-		if (_v1.$ === 'Nothing') {
-			return _Utils_Tuple2(
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$disabled(true)
-					]),
+				{allowGoalHoles: true, allowPropHoles: true},
+				model.program));
+		if (_v0.$ === 'Just') {
+			var programSource = _v0.a;
+			return _List_fromArray(
+				[
+					$elm$html$Html$Events$onClick(
+					$author$project$Update$UserStartedNavigation(
+						{programSource: programSource}))
+				]);
+		} else {
+			return _List_fromArray(
+				[
+					$elm$html$Html$Attributes$disabled(true)
+				]);
+		}
+	}();
+	return A2(
+		$elm$html$Html$button,
+		attrs,
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Continue')
+			]));
+};
+var $author$project$View$goalSpecification = function (model) {
+	var workflowComplete = function () {
+		var _v0 = A2($author$project$Util$at, 0, model.program.props);
+		if ((_v0.$ === 'Just') && (_v0.a.$ === 'Just')) {
+			return true;
+		} else {
+			return false;
+		}
+	}();
+	return {
+		body: _List_fromArray(
+			[
+				A2(
+				$author$project$View$pane,
+				true,
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$div,
+						$elm$html$Html$h2,
+						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('subtitle')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('(Complete experimental workflow first)')
-							]))
-					]));
-		} else {
-			var programSource = _v1.a;
-			return _Utils_Tuple2(
+								$elm$html$Html$text('Experimental workflow')
+							])),
+						A5(
+						$author$project$View$factSelect,
+						model.library.props,
+						'Choose an assay…',
+						$author$project$Core$Prop(0),
+						$author$project$Util$joinMaybe(
+							$author$project$Util$asSingleton(model.program.props)),
+						true)
+					])),
+				A2(
+				$author$project$View$pane,
+				workflowComplete,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick(
-						$author$project$Update$UserStartedNavigation(
-							{programSource: programSource}))
-					]),
-				_List_Nil);
-		}
-	}();
-	var attrs = _v0.a;
-	var extras = _v0.b;
-	return A2(
-		$elm$html$Html$button,
-		_Utils_ap(
+						A2(
+						$elm$html$Html$h2,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Goal of experiment')
+							])),
+						A5($author$project$View$factSelect, model.library.types, 'Choose a goal…', $author$project$Core$Goal, model.program.goal, workflowComplete)
+					]))
+			]),
+		footer: $elm$core$Maybe$Just(
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$id('start-navigating'),
-					$elm$html$Html$Attributes$class('standout-button')
-				]),
-			attrs),
-		A2(
-			$elm$core$List$cons,
-			$elm$html$Html$text('Start navigating'),
-			extras));
+					$author$project$View$startNavigationButton(model)
+				])),
+		header: _List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h1,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Control Panel')
+					]))
+			])
+	};
 };
+var $author$project$View$controlPanel = function (model) {
+	return A2(
+		$author$project$View$panel,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$id('control-panel')
+			]),
+		function () {
+			var _v0 = model.pbnStatus;
+			if (_v0.$ === 'Nothing') {
+				return $author$project$View$goalSpecification(model);
+			} else {
+				var status = _v0.a;
+				return $author$project$View$choice(status);
+			}
+		}());
+};
+var $elm$html$Html$b = _VirtualDom_node('b');
+var $author$project$Version$build = '650b12f';
+var $elm$html$Html$Attributes$download = function (fileName) {
+	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
+};
+var $elm$html$Html$Attributes$height = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'height',
+		$elm$core$String$fromInt(n));
+};
+var $author$project$Version$stable = 'UNSTABLE' === 'STABLE';
 var $elm$html$Html$Attributes$width = function (n) {
 	return A2(
 		_VirtualDom_attribute,
 		'width',
 		$elm$core$String$fromInt(n));
 };
+var $author$project$View$mainMenuBar = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$class('menu-bar')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('menu-bar-left')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$span,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('🐝 '),
+							A2(
+							$elm$html$Html$b,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$a,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$href('https://honeybee-lang.org')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Honeybee')
+										]))
+								])),
+							$elm$html$Html$text(' (homepage)')
+						])),
+					A2(
+					$elm$html$Html$span,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$img,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$src('assets/zulip-icon-circle.svg'),
+									$elm$html$Html$Attributes$width(20),
+									$elm$html$Html$Attributes$height(20)
+								]),
+							_List_Nil),
+							$elm$html$Html$text(' '),
+							A2(
+							$elm$html$Html$b,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$a,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$href('https://chat.honeybee-lang.org')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Zulip')
+										]))
+								])),
+							$elm$html$Html$text(' (say hi, ask for help)')
+						])),
+					A2(
+					$elm$html$Html$span,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('📓 '),
+							A2(
+							$elm$html$Html$b,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$a,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$href('launch-notebook.sh'),
+											$elm$html$Html$Attributes$download('launch-notebook.sh')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Download notebook launcher')
+										]))
+								]))
+						]))
+				])),
+			A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('menu-bar-right')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$span,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('version-number')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text(' build ' + $author$project$Version$build),
+							(!$author$project$Version$stable) ? A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('unstable-indicator')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(' UNSTABLE')
+								])) : $elm$html$Html$text('')
+						]))
+				]))
+		]));
+var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $author$project$View$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -8853,259 +8537,15 @@ var $author$project$View$view = function (model) {
 			]),
 		_List_fromArray(
 			[
-				A4(
-				$author$project$View$menuBar,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('🐝 '),
-								A2(
-								$elm$html$Html$b,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href('https://honeybee-lang.org')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Honeybee')
-											]))
-									])),
-								$elm$html$Html$text(' (homepage)')
-							])),
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$img,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$src('assets/zulip-icon-circle.svg'),
-										$elm$html$Html$Attributes$width(20),
-										$elm$html$Html$Attributes$height(20)
-									]),
-								_List_Nil),
-								$elm$html$Html$text(' '),
-								A2(
-								$elm$html$Html$b,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href('https://chat.honeybee-lang.org')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Zulip')
-											]))
-									])),
-								$elm$html$Html$text(' (say hi, ask for help)')
-							])),
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('📓 '),
-								A2(
-								$elm$html$Html$b,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href('hb-bio.sh'),
-												$elm$html$Html$Attributes$download('hb-bio.sh')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Download notebook launcher')
-											]))
-									]))
-							]))
-					]),
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('version-number')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(' build ' + $author$project$Version$build),
-								(!$author$project$Version$stable) ? A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('unstable-indicator')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(' UNSTABLE')
-									])) : $elm$html$Html$text('')
-							]))
-					])),
-				A3(
-				$author$project$View$pane,
-				_List_Nil,
+				$author$project$View$mainMenuBar,
 				A2(
-					$author$project$View$paneHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$i,
-							_List_fromArray(
-								[$author$project$View$circled]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('i')
-								])),
-							$elm$html$Html$text('Getting Started')
-						])),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$p,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Honeybee is a programming tool you can use to help you write Python code to analyze experimental data. It works in two steps:')
-							])),
-						A2(
-						$elm$html$Html$ol,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$li,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('First, you write down your experimental workflow and goal.')
-									])),
-								A2(
-								$elm$html$Html$li,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Then, Honeybee helps you work '),
-										A2(
-										$elm$html$Html$b,
-										_List_Nil,
-										_List_fromArray(
-											[
-												$elm$html$Html$text('backward')
-											])),
-										$elm$html$Html$text(' from your goal to write a program to analyze your experimental data.')
-									]))
-							])),
-						A2(
-						$elm$html$Html$p,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Once you finish the first step (filling out the details of your experiment), the next step (navigating to an analysis program) works like this:')
-							])),
-						A2(
-						$elm$html$Html$img,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$src('assets/navigation-overview.png')
-							]),
-						_List_Nil),
-						A2(
-						$elm$html$Html$p,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('You’ll keep working backward until there are no steps left.')
-							]))
-					])),
-				A3(
-				$author$project$View$pane,
+				$elm$html$Html$main_,
 				_List_Nil,
-				A2(
-					$author$project$View$paneHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[$author$project$View$circled]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('1')
-								])),
-							A2(
-							$elm$html$Html$span,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Experimental Workflow')
-								]))
-						])),
-				_Utils_ap(
-					A2($author$project$View$program, model, model.program),
-					_List_fromArray(
-						[
-							$author$project$View$startNavigationButton(model.program)
-						]))),
-				A3(
-				$author$project$View$pane,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$id('navigation-pane'),
-						$elm$html$Html$Attributes$classList(
-						_List_fromArray(
-							[
-								_Utils_Tuple2(
-								'pane-inactive',
-								_Utils_eq(model.pbnStatus, $elm$core$Maybe$Nothing))
-							]))
-					]),
-				A2(
-					$author$project$View$paneHeading,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[$author$project$View$circled]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('2')
-								])),
-							A2(
-							$elm$html$Html$span,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Navigation')
-								]))
-						])),
-				$author$project$View$pbnStatus(model.pbnStatus))
+						$author$project$View$codePanel(model),
+						$author$project$View$controlPanel(model)
+					]))
 			]));
 };
 var $elm$core$Result$withDefault = F2(

@@ -47,7 +47,7 @@ function elmify(m) {
 ////////////////////////////////////////////////////////////////////////////////
 // Honeybee loading
 
-import init, * as Honeybee from "./pkg/honeybee.js";
+import init, * as Honeybee from "./pkg/honeybee_js.js";
 
 await init();
 
@@ -115,57 +115,57 @@ customElements.define(
 
 // https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 
-let seen = new Set();
+// let seen = new Set();
 
-function findElementToFocus(target) {
-  for (const node of target.childNodes) {
-    if (!node.dataset.popinkey) {
-      continue;
-    }
-    if (seen.has(node.dataset.popinkey)) {
-      continue;
-    }
-    return node;
-  }
-  return null;
-}
+// function findElementToFocus(target) {
+//   for (const node of target.childNodes) {
+//     if (!node.dataset.popinkey) {
+//       continue;
+//     }
+//     if (seen.has(node.dataset.popinkey)) {
+//       continue;
+//     }
+//     return node;
+//   }
+//   return null;
+// }
 
-customElements.define(
-  "pop-in",
-  class extends HTMLElement {
-    constructor() {
-      super();
+// customElements.define(
+//   "pop-in",
+//   class extends HTMLElement {
+//     constructor() {
+//       super();
 
-      const observer = new MutationObserver((_mutations, _obs) => {
-        const el = findElementToFocus(this);
-        if (el) {
-          seen.add(el.dataset.popinkey);
+//       const observer = new MutationObserver((_mutations, _obs) => {
+//         const el = findElementToFocus(this);
+//         if (el) {
+//           seen.add(el.dataset.popinkey);
 
-          // Important to scroll before adding just-added class
-          el.scrollIntoView({ behavior: "instant" });
+//           // Important to scroll before adding just-added class
+//           el.scrollIntoView({ behavior: "instant" });
 
-          el.classList.add("just-added");
-          window.setTimeout(() => {
-            el.classList.remove("just-added");
-          }, 500);
+//           el.classList.add("just-added");
+//           window.setTimeout(() => {
+//             el.classList.remove("just-added");
+//           }, 500);
 
-          window.setTimeout(() => {
-            document.querySelectorAll(".post-popin-attention").forEach((x) => {
-              x.classList.add("attention");
-              window.setTimeout(() => {
-                x.classList.remove("attention");
-              }, 500);
-            });
-          }, 1000);
-        }
-      });
+//           window.setTimeout(() => {
+//             document.querySelectorAll(".post-popin-attention").forEach((x) => {
+//               x.classList.add("attention");
+//               window.setTimeout(() => {
+//                 x.classList.remove("attention");
+//               }, 500);
+//             });
+//           }, 1000);
+//         }
+//       });
 
-      observer.observe(this, {
-        childList: true,
-      });
-    }
-  },
-);
+//       observer.observe(this, {
+//         childList: true,
+//       });
+//     }
+//   },
+// );
 
 ////////////////////////////////////////////////////////////////////////////////
 // Elm initialization
@@ -175,9 +175,9 @@ const app = Elm.Main.init({
   flags: flags,
 });
 
-document.getElementById("start-navigating").addEventListener("click", () => {
-  seen = new Set();
-});
+// document.getElementById("start-navigating").addEventListener("click", () => {
+//   seen = new Set();
+// });
 
 ////////////////////////////////////////////////////////////////////////////////
 // Elm ports
@@ -235,6 +235,16 @@ app.ports.oPbnChoose.subscribe((msg) => {
   try {
     const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
     app.ports.iPbnStatus_.send(pbnStatusMessage);
+  } catch (e) {
+    console.error(e);
+  }
+});
+
+app.ports.oPbnSpeculate.subscribe((msg) => {
+  try {
+    const pbnStatusMessage = elmify(Honeybee.pbn_choose(msg.choice));
+    Honeybee.pbn_undo();
+    app.ports.iPbnSpeculativeStatus_.send(pbnStatusMessage);
   } catch (e) {
     console.error(e);
   }

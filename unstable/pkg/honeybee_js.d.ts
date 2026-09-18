@@ -1,8 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function autopilot(lib_src: string, prog_src: string): string;
-
 export function parse_library(lib_src: string): any;
 
 export function pbn_choose(choice_index: number): any;
@@ -17,7 +15,6 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly autopilot: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly parse_library: (a: number, b: number) => [number, number, number];
     readonly pbn_choose: (a: number) => [number, number, number];
     readonly pbn_init: (a: number, b: number, c: number, d: number) => [number, number, number];
@@ -29,7 +26,6 @@ export interface InitOutput {
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __externref_table_dealloc: (a: number) => void;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_start: () => void;
 }
 
