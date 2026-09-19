@@ -122,6 +122,17 @@ const app = Elm.Main.init({
   flags: flags,
 });
 
+let askBeforeLeaving = false;
+window.onbeforeunload = () => {
+  // Override confirmation when in development
+  if (window.location.includes("127.0.0.1")) {
+    return;
+  }
+  if (askBeforeLeaving) {
+    return "Are you sure you would like to leave?";
+  }
+};
+
 // document.getElementById("start-navigating").addEventListener("click", () => {
 //   seen = new Set();
 // });
@@ -158,6 +169,7 @@ app.ports.oPbnInit.subscribe((msg) => {
       Honeybee.pbn_init(librarySource, msg.programSource),
     );
     app.ports.iPbnStatus_.send(pbnStatusMessage);
+    askBeforeLeaving = true;
   } catch (e) {
     alert(
       `Honeybee cannot figure out how to make an analysis script for this experiment.
