@@ -3,10 +3,10 @@
 This changelog tracks the notable changes for downstream users in each version of Honeybee.
 Everything in Honeybee is rolling release / unversioned except for the Honeybee Biology Library/Container, which are released in lockstep for compatability and reproducibility.
 
-# Older versions
-
-Previously (until v0.7.0), all Honeybee components were versioned and released in lock step.
+*Note:* Previously (until v0.7.0), all Honeybee components were versioned and released in lock step.
 Now, all components are set to 0.7.0 and are released unversioned (i.e., only tracked via git commit hashes).
+
+- 2026-09-19 \[**Honeybee Notebook Editor**\] Revamp frontend UI to be two panels (Honeybee Summer 2026 UI) - [#166](https://github.com/justinlubin/honeybee/pull/166)
 
 ## \[0.7.0\] - 2026-05-14
 
