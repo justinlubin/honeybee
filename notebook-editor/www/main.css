@@ -132,17 +132,21 @@ a:hover {
 }
 
 .panel footer {
-  text-align: right;
+  display: flex;
+  gap: 20px;
   padding: 20px;
 }
 
-.panel footer button {
-  margin-left: 20px;
+.panel footer .right {
+  margin-left: auto;
 }
 
-.panel footer .left {
+.panel footer .right+.right {
   margin-left: 0;
-  float: left;
+}
+
+.panel footer .big {
+  flex: 1;
 }
 
 .panel>section {
@@ -533,11 +537,6 @@ strong {
   position: absolute;
   bottom: -15px;
   left: calc(50% - 15px);
-}
-
-footer button.big {
-  width: 100%;
-  margin: 0;
 }
 
 /* Outline */

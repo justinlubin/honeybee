@@ -186,7 +186,9 @@ startNavigationButton model =
                 Nothing ->
                     [ A.disabled True ]
     in
-    button attrs [ text "Continue" ]
+    button
+        (A.class "right" :: attrs)
+        [ text "Continue" ]
 
 
 goalSpecification : Model -> Panel
@@ -418,6 +420,11 @@ choice status =
             , footer =
                 Just
                     [ button
+                        [ A.class "left"
+                        , E.onClick UserClickedUndo
+                        ]
+                        [ text "Undo" ]
+                    , button
                         [ A.class "big"
                         , E.onClick
                             (UserRequestedDownload
@@ -492,14 +499,17 @@ choice status =
                                 ]
                                 [ text "Undo" ]
                             , button
-                                [ A.disabled (not selectionMade)
+                                [ A.class "right"
+                                , A.disabled (not selectionMade)
                                 , E.onClick <|
                                     UserDeselectedFunction
                                         { cellIndex = cellIndex }
                                 ]
                                 [ text "Clear selection" ]
                             , button
-                                ([ A.disabled (not selectionMade) ]
+                                ([ A.class "right"
+                                 , A.disabled (not selectionMade)
+                                 ]
                                     ++ (case maybePbnChoiceIndex of
                                             Just i ->
                                                 [ E.onClick (UserMadePbnChoice i) ]
