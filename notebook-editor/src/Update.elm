@@ -27,7 +27,7 @@ type
     | UserRemovedStep Int
     | UserSetArgument ProgramIndex String String
     | UserStartedNavigation { programSource : String }
-    | UserSelectedFunction { cellIndex : Int } Int
+    | UserSelectedFunction { cellIndex : Int } Int (Maybe Int)
     | UserDeselectedFunction { cellIndex : Int }
     | UserSelectedMetadata { cellIndex : Int, functionIndex : Int } Int
     | UserMadePbnChoice Int
@@ -35,7 +35,7 @@ type
     | UserClickedExample
     | UserClickedUndo
       -- Backend actions
-    | BackendSentPbnStatus Incoming.PbnStatusMessage
+    | BackendSentPbnStatus { speculative : Bool } Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
 
 
@@ -155,7 +155,7 @@ syncGoalSuggestions : ( Model, Cmd msg ) -> ( Model, Cmd msg )
 syncGoalSuggestions ( model, cmd ) =
     case
         model.program
-            |> Complete.complete { allowGoalHoles = True }
+            |> Complete.complete { allowPropHoles = True, allowGoalHoles = True }
             |> Maybe.map Compile.compile
     of
         Just programSource ->
@@ -231,11 +231,22 @@ update msg model =
                             model
 
                         Just sig ->
-                            { model
-                                | program =
+                            let
+                                intermediateProgram =
                                     Core.set pi
                                         (Just (Core.fresh name sig))
                                         model.program
+
+                                newProgram =
+                                    case pi of
+                                        Goal ->
+                                            intermediateProgram
+
+                                        Prop _ ->
+                                            { intermediateProgram | goal = Nothing }
+                            in
+                            { model
+                                | program = newProgram
                                 , pbnStatus = Nothing
                             }
             in
@@ -243,9 +254,15 @@ update msg model =
 
         UserClearedStep pi ->
             let
+                intermediateProgram =
+                    Core.set pi Nothing model.program
+
+                newProgram =
+                    { intermediateProgram | goal = Nothing }
+
                 newModel =
                     { model
-                        | program = Core.set pi Nothing model.program
+                        | program = newProgram
                         , pbnStatus = Nothing
                     }
             in
@@ -270,23 +287,31 @@ update msg model =
         UserStartedNavigation x ->
             ( model
             , Cmd.batch
-                [ Outgoing.oScrollIntoView { selector = "#navigation-pane" }
+                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
                 , Outgoing.oPbnInit x
                 ]
             )
 
-        UserSelectedFunction { cellIndex } functionIndex ->
+        UserSelectedFunction { cellIndex } functionIndex speculateChoice ->
             ( setFunctionChoice
                 { cellIndex = cellIndex, functionIndex = Just functionIndex }
                 model
-            , Cmd.none
+            , Cmd.batch
+                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                , case speculateChoice of
+                    Just choice ->
+                        Outgoing.oPbnSpeculate { choice = choice }
+
+                    Nothing ->
+                        Cmd.none
+                ]
             )
 
         UserDeselectedFunction { cellIndex } ->
             ( setFunctionChoice
                 { cellIndex = cellIndex, functionIndex = Nothing }
-                model
-            , Cmd.none
+                { model | speculativePbnStatus = Nothing }
+            , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
             )
 
         UserSelectedMetadata { cellIndex, functionIndex } metadataIndex ->
@@ -301,7 +326,10 @@ update msg model =
 
         UserMadePbnChoice choice ->
             ( model
-            , Outgoing.oPbnChoose { choice = choice }
+            , Cmd.batch
+                [ Outgoing.oPbnChoose { choice = choice }
+                , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                ]
             )
 
         UserRequestedDownload x ->
@@ -315,12 +343,33 @@ update msg model =
             )
 
         UserClickedUndo ->
-            ( model
-            , Outgoing.oPbnUndo {}
-            )
+            case model.pbnStatus of
+                Just status ->
+                    if status.canUndo then
+                        ( model
+                        , Cmd.batch
+                            [ Outgoing.oPbnUndo {}
+                            , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                            ]
+                        )
 
-        BackendSentPbnStatus status ->
-            ( { model | pbnStatus = Just status }
+                    else
+                        ( { model | pbnStatus = Nothing }
+                        , Cmd.none
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        BackendSentPbnStatus { speculative } status ->
+            ( if speculative then
+                { model | speculativePbnStatus = Just status }
+
+              else
+                { model
+                    | pbnStatus = Just status
+                    , speculativePbnStatus = Nothing
+                }
             , Cmd.none
             )
 
@@ -354,14 +403,30 @@ subscriptions _ =
             \psResult ->
                 case psResult of
                     Ok ps ->
-                        BackendSentPbnStatus ps
+                        BackendSentPbnStatus { speculative = False } ps
 
                     Err e ->
                         let
                             _ =
-                                Debug.log "error" e
+                                Debug.log "status error" e
                         in
-                        BackendSentPbnStatus
+                        BackendSentPbnStatus { speculative = False }
+                            { cells = []
+                            , output = Nothing
+                            , canUndo = False
+                            }
+        , Incoming.iPbnSpeculativeStatus <|
+            \psResult ->
+                case psResult of
+                    Ok ps ->
+                        BackendSentPbnStatus { speculative = True } ps
+
+                    Err e ->
+                        let
+                            _ =
+                                Debug.log "speculative status error" e
+                        in
+                        BackendSentPbnStatus { speculative = True }
                             { cells = []
                             , output = Nothing
                             , canUndo = False

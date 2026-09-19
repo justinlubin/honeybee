@@ -11,6 +11,12 @@ findFirst f xs =
     List.head (List.filter f xs)
 
 
+findFirst2 : (a -> b -> Bool) -> List a -> List b -> Maybe ( a, b )
+findFirst2 f xs ys =
+    List.map2 (\x y -> ( x, y )) xs ys
+        |> findFirst (\( x, y ) -> f x y)
+
+
 indexedFilter : (Int -> a -> Bool) -> List a -> List a
 indexedFilter pred xs =
     xs
@@ -139,3 +145,31 @@ at i xs =
     xs
         |> List.drop i
         |> List.head
+
+
+asSingleton : List a -> Maybe a
+asSingleton xs =
+    case xs of
+        [ x ] ->
+            Just x
+
+        _ ->
+            Nothing
+
+
+joinMaybe : Maybe (Maybe a) -> Maybe a
+joinMaybe mmx =
+    case mmx of
+        Nothing ->
+            Nothing
+
+        Just Nothing ->
+            Nothing
+
+        Just (Just x) ->
+            Just x
+
+
+last : List a -> Maybe a
+last xs =
+    xs |> List.reverse |> List.head

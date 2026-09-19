@@ -195,6 +195,16 @@ type ProgramIndex
     | Prop Int
 
 
+get : ProgramIndex -> Program v -> Maybe v
+get pi prog =
+    case pi of
+        Goal ->
+            Just prog.goal
+
+        Prop i ->
+            Util.at i prog.props
+
+
 getSigFor : ProgramIndex -> String -> Library -> Maybe FactSignature
 getSigFor pi name lib =
     let
@@ -270,7 +280,7 @@ remove i prog =
 
 empty : Program (Maybe (Fact v))
 empty =
-    { props = [], goal = Nothing }
+    { props = [ Nothing ], goal = Nothing }
 
 
 example : Library -> WorkingProgram

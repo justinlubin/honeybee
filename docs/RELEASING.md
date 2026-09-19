@@ -23,6 +23,6 @@ If there is a change in the Honeybee Biology Release (see above), take the follo
 
 Then, to publish the latest editor/engine etc. to the web:
 
-1.  Run `make clean && make` in `editor`
+1.  Run `make clean && make` in `notebook-editor`
 2.  Make and push a commit
-3.  Run `publish.sh` in `editor` to publish an unstable build; OR run `publish.sh stable` in `editor` to publish a stable build
+3.  Run `publish.sh` in `notebook-editor` to publish an unstable build; OR run `publish.sh stable` in `notebook-editor` to publish a stable build
