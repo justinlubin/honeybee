@@ -114,30 +114,37 @@ factSelect lib blankName pi mfact enabled =
                 Nothing ->
                     Nothing
 
-        wrap key title =
-            option
+        wrap sortKey key title =
+            ( sortKey
+            , option
                 [ A.value key
                 , A.selected (Just key == selectedName)
                 ]
                 [ text title
                 ]
+            )
 
-        options =
-            wrap blankName blankName
+        wrappedOptions =
+            wrap "" blankName blankName
                 :: List.filterMap
                     (\( key, sig ) ->
                         case sig.title of
                             Nothing ->
-                                Just (wrap key key)
+                                Just (wrap key key key)
 
                             Just title ->
                                 if Annotations.contains Annotations.Intermediate title then
                                     Nothing
 
                                 else
-                                    Just (wrap key title)
+                                    Just (wrap title key title)
                     )
                     lib
+
+        options =
+            wrappedOptions
+                |> List.sortBy (\( title, _ ) -> title)
+                |> List.map (\( _, el ) -> el)
     in
     select
         [ A.disabled (not enabled)
