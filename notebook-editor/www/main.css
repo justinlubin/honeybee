@@ -45,7 +45,7 @@ main {
   display: flex;
   align-items: center;
   flex-direction: row;
-  gap: 20px;
+  /* gap: 20px; */
   padding: 20px;
 }
 
@@ -184,12 +184,12 @@ h1 {
 }
 
 #code-panel {
-  flex: 1;
+  /* flex: 1; */
   height: 100%;
 }
 
 #control-panel {
-  flex: 0 0 600px;
+  /* flex: 0 0 600px; */
   /* align-self: flex-start; */
   /* height: 400px; */
   height: 100%;
@@ -699,4 +699,16 @@ code.elmsh {
   position: absolute;
   top: -2px;
   right: -10.5px;
+}
+
+/* Drag handle */
+
+#drag-handle {
+  background-color: transparent;
+  cursor: col-resize;
+  flex: 0 0 40px;
+  height: 100%;
+  margin-left: -10px;
+  margin-right: -10px;
+  z-index: 1;
 }

@@ -41,8 +41,12 @@ type
     | UserClickedExample
     | UserClickedUndo
     | UserClickedHelp String
-    | UserClicked
     | UserPressedShortcut Key
+    | UserMouseDownedHandle
+      -- General handlers
+    | UserClicked
+    | UserMouseMoved Bool Float
+    | UserMouseUpped Float
       -- Backend actions
     | BackendSentPbnStatus { speculative : Bool } Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
@@ -382,15 +386,41 @@ update msg model =
             else
                 ( { model | activeHelp = Just id }, Cmd.none )
 
-        UserClicked ->
-            ( { model | activeHelp = Nothing }, Cmd.none )
-
         UserPressedShortcut { cmd, ctrl, key } ->
             if (cmd || ctrl) && key == "Z" then
                 doUndo model
 
             else
                 ( model, Cmd.none )
+
+        UserMouseDownedHandle ->
+            ( { model
+                | dragHandleState =
+                    Model.Moving
+                        (Model.toFraction model.dragHandleState)
+              }
+            , Cmd.none
+            )
+
+        UserClicked ->
+            ( { model | activeHelp = Nothing }, Cmd.none )
+
+        UserMouseMoved isDown fraction ->
+            ( { model
+                | dragHandleState =
+                    if isDown then
+                        Model.Moving fraction
+
+                    else
+                        Model.Static (Model.toFraction model.dragHandleState)
+              }
+            , Cmd.none
+            )
+
+        UserMouseUpped fraction ->
+            ( { model | dragHandleState = Model.Static fraction }
+            , Cmd.none
+            )
 
         BackendSentPbnStatus { speculative } status ->
             ( if speculative then
@@ -427,8 +457,20 @@ update msg model =
 -- Subscriptions
 
 
+decodeFraction : D.Decoder Float
+decodeFraction =
+    D.map2 (/)
+        (D.field "pageX" D.float)
+        (D.at [ "currentTarget", "defaultView", "innerWidth" ] D.float)
+
+
+decodeButtons : D.Decoder Bool
+decodeButtons =
+    D.field "buttons" (D.map (\buttons -> buttons == 1) D.int)
+
+
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions model =
     Sub.batch
         [ Browser.Events.onKeyDown <|
             D.map UserPressedShortcut <|
@@ -438,6 +480,17 @@ subscriptions _ =
                     (D.field "shiftKey" D.bool)
                     (D.field "key" D.string |> D.map String.toUpper)
         , Browser.Events.onClick (D.succeed UserClicked)
+        , case model.dragHandleState of
+            Model.Static _ ->
+                Sub.none
+
+            Model.Moving _ ->
+                Sub.batch
+                    [ Browser.Events.onMouseMove
+                        (D.map2 UserMouseMoved decodeButtons decodeFraction)
+                    , Browser.Events.onMouseUp
+                        (D.map UserMouseUpped decodeFraction)
+                    ]
         , Incoming.iPbnStatus <|
             \psResult ->
                 case psResult of

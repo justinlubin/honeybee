@@ -178,14 +178,17 @@ type alias Panel =
     }
 
 
-panel : List (Html.Attribute Msg) -> Panel -> Html Msg
-panel attrs p =
+panel : Float -> List (Html.Attribute Msg) -> Panel -> Html Msg
+panel fraction attrs p =
     let
         bgLine =
             span [ A.class "bg-line" ] []
     in
     div
-        (A.class "panel" :: attrs)
+        (A.class "panel"
+            :: A.style "width" (String.fromFloat (100 * fraction) ++ "%")
+            :: attrs
+        )
         [ header [] ([ bgLine, bgLine, bgLine ] ++ p.header)
         , section [] p.body
         , case p.footer of
@@ -267,9 +270,10 @@ goalSpecification model =
     }
 
 
-codePanel : Model -> Html Msg
-codePanel model =
+codePanel : Model -> Float -> Html Msg
+codePanel model fraction =
     panel
+        fraction
         [ A.id "code-panel" ]
         { header =
             [ h1 [] [ text "Code Panel" ]
@@ -742,9 +746,10 @@ functionChoice ctx fc =
         ]
 
 
-controlPanel : Model -> Html Msg
-controlPanel model =
+controlPanel : Model -> Float -> Html Msg
+controlPanel model fraction =
     panel
+        fraction
         [ A.id "control-panel" ]
         (case model.pbnStatus of
             Nothing ->
@@ -808,12 +813,35 @@ mainMenuBar =
         ]
 
 
+dragHandle : Html Msg
+dragHandle =
+    div
+        [ A.id "drag-handle"
+        , E.onMouseDown UserMouseDownedHandle
+        ]
+        []
+
+
 view : Model -> Html Msg
 view model =
-    div [ A.id "root" ]
+    div
+        [ A.id "root"
+        , A.style "user-select" <|
+            case model.dragHandleState of
+                Model.Static _ ->
+                    "auto"
+
+                Model.Moving _ ->
+                    "none"
+        ]
         [ mainMenuBar
         , main_ []
-            [ codePanel model
-            , controlPanel model
+            [ codePanel
+                model
+                (Model.toFraction model.dragHandleState)
+            , dragHandle
+            , controlPanel
+                model
+                (1 - Model.toFraction model.dragHandleState)
             ]
         ]
