@@ -6,6 +6,7 @@ Everything in Honeybee is rolling release / unversioned except for the Honeybee 
 *Note:* Previously (until v0.7.0), all Honeybee components were versioned and released in lock step.
 Now, all components are set to 0.7.0 and are released unversioned (i.e., only tracked via git commit hashes).
 
+- 2026-09-19 \[**Honeybee Notebook Editor**\] Add shortcut key for Undo (Cmd/Ctrl-Z) - 9172c9c
 - 2026-09-19 \[**Honeybee Notebook Editor**\] Add help buttons to UI - ffce791
 - 2026-09-19 \[**Honeybee Notebook Editor**\] Revamp frontend UI to be two panels (Honeybee Summer 2026 UI) - [#166](https://github.com/justinlubin/honeybee/pull/166)
 
