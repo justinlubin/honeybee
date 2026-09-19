@@ -542,12 +542,11 @@ functionChoice ctx fc =
                 [ A.name "function-choice"
                 , A.type_ "radio"
                 , A.checked ctx.selected
-                , E.onInput <|
-                    \_ ->
-                        UserSelectedFunction
-                            { cellIndex = ctx.cellIndex }
-                            ctx.functionIndex
-                            maybePbnChoiceIndex
+                , E.onClick <|
+                    UserSelectedFunction
+                        { cellIndex = ctx.cellIndex }
+                        ctx.functionIndex
+                        maybePbnChoiceIndex
                 ]
                 []
             , strong [] [ text fc.functionTitle ]
