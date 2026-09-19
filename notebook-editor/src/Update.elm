@@ -18,6 +18,10 @@ import Util
 -- Messages
 
 
+type alias Key =
+    { cmd : Bool, ctrl : Bool, shift : Bool, key : String }
+
+
 type
     Msg
     -- No-op
@@ -38,6 +42,7 @@ type
     | UserClickedUndo
     | UserClickedHelp String
     | UserClicked
+    | UserPressedShortcut Key
       -- Backend actions
     | BackendSentPbnStatus { speculative : Bool } Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
@@ -209,6 +214,27 @@ consistentSuggestions goalFact choices =
 -- Main update
 
 
+doUndo : Model -> ( Model, Cmd Msg )
+doUndo model =
+    case model.pbnStatus of
+        Just status ->
+            if status.canUndo then
+                ( model
+                , Cmd.batch
+                    [ Outgoing.oPbnUndo {}
+                    , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                    ]
+                )
+
+            else
+                ( { model | pbnStatus = Nothing }
+                , Cmd.none
+                )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -347,23 +373,7 @@ update msg model =
             )
 
         UserClickedUndo ->
-            case model.pbnStatus of
-                Just status ->
-                    if status.canUndo then
-                        ( model
-                        , Cmd.batch
-                            [ Outgoing.oPbnUndo {}
-                            , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
-                            ]
-                        )
-
-                    else
-                        ( { model | pbnStatus = Nothing }
-                        , Cmd.none
-                        )
-
-                Nothing ->
-                    ( model, Cmd.none )
+            doUndo model
 
         UserClickedHelp id ->
             if model.activeHelp == Just id then
@@ -374,6 +384,13 @@ update msg model =
 
         UserClicked ->
             ( { model | activeHelp = Nothing }, Cmd.none )
+
+        UserPressedShortcut { cmd, ctrl, key } ->
+            if (cmd || ctrl) && key == "Z" then
+                doUndo model
+
+            else
+                ( model, Cmd.none )
 
         BackendSentPbnStatus { speculative } status ->
             ( if speculative then
@@ -413,7 +430,14 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Browser.Events.onClick (D.succeed UserClicked)
+        [ Browser.Events.onKeyDown <|
+            D.map UserPressedShortcut <|
+                D.map4 Key
+                    (D.field "metaKey" D.bool)
+                    (D.field "ctrlKey" D.bool)
+                    (D.field "shiftKey" D.bool)
+                    (D.field "key" D.string |> D.map String.toUpper)
+        , Browser.Events.onClick (D.succeed UserClicked)
         , Incoming.iPbnStatus <|
             \psResult ->
                 case psResult of
