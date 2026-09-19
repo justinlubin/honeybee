@@ -1,11 +1,13 @@
 module Update exposing (Msg(..), subscriptions, update)
 
 import Assoc exposing (Assoc)
+import Browser.Events
 import Cell
 import Compile
 import Complete
 import Core exposing (..)
 import Incoming
+import Json.Decode as D
 import Model exposing (Model)
 import Outgoing
 import Util
@@ -34,6 +36,8 @@ type
     | UserRequestedDownload Outgoing.DownloadMessage
     | UserClickedExample
     | UserClickedUndo
+    | UserClickedHelp String
+    | UserClicked
       -- Backend actions
     | BackendSentPbnStatus { speculative : Bool } Incoming.PbnStatusMessage
     | BackendSentValidGoalMetadata Incoming.ValidGoalMetadataMessage
@@ -361,6 +365,16 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        UserClickedHelp id ->
+            if model.activeHelp == Just id then
+                ( { model | activeHelp = Nothing }, Cmd.none )
+
+            else
+                ( { model | activeHelp = Just id }, Cmd.none )
+
+        UserClicked ->
+            ( { model | activeHelp = Nothing }, Cmd.none )
+
         BackendSentPbnStatus { speculative } status ->
             ( if speculative then
                 { model | speculativePbnStatus = Just status }
@@ -399,7 +413,8 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Incoming.iPbnStatus <|
+        [ Browser.Events.onClick (D.succeed UserClicked)
+        , Incoming.iPbnStatus <|
             \psResult ->
                 case psResult of
                     Ok ps ->

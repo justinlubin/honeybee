@@ -11,6 +11,7 @@ type alias Model =
     , pbnStatus : Maybe Incoming.PbnStatusMessage
     , speculativePbnStatus : Maybe Incoming.PbnStatusMessage
     , goalSuggestions : Assoc String (List Value)
+    , activeHelp : Maybe String
     }
 
 
@@ -21,4 +22,5 @@ init library =
     , pbnStatus = Nothing
     , speculativePbnStatus = Nothing
     , goalSuggestions = []
+    , activeHelp = Nothing
     }

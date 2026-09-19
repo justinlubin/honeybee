@@ -10,12 +10,31 @@ import Html.Attributes as A
 import Html.Events as E
 import Html.Keyed
 import Incoming
+import Json.Decode as D
 import Markdown
 import Model exposing (Model)
 import SyntaxHighlight
 import Update exposing (Msg(..))
 import Util
 import Version
+
+
+help : Maybe String -> String -> List (Html Msg) -> Html Msg
+help activeHelp id body =
+    let
+        active =
+            activeHelp == Just id
+    in
+    div
+        [ A.classList [ ( "help", True ), ( "help-active", active ) ]
+        ]
+        [ span
+            [ A.class "help-button"
+            , E.stopPropagationOn "click" (D.succeed ( UserClickedHelp id, True ))
+            ]
+            [ text "?" ]
+        , div [ A.class "help-content" ] body
+        ]
 
 
 cellTitle : Cell.Cell -> String
@@ -206,7 +225,13 @@ goalSpecification model =
         [ h1 [] [ text "Control Panel" ] ]
     , body =
         [ pane True
-            [ h2 [] [ text "Experimental workflow" ]
+            [ h2 []
+                [ text "Experimental workflow"
+                , help
+                    model.activeHelp
+                    "experimental-workflow"
+                    [ text "This is the assay that you ran for your experiment. It determines what kinds of analyses you can run." ]
+                ]
             , factSelect
                 model.library.props
                 "Choose an assay…"
@@ -215,7 +240,13 @@ goalSpecification model =
                 True
             ]
         , pane workflowComplete
-            [ h2 [] [ text "Goal of experiment" ]
+            [ h2 []
+                [ text "Goal of experiment"
+                , help
+                    model.activeHelp
+                    "goal"
+                    [ text "This is the computational analysis you want to run on your data. It’s the reason for running the experiment." ]
+                ]
             , factSelect
                 model.library.types
                 "Choose a goal…"
@@ -380,8 +411,8 @@ cell ctx c =
                     ]
 
 
-choice : Incoming.PbnStatusMessage -> Panel
-choice status =
+choice : Maybe String -> Incoming.PbnStatusMessage -> Panel
+choice activeHelp status =
     let
         nextChoice =
             status.cells
@@ -464,6 +495,10 @@ choice status =
                             [ span [ A.class "choice" ] [ text "Choice" ]
                             , text " "
                             , text (Annotations.removeAll cc.typeTitle)
+                            , help
+                                activeHelp
+                                "choice-type-title"
+                                [ text "This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on what you feel is right for your experiment!" ]
                             ]
                         , case cc.typeDescription of
                             Just desc ->
@@ -473,7 +508,12 @@ choice status =
                                 text ""
                         , h3
                             [ A.class "choices-header" ]
-                            [ text "Choices for next step" ]
+                            [ text "Choices for next step"
+                            , help
+                                activeHelp
+                                "choice-next-steps"
+                                [ text "These are the next steps you can choose between for this part of the analysis." ]
+                            ]
                         , Html.Keyed.ul
                             [ A.class "function-choices" ]
                             (List.indexedMap
@@ -704,7 +744,7 @@ controlPanel model =
                 goalSpecification model
 
             Just status ->
-                choice status
+                choice model.activeHelp status
         )
 
 

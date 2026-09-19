@@ -618,3 +618,85 @@ code.elmsh {
 .elmsh7 {
   color: #212121;
 }
+
+/* Help button */
+
+.help {
+  color: black;
+  font-size: 1rem;
+  font-weight: normal;
+  float: right;
+  position: relative;
+
+  --help-color: #ffffdd;
+}
+
+.help-button {
+  border-radius: 50%;
+  border: 1px solid #888;
+  color: #888;
+  font-weight: normal;
+  font-size: 0.7rem;
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  text-align: center;
+  line-height: 2em;
+  cursor: pointer;
+  user-select: none;
+  outline: 1px solid solid white;
+  box-sizing: content-box;
+}
+
+.help-active .help-button {
+  outline: 1px solid black;
+  border: 1px solid black;
+  color: black;
+  background-color: var(--help-color);
+}
+
+.help-content {
+  opacity: 0;
+  pointer-events: none;
+  font-size: 0.7rem;
+  width: 250px;
+  position: absolute;
+  right: 1.4rem;
+  margin-right: 15px;
+  top: 0.7rem;
+  border: 2px solid black;
+  border-radius: var(--rounding);
+  border-top-right-radius: 0;
+  background-color: var(--help-color);
+  padding: 5px;
+  transition: all 0.2s;
+  box-shadow: 2px 2px 1px rgba(0, 0, 0, 0.2);
+}
+
+.help-active .help-content {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.help-content:before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-bottom: 9px solid transparent;
+  border-left: 9px solid var(--help-color);
+  position: absolute;
+  top: 0;
+  right: -6px;
+  z-index: 6;
+}
+
+.help-content:after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-bottom: 10px solid transparent;
+  border-left: 10px solid black;
+  position: absolute;
+  top: -2px;
+  right: -10.5px;
+}
