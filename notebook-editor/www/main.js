@@ -60,59 +60,6 @@ const flags = {
   types: elmify(library.Type),
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// Custom elements
-
-customElements.define(
-  "fancy-code",
-  class extends HTMLElement {
-    constructor() {
-      super();
-      this._code = null;
-    }
-
-    set code(value) {
-      this._code = value;
-
-      const preElement = document.createElement("pre");
-      const codeElement = document.createElement("code");
-
-      const language = this.getAttribute("language");
-      if (language) {
-        codeElement.className = "language-" + language;
-      }
-
-      codeElement.textContent = this._code;
-
-      Prism.highlightElement(codeElement);
-
-      codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-        /__hb_ret/g,
-        `<span
-           class='hb-argument'
-           title='This is a PLACEHOLDER that will get filled with data from the current step.'
-        >current</span>`,
-      );
-
-      codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-        /(__hb_[A-Za-z][A-Za-z_]*)|(__HB_PREVIOUS)/g,
-        `<span
-           class='hb-argument'
-           title='This is a PLACEHOLDER that will get filled with data from upstream steps in the pipeline.'
-        >previous</span>`,
-      );
-
-      this.textContent = "";
-      preElement.appendChild(codeElement);
-      this.appendChild(preElement);
-    }
-
-    get code() {
-      return this._code;
-    }
-  },
-);
-
 // https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 
 // let seen = new Set();

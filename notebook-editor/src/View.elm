@@ -10,9 +10,9 @@ import Html.Attributes as A
 import Html.Events as E
 import Html.Keyed
 import Incoming
-import Json.Encode
 import Markdown
 import Model exposing (Model)
+import SyntaxHighlight
 import Update exposing (Msg(..))
 import Util
 import Version
@@ -68,15 +68,14 @@ inlineMarkdown attrs s =
     markdown (A.class "inline" :: attrs) s
 
 
-fancyCode : List (Attribute msg) -> { language : String, code : String } -> Html msg
-fancyCode attrs { language, code } =
-    node "fancy-code"
-        ([ A.attribute "language" language
-         , A.property "code" (Json.Encode.string code)
-         ]
-            ++ attrs
-        )
-        []
+pythonCode : String -> Html msg
+pythonCode codeString =
+    case SyntaxHighlight.python codeString of
+        Ok hCode ->
+            SyntaxHighlight.toBlockHtml Nothing hCode
+
+        Err _ ->
+            code [] [ text codeString ]
 
 
 factSelect :
@@ -342,12 +341,9 @@ cell ctx c =
             section
                 [ A.class "cell" ]
                 [ h2 [] [ text cc.title ]
-                , div [ A.class "code-container" ]
-                    [ fancyCode []
-                        { language = "python"
-                        , code = cc.code
-                        }
-                    ]
+                , div
+                    [ A.class "code-container" ]
+                    [ pythonCode cc.code ]
                 ]
 
         Cell.Choice _ ->
@@ -360,12 +356,9 @@ cell ctx c =
                             , A.class "speculating"
                             ]
                             [ h2 [] [ text specCode.title ]
-                            , div [ A.class "code-container" ]
-                                [ fancyCode []
-                                    { language = "python"
-                                    , code = specCode.code
-                                    }
-                                ]
+                            , div
+                                [ A.class "code-container" ]
+                                [ pythonCode specCode.code ]
                             ]
 
                     _ ->

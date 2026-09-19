@@ -77,6 +77,10 @@ button[disabled] {
   cursor: not-allowed;
 }
 
+code {
+  font-family: "Monaco", monospace;
+}
+
 a:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
@@ -555,4 +559,63 @@ footer button.big {
 
 #outline details {
   margin: 0;
+}
+
+/* Syntax highlighting */
+
+pre.elmsh {
+  /* padding: 10px; */
+  margin: 0;
+  text-align: left;
+  overflow: auto;
+}
+
+code.elmsh {
+  padding: 0;
+}
+
+.elmsh-line:before {
+  content: attr(data-elmsh-lc);
+  display: inline-block;
+  text-align: right;
+  width: 40px;
+  padding: 0 20px 0 0;
+  opacity: 0.3;
+}
+
+.elmsh {
+  color: #24292e;
+  /* background: #ffffff; */
+}
+
+.elmsh1 {
+  color: #3B8624;
+}
+
+.elmsh2 {
+  color: #AB312A;
+}
+
+.elmsh3 {
+  color: #6E12BB;
+  font-weight: bold;
+  color: #377E22;
+}
+
+.elmsh4 {
+  font-weight: bold;
+  color: #377E22;
+}
+
+.elmsh5 {
+  color: #0000F5;
+}
+
+.elmsh6 {
+  font-weight: bold;
+  color: #377E22;
+}
+
+.elmsh7 {
+  color: #212121;
 }
