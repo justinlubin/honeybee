@@ -60,59 +60,6 @@ const flags = {
   types: elmify(library.Type),
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// Custom elements
-
-customElements.define(
-  "fancy-code",
-  class extends HTMLElement {
-    constructor() {
-      super();
-      this._code = null;
-    }
-
-    set code(value) {
-      this._code = value;
-
-      const preElement = document.createElement("pre");
-      const codeElement = document.createElement("code");
-
-      const language = this.getAttribute("language");
-      if (language) {
-        codeElement.className = "language-" + language;
-      }
-
-      codeElement.textContent = this._code;
-
-      Prism.highlightElement(codeElement);
-
-      codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-        /__hb_ret/g,
-        `<span
-           class='hb-argument'
-           title='This is a PLACEHOLDER that will get filled with data from the current step.'
-        >current</span>`,
-      );
-
-      codeElement.innerHTML = codeElement.innerHTML.replaceAll(
-        /(__hb_[A-Za-z][A-Za-z_]*)|(__HB_PREVIOUS)/g,
-        `<span
-           class='hb-argument'
-           title='This is a PLACEHOLDER that will get filled with data from upstream steps in the pipeline.'
-        >previous</span>`,
-      );
-
-      this.textContent = "";
-      preElement.appendChild(codeElement);
-      this.appendChild(preElement);
-    }
-
-    get code() {
-      return this._code;
-    }
-  },
-);
-
 // https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 
 // let seen = new Set();
@@ -175,6 +122,17 @@ const app = Elm.Main.init({
   flags: flags,
 });
 
+let askBeforeLeaving = false;
+window.onbeforeunload = () => {
+  // Override confirmation when in development
+  if (window.location.includes("127.0.0.1")) {
+    return;
+  }
+  if (askBeforeLeaving) {
+    return "Are you sure you would like to leave?";
+  }
+};
+
 // document.getElementById("start-navigating").addEventListener("click", () => {
 //   seen = new Set();
 // });
@@ -211,6 +169,7 @@ app.ports.oPbnInit.subscribe((msg) => {
       Honeybee.pbn_init(librarySource, msg.programSource),
     );
     app.ports.iPbnStatus_.send(pbnStatusMessage);
+    askBeforeLeaving = true;
   } catch (e) {
     alert(
       `Honeybee cannot figure out how to make an analysis script for this experiment.

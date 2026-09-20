@@ -45,7 +45,7 @@ main {
   display: flex;
   align-items: center;
   flex-direction: row;
-  gap: 20px;
+  /* gap: 20px; */
   padding: 20px;
 }
 
@@ -75,6 +75,10 @@ button {
 
 button[disabled] {
   cursor: not-allowed;
+}
+
+code {
+  font-family: "Monaco", monospace;
 }
 
 a:hover {
@@ -128,17 +132,21 @@ a:hover {
 }
 
 .panel footer {
-  text-align: right;
+  display: flex;
+  gap: 20px;
   padding: 20px;
 }
 
-.panel footer button {
-  margin-left: 20px;
+.panel footer .right {
+  margin-left: auto;
 }
 
-.panel footer .left {
+.panel footer .right+.right {
   margin-left: 0;
-  float: left;
+}
+
+.panel footer .big {
+  flex: 1;
 }
 
 .panel>section {
@@ -176,12 +184,12 @@ h1 {
 }
 
 #code-panel {
-  flex: 1;
+  /* flex: 1; */
   height: 100%;
 }
 
 #control-panel {
-  flex: 0 0 600px;
+  /* flex: 0 0 600px; */
   /* align-self: flex-start; */
   /* height: 400px; */
   height: 100%;
@@ -531,11 +539,6 @@ strong {
   left: calc(50% - 15px);
 }
 
-footer button.big {
-  width: 100%;
-  margin: 0;
-}
-
 /* Outline */
 
 #outline {
@@ -555,4 +558,157 @@ footer button.big {
 
 #outline details {
   margin: 0;
+}
+
+/* Syntax highlighting */
+
+pre.elmsh {
+  /* padding: 10px; */
+  margin: 0;
+  text-align: left;
+  overflow: auto;
+}
+
+code.elmsh {
+  padding: 0;
+}
+
+.elmsh-line:before {
+  content: attr(data-elmsh-lc);
+  display: inline-block;
+  text-align: right;
+  width: 40px;
+  padding: 0 20px 0 0;
+  opacity: 0.3;
+}
+
+.elmsh {
+  color: #24292e;
+  /* background: #ffffff; */
+}
+
+.elmsh1 {
+  color: #3B8624;
+}
+
+.elmsh2 {
+  color: #AB312A;
+}
+
+.elmsh3 {
+  color: #6E12BB;
+  font-weight: bold;
+  color: #377E22;
+}
+
+.elmsh4 {
+  font-weight: bold;
+  color: #377E22;
+}
+
+.elmsh5 {
+  color: #0000F5;
+}
+
+.elmsh6 {
+  font-weight: bold;
+  color: #377E22;
+}
+
+.elmsh7 {
+  color: #212121;
+}
+
+/* Help button */
+
+.help {
+  color: black;
+  font-size: 1rem;
+  font-weight: normal;
+  float: right;
+  position: relative;
+
+  --help-color: #ffffdd;
+}
+
+.help-button {
+  border-radius: 50%;
+  border: 1px solid #888;
+  color: #888;
+  font-weight: normal;
+  font-size: 0.7rem;
+  display: block;
+  width: 1.4rem;
+  height: 1.4rem;
+  text-align: center;
+  line-height: 2em;
+  cursor: pointer;
+  user-select: none;
+  outline: 1px solid solid white;
+  box-sizing: content-box;
+}
+
+.help-active .help-button {
+  outline: 1px solid black;
+  border: 1px solid black;
+  color: black;
+  background-color: var(--help-color);
+}
+
+.help-content {
+  opacity: 0;
+  pointer-events: none;
+  font-size: 0.7rem;
+  width: 250px;
+  position: absolute;
+  right: 1.4rem;
+  margin-right: 15px;
+  top: 0.7rem;
+  border: 2px solid black;
+  border-radius: var(--rounding);
+  border-top-right-radius: 0;
+  background-color: var(--help-color);
+  padding: 5px;
+  transition: all 0.2s;
+  box-shadow: 2px 2px 1px rgba(0, 0, 0, 0.2);
+}
+
+.help-active .help-content {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.help-content:before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-bottom: 9px solid transparent;
+  border-left: 9px solid var(--help-color);
+  position: absolute;
+  top: 0;
+  right: -6px;
+  z-index: 6;
+}
+
+.help-content:after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-bottom: 10px solid transparent;
+  border-left: 10px solid black;
+  position: absolute;
+  top: -2px;
+  right: -10.5px;
+}
+
+/* Drag handle */
+
+#drag-handle {
+  background-color: transparent;
+  cursor: col-resize;
+  flex: 0 0 40px;
+  height: 100%;
+  margin-left: -10px;
+  margin-right: -10px;
+  z-index: 1;
 }
