@@ -13,11 +13,18 @@ main =
     Browser.element
         { init =
             \v ->
-                ( v
-                    |> Json.Decode.decodeValue Incoming.library
-                    |> Result.mapError (Debug.log "error")
-                    |> Result.withDefault { props = [], types = [] }
-                    |> Model.init
+                ( Model.init
+                    { library =
+                        v
+                            |> Json.Decode.decodeValue (Json.Decode.field "library" Incoming.library)
+                            |> Result.mapError (Debug.log "'library' decode error")
+                            |> Result.withDefault { props = [], types = [] }
+                    , sound =
+                        v
+                            |> Json.Decode.decodeValue (Json.Decode.field "sound" Json.Decode.bool)
+                            |> Result.mapError (Debug.log "'sound' decode error")
+                            |> Result.withDefault True
+                    }
                 , Cmd.none
                 )
         , update = Update.update

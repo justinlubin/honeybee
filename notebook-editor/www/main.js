@@ -57,8 +57,11 @@ const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
 const flags = {
-  props: elmify(library.Prop),
-  types: elmify(library.Type),
+  sound: true,
+  library: {
+    props: elmify(library.Prop),
+    types: elmify(library.Type),
+  },
 };
 
 // https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver

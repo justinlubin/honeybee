@@ -42,9 +42,13 @@ type alias Model =
     }
 
 
-init : Library -> Model
-init library =
-    { sound = True
+type alias Flags =
+    { library : Library, sound : Bool }
+
+
+init : Flags -> Model
+init { library, sound } =
+    { sound = sound
     , library = library
     , program = Core.example library -- Core.empty
     , pbnStatus = Nothing
