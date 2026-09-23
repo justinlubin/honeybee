@@ -48,7 +48,6 @@ function elmify(m) {
 // Honeybee loading
 
 import init, * as Honeybee from "./pkg/honeybee_js.js";
-console.log(Honeybee);
 
 await init();
 
