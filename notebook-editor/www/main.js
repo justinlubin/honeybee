@@ -56,8 +56,26 @@ const libraryResponse = await fetch("bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
+let sound = true;
+
+// Study mode
+if (window.location.href.includes("[::1]")) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const condition = urlParams.get("condition");
+
+  if (condition == "5b7886fb8748aee0") {
+    sound = true;
+  } else if (condition == "368d77182b69ccb7") {
+    sound = false;
+  } else {
+    let error = `Error\n\nPlease report the following message to the investigator.\n\nUnknown condition '${condition}'`;
+    alert(error);
+    throw error;
+  }
+}
+
 const flags = {
-  sound: true,
+  sound: sound,
   library: {
     props: elmify(library.Prop),
     types: elmify(library.Type),
@@ -129,7 +147,7 @@ const app = Elm.Main.init({
 let askBeforeLeaving = false;
 window.onbeforeunload = () => {
   // Override confirmation when in development
-  if (window.location.includes("127.0.0.1")) {
+  if (window.location.href.includes("127.0.0.1")) {
     return;
   }
   if (askBeforeLeaving) {
