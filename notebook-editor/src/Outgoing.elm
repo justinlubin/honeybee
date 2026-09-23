@@ -36,6 +36,7 @@ port oPbnCheck : PbnCheckMessage -> Cmd msg
 
 type alias PbnInitMessage =
     { programSource : String
+    , sound : Bool
     }
 
 

@@ -58,6 +58,7 @@ struct State {
     controller:
         pbn::Controller<honeybee::util::Timer, top_down::TopDownStep<core::ParameterizedFunction>>,
     library: core::Library,
+    sound: bool,
 }
 
 static mut STATE: Option<State> = None;
@@ -110,14 +111,19 @@ fn send_message() -> Result<JsValue, String> {
 }
 
 #[wasm_bindgen]
-pub fn pbn_init(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
+pub fn pbn_init(lib_src: &str, prog_src: &str, sound: bool) -> Result<JsValue, String> {
     let problem = load_problem(lib_src, prog_src)?;
     let timer = honeybee::util::Timer::infinite();
-    let algorithm = menu::Algorithm::PBNHoneybee;
+    let algorithm = if sound {
+        menu::Algorithm::PBNHoneybee
+    } else {
+        menu::Algorithm::Unsound
+    };
 
     set_state(State {
         library: problem.library.clone(),
         controller: algorithm.controller(timer, problem, true),
+        sound,
     });
 
     send_message()
@@ -129,23 +135,25 @@ pub fn pbn_choose(choice_index: usize) -> Result<JsValue, String> {
     let mut options = state.controller.provide().map_err(|e| format!("{:?}", e))?;
     state.controller.decide(options.swap_remove(choice_index));
 
-    // Check for auto-decisions (F_* functions)
-    'fixpoint: loop {
-        let mut options = state.controller.provide().map_err(|e| format!("{:?}", e))?;
-        for (i, option) in options.iter().enumerate() {
-            match option {
-                top_down::TopDownStep::Extend(_, f, _) => {
-                    if f.name.0.starts_with("F_") {
-                        state
-                            .controller
-                            .decide_without_history(options.swap_remove(i));
-                        continue 'fixpoint;
+    if state.sound {
+        // Check for auto-decisions (F_* functions)
+        'fixpoint: loop {
+            let mut options = state.controller.provide().map_err(|e| format!("{:?}", e))?;
+            for (i, option) in options.iter().enumerate() {
+                match option {
+                    top_down::TopDownStep::Extend(_, f, _) => {
+                        if f.name.0.starts_with("F_") {
+                            state
+                                .controller
+                                .decide_without_history(options.swap_remove(i));
+                            continue 'fixpoint;
+                        }
                     }
+                    _ => continue,
                 }
-                _ => continue,
             }
+            break;
         }
-        break;
     }
 
     send_message()

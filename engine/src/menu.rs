@@ -7,8 +7,8 @@
 
 use crate::*;
 
-use serde::{Deserialize, Serialize};
 use crate::codegen::Codegen;
+use serde::{Deserialize, Serialize};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Synthesizers
@@ -20,6 +20,7 @@ pub enum Algorithm {
     PBNConstructiveOracle,
     NaiveEnumeration,
     PrunedEnumeration,
+    Unsound,
 }
 
 impl Algorithm {
@@ -31,6 +32,7 @@ impl Algorithm {
             Self::PBNConstructiveOracle,
             Self::NaiveEnumeration,
             Self::PrunedEnumeration,
+            Self::Unsound,
         ]
     }
 
@@ -121,6 +123,21 @@ impl Algorithm {
                     save_history,
                 )
             }
+
+            Algorithm::Unsound => {
+                let oracle = unsound_oracle::UnsoundOracle::new(problem);
+                let provider =
+                    top_down::ClassicalConstructiveSynthesis::new(oracle);
+                let start = top_down::Sketch::blank();
+                let checker = top_down::GroundChecker::new();
+                pbn::Controller::new(
+                    timer,
+                    provider,
+                    checker,
+                    start,
+                    save_history,
+                )
+            }
         }
     }
 
@@ -183,6 +200,9 @@ impl Algorithm {
                 let synth =
                     enumerate::EnumerativeSynthesis::new(problem, pruner);
                 Box::new(synth)
+            }
+            Algorithm::Unsound => {
+                panic!("The Unsound algorithm does not support the Any synthesizer operation")
             }
         }
     }

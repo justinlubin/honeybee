@@ -393,4 +393,8 @@ impl Goal {
             IndexMap::from([(self.param.clone(), e.clone())]),
         )
     }
+
+    pub fn is_goal(bf: &BaseFunction) -> bool {
+        bf.0 == "&goal"
+    }
 }

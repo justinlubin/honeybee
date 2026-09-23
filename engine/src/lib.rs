@@ -7,8 +7,9 @@ pub mod menu;
 pub mod parse;
 pub mod top_down;
 pub mod typecheck;
-pub mod util;
 pub mod unparse;
+pub mod unsound_oracle;
+pub mod util;
 
 mod datalog;
 mod enumerate;

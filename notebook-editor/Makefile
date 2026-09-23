@@ -45,10 +45,10 @@ endif
 	> $(OUT_DIR)/elm.js.tmp
 	mv $(OUT_DIR)/elm.js.tmp $(OUT_DIR)/elm.js
 
-$(OUT_DIR)/pkg: $(wildcard $(JS_DIR)/src/*.rs)
+$(OUT_DIR)/pkg: $(wildcard $(JS_DIR)/src/*.rs) $(wildcard $(ENGINE_DIR)/src/*.rs)
 	cd $(JS_DIR) && \
 	make pkg && \
-	rm -rf $(OUT_DIR)/pkg && \
+	rm -rf ../$(HERE_DIR)/$(OUT_DIR)/pkg && \
 	cp -r pkg ../$(HERE_DIR)/$(OUT_DIR)/pkg
 
 $(OUT_DIR)/bio.hblib.toml: $(wildcard $(LANG_DIR)/*.py) $(wildcard $(GLUE_DIR)/*.py)

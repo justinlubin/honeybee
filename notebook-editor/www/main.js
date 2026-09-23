@@ -48,6 +48,7 @@ function elmify(m) {
 // Honeybee loading
 
 import init, * as Honeybee from "./pkg/honeybee_js.js";
+console.log(Honeybee);
 
 await init();
 
@@ -166,7 +167,7 @@ app.ports.oPbnCheck.subscribe((msg) => {
 app.ports.oPbnInit.subscribe((msg) => {
   try {
     const pbnStatusMessage = elmify(
-      Honeybee.pbn_init(librarySource, msg.programSource),
+      Honeybee.pbn_init(librarySource, msg.programSource, msg.sound),
     );
     app.ports.iPbnStatus_.send(pbnStatusMessage);
     askBeforeLeaving = true;

@@ -318,11 +318,11 @@ update msg model =
                 , Cmd.none
                 )
 
-        UserStartedNavigation x ->
+        UserStartedNavigation { programSource } ->
             ( model
             , Cmd.batch
                 [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
-                , Outgoing.oPbnInit x
+                , Outgoing.oPbnInit { programSource = programSource, sound = model.sound }
                 ]
             )
 

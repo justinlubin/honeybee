@@ -163,6 +163,22 @@ pub struct EnumerativeSynthesis<P: Prune> {
     goal: Goal,
     pruner: P,
     support: Support,
+    require_simple_type_matches: bool,
+}
+
+impl EnumerativeSynthesis<NaivePruner> {
+    pub fn new_unsound(mut problem: Problem) -> Self {
+        let goal = Goal::new(&problem.program.goal);
+        goal.add_to_library(&mut problem.library.functions);
+
+        Self {
+            support: Support::new(problem.vals()),
+            problem,
+            goal,
+            pruner: NaivePruner,
+            require_simple_type_matches: false,
+        }
+    }
 }
 
 impl<P: Prune> EnumerativeSynthesis<P> {
@@ -176,6 +192,7 @@ impl<P: Prune> EnumerativeSynthesis<P> {
             problem,
             goal,
             pruner,
+            require_simple_type_matches: true,
         }
     }
 
@@ -186,7 +203,9 @@ impl<P: Prune> EnumerativeSynthesis<P> {
     ) -> Result<Vec<ParameterizedFunction>, EarlyCutoff> {
         let mut funcs = vec![];
         for (g, gsig) in &self.problem.library.functions {
-            if gsig.ret != typ.name {
+            if Goal::is_goal(g)
+                || (self.require_simple_type_matches && gsig.ret != typ.name)
+            {
                 continue;
             }
             let gfunc = ParameterizedFunction::from_sig(
@@ -337,6 +356,16 @@ impl<P: Prune> EnumerativeSynthesis<P> {
             .map(|e| start.pattern_match(&self.unwrap(e)).unwrap())
             .collect())
     }
+
+    pub fn all_expansions(
+        &self,
+        timer: &util::Timer,
+        start: &Exp,
+    ) -> Result<IndexMap<HoleName, Vec<ParameterizedFunction>>, EarlyCutoff>
+    {
+        let (f, args) = self.wrap(start);
+        self.support_fun(timer, &f, &args)
+    }
 }
 
 impl<P: Prune> AnySynthesizer for EnumerativeSynthesis<P> {
@@ -390,6 +419,7 @@ impl<P: Prune> InhabitationOracle for EnumerativeSynthesis<P> {
                     continue;
                 }
 
+                // The constructive part!
                 if self.provide_any(timer, &new_e)?.is_some() {
                     expansions.push((h, f))
                 }

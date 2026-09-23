@@ -31,7 +31,8 @@ toFraction dragState =
 
 
 type alias Model =
-    { library : Library
+    { sound : Bool
+    , library : Library
     , program : WorkingProgram
     , pbnStatus : Maybe Incoming.PbnStatusMessage
     , speculativePbnStatus : Maybe Incoming.PbnStatusMessage
@@ -43,7 +44,8 @@ type alias Model =
 
 init : Library -> Model
 init library =
-    { library = library
+    { sound = True
+    , library = library
     , program = Core.example library -- Core.empty
     , pbnStatus = Nothing
     , speculativePbnStatus = Nothing
