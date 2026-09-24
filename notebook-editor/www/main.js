@@ -56,9 +56,12 @@ const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
 let sound = true;
+let log = false;
 
-// Study mode
-if (window.location.href.includes("[::1]")) {
+// Study mode (running on user study server)
+if (window.location.href.includes(":5000")) {
+  log = true;
+
   const urlParams = new URLSearchParams(window.location.search);
   const condition = urlParams.get("condition");
 
@@ -75,6 +78,7 @@ if (window.location.href.includes("[::1]")) {
 
 const flags = {
   sound: sound,
+  log: log,
   library: {
     props: elmify(library.Prop),
     types: elmify(library.Type),
@@ -241,6 +245,15 @@ app.ports.oPbnUndo.subscribe((_msg) => {
 
 app.ports.oDownload.subscribe((msg) => {
   download(msg.filename, msg.text);
+});
+
+app.ports.oLog.subscribe((msg) => {
+  // https://stackoverflow.com/a/47065313
+  fetch("/__log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(msg),
+  });
 });
 
 ////////////////////////////////////////////////////////////////////////////////

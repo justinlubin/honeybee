@@ -8,6 +8,7 @@ import Complete
 import Core exposing (..)
 import Incoming
 import Json.Decode as D
+import Json.Encode as E
 import Model exposing (Model)
 import Outgoing
 import Util
@@ -53,6 +54,80 @@ type
 
 
 
+-- tag : String -> List E.Value -> E.Value
+-- tag k vs =
+--     E.object [ ( k, E.list (\v -> v) vs ) ]
+-- encodeProgramIndex : ProgramIndex -> E.Value
+-- encodeProgramIndex pi =
+--     case pi of
+--         Goal ->
+--             tag "Goal" []
+--         Prop i ->
+--             tag "Prop" [ E.int i ]
+-- encodeMaybe : (a -> E.Value) -> Maybe a -> E.Value
+-- encodeMaybe f mx =
+--     case mx of
+--         Nothing ->
+--             tag "Nothing" []
+--         Just x ->
+--             tag "Just" [ f x ]
+
+
+encodeMsg : Msg -> E.Value
+encodeMsg msg =
+    E.string (Debug.toString msg)
+
+
+
+-- case msg of
+--     Nop ->
+--         tag "Nop" []
+--     UserAddedBlankStep ->
+--         tag "UserAddedBlankStep" []
+--     UserSetStep pi s ->
+--         tag "UserSetStep" [ encodeProgramIndex pi, E.string s ]
+--     UserClearedStep pi ->
+--         tag "UserClearedStep" [ encodeProgramIndex pi ]
+--     UserRemovedStep i ->
+--         tag "UserRemovedStep" [ E.int i ]
+--     UserSetArgument pi param str ->
+--         tag "UserRemovedStep" [ encodeProgramIndex pi, E.string param, E.string str ]
+--     UserStartedNavigation { programSource } ->
+--         tag "UserStartedNavigation" [ E.object [ ( "programSource", E.string programSource ) ] ]
+--     UserSelectedFunction { cellIndex } fi sc ->
+--         tag "UserSelectedFunction"
+--             [ E.object [ ( "cellIndex", E.int cellIndex ) ]
+--             , E.int fi
+--             , encodeMaybe E.int sc
+--             ]
+--     UserDeselectedFunction { cellIndex } ->
+--         Debug.todo "branch 'UserDeselectedFunction _' not implemented"
+--     UserSelectedMetadata _ _ ->
+--         Debug.todo "branch 'UserSelectedMetadata _ _' not implemented"
+--     UserMadePbnChoice _ ->
+--         Debug.todo "branch 'UserMadePbnChoice _' not implemented"
+--     UserRequestedDownload _ ->
+--         Debug.todo "branch 'UserRequestedDownload _' not implemented"
+--     UserClickedExample ->
+--         Debug.todo "branch 'UserClickedExample' not implemented"
+--     UserClickedUndo ->
+--         Debug.todo "branch 'UserClickedUndo' not implemented"
+--     UserClickedHelp _ ->
+--         Debug.todo "branch 'UserClickedHelp _' not implemented"
+--     UserPressedShortcut _ ->
+--         Debug.todo "branch 'UserPressedShortcut _' not implemented"
+--     UserMouseDownedHandle ->
+--         Debug.todo "branch 'UserMouseDownedHandle' not implemented"
+--     UserClicked ->
+--         Debug.todo "branch 'UserClicked' not implemented"
+--     UserMouseMoved _ _ ->
+--         Debug.todo "branch 'UserMouseMoved _ _' not implemented"
+--     UserMouseUpped _ ->
+--         Debug.todo "branch 'UserMouseUpped _' not implemented"
+--     BackendSentPbnStatus _ _ ->
+--         Debug.todo "branch 'BackendSentPbnStatus _ _' not implemented"
+--     BackendSentValidGoalMetadata _ ->
+--         Debug.todo "branch 'BackendSentValidGoalMetadata _' not implemented"
 --------------------------------------------------------------------------------
 -- Model helpers
 
@@ -239,8 +314,8 @@ doUndo model =
             ( model, Cmd.none )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update_ : Msg -> Model -> ( Model, Cmd Msg )
+update_ msg model =
     case msg of
         Nop ->
             ( model, Cmd.none )
@@ -450,6 +525,24 @@ update msg model =
                           }
                         , Cmd.none
                         )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg oldModel =
+    if oldModel.log then
+        let
+            ( newModel, cmd ) =
+                update_ msg oldModel
+        in
+        ( newModel
+        , Cmd.batch
+            [ cmd
+            , Outgoing.oLog { msg = encodeMsg msg }
+            ]
+        )
+
+    else
+        update_ msg oldModel
 
 
 

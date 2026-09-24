@@ -1,5 +1,9 @@
 port module Outgoing exposing (..)
 
+import Json.Encode
+
+
+
 --------------------------------------------------------------------------------
 -- General
 
@@ -59,3 +63,16 @@ type alias PbnUndoMessage =
 
 
 port oPbnUndo : PbnUndoMessage -> Cmd msg
+
+
+
+--------------------------------------------------------------------------------
+-- Logging
+
+
+type alias LogMessage =
+    { msg : Json.Encode.Value
+    }
+
+
+port oLog : LogMessage -> Cmd msg
