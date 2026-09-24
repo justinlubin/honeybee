@@ -258,7 +258,12 @@ goalSpecification model =
                     [ text "This is the computational analysis you want to run on your data. It’s the reason for running the experiment." ]
                 ]
             , factSelect
-                model.library.types
+                (model.library.types
+                    |> List.filter
+                        (\( name, _ ) ->
+                            List.member name model.goalSuggestions
+                        )
+                )
                 "Choose a goal…"
                 Core.Goal
                 model.program.goal

@@ -16,6 +16,40 @@ fn load_problem(lib_src: &str, prog_src: &str) -> Result<core::Problem, String> 
     Ok(problem)
 }
 
+// Bit of a hack; find some placeholder goal we can slot at the end of the props
+fn find_placeholder_goal_name(lib: &core::Library) -> Option<&str> {
+    for (name, sig) in &lib.types {
+        if sig.params.len() != 0 {
+            continue;
+        }
+        return Some(&name.0);
+    }
+
+    None
+}
+
+fn load_problem_without_goal(
+    lib_src: &str,
+    props_src: &str,
+) -> Result<(core::Library, Vec<core::Met<core::Value>>), String> {
+    let library = parse::library(&lib_src)?;
+
+    let goal_name = find_placeholder_goal_name(&library)
+        .ok_or("Cannot find suitable placeholder goal".to_owned())?;
+
+    let prog_src = format!(
+        "{}\n\n[Goal]\nname = \"{}\"\nargs = {{}}",
+        props_src, goal_name
+    );
+
+    let program = parse::program(&prog_src)?;
+    let problem = core::Problem { library, program };
+
+    typecheck::problem(&problem).map_err(|e| format!("type error: {}", e.message))?;
+
+    Ok((problem.library, problem.program.props))
+}
+
 #[wasm_bindgen]
 pub fn parse_library(lib_src: &str) -> Result<JsValue, String> {
     let library = parse::library(lib_src)?;
@@ -26,26 +60,42 @@ pub fn parse_library(lib_src: &str) -> Result<JsValue, String> {
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize)]
 struct ValidGoalMetadataMessage {
-    goalName: String,
-    choices: Vec<IndexMap<String, core::Value>>,
+    goals: IndexMap<String, Vec<IndexMap<String, core::Value>>>,
 }
 
+// This function is quite fragile, be careful!
 #[wasm_bindgen]
-pub fn valid_goal_metadata(lib_src: &str, prog_src: &str) -> Result<JsValue, String> {
-    let problem = load_problem(lib_src, prog_src)?;
-    let goal_name = problem.program.goal.name.0.clone();
+pub fn valid_goal_metadata(lib_src: &str, props_src: &str) -> Result<JsValue, String> {
+    let (library, props) = load_problem_without_goal(lib_src, props_src)?;
 
-    let engine = egglog::Egglog::new(true);
-    let mut oracle = dl_oracle::Oracle::new(engine, problem)?;
-    let vgm = oracle.valid_goal_metadata();
+    let mut goals = IndexMap::new();
 
-    let msg = ValidGoalMetadataMessage {
-        goalName: goal_name,
-        choices: vgm
-            .into_iter()
-            .map(|assignment| assignment.into_iter().map(|(k, vs)| (k.0, vs)).collect())
-            .collect(),
-    };
+    for (goal_name, _) in &library.types {
+        // The goal args here are incorrect, but it's ok just for a metadata check!
+        let problem = core::Problem {
+            library: library.clone(),
+            program: core::Program {
+                props: props.clone(),
+                goal: core::Met {
+                    name: goal_name.clone(),
+                    args: IndexMap::new(),
+                },
+            },
+        };
+
+        let engine = egglog::Egglog::new(true);
+        let mut oracle = dl_oracle::Oracle::new(engine, problem)?;
+        let vgm = oracle.valid_goal_metadata();
+
+        goals.insert(
+            goal_name.0.clone(),
+            vgm.into_iter()
+                .map(|assignment| assignment.into_iter().map(|(k, vs)| (k.0, vs)).collect())
+                .collect(),
+        );
+    }
+
+    let msg = ValidGoalMetadataMessage { goals };
 
     serde_wasm_bindgen::to_value(&msg)
         .map_err(|_| "serde_wasm_bindgen error in valid_goal_metadata".to_owned())

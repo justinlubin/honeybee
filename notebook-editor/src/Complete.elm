@@ -1,4 +1,4 @@
-module Complete exposing (complete)
+module Complete exposing (complete, completeProps)
 
 import Assoc
 import Core exposing (..)
@@ -61,3 +61,20 @@ complete { allowPropHoles, allowGoalHoles } prog =
             (prog.goal
                 |> Maybe.andThen (fact allowGoalHoles)
             )
+
+
+completeProps : { allowPropHoles : Bool } -> WorkingProgram -> Maybe (List (Fact Value))
+completeProps { allowPropHoles } prog =
+    prog.props
+        |> List.map (Maybe.andThen (fact allowPropHoles))
+        |> Util.sequence
+
+
+
+-- tryGoal : List (Maybe (Fact String)) -> String -> FactSignature -> Maybe CompleteProgram
+-- tryGoal props goalName goalSig =
+--     complete
+--         { allowPropHoles = True, allowGoalHoles = True }
+--         { props = props
+--         , goal = Just (Core.fresh goalName goalSig)
+--         }

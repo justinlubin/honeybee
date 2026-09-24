@@ -125,3 +125,8 @@ collect xys =
             set x
                 (y :: (get x collect_tl |> Maybe.withDefault []))
                 collect_tl
+
+
+keys : Assoc a b -> List a
+keys xys =
+    List.map Tuple.first xys

@@ -185,12 +185,8 @@ app.ports.oScrollIntoView.subscribe((msg) => {
 
 app.ports.oPbnCheck.subscribe((msg) => {
   try {
-    const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
-      librarySource,
-      msg.programSource,
-    );
-    validGoalMetadataMessage.choices = validGoalMetadataMessage.choices.map(
-      (m) => Object.fromEntries(m),
+    const validGoalMetadataMessage = elmify(
+      Honeybee.valid_goal_metadata(librarySource, msg.propsSource),
     );
     app.ports.iValidGoalMetadata_.send(validGoalMetadataMessage);
   } catch (e) {

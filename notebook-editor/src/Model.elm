@@ -6,8 +6,11 @@ module Model exposing
     )
 
 import Assoc exposing (Assoc)
+import Compile
+import Complete
 import Core exposing (Library, Value, WorkingProgram)
 import Incoming
+import Outgoing
 
 
 
@@ -38,7 +41,8 @@ type alias Model =
     , program : WorkingProgram
     , pbnStatus : Maybe Incoming.PbnStatusMessage
     , speculativePbnStatus : Maybe Incoming.PbnStatusMessage
-    , goalSuggestions : Assoc String (List Value)
+    , currentGoalMetadataSuggestions : Assoc String (List Value)
+    , goalSuggestions : List String
     , activeHelp : Maybe String
     , dragHandleState : DragHandleState
     }
@@ -48,16 +52,33 @@ type alias Flags =
     { library : Library, sound : Bool, log : Bool, partid : String }
 
 
-init : Flags -> Model
+init : Flags -> ( Model, Cmd msg )
 init { library, sound, log, partid } =
-    { sound = sound
-    , log = log
-    , partid = partid
-    , library = library
-    , program = Core.example library -- Core.empty
-    , pbnStatus = Nothing
-    , speculativePbnStatus = Nothing
-    , goalSuggestions = []
-    , activeHelp = Nothing
-    , dragHandleState = Static 0.55
-    }
+    let
+        model =
+            { sound = sound
+            , log = log
+            , partid = partid
+            , library = library
+            , program = Core.example library -- Core.empty
+            , pbnStatus = Nothing
+            , speculativePbnStatus = Nothing
+            , currentGoalMetadataSuggestions = []
+            , goalSuggestions = []
+            , activeHelp = Nothing
+            , dragHandleState = Static 0.55
+            }
+
+        cmd =
+            case
+                model.program
+                    |> Complete.completeProps { allowPropHoles = True }
+                    |> Maybe.map Compile.props
+            of
+                Just propsSource ->
+                    Outgoing.oPbnCheck { propsSource = propsSource }
+
+                Nothing ->
+                    Cmd.none
+    in
+    ( model, cmd )

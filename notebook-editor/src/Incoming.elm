@@ -14,8 +14,7 @@ import Json.Decode.Pipeline as P
 
 
 type alias ValidGoalMetadataMessage =
-    { goalName : String
-    , choices : List (Assoc String Core.Value)
+    { goals : Assoc String (List (Assoc String Core.Value))
     }
 
 
@@ -30,9 +29,10 @@ decodeValue =
 
 decodeValidGoalMetadata : D.Decoder ValidGoalMetadataMessage
 decodeValidGoalMetadata =
-    D.map2 ValidGoalMetadataMessage
-        (D.field "goalName" D.string)
-        (D.field "choices" <| D.list <| D.keyValuePairs decodeValue)
+    D.map ValidGoalMetadataMessage
+        (D.field "goals" <|
+            D.keyValuePairs (D.list <| D.keyValuePairs decodeValue)
+        )
 
 
 port iValidGoalMetadata_ : (D.Value -> msg) -> Sub msg

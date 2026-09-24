@@ -1,4 +1,4 @@
-module Compile exposing (compile, value)
+module Compile exposing (compile, props, value)
 
 import Assoc exposing (Assoc)
 import Core exposing (..)

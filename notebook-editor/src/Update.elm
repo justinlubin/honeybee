@@ -244,26 +244,31 @@ syncGoalSuggestions : ( Model, Cmd msg ) -> ( Model, Cmd msg )
 syncGoalSuggestions ( model, cmd ) =
     case
         model.program
-            |> Complete.complete { allowPropHoles = True, allowGoalHoles = True }
-            |> Maybe.map Compile.compile
+            |> Complete.completeProps { allowPropHoles = True }
+            |> Maybe.map Compile.props
     of
-        Just programSource ->
+        Just propsSource ->
             ( model
             , Cmd.batch
                 [ cmd
-                , Outgoing.oPbnCheck { programSource = programSource }
+                , Outgoing.oPbnCheck { propsSource = propsSource }
                 ]
             )
 
         Nothing ->
-            ( { model | goalSuggestions = [] }, cmd )
+            ( { model
+                | currentGoalMetadataSuggestions = []
+                , goalSuggestions = []
+              }
+            , cmd
+            )
 
 
-consistentSuggestions :
+consistentMetadataSuggestions :
     Fact String
     -> List (Assoc String Value)
     -> Assoc String (List Value)
-consistentSuggestions goalFact choices =
+consistentMetadataSuggestions goalFact choices =
     Assoc.map
         (\argName ( argStr, argType ) ->
             case Core.parse argType argStr of
@@ -510,22 +515,32 @@ update_ msg model =
             , Cmd.none
             )
 
-        BackendSentValidGoalMetadata { goalName, choices } ->
+        BackendSentValidGoalMetadata { goals } ->
+            let
+                intermediateModel =
+                    { model
+                        | goalSuggestions =
+                            goals
+                                |> List.filter (\( _, v ) -> not (List.isEmpty v))
+                                |> Assoc.keys
+                    }
+            in
             case model.program.goal of
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( intermediateModel, Cmd.none )
 
                 Just goalFact ->
-                    if goalFact.name /= goalName then
-                        ( model, Cmd.none )
+                    case Assoc.get goalFact.name goals of
+                        Nothing ->
+                            ( intermediateModel, Cmd.none )
 
-                    else
-                        ( { model
-                            | goalSuggestions =
-                                consistentSuggestions goalFact choices
-                          }
-                        , Cmd.none
-                        )
+                        Just choices ->
+                            ( { intermediateModel
+                                | currentGoalMetadataSuggestions =
+                                    consistentMetadataSuggestions goalFact choices
+                              }
+                            , Cmd.none
+                            )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -629,6 +644,5 @@ subscriptions model =
                         BackendSentValidGoalMetadata vgm
 
                     Err _ ->
-                        BackendSentValidGoalMetadata
-                            { goalName = "", choices = [] }
+                        BackendSentValidGoalMetadata { goals = [] }
         ]

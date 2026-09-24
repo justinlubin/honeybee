@@ -13,7 +13,7 @@ main =
     Browser.element
         { init =
             \v ->
-                ( Model.init
+                Model.init
                     { library =
                         v
                             |> Json.Decode.decodeValue (Json.Decode.field "library" Incoming.library)
@@ -35,8 +35,6 @@ main =
                             |> Result.mapError (Debug.log "'partid' decode error")
                             |> Result.withDefault "000"
                     }
-                , Cmd.none
-                )
         , update = Update.update
         , view = View.view
         , subscriptions = Update.subscriptions

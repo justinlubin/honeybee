@@ -31,7 +31,7 @@ port oDownload : DownloadMessage -> Cmd msg
 
 
 type alias PbnCheckMessage =
-    { programSource : String
+    { propsSource : String
     }
 
 
