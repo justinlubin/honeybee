@@ -57,12 +57,14 @@ const library = Honeybee.parse_library(librarySource);
 
 let sound = true;
 let log = false;
+let partid = "000";
 
 // Study mode (running on user study server)
 if (window.location.href.includes(":5000")) {
   log = true;
 
   const urlParams = new URLSearchParams(window.location.search);
+
   const condition = urlParams.get("condition");
 
   if (condition == "5b7886fb8748aee0") {
@@ -74,11 +76,19 @@ if (window.location.href.includes(":5000")) {
     alert(error);
     throw error;
   }
+
+  partid = urlParams.get("partid");
+  if (!partid) {
+    let error = `Error\n\nPlease report the following message to the investigator.\n\nUnset partid '${partid}'`;
+    alert(error);
+    throw error;
+  }
 }
 
 const flags = {
   sound: sound,
   log: log,
+  partid: partid,
   library: {
     props: elmify(library.Prop),
     types: elmify(library.Type),
@@ -248,10 +258,11 @@ app.ports.oDownload.subscribe((msg) => {
 });
 
 app.ports.oLog.subscribe((msg) => {
+  msg["timestamp"] = Date.now();
+
   // https://stackoverflow.com/a/47065313
   fetch("/__log", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(msg),
   });
 });

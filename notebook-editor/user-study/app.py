@@ -7,6 +7,8 @@ import time
 
 app = Flask(__name__)
 
+NEWLINE = "\n".encode()
+
 
 @app.get("/<path:path>")
 def simple(path):
@@ -18,12 +20,7 @@ def simple(path):
 
 @app.post("/__log")
 def log():
-    body = flask.request.json
-    body["timestamp"] = round(time.time() * 1000)
-    line = (
-        base64.a85encode(zlib.compress(json.dumps(body).encode()))
-        + "\n".encode()
-    )
+    line = base64.a85encode(zlib.compress(flask.request.data)) + NEWLINE
     with open("log.txt", "ab") as f:
         f.write(line)
 

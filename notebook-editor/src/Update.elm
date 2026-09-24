@@ -12,6 +12,7 @@ import Json.Encode as E
 import Model exposing (Model)
 import Outgoing
 import Util
+import Version
 
 
 
@@ -537,7 +538,12 @@ update msg oldModel =
         ( newModel
         , Cmd.batch
             [ cmd
-            , Outgoing.oLog { msg = encodeMsg msg }
+            , Outgoing.oLog
+                { partid = oldModel.partid
+                , msg = encodeMsg msg
+                , build = Version.build
+                , logfmt = 0
+                }
             ]
         )
 

@@ -29,6 +29,11 @@ main =
                             |> Json.Decode.decodeValue (Json.Decode.field "log" Json.Decode.bool)
                             |> Result.mapError (Debug.log "'log' decode error")
                             |> Result.withDefault False
+                    , partid =
+                        v
+                            |> Json.Decode.decodeValue (Json.Decode.field "partid" Json.Decode.string)
+                            |> Result.mapError (Debug.log "'partid' decode error")
+                            |> Result.withDefault "000"
                     }
                 , Cmd.none
                 )
