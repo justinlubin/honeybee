@@ -4679,6 +4679,8 @@ var $elm$core$Set$toList = function (_v0) {
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
+var $elm$core$Basics$False = {$: 'False'};
+var $elm$core$Basics$True = {$: 'True'};
 var $elm$core$Basics$apR = F2(
 	function (x, f) {
 		return f(x);
@@ -4704,7 +4706,6 @@ var $elm$core$Result$Ok = function (a) {
 var $elm$json$Json$Decode$OneOf = function (a) {
 	return {$: 'OneOf', a: a};
 };
-var $elm$core$Basics$False = {$: 'False'};
 var $elm$core$Basics$add = _Basics_add;
 var $elm$core$Maybe$Just = function (a) {
 	return {$: 'Just', a: a};
@@ -5066,7 +5067,6 @@ var $elm$core$Array$initialize = F2(
 			return A5($elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
 		}
 	});
-var $elm$core$Basics$True = {$: 'True'};
 var $elm$core$Result$isOk = function (result) {
 	if (result.$ === 'Ok') {
 		return true;
@@ -5074,6 +5074,7 @@ var $elm$core$Result$isOk = function (result) {
 		return false;
 	}
 };
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$decodeValue = _Json_run;
 var $elm$json$Json$Decode$map = _Json_map1;
 var $elm$json$Json$Decode$map2 = _Json_map2;
@@ -5389,9 +5390,208 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $elm$json$Json$Decode$field = _Json_decodeField;
 var $author$project$Model$Static = function (a) {
 	return {$: 'Static', a: a};
 };
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Assoc$map = function (f) {
+	return $elm$core$List$map(
+		function (_v0) {
+			var x = _v0.a;
+			var y = _v0.b;
+			return _Utils_Tuple2(
+				x,
+				A2(f, x, y));
+		});
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Assoc$mapCollapse = function (f) {
+	return $elm$core$List$map(
+		function (_v0) {
+			var x = _v0.a;
+			var y = _v0.b;
+			return A2(f, x, y);
+		});
+};
+var $elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _v0 = f(mx);
+		if (_v0.$ === 'Just') {
+			var x = _v0.a;
+			return A2($elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var $elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			$elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var $author$project$Util$sequence = function (xs) {
+	var result = A2(
+		$elm$core$List$filterMap,
+		function (x) {
+			return x;
+		},
+		xs);
+	return _Utils_eq(
+		$elm$core$List$length(xs),
+		$elm$core$List$length(result)) ? $elm$core$Maybe$Just(result) : $elm$core$Maybe$Nothing;
+};
+var $author$project$Assoc$sequence = function (a) {
+	return $author$project$Util$sequence(
+		A2(
+			$author$project$Assoc$mapCollapse,
+			F2(
+				function (k, mv) {
+					return A2(
+						$elm$core$Maybe$map,
+						function (v) {
+							return _Utils_Tuple2(k, v);
+						},
+						mv);
+				}),
+			a));
+};
+var $author$project$Core$VBool = function (a) {
+	return {$: 'VBool', a: a};
+};
+var $author$project$Core$VInt = function (a) {
+	return {$: 'VInt', a: a};
+};
+var $author$project$Core$VStr = function (a) {
+	return {$: 'VStr', a: a};
+};
+var $author$project$Complete$fillHole = function (vt) {
+	switch (vt.$) {
+		case 'VTInt':
+			return $author$project$Core$VInt(0);
+		case 'VTBool':
+			return $author$project$Core$VBool(false);
+		default:
+			return $author$project$Core$VStr('');
+	}
+};
+var $author$project$Core$Blank = {$: 'Blank'};
+var $author$project$Core$ParseFail = {$: 'ParseFail'};
+var $author$project$Core$ParseSuccess = function (a) {
+	return {$: 'ParseSuccess', a: a};
+};
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$String$toLower = _String_toLower;
+var $elm$core$String$trim = _String_trim;
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Core$parse = F2(
+	function (vt, str) {
+		if ($elm$core$String$isEmpty(
+			$elm$core$String$trim(str))) {
+			return $author$project$Core$Blank;
+		} else {
+			switch (vt.$) {
+				case 'VTInt':
+					return A2(
+						$elm$core$Maybe$withDefault,
+						$author$project$Core$ParseFail,
+						A2(
+							$elm$core$Maybe$map,
+							A2($elm$core$Basics$composeR, $author$project$Core$VInt, $author$project$Core$ParseSuccess),
+							$elm$core$String$toInt(str)));
+				case 'VTBool':
+					var _v1 = $elm$core$String$toLower(str);
+					switch (_v1) {
+						case 'true':
+							return $author$project$Core$ParseSuccess(
+								$author$project$Core$VBool(true));
+						case 'false':
+							return $author$project$Core$ParseSuccess(
+								$author$project$Core$VBool(false));
+						default:
+							return $author$project$Core$ParseFail;
+					}
+				default:
+					return $author$project$Core$ParseSuccess(
+						$author$project$Core$VStr(str));
+			}
+		}
+	});
+var $author$project$Complete$value = F3(
+	function (allowHoles, vt, str) {
+		var _v0 = A2($author$project$Core$parse, vt, str);
+		if (_v0.$ === 'ParseSuccess') {
+			var v = _v0.a;
+			return $elm$core$Maybe$Just(v);
+		} else {
+			return allowHoles ? $elm$core$Maybe$Just(
+				$author$project$Complete$fillHole(vt)) : $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Complete$fact = F2(
+	function (allowHoles, f) {
+		return A2(
+			$elm$core$Maybe$map,
+			function (args) {
+				return {args: args, name: f.name, sig: f.sig};
+			},
+			$author$project$Assoc$sequence(
+				A2(
+					$author$project$Assoc$map,
+					F2(
+						function (_v0, _v1) {
+							var a = _v1.a;
+							var vt = _v1.b;
+							return A2(
+								$elm$core$Maybe$map,
+								function (v) {
+									return _Utils_Tuple2(v, vt);
+								},
+								A3($author$project$Complete$value, allowHoles, vt, a));
+						}),
+					f.args)));
+	});
+var $author$project$Complete$completeProps = F2(
+	function (_v0, prog) {
+		var allowPropHoles = _v0.allowPropHoles;
+		return $author$project$Util$sequence(
+			A2(
+				$elm$core$List$map,
+				$elm$core$Maybe$andThen(
+					$author$project$Complete$fact(allowPropHoles)),
+				prog.props));
+	});
 var $author$project$Core$VTStr = {$: 'VTStr'};
 var $author$project$Assoc$get = F2(
 	function (k, a) {
@@ -5450,18 +5650,119 @@ var $author$project$Core$example = function (library) {
 		return {goal: $elm$core$Maybe$Nothing, props: _List_Nil};
 	}
 };
-var $author$project$Model$init = function (library) {
-	return {
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Outgoing$oPbnCheck = _Platform_outgoingPort(
+	'oPbnCheck',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'propsSource',
+					$elm$json$Json$Encode$string($.propsSource))
+				]));
+	});
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $author$project$Compile$value = function (v) {
+	switch (v.$) {
+		case 'VInt':
+			var n = v.a;
+			return $elm$core$String$fromInt(n);
+		case 'VBool':
+			if (v.a) {
+				return 'true';
+			} else {
+				return 'false';
+			}
+		default:
+			var s = v.a;
+			return '\"' + (s + '\"');
+	}
+};
+var $author$project$Compile$arg = F2(
+	function (argName, _v0) {
+		var v = _v0.a;
+		return 'args.' + (argName + (' = ' + $author$project$Compile$value(v)));
+	});
+var $author$project$Compile$factBody = F2(
+	function (name, args) {
+		return 'name = \"' + (name + ('\"\n' + ($elm$core$List$isEmpty(args) ? 'args = {}' : A2(
+			$elm$core$String$join,
+			'\n',
+			A2($author$project$Assoc$mapCollapse, $author$project$Compile$arg, args)))));
+	});
+var $author$project$Compile$fact = F2(
+	function (prefix, f) {
+		return _Utils_ap(
+			prefix,
+			A2($author$project$Compile$factBody, f.name, f.args));
+	});
+var $author$project$Compile$prop = function (f) {
+	return A2($author$project$Compile$fact, '[[Prop]]\n', f);
+};
+var $author$project$Compile$props = function (fs) {
+	return $elm$core$List$isEmpty(fs) ? 'Prop = []' : A2(
+		$elm$core$String$join,
+		'\n\n',
+		A2($elm$core$List$map, $author$project$Compile$prop, fs));
+};
+var $author$project$Model$init = function (_v0) {
+	var library = _v0.library;
+	var sound = _v0.sound;
+	var log = _v0.log;
+	var partid = _v0.partid;
+	var model = {
 		activeHelp: $elm$core$Maybe$Nothing,
+		currentGoalMetadataSuggestions: _List_Nil,
 		dragHandleState: $author$project$Model$Static(0.55),
 		goalSuggestions: _List_Nil,
 		library: library,
+		log: log,
+		partid: partid,
 		pbnStatus: $elm$core$Maybe$Nothing,
 		program: $author$project$Core$example(library),
+		sound: sound,
 		speculativePbnStatus: $elm$core$Maybe$Nothing
 	};
+	var cmd = function () {
+		var _v1 = A2(
+			$elm$core$Maybe$map,
+			$author$project$Compile$props,
+			A2(
+				$author$project$Complete$completeProps,
+				{allowPropHoles: true},
+				model.program));
+		if (_v1.$ === 'Just') {
+			var propsSource = _v1.a;
+			return $author$project$Outgoing$oPbnCheck(
+				{propsSource: propsSource});
+		} else {
+			return $elm$core$Platform$Cmd$none;
+		}
+	}();
+	return _Utils_Tuple2(model, cmd);
 };
-var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$at = F2(
 	function (fields, decoder) {
 		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
@@ -5620,15 +5921,6 @@ var $author$project$Incoming$valueType = A2(
 		}
 	},
 	$elm$json$Json$Decode$string);
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var $author$project$Incoming$factSignature = A6(
 	$elm$json$Json$Decode$map5,
 	F5(
@@ -5693,8 +5985,6 @@ var $elm$core$Result$mapError = F2(
 				f(e));
 		}
 	});
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Update$BackendSentPbnStatus = F2(
 	function (a, b) {
 		return {$: 'BackendSentPbnStatus', a: a, b: b};
@@ -5718,7 +6008,6 @@ var $author$project$Update$UserPressedShortcut = function (a) {
 	return {$: 'UserPressedShortcut', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $author$project$Update$decodeButtons = A2(
 	$elm$json$Json$Decode$field,
@@ -5739,11 +6028,6 @@ var $author$project$Update$decodeFraction = A3(
 		_List_fromArray(
 			['currentTarget', 'defaultView', 'innerWidth']),
 		$elm$json$Json$Decode$float));
-var $elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
 var $author$project$Incoming$PbnStatusMessage = F3(
 	function (cells, output, canUndo) {
 		return {canUndo: canUndo, cells: cells, output: output};
@@ -5798,15 +6082,6 @@ var $author$project$Cell$MetadataChoice = F2(
 	function (metadata, choiceIndex) {
 		return {choiceIndex: choiceIndex, metadata: metadata};
 	});
-var $author$project$Core$VBool = function (a) {
-	return {$: 'VBool', a: a};
-};
-var $author$project$Core$VInt = function (a) {
-	return {$: 'VInt', a: a};
-};
-var $author$project$Core$VStr = function (a) {
-	return {$: 'VStr', a: a};
-};
 var $author$project$Incoming$decodeValue = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[
@@ -6012,19 +6287,18 @@ var $author$project$Incoming$iPbnStatus = function (f) {
 			$elm$json$Json$Decode$decodeValue($author$project$Incoming$decodePbnStatus),
 			f));
 };
-var $author$project$Incoming$ValidGoalMetadataMessage = F2(
-	function (goalName, choices) {
-		return {choices: choices, goalName: goalName};
-	});
-var $author$project$Incoming$decodeValidGoalMetadata = A3(
-	$elm$json$Json$Decode$map2,
+var $author$project$Incoming$ValidGoalMetadataMessage = function (goals) {
+	return {goals: goals};
+};
+var $author$project$Incoming$decodeValidGoalMetadata = A2(
+	$elm$json$Json$Decode$map,
 	$author$project$Incoming$ValidGoalMetadataMessage,
-	A2($elm$json$Json$Decode$field, 'goalName', $elm$json$Json$Decode$string),
 	A2(
 		$elm$json$Json$Decode$field,
-		'choices',
-		$elm$json$Json$Decode$list(
-			$elm$json$Json$Decode$keyValuePairs($author$project$Incoming$decodeValue))));
+		'goals',
+		$elm$json$Json$Decode$keyValuePairs(
+			$elm$json$Json$Decode$list(
+				$elm$json$Json$Decode$keyValuePairs($author$project$Incoming$decodeValue)))));
 var $author$project$Incoming$iValidGoalMetadata_ = _Platform_incomingPort('iValidGoalMetadata_', $elm$json$Json$Decode$value);
 var $author$project$Incoming$iValidGoalMetadata = function (f) {
 	return $author$project$Incoming$iValidGoalMetadata_(
@@ -6252,24 +6526,6 @@ var $elm$browser$Browser$Events$onEffects = F3(
 				$elm$core$Task$sequence(
 					A2($elm$core$List$map, $elm$core$Process$kill, deadPids))));
 	});
-var $elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _v0 = f(mx);
-		if (_v0.$ === 'Just') {
-			var x = _v0.a;
-			return A2($elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var $elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$foldr,
-			$elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
-	});
 var $elm$browser$Browser$Events$onSelfMsg = F3(
 	function (router, _v0, state) {
 		var key = _v0.key;
@@ -6393,11 +6649,38 @@ var $author$project$Update$subscriptions = function (model) {
 						return $author$project$Update$BackendSentValidGoalMetadata(vgm);
 					} else {
 						return $author$project$Update$BackendSentValidGoalMetadata(
-							{choices: _List_Nil, goalName: ''});
+							{goals: _List_Nil});
 					}
 				})
 			]));
 };
+var $author$project$Version$build = 'ea136c7';
+var $elm$core$Debug$toString = _Debug_toString;
+var $author$project$Update$encodeMsg = function (msg) {
+	return $elm$json$Json$Encode$string(
+		$elm$core$Debug$toString(msg));
+};
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $author$project$Outgoing$oLog = _Platform_outgoingPort(
+	'oLog',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'build',
+					$elm$json$Json$Encode$string($.build)),
+					_Utils_Tuple2(
+					'logfmt',
+					$elm$json$Json$Encode$int($.logfmt)),
+					_Utils_Tuple2(
+					'msg',
+					$elm$core$Basics$identity($.msg)),
+					_Utils_Tuple2(
+					'partid',
+					$elm$json$Json$Encode$string($.partid))
+				]));
+	});
 var $author$project$Model$Moving = function (a) {
 	return {$: 'Moving', a: a};
 };
@@ -6446,56 +6729,6 @@ var $author$project$Assoc$all = F2(
 			},
 			a);
 	});
-var $author$project$Core$Blank = {$: 'Blank'};
-var $author$project$Core$ParseFail = {$: 'ParseFail'};
-var $author$project$Core$ParseSuccess = function (a) {
-	return {$: 'ParseSuccess', a: a};
-};
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$core$String$toLower = _String_toLower;
-var $elm$core$String$trim = _String_trim;
-var $author$project$Core$parse = F2(
-	function (vt, str) {
-		if ($elm$core$String$isEmpty(
-			$elm$core$String$trim(str))) {
-			return $author$project$Core$Blank;
-		} else {
-			switch (vt.$) {
-				case 'VTInt':
-					return A2(
-						$elm$core$Maybe$withDefault,
-						$author$project$Core$ParseFail,
-						A2(
-							$elm$core$Maybe$map,
-							A2($elm$core$Basics$composeR, $author$project$Core$VInt, $author$project$Core$ParseSuccess),
-							$elm$core$String$toInt(str)));
-				case 'VTBool':
-					var _v1 = $elm$core$String$toLower(str);
-					switch (_v1) {
-						case 'true':
-							return $author$project$Core$ParseSuccess(
-								$author$project$Core$VBool(true));
-						case 'false':
-							return $author$project$Core$ParseSuccess(
-								$author$project$Core$VBool(false));
-						default:
-							return $author$project$Core$ParseFail;
-					}
-				default:
-					return $author$project$Core$ParseSuccess(
-						$author$project$Core$VStr(str));
-			}
-		}
-	});
 var $author$project$Core$consistent = F2(
 	function (fact, args) {
 		return A2(
@@ -6523,16 +6756,6 @@ var $author$project$Core$consistent = F2(
 				}),
 			fact.args);
 	});
-var $author$project$Assoc$map = function (f) {
-	return $elm$core$List$map(
-		function (_v0) {
-			var x = _v0.a;
-			var y = _v0.b;
-			return _Utils_Tuple2(
-				x,
-				A2(f, x, y));
-		});
-};
 var $elm$core$List$sortBy = _List_sortBy;
 var $elm$core$List$member = F2(
 	function (x, xs) {
@@ -6580,7 +6803,7 @@ var $author$project$Core$unparse = function (v) {
 			return s;
 	}
 };
-var $author$project$Update$consistentSuggestions = F2(
+var $author$project$Update$consistentMetadataSuggestions = F2(
 	function (goalFact, choices) {
 		return A2(
 			$author$project$Assoc$map,
@@ -6609,25 +6832,11 @@ var $author$project$Update$consistentSuggestions = F2(
 				}),
 			goalFact.args);
 	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
 var $author$project$Outgoing$oPbnUndo = _Platform_outgoingPort(
 	'oPbnUndo',
 	function ($) {
 		return $elm$json$Json$Encode$object(_List_Nil);
 	});
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Outgoing$oScrollIntoView = _Platform_outgoingPort(
 	'oScrollIntoView',
 	function ($) {
@@ -6661,6 +6870,17 @@ var $author$project$Update$doUndo = function (model) {
 		return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 	}
 };
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
 var $author$project$Core$fresh = F2(
 	function (name, sig) {
 		return {
@@ -6726,7 +6946,9 @@ var $author$project$Core$insert = F3(
 				{props: newProps});
 		}
 	});
-var $elm$core$Basics$neq = _Utils_notEqual;
+var $author$project$Assoc$keys = function (xys) {
+	return A2($elm$core$List$map, $elm$core$Tuple$first, xys);
+};
 var $author$project$Outgoing$oDownload = _Platform_outgoingPort(
 	'oDownload',
 	function ($) {
@@ -6741,7 +6963,6 @@ var $author$project$Outgoing$oDownload = _Platform_outgoingPort(
 					$elm$json$Json$Encode$string($.text))
 				]));
 	});
-var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Outgoing$oPbnChoose = _Platform_outgoingPort(
 	'oPbnChoose',
 	function ($) {
@@ -6753,6 +6974,7 @@ var $author$project$Outgoing$oPbnChoose = _Platform_outgoingPort(
 					$elm$json$Json$Encode$int($.choice))
 				]));
 	});
+var $elm$json$Json$Encode$bool = _Json_wrap;
 var $author$project$Outgoing$oPbnInit = _Platform_outgoingPort(
 	'oPbnInit',
 	function ($) {
@@ -6761,7 +6983,10 @@ var $author$project$Outgoing$oPbnInit = _Platform_outgoingPort(
 				[
 					_Utils_Tuple2(
 					'programSource',
-					$elm$json$Json$Encode$string($.programSource))
+					$elm$json$Json$Encode$string($.programSource)),
+					_Utils_Tuple2(
+					'sound',
+					$elm$json$Json$Encode$bool($.sound))
 				]));
 	});
 var $author$project$Outgoing$oPbnSpeculate = _Platform_outgoingPort(
@@ -6792,6 +7017,7 @@ var $author$project$Util$indexedFilter = F2(
 					}),
 				xs));
 	});
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Core$remove = F2(
 	function (i, prog) {
 		var newProps = A2(
@@ -6953,208 +7179,18 @@ var $author$project$Update$setMetadataChoice = F2(
 				});
 		}
 	});
-var $author$project$Compile$value = function (v) {
-	switch (v.$) {
-		case 'VInt':
-			var n = v.a;
-			return $elm$core$String$fromInt(n);
-		case 'VBool':
-			if (v.a) {
-				return 'true';
-			} else {
-				return 'false';
-			}
-		default:
-			var s = v.a;
-			return '\"' + (s + '\"');
-	}
-};
-var $author$project$Compile$arg = F2(
-	function (argName, _v0) {
-		var v = _v0.a;
-		return 'args.' + (argName + (' = ' + $author$project$Compile$value(v)));
-	});
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $author$project$Assoc$mapCollapse = function (f) {
-	return $elm$core$List$map(
-		function (_v0) {
-			var x = _v0.a;
-			var y = _v0.b;
-			return A2(f, x, y);
-		});
-};
-var $author$project$Compile$factBody = F2(
-	function (name, args) {
-		return 'name = \"' + (name + ('\"\n' + ($elm$core$List$isEmpty(args) ? 'args = {}' : A2(
-			$elm$core$String$join,
-			'\n',
-			A2($author$project$Assoc$mapCollapse, $author$project$Compile$arg, args)))));
-	});
-var $author$project$Compile$fact = F2(
-	function (prefix, f) {
-		return _Utils_ap(
-			prefix,
-			A2($author$project$Compile$factBody, f.name, f.args));
-	});
-var $author$project$Compile$goal = function (f) {
-	return A2($author$project$Compile$fact, '[Goal]\n', f);
-};
-var $author$project$Compile$prop = function (f) {
-	return A2($author$project$Compile$fact, '[[Prop]]\n', f);
-};
-var $author$project$Compile$props = function (fs) {
-	return $elm$core$List$isEmpty(fs) ? 'Prop = []' : A2(
-		$elm$core$String$join,
-		'\n\n',
-		A2($elm$core$List$map, $author$project$Compile$prop, fs));
-};
-var $author$project$Compile$compile = function (prog) {
-	return $author$project$Compile$props(prog.props) + ('\n\n' + $author$project$Compile$goal(prog.goal));
-};
-var $elm$core$Maybe$andThen = F2(
-	function (callback, maybeValue) {
-		if (maybeValue.$ === 'Just') {
-			var value = maybeValue.a;
-			return callback(value);
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $author$project$Util$sequence = function (xs) {
-	var result = A2(
-		$elm$core$List$filterMap,
-		function (x) {
-			return x;
-		},
-		xs);
-	return _Utils_eq(
-		$elm$core$List$length(xs),
-		$elm$core$List$length(result)) ? $elm$core$Maybe$Just(result) : $elm$core$Maybe$Nothing;
-};
-var $author$project$Assoc$sequence = function (a) {
-	return $author$project$Util$sequence(
-		A2(
-			$author$project$Assoc$mapCollapse,
-			F2(
-				function (k, mv) {
-					return A2(
-						$elm$core$Maybe$map,
-						function (v) {
-							return _Utils_Tuple2(k, v);
-						},
-						mv);
-				}),
-			a));
-};
-var $author$project$Complete$fillHole = function (vt) {
-	switch (vt.$) {
-		case 'VTInt':
-			return $author$project$Core$VInt(0);
-		case 'VTBool':
-			return $author$project$Core$VBool(false);
-		default:
-			return $author$project$Core$VStr('');
-	}
-};
-var $author$project$Complete$value = F3(
-	function (allowHoles, vt, str) {
-		var _v0 = A2($author$project$Core$parse, vt, str);
-		if (_v0.$ === 'ParseSuccess') {
-			var v = _v0.a;
-			return $elm$core$Maybe$Just(v);
-		} else {
-			return allowHoles ? $elm$core$Maybe$Just(
-				$author$project$Complete$fillHole(vt)) : $elm$core$Maybe$Nothing;
-		}
-	});
-var $author$project$Complete$fact = F2(
-	function (allowHoles, f) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (args) {
-				return {args: args, name: f.name, sig: f.sig};
-			},
-			$author$project$Assoc$sequence(
-				A2(
-					$author$project$Assoc$map,
-					F2(
-						function (_v0, _v1) {
-							var a = _v1.a;
-							var vt = _v1.b;
-							return A2(
-								$elm$core$Maybe$map,
-								function (v) {
-									return _Utils_Tuple2(v, vt);
-								},
-								A3($author$project$Complete$value, allowHoles, vt, a));
-						}),
-					f.args)));
-	});
-var $elm$core$Maybe$map2 = F3(
-	function (func, ma, mb) {
-		if (ma.$ === 'Nothing') {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			var a = ma.a;
-			if (mb.$ === 'Nothing') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var b = mb.a;
-				return $elm$core$Maybe$Just(
-					A2(func, a, b));
-			}
-		}
-	});
-var $author$project$Complete$complete = F2(
-	function (_v0, prog) {
-		var allowPropHoles = _v0.allowPropHoles;
-		var allowGoalHoles = _v0.allowGoalHoles;
-		return $elm$core$List$isEmpty(prog.props) ? $elm$core$Maybe$Nothing : A3(
-			$elm$core$Maybe$map2,
-			F2(
-				function (p, g) {
-					return {goal: g, props: p};
-				}),
-			$author$project$Util$sequence(
-				A2(
-					$elm$core$List$map,
-					$elm$core$Maybe$andThen(
-						$author$project$Complete$fact(allowPropHoles)),
-					prog.props)),
-			A2(
-				$elm$core$Maybe$andThen,
-				$author$project$Complete$fact(allowGoalHoles),
-				prog.goal));
-	});
-var $author$project$Outgoing$oPbnCheck = _Platform_outgoingPort(
-	'oPbnCheck',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'programSource',
-					$elm$json$Json$Encode$string($.programSource))
-				]));
-	});
 var $author$project$Update$syncGoalSuggestions = function (_v0) {
 	var model = _v0.a;
 	var cmd = _v0.b;
 	var _v1 = A2(
 		$elm$core$Maybe$map,
-		$author$project$Compile$compile,
+		$author$project$Compile$props,
 		A2(
-			$author$project$Complete$complete,
-			{allowGoalHoles: true, allowPropHoles: true},
+			$author$project$Complete$completeProps,
+			{allowPropHoles: true},
 			model.program));
 	if (_v1.$ === 'Just') {
-		var programSource = _v1.a;
+		var propsSource = _v1.a;
 		return _Utils_Tuple2(
 			model,
 			$elm$core$Platform$Cmd$batch(
@@ -7162,13 +7198,13 @@ var $author$project$Update$syncGoalSuggestions = function (_v0) {
 					[
 						cmd,
 						$author$project$Outgoing$oPbnCheck(
-						{programSource: programSource})
+						{propsSource: propsSource})
 					])));
 	} else {
 		return _Utils_Tuple2(
 			_Utils_update(
 				model,
-				{goalSuggestions: _List_Nil}),
+				{currentGoalMetadataSuggestions: _List_Nil, goalSuggestions: _List_Nil}),
 			cmd);
 	}
 };
@@ -7181,7 +7217,7 @@ var $author$project$Model$toFraction = function (dragState) {
 		return fraction;
 	}
 };
-var $author$project$Update$update = F2(
+var $author$project$Update$update_ = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'Nop':
@@ -7260,7 +7296,7 @@ var $author$project$Update$update = F2(
 						A4($author$project$Update$setArgument, pi, param, str, model),
 						$elm$core$Platform$Cmd$none));
 			case 'UserStartedNavigation':
-				var x = msg.a;
+				var programSource = msg.a.programSource;
 				return _Utils_Tuple2(
 					model,
 					$elm$core$Platform$Cmd$batch(
@@ -7268,7 +7304,8 @@ var $author$project$Update$update = F2(
 							[
 								$author$project$Outgoing$oScrollIntoView(
 								{selector: '#active-choice-cell'}),
-								$author$project$Outgoing$oPbnInit(x)
+								$author$project$Outgoing$oPbnInit(
+								{programSource: programSource, sound: model.sound})
 							])));
 			case 'UserSelectedFunction':
 				var cellIndex = msg.a.cellIndex;
@@ -7416,21 +7453,62 @@ var $author$project$Update$update = F2(
 						}),
 					$elm$core$Platform$Cmd$none);
 			default:
-				var goalName = msg.a.goalName;
-				var choices = msg.a.choices;
+				var goals = msg.a.goals;
+				var intermediateModel = _Utils_update(
+					model,
+					{
+						goalSuggestions: $author$project$Assoc$keys(
+							A2(
+								$elm$core$List$filter,
+								function (_v6) {
+									var v = _v6.b;
+									return !$elm$core$List$isEmpty(v);
+								},
+								goals))
+					});
 				var _v4 = model.program.goal;
 				if (_v4.$ === 'Nothing') {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(intermediateModel, $elm$core$Platform$Cmd$none);
 				} else {
 					var goalFact = _v4.a;
-					return (!_Utils_eq(goalFact.name, goalName)) ? _Utils_Tuple2(model, $elm$core$Platform$Cmd$none) : _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								goalSuggestions: A2($author$project$Update$consistentSuggestions, goalFact, choices)
-							}),
-						$elm$core$Platform$Cmd$none);
+					var _v5 = A2($author$project$Assoc$get, goalFact.name, goals);
+					if (_v5.$ === 'Nothing') {
+						return _Utils_Tuple2(intermediateModel, $elm$core$Platform$Cmd$none);
+					} else {
+						var choices = _v5.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								intermediateModel,
+								{
+									currentGoalMetadataSuggestions: A2($author$project$Update$consistentMetadataSuggestions, goalFact, choices)
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
 				}
+		}
+	});
+var $author$project$Update$update = F2(
+	function (msg, oldModel) {
+		if (oldModel.log) {
+			var _v0 = A2($author$project$Update$update_, msg, oldModel);
+			var newModel = _v0.a;
+			var cmd = _v0.b;
+			return _Utils_Tuple2(
+				newModel,
+				$elm$core$Platform$Cmd$batch(
+					_List_fromArray(
+						[
+							cmd,
+							$author$project$Outgoing$oLog(
+							{
+								build: $author$project$Version$build,
+								logfmt: 0,
+								msg: $author$project$Update$encodeMsg(msg),
+								partid: oldModel.partid
+							})
+						])));
+		} else {
+			return A2($author$project$Update$update_, msg, oldModel);
 		}
 	});
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -8807,17 +8885,6 @@ var $elm$virtual_dom$VirtualDom$attribute = F2(
 			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
 var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
 var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
@@ -9365,7 +9432,6 @@ var $author$project$Util$at = F2(
 			A2($elm$core$List$drop, i, xs));
 	});
 var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
 		return A2(
@@ -10399,6 +10465,48 @@ var $author$project$Util$joinMaybe = function (mmx) {
 var $author$project$Update$UserStartedNavigation = function (a) {
 	return {$: 'UserStartedNavigation', a: a};
 };
+var $author$project$Compile$goal = function (f) {
+	return A2($author$project$Compile$fact, '[Goal]\n', f);
+};
+var $author$project$Compile$compile = function (prog) {
+	return $author$project$Compile$props(prog.props) + ('\n\n' + $author$project$Compile$goal(prog.goal));
+};
+var $elm$core$Maybe$map2 = F3(
+	function (func, ma, mb) {
+		if (ma.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 'Nothing') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				return $elm$core$Maybe$Just(
+					A2(func, a, b));
+			}
+		}
+	});
+var $author$project$Complete$complete = F2(
+	function (_v0, prog) {
+		var allowPropHoles = _v0.allowPropHoles;
+		var allowGoalHoles = _v0.allowGoalHoles;
+		return $elm$core$List$isEmpty(prog.props) ? $elm$core$Maybe$Nothing : A3(
+			$elm$core$Maybe$map2,
+			F2(
+				function (p, g) {
+					return {goal: g, props: p};
+				}),
+			$author$project$Util$sequence(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Maybe$andThen(
+						$author$project$Complete$fact(allowPropHoles)),
+					prog.props)),
+			A2(
+				$elm$core$Maybe$andThen,
+				$author$project$Complete$fact(allowGoalHoles),
+				prog.goal));
+	});
 var $author$project$View$startNavigationButton = function (model) {
 	var attrs = function () {
 		var _v0 = A2(
@@ -10436,8 +10544,8 @@ var $author$project$View$startNavigationButton = function (model) {
 };
 var $author$project$View$goalSpecification = function (model) {
 	var workflowComplete = function () {
-		var _v0 = A2($author$project$Util$at, 0, model.program.props);
-		if ((_v0.$ === 'Just') && (_v0.a.$ === 'Just')) {
+		var _v1 = A2($author$project$Util$at, 0, model.program.props);
+		if ((_v1.$ === 'Just') && (_v1.a.$ === 'Just')) {
 			return true;
 		} else {
 			return false;
@@ -10495,7 +10603,19 @@ var $author$project$View$goalSpecification = function (model) {
 										$elm$html$Html$text('This is the computational analysis you want to run on your data. It’s the reason for running the experiment.')
 									]))
 							])),
-						A5($author$project$View$factSelect, model.library.types, 'Choose a goal…', $author$project$Core$Goal, model.program.goal, workflowComplete)
+						A5(
+						$author$project$View$factSelect,
+						A2(
+							$elm$core$List$filter,
+							function (_v0) {
+								var name = _v0.a;
+								return A2($elm$core$List$member, name, model.goalSuggestions);
+							},
+							model.library.types),
+						'Choose a goal…',
+						$author$project$Core$Goal,
+						model.program.goal,
+						workflowComplete)
 					]))
 			]),
 		footer: $elm$core$Maybe$Just(
@@ -10550,7 +10670,6 @@ var $author$project$View$dragHandle = A2(
 		]),
 	_List_Nil);
 var $elm$html$Html$b = _VirtualDom_node('b');
-var $author$project$Version$build = 'a690541';
 var $elm$html$Html$Attributes$download = function (fileName) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'download', fileName);
 };
@@ -10746,16 +10865,49 @@ var $elm$core$Result$withDefault = F2(
 var $author$project$Main$main = $elm$browser$Browser$element(
 	{
 		init: function (v) {
-			return _Utils_Tuple2(
-				$author$project$Model$init(
-					A2(
+			return $author$project$Model$init(
+				{
+					library: A2(
 						$elm$core$Result$withDefault,
 						{props: _List_Nil, types: _List_Nil},
 						A2(
 							$elm$core$Result$mapError,
-							$elm$core$Debug$log('error'),
-							A2($elm$json$Json$Decode$decodeValue, $author$project$Incoming$library, v)))),
-				$elm$core$Platform$Cmd$none);
+							$elm$core$Debug$log('\'library\' decode error'),
+							A2(
+								$elm$json$Json$Decode$decodeValue,
+								A2($elm$json$Json$Decode$field, 'library', $author$project$Incoming$library),
+								v))),
+					log: A2(
+						$elm$core$Result$withDefault,
+						false,
+						A2(
+							$elm$core$Result$mapError,
+							$elm$core$Debug$log('\'log\' decode error'),
+							A2(
+								$elm$json$Json$Decode$decodeValue,
+								A2($elm$json$Json$Decode$field, 'log', $elm$json$Json$Decode$bool),
+								v))),
+					partid: A2(
+						$elm$core$Result$withDefault,
+						'000',
+						A2(
+							$elm$core$Result$mapError,
+							$elm$core$Debug$log('\'partid\' decode error'),
+							A2(
+								$elm$json$Json$Decode$decodeValue,
+								A2($elm$json$Json$Decode$field, 'partid', $elm$json$Json$Decode$string),
+								v))),
+					sound: A2(
+						$elm$core$Result$withDefault,
+						true,
+						A2(
+							$elm$core$Result$mapError,
+							$elm$core$Debug$log('\'sound\' decode error'),
+							A2(
+								$elm$json$Json$Decode$decodeValue,
+								A2($elm$json$Json$Decode$field, 'sound', $elm$json$Json$Decode$bool),
+								v)))
+				});
 		},
 		subscriptions: $author$project$Update$subscriptions,
 		update: $author$project$Update$update,

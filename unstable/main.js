@@ -55,9 +55,44 @@ const libraryResponse = await fetch("bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
+let sound = true;
+let log = false;
+let partid = "000";
+
+// Study mode (running on user study server)
+if (window.location.href.includes(":5000")) {
+  log = true;
+
+  const urlParams = new URLSearchParams(window.location.search);
+
+  const condition = urlParams.get("condition");
+
+  if (condition == "5b7886fb8748aee0") {
+    sound = true;
+  } else if (condition == "368d77182b69ccb7") {
+    sound = false;
+  } else {
+    let error = `Error\n\nPlease report the following message to the investigator.\n\nUnknown condition '${condition}'`;
+    alert(error);
+    throw error;
+  }
+
+  partid = urlParams.get("partid");
+  if (!partid) {
+    let error = `Error\n\nPlease report the following message to the investigator.\n\nUnset partid '${partid}'`;
+    alert(error);
+    throw error;
+  }
+}
+
 const flags = {
-  props: elmify(library.Prop),
-  types: elmify(library.Type),
+  sound: sound,
+  log: log,
+  partid: partid,
+  library: {
+    props: elmify(library.Prop),
+    types: elmify(library.Type),
+  },
 };
 
 // https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
@@ -125,7 +160,7 @@ const app = Elm.Main.init({
 let askBeforeLeaving = false;
 window.onbeforeunload = () => {
   // Override confirmation when in development
-  if (window.location.includes("127.0.0.1")) {
+  if (window.location.href.includes("127.0.0.1")) {
     return;
   }
   if (askBeforeLeaving) {
@@ -150,12 +185,8 @@ app.ports.oScrollIntoView.subscribe((msg) => {
 
 app.ports.oPbnCheck.subscribe((msg) => {
   try {
-    const validGoalMetadataMessage = Honeybee.valid_goal_metadata(
-      librarySource,
-      msg.programSource,
-    );
-    validGoalMetadataMessage.choices = validGoalMetadataMessage.choices.map(
-      (m) => Object.fromEntries(m),
+    const validGoalMetadataMessage = elmify(
+      Honeybee.valid_goal_metadata(librarySource, msg.propsSource),
     );
     app.ports.iValidGoalMetadata_.send(validGoalMetadataMessage);
   } catch (e) {
@@ -166,7 +197,7 @@ app.ports.oPbnCheck.subscribe((msg) => {
 app.ports.oPbnInit.subscribe((msg) => {
   try {
     const pbnStatusMessage = elmify(
-      Honeybee.pbn_init(librarySource, msg.programSource),
+      Honeybee.pbn_init(librarySource, msg.programSource, msg.sound),
     );
     app.ports.iPbnStatus_.send(pbnStatusMessage);
     askBeforeLeaving = true;
@@ -220,6 +251,16 @@ app.ports.oPbnUndo.subscribe((_msg) => {
 
 app.ports.oDownload.subscribe((msg) => {
   download(msg.filename, msg.text);
+});
+
+app.ports.oLog.subscribe((msg) => {
+  msg["timestamp"] = Date.now();
+
+  // https://stackoverflow.com/a/47065313
+  fetch("/__log", {
+    method: "POST",
+    body: JSON.stringify(msg),
+  });
 });
 
 ////////////////////////////////////////////////////////////////////////////////

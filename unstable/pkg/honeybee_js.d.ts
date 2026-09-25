@@ -5,11 +5,11 @@ export function parse_library(lib_src: string): any;
 
 export function pbn_choose(choice_index: number): any;
 
-export function pbn_init(lib_src: string, prog_src: string): any;
+export function pbn_init(lib_src: string, prog_src: string, sound: boolean): any;
 
 export function pbn_undo(): any;
 
-export function valid_goal_metadata(lib_src: string, prog_src: string): any;
+export function valid_goal_metadata(lib_src: string, props_src: string): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -17,7 +17,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly parse_library: (a: number, b: number) => [number, number, number];
     readonly pbn_choose: (a: number) => [number, number, number];
-    readonly pbn_init: (a: number, b: number, c: number, d: number) => [number, number, number];
+    readonly pbn_init: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly pbn_undo: () => [number, number, number];
     readonly valid_goal_metadata: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;

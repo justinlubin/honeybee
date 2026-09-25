@@ -29,14 +29,15 @@ export function pbn_choose(choice_index) {
 /**
  * @param {string} lib_src
  * @param {string} prog_src
+ * @param {boolean} sound
  * @returns {any}
  */
-export function pbn_init(lib_src, prog_src) {
+export function pbn_init(lib_src, prog_src, sound) {
     const ptr0 = passStringToWasm0(lib_src, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passStringToWasm0(prog_src, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.pbn_init(ptr0, len0, ptr1, len1);
+    const ret = wasm.pbn_init(ptr0, len0, ptr1, len1, sound);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -56,13 +57,13 @@ export function pbn_undo() {
 
 /**
  * @param {string} lib_src
- * @param {string} prog_src
+ * @param {string} props_src
  * @returns {any}
  */
-export function valid_goal_metadata(lib_src, prog_src) {
+export function valid_goal_metadata(lib_src, props_src) {
     const ptr0 = passStringToWasm0(lib_src, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passStringToWasm0(prog_src, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const ptr1 = passStringToWasm0(props_src, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
     const ret = wasm.valid_goal_metadata(ptr0, len0, ptr1, len1);
     if (ret[2]) {
