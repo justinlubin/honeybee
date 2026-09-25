@@ -6654,7 +6654,7 @@ var $author$project$Update$subscriptions = function (model) {
 				})
 			]));
 };
-var $author$project$Version$build = 'ea136c7';
+var $author$project$Version$build = 'e99e347';
 var $elm$core$Debug$toString = _Debug_toString;
 var $author$project$Update$encodeMsg = function (msg) {
 	return $elm$json$Json$Encode$string(

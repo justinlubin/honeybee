@@ -177,7 +177,10 @@ window.onbeforeunload = () => {
 
 app.ports.oScrollIntoView.subscribe((msg) => {
   window.setTimeout(() => {
-    document.querySelector(msg.selector).scrollIntoView({ behavior: "smooth" });
+    let el = document.querySelector(msg.selector);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
   }, 100);
 });
 
