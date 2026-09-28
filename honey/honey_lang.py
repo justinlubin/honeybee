@@ -96,6 +96,8 @@ def _emit_kwarg(context_name, *, key, value, reserved):
             print(f"info.{key} = true")
         else:
             print(f"info.{key} = false")
+    elif isinstance(value, int):
+        print(f"info.{key} = {value}")
     else:
         print(f'info.{key} = "{value}"')
 
