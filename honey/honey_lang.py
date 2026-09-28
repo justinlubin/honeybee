@@ -1,3 +1,4 @@
+import keyword
 import ast
 import inspect
 import re
@@ -84,7 +85,22 @@ def _parse_title_description_example(s: str) -> tuple[str, str | None, str | Non
         return s, None, None
 
 
-def _emit_met_sig(kind, cls):
+def _emit_kwarg(context_name, *, key, value, reserved):
+    if key in reserved:
+        raise ValueError(f"Cannot use reserved keyword '{key}' for '{context_name}'")
+    if isinstance(value, list):
+        rhs = "[" + ", ".join('"' + entry + '"' for entry in value) + "]"
+        print(f"info.{key} = {rhs}")
+    elif isinstance(value, bool):
+        if value:
+            print(f"info.{key} = true")
+        else:
+            print(f"info.{key} = false")
+    else:
+        print(f'info.{key} = "{value}"')
+
+
+def _emit_met_sig(kind, cls, kwargs):
     assert kind in {"InputProp", "InputType", "OutputType"}
 
     if kind == "InputProp":
@@ -155,6 +171,21 @@ def _emit_met_sig(kind, cls):
             code += line + "\n"
         print(f"info.code = '''{code.strip()}'''")
 
+    for k in kwargs:
+        _emit_kwarg(
+            cls.__name__,
+            key=k,
+            value=kwargs[k],
+            reserved={
+                "code",
+                "description",
+                "title",
+                "param_descriptions",
+                "param_examples",
+                "param_titles",
+            },
+        )
+
     print()
 
 
@@ -173,6 +204,11 @@ def _emit_function_sig(f, condition, kwargs):
 
     if len(params) == 1:
         print("params = {}")
+
+    ret_cls = params["__hb_ret"]
+    ret_phase = None
+    if hasattr(ret_cls, "__honeybee_phase"):
+        ret_phase = ret_cls.__honeybee_phase
 
     for p in params:
         cls = params[p]
@@ -193,6 +229,12 @@ def _emit_function_sig(f, condition, kwargs):
             print(f'ret = "{cls.__name__}"')
         else:
             print(f'params.{p} = "{cls.__name__}"')
+            # Check phase invariant
+            if ret_phase is not None and hasattr(cls, "__honeybee_phase"):
+                if cls.__honeybee_phase > ret_phase:
+                    raise ValueError(
+                        f"Parameter '{p}' has type with phase greater than output type '{ret_cls.__name__}' in function '{f.__name__}'"
+                    )
 
     print("condition = [")
     for c in condition:
@@ -211,20 +253,12 @@ def _emit_function_sig(f, condition, kwargs):
             print(f'info.description = """{description}"""')
 
     for k in kwargs:
-        if k in {"title", "description"}:
-            raise ValueError(
-                f"Cannot use reserved keyword '{k}' in function '{f.__name__}'"
-            )
-        if isinstance(kwargs[k], list):
-            rhs = "[" + ", ".join('"' + entry + '"' for entry in kwargs[k]) + "]"
-            print(f"info.{k} = {rhs}")
-        elif isinstance(kwargs[k], bool):
-            if kwargs[k]:
-                print(f"info.{k} = true")
-            else:
-                print(f"info.{k} = false")
-        else:
-            print(f'info.{k} = "{kwargs[k]}"')
+        _emit_kwarg(
+            f.__name__,
+            key=k,
+            value=kwargs[k],
+            reserved={"description", "title", "code", "hyperparameters"},
+        )
 
     code = ""
     initial_indent = None
@@ -277,33 +311,45 @@ def Input(cls):
     if not _initialize_ran:
         raise ValueError("Must call honey_lang.initialize() at top of library")
 
-    _emit_met_sig("InputType", cls)
-    _emit_met_sig("InputProp", cls)
+    _emit_met_sig("InputType", cls, {})
+    _emit_met_sig("InputProp", cls, {})
     cls.__honeybee_type = True
     return cls
 
 
-def Output(cls):
+def Output(*args, **kwargs):
     if not _initialize_ran:
         raise ValueError("Must call honey_lang.initialize() at top of library")
 
-    _emit_met_sig("OutputType", cls)
-    cls.__honeybee_type = True
-    return cls
+    def wrap(cls):
+        _emit_met_sig("OutputType", cls, kwargs)
+        cls.__honeybee_type = True
+        if "phase" in kwargs:
+            cls.__honeybee_phase = kwargs["phase"]
+        return cls
+
+    if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+        cls = args[0]
+        return wrap(cls)
+    else:
+        assert len(args) == 0, "@Output does not take positional arguments"
+        return wrap
 
 
 def Function(*args, **kwargs):
     if not _initialize_ran:
         raise ValueError("Must call honey_lang.initialize() at top of library")
 
-    def wrap(f):
+    def wrap(f, *, overwrite_args=None):
+        nonlocal args
+        if overwrite_args is not None:
+            args = overwrite_args
         _emit_function_sig(f, args, kwargs)
         return f
 
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         f = args[0]
-        args = []
-        return wrap(f)
+        return wrap(f, overwrite_args=[])
     else:
         return wrap
 

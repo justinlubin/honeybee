@@ -91,7 +91,10 @@ def already_exists(path):
 # %% Sequencing reads
 
 
-@Output
+@Output(
+    phase=1,
+    phase_description="Preprocessing",
+)
 class SeqReads:
     """@intermediate:Sequencing reads
 
@@ -661,7 +664,10 @@ class RnaSeq:
     sample sheet above exactly!"""
 
 
-@Output
+@Output(
+    phase=2,
+    phase_description="Read Quantification",
+)
 class SalmonIndex:
     """@intermediate:Salmon index
 
@@ -672,7 +678,10 @@ class SalmonIndex:
     path: str
 
 
-@Output
+@Output(
+    phase=2,
+    phase_description="Read Quantification",
+)
 class KallistoIndex:
     """@intermediate:Kallisto index
 
@@ -683,7 +692,10 @@ class KallistoIndex:
     path: str
 
 
-@Output
+@Output(
+    phase=2,
+    phase_description="Read Quantification",
+)
 class TranscriptMatrices:
     """RNA-seq transcript read counts
 
@@ -728,7 +740,10 @@ class TranscriptMatrices:
     "Quantify uncertainty in results using bootstrap"
 
 
-@Output
+@Output(
+    phase=2,
+    phase_description="Read Quantification",
+)
 class GeneMatrices:
     """RNA-seq gene read counts
 
@@ -763,7 +778,10 @@ class GeneMatrices:
     path: str
 
 
-@Output
+@Output(
+    phase=3,
+    phase_description="Read Quantification",
+)
 class DifferentialGeneExpression:
     """RNA-seq differential gene expression
 
