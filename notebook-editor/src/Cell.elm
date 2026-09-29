@@ -74,3 +74,13 @@ key c =
 
         Choice x ->
             x.varName
+
+
+phase : Cell -> Maybe Core.Phase
+phase c =
+    case c of
+        Code x ->
+            x.phase
+
+        Choice x ->
+            x.phase

@@ -5,6 +5,7 @@ import Cell
 import Compile
 import Complete
 import Core
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as A
 import Html.Events as E
@@ -394,7 +395,7 @@ cell ctx c =
         Cell.Code cc ->
             section
                 [ A.class "cell" ]
-                [ h2 [] [ text (cc.title ++ Debug.toString cc.phase) ]
+                [ h2 [] [ text cc.title ]
                 , div
                     [ A.class "code-container" ]
                     [ pythonCode cc.code ]
@@ -432,15 +433,44 @@ cell ctx c =
                     ]
 
 
-doneProgressBar : Html Msg
-doneProgressBar =
-    div
-        [ A.class "progress-bar" ]
-        [ span [ A.class "past" ] [ text "All done!" ] ]
+progressLabels : List Cell.Cell -> Dict Int String
+progressLabels cells =
+    cells
+        |> List.filterMap
+            (\c ->
+                case Cell.phase c of
+                    Just { value, description } ->
+                        Just ( value, description )
+
+                    Nothing ->
+                        Nothing
+            )
+        |> Dict.fromList
 
 
-progressBar : { high : Maybe Int, current : Maybe Core.Phase } -> Html Msg
-progressBar { high, current } =
+doneProgressBar : Dict Int String -> Html Msg
+doneProgressBar labels =
+    case labels |> Dict.keys |> List.maximum of
+        Just high ->
+            div [ A.class "progress-bar" ] <|
+                List.map
+                    (\i ->
+                        let
+                            label =
+                                labels
+                                    |> Dict.get i
+                                    |> Maybe.withDefault ""
+                        in
+                        span [ A.class "past" ] [ text label ]
+                    )
+                    (List.range 0 high)
+
+        Nothing ->
+            text ""
+
+
+progressBar : Dict Int String -> { high : Maybe Int, current : Maybe Core.Phase } -> Html Msg
+progressBar labels { high, current } =
     let
         chunk class content =
             span [ A.class class ] content
@@ -448,9 +478,24 @@ progressBar { high, current } =
     case ( high, current ) of
         ( Just h, Just c ) ->
             div [ A.class "progress-bar" ] <|
-                List.repeat c.value (chunk "future" [])
-                    ++ [ chunk "current" [ text c.description ] ]
-                    ++ List.repeat (h - c.value) (chunk "past" [ text "placeholder" ])
+                List.map
+                    (\i ->
+                        if i < c.value then
+                            chunk "future" []
+
+                        else if i == c.value then
+                            chunk "current" [ text c.description ]
+
+                        else
+                            let
+                                label =
+                                    labels
+                                        |> Dict.get i
+                                        |> Maybe.withDefault ""
+                            in
+                            chunk "past" [ text label ]
+                    )
+                    (List.range 0 h)
 
         _ ->
             text ""
@@ -475,13 +520,16 @@ choice highestPhase activeHelp status =
 
         header =
             [ h1 [] [ text "Control Panel" ] ]
+
+        labels =
+            progressLabels status.cells
     in
     case status.output of
         Just output ->
             { key = "__done"
             , header = header
             , body =
-                [ doneProgressBar
+                [ doneProgressBar labels
                 , h2 [] [ text "All done!" ]
                 , div [ A.class "markdown" ]
                     [ p [] [ text "You have completed all the choices you need to make." ]
@@ -543,7 +591,7 @@ choice highestPhase activeHelp status =
                             |> String.fromInt
                     , header = header
                     , body =
-                        [ progressBar { high = highestPhase, current = cc.phase }
+                        [ progressBar labels { high = highestPhase, current = cc.phase }
                         , h2 []
                             [ span [ A.class "choice" ] [ text "Choice" ]
                             , text " "
