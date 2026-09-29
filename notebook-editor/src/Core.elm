@@ -4,6 +4,7 @@ module Core exposing
     , FactLibrary
     , FactSignature
     , Library
+    , Phase
     , Program
     , ProgramIndex(..)
     , Value(..)
@@ -114,12 +115,19 @@ parse vt str =
 -- Facts
 
 
+type alias Phase =
+    { value : Int
+    , description : String
+    }
+
+
 type alias FactSignature =
     { params : Assoc String ValueType
     , paramTitles : Dict String String
     , paramDescriptions : Dict String String
     , paramExamples : Dict String String
     , title : Maybe String
+    , phase : Maybe Phase
     }
 
 

@@ -37,6 +37,7 @@ type alias CodeCell =
     { title : String
     , code : String
     , openWhenEditing : Bool
+    , phase : Maybe Core.Phase
     }
 
 
@@ -46,6 +47,7 @@ type alias ChoiceCell =
     , typeDescription : Maybe String
     , functionChoices : List FunctionChoice
     , selectedFunctionChoice : Maybe Int
+    , phase : Maybe Core.Phase
     }
 
 

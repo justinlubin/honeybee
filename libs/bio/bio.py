@@ -92,7 +92,7 @@ def already_exists(path):
 
 
 @Output(
-    phase=1,
+    phase=0,
     phase_description="Preprocessing",
 )
 class SeqReads:
@@ -665,7 +665,7 @@ class RnaSeq:
 
 
 @Output(
-    phase=2,
+    phase=1,
     phase_description="Read Quantification",
 )
 class SalmonIndex:
@@ -679,7 +679,7 @@ class SalmonIndex:
 
 
 @Output(
-    phase=2,
+    phase=1,
     phase_description="Read Quantification",
 )
 class KallistoIndex:
@@ -693,7 +693,7 @@ class KallistoIndex:
 
 
 @Output(
-    phase=2,
+    phase=1,
     phase_description="Read Quantification",
 )
 class TranscriptMatrices:
@@ -741,7 +741,7 @@ class TranscriptMatrices:
 
 
 @Output(
-    phase=2,
+    phase=1,
     phase_description="Read Quantification",
 )
 class GeneMatrices:
@@ -779,8 +779,8 @@ class GeneMatrices:
 
 
 @Output(
-    phase=3,
-    phase_description="Read Quantification",
+    phase=2,
+    phase_description="Downstream Analysis",
 )
 class DifferentialGeneExpression:
     """RNA-seq differential gene expression

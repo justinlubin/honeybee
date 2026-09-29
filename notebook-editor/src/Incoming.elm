@@ -52,10 +52,11 @@ type alias PbnStatusMessage =
 
 decodeCodeCell : D.Decoder CodeCell
 decodeCodeCell =
-    D.map3 CodeCell
+    D.map4 CodeCell
         (D.field "title" D.string)
         (D.field "code" D.string)
         (D.field "open_when_editing" D.bool)
+        (D.maybe <| D.field "info" phase)
 
 
 decodeMetadataChoice : D.Decoder MetadataChoice
@@ -106,12 +107,13 @@ decodeFunctionChoice =
 
 decodeChoiceCell : D.Decoder ChoiceCell
 decodeChoiceCell =
-    D.map5 ChoiceCell
+    D.map6 ChoiceCell
         (D.field "var_name" D.string)
         (D.field "type_title" D.string)
         (D.field "type_description" <| D.nullable D.string)
         (D.field "function_choices" <| D.list decodeFunctionChoice)
         (D.succeed Nothing)
+        (D.maybe <| D.at [ "info" ] phase)
 
 
 decodeCell : D.Decoder Cell
@@ -171,15 +173,26 @@ valueType =
             )
 
 
+phase : D.Decoder Core.Phase
+phase =
+    D.map2
+        (\value description ->
+            { value = value, description = description }
+        )
+        (D.at [ "phase" ] D.int)
+        (D.at [ "phase_description" ] D.string)
+
+
 factSignature : D.Decoder Core.FactSignature
 factSignature =
-    D.map5
-        (\p pt pd pe t ->
+    D.map6
+        (\p pt pd pe t ph ->
             { params = p
             , paramTitles = Dict.fromList (Maybe.withDefault [] pt)
             , paramDescriptions = Dict.fromList (Maybe.withDefault [] pd)
             , paramExamples = Dict.fromList (Maybe.withDefault [] pe)
             , title = t
+            , phase = ph
             }
         )
         (D.field "params" <| D.keyValuePairs valueType)
@@ -187,6 +200,7 @@ factSignature =
         (D.maybe <| D.at [ "info", "param_descriptions" ] <| D.keyValuePairs D.string)
         (D.maybe <| D.at [ "info", "param_examples" ] <| D.keyValuePairs D.string)
         (D.maybe <| D.at [ "info", "title" ] D.string)
+        (D.maybe <| D.at [ "info" ] phase)
 
 
 factLibrary : D.Decoder Core.FactLibrary

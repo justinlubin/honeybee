@@ -20,6 +20,7 @@
   /* --choice-color: #22c051; */
   --choice-color-light: #edfcf1;
   --choice-color: #18923d;
+  --accent-color: #EFD7A0;
   --menu-bar-height: 30px;
 }
 
@@ -135,6 +136,7 @@ a:hover {
   display: flex;
   gap: 20px;
   padding: 20px;
+  flex-wrap: wrap;
 }
 
 .panel footer .right {
@@ -710,9 +712,81 @@ code.elmsh {
 #drag-handle {
   background-color: transparent;
   cursor: col-resize;
-  flex: 0 0 40px;
+  flex: 0 0 20px;
   height: 100%;
-  margin-left: -10px;
-  margin-right: -10px;
+  /* margin-left: -10px; */
+  /* margin-right: -10px; */
   z-index: 1;
+}
+
+/* Progress bar */
+
+.progress-bar {
+  flex-basis: 100%;
+  display: flex;
+  border: 1px solid black;
+  border-radius: var(--rounding);
+  /* overflow: hidden; */
+  margin-bottom: 30px;
+}
+
+.progress-bar>span {
+  height: 30px;
+  line-height: 30px;
+  flex: 1;
+  padding-right: 10px;
+  position: relative;
+}
+
+.progress-bar>span:first-child {
+  border-top-left-radius: var(--rounding);
+  border-bottom-left-radius: var(--rounding);
+}
+
+.progress-bar>span:last-child {
+  border-top-right-radius: var(--rounding);
+  border-bottom-right-radius: var(--rounding);
+}
+
+.progress-bar .current-phase {
+  color: black;
+  position: absolute;
+  right: -5px;
+  background-color: var(--choice-color);
+  color: white;
+  top: 40px;
+  height: 30px;
+  line-height: 30px;
+  padding: 0 5px;
+  border-radius: var(--rounding);
+  border-top-right-radius: 0;
+}
+
+.progress-bar .current-phase:before {
+  /* content: ""; */
+  /* width: 0; */
+  /* height: 0; */
+  /* border-left: 8px solid transparent; */
+  /* border-right: 8px solid transparent; */
+  /* border-bottom: 8px solid var(--choice-color); */
+  /* position: absolute; */
+  /* top: -8px; */
+  /* right: 0; */
+  /* z-index: 6; */
+}
+
+.progress-bar .future {}
+
+.progress-bar .current {
+  border-right: 10px solid var(--choice-color);
+  color: #888;
+  text-align: right;
+  cursor: default;
+  user-select: none;
+}
+
+
+.progress-bar .past {
+  background-color: var(--accent-color);
+  text-align: center;
 }

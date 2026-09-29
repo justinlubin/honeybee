@@ -37,15 +37,15 @@ help activeHelp id body =
         ]
 
 
-cellTitle : Cell.Cell -> String
-cellTitle c =
-    Annotations.removeAll <|
-        case c of
-            Cell.Code { title } ->
-                title
 
-            Cell.Choice { typeTitle } ->
-                typeTitle
+-- cellTitle : Cell.Cell -> String
+-- cellTitle c =
+--     Annotations.removeAll <|
+--         case c of
+--             Cell.Code { title } ->
+--                 title
+--             Cell.Choice { typeTitle } ->
+--                 typeTitle
 
 
 type SearchEngine
@@ -389,7 +389,7 @@ cell ctx c =
         Cell.Code cc ->
             section
                 [ A.class "cell" ]
-                [ h2 [] [ text cc.title ]
+                [ h2 [] [ text (cc.title ++ Debug.toString cc.phase) ]
                 , div
                     [ A.class "code-container" ]
                     [ pythonCode cc.code ]
@@ -427,8 +427,33 @@ cell ctx c =
                     ]
 
 
-choice : Maybe String -> Incoming.PbnStatusMessage -> Panel
-choice activeHelp status =
+doneProgressBar : Html Msg
+doneProgressBar =
+    div
+        [ A.class "progress-bar" ]
+        [ span [ A.class "past" ] [ text "All done!" ] ]
+
+
+progressBar : { high : Maybe Int, current : Maybe Core.Phase } -> Html Msg
+progressBar { high, current } =
+    case ( high, current ) of
+        ( Just h, Just c ) ->
+            div [ A.class "progress-bar" ] <|
+                List.repeat c.value (span [ A.class "future" ] [])
+                    ++ [ span
+                            [ A.class "current" ]
+                            [ text "🢀 Progress this way!"
+                            , span [ A.class "current-phase" ] [ text c.description ]
+                            ]
+                       ]
+                    ++ List.repeat (h - c.value) (span [ A.class "past" ] [])
+
+        _ ->
+            text ""
+
+
+choice : Maybe Int -> Maybe String -> Incoming.PbnStatusMessage -> Panel
+choice highestPhase activeHelp status =
     let
         nextChoice =
             status.cells
@@ -481,6 +506,7 @@ choice activeHelp status =
                             )
                         ]
                         [ text "Download notebook" ]
+                    , doneProgressBar
                     ]
             }
 
@@ -575,6 +601,7 @@ choice activeHelp status =
                                        )
                                 )
                                 [ text "Continue" ]
+                            , progressBar { high = highestPhase, current = cc.phase }
                             ]
                     }
 
@@ -761,7 +788,13 @@ controlPanel model fraction =
                 goalSpecification model
 
             Just status ->
-                choice model.activeHelp status
+                choice
+                    (model.program.goal
+                        |> Maybe.andThen (\goalFact -> goalFact.sig.phase)
+                        |> Maybe.map (\phase -> phase.value)
+                    )
+                    model.activeHelp
+                    status
         )
 
 

@@ -44,6 +44,7 @@ pub enum Cell {
         has_path: bool,
         priority: usize,
         number_id: Option<String>,
+        info: Option<toml::Table>,
     },
     Hole {
         var_name: String,
@@ -55,6 +56,7 @@ pub enum Cell {
         type_title: String,
         type_description: Option<String>,
         function_choices: Vec<FunctionChoice>,
+        info: Option<toml::Table>,
     },
 }
 
@@ -266,6 +268,8 @@ impl<'a> Context<'a> {
                 self.used_types.insert(f_sig.ret.clone());
                 self.used_functions.insert(f.name.clone());
 
+                let ret = self.library.types.get(&f_sig.ret).unwrap();
+
                 let mut arg_strings = vec![];
                 for (fp, arg) in args {
                     let mn = f_sig.params.get(fp).unwrap().clone();
@@ -333,6 +337,7 @@ impl<'a> Context<'a> {
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
+                    info: ret.info.clone(),
                 });
 
                 self.paths.insert(var_name.to_owned(), path);
@@ -400,6 +405,7 @@ impl<'a> Context<'a> {
                 has_path: false,
                 priority: 0,
                 number_id: None,
+                info: None,
             },
         );
 
@@ -441,6 +447,7 @@ impl<'a> Context<'a> {
                 has_path: false,
                 priority: 0,
                 number_id: None,
+                info: None,
             },
         );
     }
@@ -520,12 +527,25 @@ fn collate_choices(
     lib: &Library,
     choices: &Vec<top_down::TopDownStep<ParameterizedFunction>>,
 ) -> Result<
-    HashMap<top_down::HoleName, (String, Option<String>, Vec<FunctionChoice>)>,
+    HashMap<
+        top_down::HoleName,
+        (
+            String,
+            Option<String>,
+            Vec<FunctionChoice>,
+            Option<toml::Table>,
+        ),
+    >,
     String,
 > {
     let mut ret: HashMap<
         top_down::HoleName,
-        (String, Option<String>, HashMap<String, FunctionChoice>),
+        (
+            String,
+            Option<String>,
+            HashMap<String, FunctionChoice>,
+            Option<toml::Table>,
+        ),
     > = HashMap::new();
 
     for (choice_index, choice) in choices.iter().enumerate() {
@@ -542,8 +562,13 @@ fn collate_choices(
                     f_sig.info_string("title").unwrap_or(f.name.0.clone());
                 let function_description = f_sig.info_string("description");
 
-                let (_, _, fc_map) = ret.entry(*h).or_insert_with(|| {
-                    (type_title, type_description, HashMap::new())
+                let (_, _, fc_map, _) = ret.entry(*h).or_insert_with(|| {
+                    (
+                        type_title,
+                        type_description,
+                        HashMap::new(),
+                        ret_sig.info.clone(),
+                    )
                 });
 
                 let fc = fc_map.entry(f.name.0.clone()).or_insert_with(|| {
@@ -575,18 +600,23 @@ fn collate_choices(
 
     Ok(ret
         .into_iter()
-        .map(|(h, (t, d, fmap))| {
+        .map(|(h, (t, d, fmap, ri))| {
             (
                 h,
-                (t, d, {
-                    let mut v = fmap.into_values().collect::<Vec<_>>();
-                    v.sort_by(|fc1, fc2| {
-                        fc1.function_title
-                            .to_lowercase()
-                            .cmp(&fc2.function_title.to_lowercase())
-                    });
-                    v
-                }),
+                (
+                    t,
+                    d,
+                    {
+                        let mut v = fmap.into_values().collect::<Vec<_>>();
+                        v.sort_by(|fc1, fc2| {
+                            fc1.function_title
+                                .to_lowercase()
+                                .cmp(&fc2.function_title.to_lowercase())
+                        });
+                        v
+                    },
+                    ri,
+                ),
             )
         })
         .collect::<HashMap<_, _>>())
@@ -605,7 +635,7 @@ pub fn fill(
                 hole_name,
                 code: _,
             } => {
-                let (type_title, type_description, function_choices) =
+                let (type_title, type_description, function_choices, info) =
                     collated_choices.remove(hole_name).ok_or(
                         format!("No choices for hole {}", hole_name).to_owned(),
                     )?;
@@ -615,6 +645,7 @@ pub fn fill(
                     type_title,
                     type_description,
                     function_choices,
+                    info,
                 }
             }
             Cell::Choice { .. } => {
