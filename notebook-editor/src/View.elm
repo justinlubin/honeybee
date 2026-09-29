@@ -172,7 +172,8 @@ pane active body =
 
 
 type alias Panel =
-    { header : List (Html Msg)
+    { key : String
+    , header : List (Html Msg)
     , body : List (Html Msg)
     , footer : Maybe (List (Html Msg))
     }
@@ -184,19 +185,21 @@ panel fraction attrs p =
         bgLine =
             span [ A.class "bg-line" ] []
     in
-    div
+    Html.Keyed.node "div"
         (A.class "panel"
             :: A.style "width" (String.fromFloat (100 * fraction) ++ "%")
             :: attrs
         )
-        [ header [] ([ bgLine, bgLine, bgLine ] ++ p.header)
-        , section [] p.body
-        , case p.footer of
-            Just f ->
-                footer [] f
+        [ ( p.key ++ "$header", header [] ([ bgLine, bgLine, bgLine ] ++ p.header) )
+        , ( p.key ++ "$body", section [] p.body )
+        , ( p.key ++ "$footer"
+          , case p.footer of
+                Just f ->
+                    footer [] f
 
-            Nothing ->
-                text ""
+                Nothing ->
+                    text ""
+          )
         ]
 
 
@@ -231,7 +234,8 @@ goalSpecification model =
                 _ ->
                     False
     in
-    { header =
+    { key = "__init"
+    , header =
         [ h1 [] [ text "Control Panel" ] ]
     , body =
         [ pane True
@@ -280,7 +284,8 @@ codePanel model fraction =
     panel
         fraction
         [ A.id "code-panel" ]
-        { header =
+        { key = "__code"
+        , header =
             [ h1 [] [ text "Code Panel" ]
             , case model.pbnStatus of
                 Nothing ->
@@ -436,17 +441,16 @@ doneProgressBar =
 
 progressBar : { high : Maybe Int, current : Maybe Core.Phase } -> Html Msg
 progressBar { high, current } =
+    let
+        chunk class content =
+            span [ A.class class ] content
+    in
     case ( high, current ) of
         ( Just h, Just c ) ->
             div [ A.class "progress-bar" ] <|
-                List.repeat c.value (span [ A.class "future" ] [])
-                    ++ [ span
-                            [ A.class "current" ]
-                            [ text "🢀 Progress this way!"
-                            , span [ A.class "current-phase" ] [ text c.description ]
-                            ]
-                       ]
-                    ++ List.repeat (h - c.value) (span [ A.class "past" ] [])
+                List.repeat c.value (chunk "future" [])
+                    ++ [ chunk "current" [ text c.description ] ]
+                    ++ List.repeat (h - c.value) (chunk "past" [ text "placeholder" ])
 
         _ ->
             text ""
@@ -474,9 +478,11 @@ choice highestPhase activeHelp status =
     in
     case status.output of
         Just output ->
-            { header = header
+            { key = "__done"
+            , header = header
             , body =
-                [ h2 [] [ text "All done!" ]
+                [ doneProgressBar
+                , h2 [] [ text "All done!" ]
                 , div [ A.class "markdown" ]
                     [ p [] [ text "You have completed all the choices you need to make." ]
                     , p [] [ text "Here’s what to do next:" ]
@@ -506,7 +512,6 @@ choice highestPhase activeHelp status =
                             )
                         ]
                         [ text "Download notebook" ]
-                    , doneProgressBar
                     ]
             }
 
@@ -531,9 +536,15 @@ choice highestPhase activeHelp status =
                                 Nothing ->
                                     False
                     in
-                    { header = header
+                    { key =
+                        status.cells
+                            |> List.filter (\c -> not (Cell.isChoice c))
+                            |> List.length
+                            |> String.fromInt
+                    , header = header
                     , body =
-                        [ h2 []
+                        [ progressBar { high = highestPhase, current = cc.phase }
+                        , h2 []
                             [ span [ A.class "choice" ] [ text "Choice" ]
                             , text " "
                             , text (Annotations.removeAll cc.typeTitle)
@@ -601,12 +612,12 @@ choice highestPhase activeHelp status =
                                        )
                                 )
                                 [ text "Continue" ]
-                            , progressBar { high = highestPhase, current = cc.phase }
                             ]
                     }
 
                 Nothing ->
-                    { header = header
+                    { key = "__wrong"
+                    , header = header
                     , body = [ p [] [ text "Something has gone wrong… please try refreshing the page!" ] ]
                     , footer = Nothing
                     }
