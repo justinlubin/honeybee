@@ -769,6 +769,14 @@ code.elmsh {
   z-index: 5;
 }
 
+.progress-bar .future:after {
+  border-left-color: transparent;
+}
+
+.progress-bar :nth-last-child(1 of .future):after {
+  border-left-color: black;
+}
+
 .progress-bar .future {
   background-color: white;
 }
