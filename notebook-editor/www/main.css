@@ -786,18 +786,18 @@ code.elmsh {
 }
 
 .progress-bar .current {
-  background-color: #DDD;
-}
-
-.progress-bar .current:before {
-  border-left-color: #DDD;
-}
-
-.progress-bar .past {
   background-color: var(--choice-color);
   color: white;
 }
 
-.progress-bar .past:before {
+.progress-bar .current:before {
   border-left-color: var(--choice-color);
+}
+
+.progress-bar .past {
+  background-color: #DDD;
+}
+
+.progress-bar .past:before {
+  border-left-color: #DDD;
 }
