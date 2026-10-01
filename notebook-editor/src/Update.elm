@@ -307,7 +307,10 @@ doUndo model =
                 ( model
                 , Cmd.batch
                     [ Outgoing.oPbnUndo {}
-                    , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                    , Outgoing.oScrollIntoView
+                        { selector = "#active-choice-cell"
+                        , smooth = False
+                        }
                     ]
                 )
 
@@ -402,7 +405,7 @@ update_ msg model =
         UserStartedNavigation { programSource } ->
             ( model
             , Cmd.batch
-                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell", smooth = False }
                 , Outgoing.oPbnInit { programSource = programSource, sound = model.sound }
                 ]
             )
@@ -412,7 +415,7 @@ update_ msg model =
                 { cellIndex = cellIndex, functionIndex = Just functionIndex }
                 model
             , Cmd.batch
-                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                [ Outgoing.oScrollIntoView { selector = "#active-choice-cell", smooth = True }
                 , case speculateChoice of
                     Just choice ->
                         Outgoing.oPbnSpeculate { choice = choice }
@@ -426,7 +429,7 @@ update_ msg model =
             ( setFunctionChoice
                 { cellIndex = cellIndex, functionIndex = Nothing }
                 { model | speculativePbnStatus = Nothing }
-            , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+            , Outgoing.oScrollIntoView { selector = "#active-choice-cell", smooth = True }
             )
 
         UserSelectedMetadata { cellIndex, functionIndex } metadataIndex ->
@@ -443,7 +446,10 @@ update_ msg model =
             ( model
             , Cmd.batch
                 [ Outgoing.oPbnChoose { choice = choice }
-                , Outgoing.oScrollIntoView { selector = "#active-choice-cell" }
+                , Outgoing.oScrollIntoView
+                    { selector = "#active-choice-cell"
+                    , smooth = False
+                    }
                 ]
             )
 

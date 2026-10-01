@@ -10,6 +10,7 @@ import Json.Encode
 
 type alias ScrollIntoViewMessage =
     { selector : String
+    , smooth : Bool
     }
 
 
