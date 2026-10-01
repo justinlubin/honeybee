@@ -57,6 +57,7 @@ pub enum Cell {
         type_description: Option<String>,
         function_choices: Vec<FunctionChoice>,
         info: Option<toml::Table>,
+        phase: Option<i64>,
     },
 }
 
@@ -72,8 +73,16 @@ impl Cell {
     fn priority(&self) -> usize {
         match self {
             Cell::Code { priority, .. } => *priority,
-            Cell::Hole { .. } => 2,
-            Cell::Choice { .. } => 2,
+            Cell::Hole { .. } => 3,
+            Cell::Choice { .. } => 3,
+        }
+    }
+
+    fn phase(&self) -> i64 {
+        match self {
+            Cell::Code { .. } => i64::MAX,
+            Cell::Hole { .. } => -2,
+            Cell::Choice { phase, .. } => phase.unwrap_or(-1),
         }
     }
 }
@@ -471,6 +480,16 @@ fn get_erase_static(library: &Library) -> Option<bool> {
     library.config.as_ref()?.get("erase_static")?.as_bool()
 }
 
+fn get_phase(info: &Option<toml::Table>) -> Option<i64> {
+    match info {
+        Some(inf) => match inf.get("phase") {
+            Some(toml::Value::Integer(n)) => Some(*n),
+            _ => None,
+        },
+        None => None,
+    }
+}
+
 pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
     let mut ctx = Context {
         library,
@@ -657,6 +676,7 @@ pub fn fill(
                     type_title,
                     type_description,
                     function_choices,
+                    phase: get_phase(&info),
                     info,
                 }
             }
@@ -668,5 +688,8 @@ pub fn fill(
             Cell::Code { .. } => (),
         }
     }
+
+    cells.sort_by_key(|c| (c.priority(), c.phase()));
+
     Ok(cells)
 }
