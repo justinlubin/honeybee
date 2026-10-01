@@ -91,7 +91,6 @@ RUN uv add ipython
 RUN uv add pysam
 
 RUN uv sync
-RUN rm main.py
 
 RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
@@ -108,7 +107,7 @@ ARG RELEASE
 ARG COMMIT
 ARG USER_FILES
 
-ENV HONEYBEE_RELEASE=${VERSION}+${COMMIT}
+ENV HONEYBEE_RELEASE=${RELEASE}+${COMMIT}
 ENV HONEYBEE_COMMIT=${COMMIT}
 ENV HONEYBEE_USER_ENVIRONMENT=${USER_FILES}/environment
 
