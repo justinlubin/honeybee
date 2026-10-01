@@ -66,7 +66,7 @@ init { library, sound, log, partid } =
             , currentGoalMetadataSuggestions = []
             , goalSuggestions = []
             , activeHelp = Nothing
-            , dragHandleState = Static 0.55
+            , dragHandleState = Static 0.5
             }
 
         cmd =
