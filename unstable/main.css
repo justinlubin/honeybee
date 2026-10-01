@@ -20,6 +20,7 @@
   /* --choice-color: #22c051; */
   --choice-color-light: #edfcf1;
   --choice-color: #18923d;
+  --accent-color: #EFD7A0;
   --menu-bar-height: 30px;
 }
 
@@ -135,6 +136,7 @@ a:hover {
   display: flex;
   gap: 20px;
   padding: 20px;
+  flex-wrap: wrap;
 }
 
 .panel footer .right {
@@ -710,9 +712,92 @@ code.elmsh {
 #drag-handle {
   background-color: transparent;
   cursor: col-resize;
-  flex: 0 0 40px;
+  flex: 0 0 20px;
   height: 100%;
-  margin-left: -10px;
-  margin-right: -10px;
+  /* margin-left: -10px; */
+  /* margin-right: -10px; */
   z-index: 1;
+}
+
+/* Progress bar */
+
+.progress-bar {
+  display: flex;
+  margin-bottom: 20px;
+
+  font-size: 0.75em;
+
+  border: 1px solid black;
+  border-radius: var(--rounding);
+
+  overflow: hidden;
+}
+
+.progress-bar>span {
+  flex: 1;
+  height: 20px;
+  line-height: 20px;
+
+  text-align: center;
+  padding-left: 10px;
+
+  position: relative;
+}
+
+.progress-bar>span:before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 10px solid transparent;
+  position: absolute;
+  right: -10px;
+  z-index: 6;
+}
+
+.progress-bar>span:after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 11px solid black;
+  position: absolute;
+  right: -11px;
+  top: -1px;
+  z-index: 5;
+}
+
+.progress-bar .future:after {
+  border-left-color: transparent;
+}
+
+.progress-bar :nth-last-child(1 of .future):after {
+  border-left-color: black;
+}
+
+.progress-bar .future {
+  background-color: white;
+}
+
+.progress-bar .future:before {
+  border-left-color: white;
+}
+
+.progress-bar .current {
+  background-color: var(--choice-color);
+  color: white;
+}
+
+.progress-bar .current:before {
+  border-left-color: var(--choice-color);
+}
+
+.progress-bar .past {
+  background-color: #DDD;
+}
+
+.progress-bar .past:before {
+  border-left-color: #DDD;
 }
