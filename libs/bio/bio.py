@@ -8,7 +8,10 @@ from IPython.display import display
 
 from honey_lang import Function, Helper, Input, Output, initialize, log
 
-initialize(name="Honeybee Biology Library Release 8 (<<<COMMIT>>>)")
+initialize(
+    name="Honeybee Biology Library Release 8 (<<<COMMIT>>>)",
+    allow_input_arguments=False,
+)
 
 ################################################################################
 # %% Helper
@@ -606,70 +609,70 @@ def bwa_mem(
 ################################################################################
 # %% RNA-seq analysis
 
+# sample_sheet: str
+# """Path to sample sheet CSV
+
+# @example:metadata/sample_sheet.csv
+
+# Here is an example CSV file (the headers must match exactly):
+
+# | sample_name | condition | forward_location        | reverse_location        |
+# |-------------|-----------|-------------------------|-------------------------|
+# | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
+# | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
+# | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
+# | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
+
+# Each row is one sample. Here is what each column means:
+# - **`sample_name`** is a unique identifier for each sample (it can be
+#   whatever you want as long as it is unique).
+# - **`condition`** is the label for the experimental condition for each
+#   sample (this label can be whatever you want, such as "control" and
+#   "treatment"). Multiple samples with the same condition are considered
+#   **biological replicates**.
+# - **`forward_location`** is the path to the raw RNA-seq data of forward
+#   reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
+#   the filename is likely to end in something resembling `_1.fastq.gz` or
+#   `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
+#   their SRA "run accession" (SRR) identifier. These identifiers are of the
+#   form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
+#   paired-end data, add a _1 to the end of the SRR identifier.
+# - **`reverse_location`** (for **paired-end data only**) is the path to the
+#   reverse reads. This path should be similar to the `forward_location` path
+#   but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
+#   to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
+#   identifier."""
+
+# comparison_sheet: str
+# """(Optional!) Path to comparison sheet CSV
+
+# @example:metadata/comparison_sheet.csv
+
+# If you want to compare some of the conditions defined in your sample sheet,
+# include a path to a CSV that describes the comparisons you want to make
+# in this field. Otherwise, you can leave it blank to make _all_ comparisons.
+# (Depending on your analysis and number of conditions, it may take a long
+# time to run all comparisons!)
+
+# Here is an example CSV file (the headers must match exactly):
+
+# | control_condition | treatment_condition |
+# |-------------------|---------------------|
+# | untreated         | treatment1          |
+# | untreated         | treatment2          |
+
+# Each row is one comparison to make.
+
+# The `control_condition` column is the control condition, and the
+# `treatment_condition` column is the treatment condition.
+
+# **Important Note:** The entries must match the `condition` names from the
+# sample sheet above exactly!"""
+
 
 @Input
 class RnaSeq:
     """RNA-seq"""
-
-    sample_sheet: str
-    """Path to sample sheet CSV
-
-    @example:metadata/sample_sheet.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | sample_name | condition | forward_location        | reverse_location        |
-    |-------------|-----------|-------------------------|-------------------------|
-    | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-    Each row is one sample. Here is what each column means:
-    - **`sample_name`** is a unique identifier for each sample (it can be
-      whatever you want as long as it is unique).
-    - **`condition`** is the label for the experimental condition for each
-      sample (this label can be whatever you want, such as "control" and
-      "treatment"). Multiple samples with the same condition are considered
-      **biological replicates**.
-    - **`forward_location`** is the path to the raw RNA-seq data of forward
-      reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-      the filename is likely to end in something resembling `_1.fastq.gz` or
-      `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-      their SRA "run accession" (SRR) identifier. These identifiers are of the
-      form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-      paired-end data, add a _1 to the end of the SRR identifier.
-    - **`reverse_location`** (for **paired-end data only**) is the path to the
-      reverse reads. This path should be similar to the `forward_location` path
-      but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-      to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-      identifier."""
-
-    comparison_sheet: str
-    """(Optional!) Path to comparison sheet CSV
-
-    @example:metadata/comparison_sheet.csv
-
-    If you want to compare some of the conditions defined in your sample sheet,
-    include a path to a CSV that describes the comparisons you want to make
-    in this field. Otherwise, you can leave it blank to make _all_ comparisons.
-    (Depending on your analysis and number of conditions, it may take a long
-    time to run all comparisons!)
-    
-    Here is an example CSV file (the headers must match exactly):
-
-    | control_condition | treatment_condition |
-    |-------------------|---------------------|
-    | untreated         | treatment1          |
-    | untreated         | treatment2          |
-
-    Each row is one comparison to make.
-
-    The `control_condition` column is the control condition, and the
-    `treatment_condition` column is the treatment condition.
-
-    **Important Note:** The entries must match the `condition` names from the
-    sample sheet above exactly!"""
 
 
 @Output(
@@ -816,16 +819,23 @@ class DifferentialGeneExpression:
     "ret.trimmed = false",
     "ret.long = false",
     "ret.type = 'rna'",
+    "P_RnaSeq {}",
     search=False,
 )
-def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
+def load_rna_seq(__hb_ret: SeqReads):
     """Load RNA-seq data from sample sheet
 
     This code collects all the RNA-seq data defined in the sample sheet. It
     downloads samples identified with SRR accession identifiers from the
     [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 
-    sample_sheet = pl.read_csv(__hb_rna.sample_sheet)
+    # PARAMETER: Path to RNA-seq sample sheet CSV
+    RNA_SEQ_SAMPLE_SHEET = "metadata/sample_sheet.csv"
+
+    # PARAMETER: Optional path to RNA-seq comparison sheet CSV
+    RNA_SEQ_COPMARISON_SHEET = None
+
+    sample_sheet = pl.read_csv(RNA_SEQ_SAMPLE_SHEET)
 
     # Store the resulting filenames for the new sample sheet we will create
     new_files = {}
@@ -879,9 +889,9 @@ def load_rna_seq(__hb_rna: RnaSeq, __hb_ret: SeqReads):
     ).write_csv(f"{shared()}/sample_sheet.csv")
 
     # Copy over the comparison sheet, if it exists
-    if __hb_rna.comparison_sheet:
+    if RNA_SEQ_COPMARISON_SHEET:
         link(
-            __hb_rna.comparison_sheet,
+            RNA_SEQ_COPMARISON_SHEET,
             f"{shared()}/comparison_sheet.csv",
         )
 
@@ -1543,25 +1553,25 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
 ################################################################################
 # %% LEMONmethyl-seq
 
+# fastq_path: str
+# """Path to the directory containing the LEMONmethyl-seq data
+
+# @example:raw-data/
+
+# This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
+# reference: str
+# """Path to the reference genome to align the LEMONmethyl-seq data to
+
+# @example:reference.fasta
+
+# The path should be to a `.fasta` file containing one entry (for the
+# reference genome)."""
+
 
 @Input
 class LemonSeq:
     "LEMONmethyl-seq"
-
-    fastq_path: str
-    """Path to the directory containing the LEMONmethyl-seq data
-
-    @example:raw-data/
-
-    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-
-    reference: str
-    """Path to the reference genome to align the LEMONmethyl-seq data to
-
-    @example:reference.fasta
-
-    The path should be to a `.fasta` file containing one entry (for the
-    reference genome)."""
 
 
 @Output
@@ -1591,18 +1601,25 @@ class MethylationCalls:
 
 
 @Function(
+    "P_LemonSeq {}",
     search=False,
 )
-def load_local_lemon_seq(__hb_local: LemonSeq, __hb_ret: UnconvertedLemonSeq):
+def load_local_lemon_seq(__hb_ret: UnconvertedLemonSeq):
     """Load LEMONmethyl-seq data from hard drive
 
     The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
     file format."""
 
-    carry_over(__hb_local.fastq_path, __hb_ret.path)
+    # PARAMETER: Path to the directory containing the LEMONmethyl-seq data
+    LEMON_FASTQ_PATH = "raw-data/"
+
+    # PARAMETER: Path to the reference genome to align the LEMONmethyl-seq data to
+    LEMON_REFERENCE = "reference.fasta"
+
+    carry_over(LEMON_FASTQ_PATH, __hb_ret.path)
 
     link(
-        __hb_local.reference,
+        LEMON_REFERENCE,
         f"{shared()}/reference/unconverted.fasta",
     )
 
@@ -1728,17 +1745,17 @@ def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
 ################################################################################
 # %% EM-seq
 
+# path: str
+# """Path to the directory containing the raw EM-seq data
+
+# @example:raw-data/
+
+# This directory should contain files ending with `.fastq` or `.fastq.gz`."""
+
 
 @Input
 class LocalEmSeq:
     "EM-seq"
-
-    path: str
-    """Path to the directory containing the raw EM-seq data
-
-    @example:raw-data/
-
-    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
 
 
 @Output
@@ -1754,9 +1771,10 @@ class EmSeqNoRef:
 
 
 @Function(
+    "P_LocalEmSeq {}",
     search=False,
 )
-def load_local_em_seq(__hb_local: LocalEmSeq, __hb_ret: EmSeqNoRef):
+def load_local_em_seq(__hb_ret: EmSeqNoRef):
     """Load EM-seq data from hard drive
 
     # Load raw EM-seq data already present on your computer
@@ -1764,7 +1782,10 @@ def load_local_em_seq(__hb_local: LocalEmSeq, __hb_ret: EmSeqNoRef):
     The raw EM-seq files are typically in the `.fastq` or `.fastq.gz` file
     format."""
 
-    carry_over(__hb_local.path, __hb_ret.path)
+    # PARAMETER: Path to the directory containing the raw EM-seq data
+    EM_FASTQ_PATH = "raw-data/"
+
+    carry_over(EM_FASTQ_PATH, __hb_ret.path)
 
 
 @Function(
@@ -1948,44 +1969,44 @@ def bismark_methylation_extractor(
 
 # Tutorial: https://nbis-workshop-epigenomics.readthedocs.io/en/latest/content/tutorials/ATACseq/lab-atacseq-bulk.html#
 
+# sample_sheet: str
+# """Path to sample sheet CSV
+
+# @example:metadata/sample_sheet.csv
+
+# Here is an example CSV file (the headers must match exactly):
+
+# | sample_name | condition | forward_location        | reverse_location        |
+# |-------------|-----------|-------------------------|-------------------------|
+# | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
+# | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
+# | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
+# | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
+
+# Each row is one sample. Here is what each column means:
+# - **`sample_name`** is a unique identifier for each sample (it can be
+#   whatever you want as long as it is unique).
+# - **`condition`** is the label for the experimental condition for each
+#   sample (this label can be whatever you want, such as "control" and
+#   "treatment"). Multiple samples with the same condition are considered
+#   **biological replicates**.
+# - **`forward_location`** is the path to the raw ATAC-seq data of forward
+#   reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
+#   the filename is likely to end in something resembling `_1.fastq.gz` or
+#   `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
+#   their SRA "run accession" (SRR) identifier. These identifiers are of the
+#   form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
+#   paired-end data, add a _1 to the end of the SRR identifier.
+# - **`reverse_location`** (for **paired-end data only**) is the path to the
+#   reverse reads. This path should be similar to the `forward_location` path
+#   but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
+#   to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
+#   identifier."""
+
 
 @Input
 class AtacSeq:
     """ATAC-seq"""
-
-    sample_sheet: str
-    """Path to sample sheet CSV
-
-    @example:metadata/sample_sheet.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | sample_name | condition | forward_location        | reverse_location        |
-    |-------------|-----------|-------------------------|-------------------------|
-    | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-    Each row is one sample. Here is what each column means:
-    - **`sample_name`** is a unique identifier for each sample (it can be
-      whatever you want as long as it is unique).
-    - **`condition`** is the label for the experimental condition for each
-      sample (this label can be whatever you want, such as "control" and
-      "treatment"). Multiple samples with the same condition are considered
-      **biological replicates**.
-    - **`forward_location`** is the path to the raw ATAC-seq data of forward
-      reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-      the filename is likely to end in something resembling `_1.fastq.gz` or
-      `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-      their SRA "run accession" (SRR) identifier. These identifiers are of the
-      form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-      paired-end data, add a _1 to the end of the SRR identifier.
-    - **`reverse_location`** (for **paired-end data only**) is the path to the
-      reverse reads. This path should be similar to the `forward_location` path
-      but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-      to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-      identifier."""
 
 
 @Output
@@ -2000,16 +2021,20 @@ class AtacPeaks:
     "ret.trimmed = false",
     "ret.long = false",
     "ret.type = 'atac'",
+    "P_AtacSeq {}",
     search=False,
 )
-def load_atac_seq(__hb_atac: AtacSeq, __hb_ret: SeqReads):
+def load_atac_seq(__hb_ret: SeqReads):
     """Load ATAC-seq data from sample sheet
 
     This code collects all the ATAC-seq data defined in the sample sheet. It
     downloads samples identified with SRR accession identifiers from the
     [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 
-    sample_sheet = pl.read_csv(__hb_atac.sample_sheet)
+    # PARAMETER: Path to RNA-seq sample sheet CSV
+    ATAC_SEQ_SAMPLE_SHEET = "metadata/sample_sheet.csv"
+
+    sample_sheet = pl.read_csv(ATAC_SEQ_SAMPLE_SHEET)
 
     # Store the resulting filenames for the new sample sheet we will create
     new_files = {}

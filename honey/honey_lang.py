@@ -307,6 +307,7 @@ def _emit_function_sig(f, condition, kwargs):
 # Export
 
 _initialize_ran = False
+_allow_input_arguments = None
 
 
 def Input(cls):
@@ -315,7 +316,8 @@ def Input(cls):
 
     _emit_met_sig("InputType", cls, {})
     _emit_met_sig("InputProp", cls, {})
-    cls.__honeybee_type = True
+    if _allow_input_arguments:
+        cls.__honeybee_type = True
     return cls
 
 
@@ -368,8 +370,9 @@ def Helper(obj):
     return obj
 
 
-def initialize(name=None, erase_static=True):
+def initialize(name=None, erase_static=True, allow_input_arguments=True):
     global _initialize_ran
+    global _allow_input_arguments
 
     if _initialize_ran:
         raise ValueError("Must call honey_lang.initialize() only once")
@@ -386,6 +389,7 @@ def initialize(name=None, erase_static=True):
         ).stdout.strip()
         print('name = "' + name.replace("<<<COMMIT>>>", commit) + '"')
     print("erase_static =", "true" if erase_static else "false")
+    print("allow_input_arguments =", "true" if allow_input_arguments else "false")
     print()
 
     # Add imports
@@ -428,6 +432,7 @@ def initialize(name=None, erase_static=True):
     print(")'''\n")
 
     _initialize_ran = True
+    _allow_input_arguments = allow_input_arguments
 
 
 def log(text, stdout=True):

@@ -117,6 +117,7 @@ fn met_option<T>(rhs: impl P<T>) -> impl P<Met<Option<T>>> {
                 .padded()
                 .map(|((lhs, _), rhs)| (MetParam(lhs), rhs)))
             .separated_by(just(','))
+            .padded()
             .delimited_by(just('{'), just('}'))
             .padded(),
         )

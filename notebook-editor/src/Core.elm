@@ -305,12 +305,8 @@ example library =
             { props =
                 [ Just
                     { name = propName
-                    , args =
-                        [ ( "sample_sheet", ( "sample_sheet.csv", VTStr ) )
-                        , ( "comparison_sheet", ( "comparison_sheet.csv", VTStr ) )
-                        ]
-                    , sig =
-                        propSig
+                    , args = []
+                    , sig = propSig
                     }
                 ]
             , goal =
