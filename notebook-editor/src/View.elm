@@ -394,11 +394,19 @@ cell ctx c =
     case c of
         Cell.Code cc ->
             section
-                [ A.class "cell" ]
-                [ h2 [] [ text cc.title ]
-                , div
-                    [ A.class "code-container" ]
-                    [ pythonCode cc.code ]
+                [ A.class "cell", A.class "code-cell" ]
+                [ details
+                    (if cc.openWhenEditing then
+                        [ A.attribute "open" "" ]
+
+                     else
+                        []
+                    )
+                    [ summary [] [ h2 [] [ text cc.title ] ]
+                    , div
+                        [ A.class "code-container" ]
+                        [ pythonCode cc.code ]
+                    ]
                 ]
 
         Cell.Choice _ ->

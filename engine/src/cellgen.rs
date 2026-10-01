@@ -410,7 +410,7 @@ impl<'a> Context<'a> {
                 title: "Parameters".to_owned(),
                 code: hp_code.trim().to_owned(),
                 description: "Before running your code, please set the following parameters!".to_owned(),
-                open_when_editing: false,
+                open_when_editing: true,
                 open_when_exporting: true,
                 has_path: false,
                 priority: 0,
