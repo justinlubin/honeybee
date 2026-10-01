@@ -45,6 +45,7 @@ pub enum Cell {
         priority: usize,
         number_id: Option<String>,
         info: Option<toml::Table>,
+        phase: Option<i64>,
     },
     Hole {
         var_name: String,
@@ -80,7 +81,7 @@ impl Cell {
 
     fn phase(&self) -> i64 {
         match self {
-            Cell::Code { .. } => i64::MAX,
+            Cell::Code { phase, .. } => phase.unwrap_or(i64::MAX),
             Cell::Hole { .. } => -2,
             Cell::Choice { phase, .. } => phase.unwrap_or(-1),
         }
@@ -322,6 +323,7 @@ impl<'a> Context<'a> {
                 let path = format!("{}{}", path_prefix, function_name);
 
                 let implementation = f_sig.info_string("code");
+                let info = ret.info.clone();
 
                 self.cells.push(Cell::Code {
                     number_id: if implementation.is_some() {
@@ -356,7 +358,8 @@ impl<'a> Context<'a> {
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
-                    info: ret.info.clone(),
+                    phase: get_phase(&info),
+                    info,
                 });
 
                 self.paths.insert(var_name.to_owned(), path);
@@ -425,6 +428,7 @@ impl<'a> Context<'a> {
                 priority: 0,
                 number_id: None,
                 info: None,
+                phase: None,
             },
         );
 
@@ -467,6 +471,7 @@ impl<'a> Context<'a> {
                 priority: 0,
                 number_id: None,
                 info: None,
+                phase: None,
             },
         );
     }
@@ -529,7 +534,7 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         }
     }
 
-    cells.sort_by_key(|c| c.priority());
+    cells.sort_by_key(|c| (c.priority(), c.phase()));
 
     cells
 }
