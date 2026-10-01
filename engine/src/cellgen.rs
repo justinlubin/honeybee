@@ -466,7 +466,7 @@ impl<'a> Context<'a> {
                 code: pr_code.trim().to_owned(),
                 description: "".to_owned(),
                 open_when_editing: false,
-                open_when_exporting: true,
+                open_when_exporting: false,
                 has_path: false,
                 priority: 0,
                 number_id: None,
