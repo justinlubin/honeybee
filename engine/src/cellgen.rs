@@ -132,6 +132,7 @@ struct Context<'a> {
     used_functions: IndexSet<BaseFunction>,
     paths: HashMap<String, String>,
     erase_static: bool,
+    check_already_exists: bool,
 }
 
 impl<'a> Context<'a> {
@@ -188,17 +189,17 @@ impl<'a> Context<'a> {
     }
 
     fn body_code(
+        &self,
         var_name: &str,
         type_name: &str,
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
         path: &str,
-        erase_static: bool,
     ) -> String {
         let mut s = "".to_owned();
 
-        if !erase_static || implementation.is_none() {
+        if !self.erase_static || implementation.is_none() {
             s += &format!("{} = {}(", var_name, type_name);
             let mut needs_newline = false;
             if implementation.is_some() {
@@ -221,22 +222,31 @@ impl<'a> Context<'a> {
 
         match implementation {
             Some(imp) => {
-                s += &format!("\n\nif already_exists({}.path):\n", var_name);
-                s += &format!(
-                    r#"    print(f"'{{{}.path}}' already exists, skipping step (delete folder to re-run)")"#,
-                    var_name
+                let mkdir_string = format!(
+                    "{}{}{}\n\n",
+                    r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#
                 );
-                s += &format!(
-                    "\nelse:\n    {}{}{}\n\n",
-                    r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#,
-                );
+                if self.check_already_exists {
+                    s +=
+                        &format!("\n\nif already_exists({}.path):\n", var_name);
+                    s += &format!(
+                        r#"    print(f"'{{{}.path}}' already exists, skipping step (delete folder to re-run)")"#,
+                        var_name
+                    );
+                    s += &format!("\nelse:\n    {}", mkdir_string);
+                } else {
+                    s += &mkdir_string;
+                }
 
-                let mut new_imp = imp
-                    .lines()
-                    .map(|s| format!("    {}\n", s))
-                    .collect::<Vec<_>>()
-                    .join("")
-                    .replace("__hb_ret", var_name);
+                let mut new_imp = if self.check_already_exists {
+                    imp.lines()
+                        .map(|s| format!("    {}\n", s))
+                        .collect::<Vec<_>>()
+                        .join("")
+                        .replace("__hb_ret", var_name)
+                } else {
+                    imp
+                };
 
                 for (lhs, rhs) in args {
                     new_imp = new_imp.replace(&format!("__hb_{}", lhs), rhs)
@@ -260,8 +270,10 @@ impl<'a> Context<'a> {
                     hole_name: *h,
                     code: None,
                 });
-                self.paths
-                    .insert(var_name.to_owned(), "__HB_PREVIOUS".to_owned());
+                self.paths.insert(
+                    var_name.to_owned(),
+                    "<<<previous step>>>".to_owned(),
+                );
             }
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
@@ -323,7 +335,7 @@ impl<'a> Context<'a> {
                         f_sig.info_string("title").unwrap_or(f.name.0.clone())
                     ),
                     description: Self::description(f_sig),
-                    code: Self::body_code(
+                    code: self.body_code(
                         var_name,
                         &f_sig.ret.0,
                         &f.metadata
@@ -333,7 +345,6 @@ impl<'a> Context<'a> {
                         &arg_strings,
                         implementation,
                         &path,
-                        self.erase_static,
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
@@ -470,6 +481,7 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         used_functions: IndexSet::new(),
         paths: HashMap::new(),
         erase_static: get_erase_static(library) == Some(true),
+        check_already_exists: true,
     };
 
     ctx.exp("GOAL", e);
@@ -516,7 +528,7 @@ fn post_process(
                 ret.replace(&format!("{}.path", var), &format!("\"{}\"", val));
         }
     }
-    ret = ret.replace("__HB_", "");
+    // ret = ret.replace("__HB_", "");
     ret
 }
 
