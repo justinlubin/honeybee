@@ -133,6 +133,7 @@ struct Context<'a> {
     paths: HashMap<String, String>,
     erase_static: bool,
     check_already_exists: bool,
+    show_props: bool,
 }
 
 impl<'a> Context<'a> {
@@ -222,20 +223,13 @@ impl<'a> Context<'a> {
 
         match implementation {
             Some(imp) => {
-                let mkdir_string = format!(
-                    "{}{}{}\n\n",
-                    r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#
-                );
                 if self.check_already_exists {
-                    s +=
-                        &format!("\n\nif already_exists({}.path):\n", var_name);
-                    s += &format!(
-                        r#"    print(f"'{{{}.path}}' already exists, skipping step (delete folder to re-run)")"#,
-                        var_name
-                    );
-                    s += &format!("\nelse:\n    {}", mkdir_string);
+                    s += &format!("\n\nif needs_to_run({}.path):\n", var_name);
                 } else {
-                    s += &mkdir_string;
+                    s += &format!(
+                        "{}{}{}\n\n",
+                        r#"bash(f"""mkdir -p {"#, var_name, r#".path}""")"#
+                    );
                 }
 
                 let mut new_imp = if self.check_already_exists {
@@ -277,6 +271,13 @@ impl<'a> Context<'a> {
             }
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
+
+                let input = is_input(&self.library, &f_sig.ret);
+
+                if input && !self.show_props {
+                    return;
+                }
+
                 self.used_types.insert(f_sig.ret.clone());
                 self.used_functions.insert(f.name.clone());
 
@@ -312,8 +313,6 @@ impl<'a> Context<'a> {
                 let path = format!("{}{}", path_prefix, function_name);
 
                 let implementation = f_sig.info_string("code");
-
-                let input = is_input(&self.library, &f_sig.ret);
 
                 self.cells.push(Cell::Code {
                     number_id: if implementation.is_some() {
@@ -482,6 +481,7 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         paths: HashMap::new(),
         erase_static: get_erase_static(library) == Some(true),
         check_already_exists: true,
+        show_props: false,
     };
 
     ctx.exp("GOAL", e);

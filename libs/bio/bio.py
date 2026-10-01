@@ -87,6 +87,14 @@ def already_exists(path):
     return False
 
 
+@Helper
+def needs_to_run(path):
+    if already_exists(path):
+        print(f"'{path}' already exists, skipping step (delete folder to re-run)")
+    else:
+        bash(f"""mkdir -p {path}""")
+
+
 ################################################################################
 # %% Sequencing reads
 

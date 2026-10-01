@@ -30,7 +30,7 @@ pub fn plain_text_notebook(lib: &Library, e: &Exp) -> String {
     for cell in cells {
         ret += &match cell {
             cellgen::Cell::Code { title, code, .. } => {
-                format!("# %% {}\n\n{}", title, code)
+                format!("# %% ###########################################################################\n# {}\n\n{}", title, code)
             }
             cellgen::Cell::Hole {
                 var_name,
