@@ -411,7 +411,7 @@ impl<'a> Context<'a> {
 
         for (name, (default, comment)) in hyperparameters {
             hp_code += &format!(
-                "# PARAMETER: {} (default: {})\n{} = {}\n\n",
+                "# {} (default: {})\n{} = {}\n\n",
                 comment, default, name, default
             );
         }
