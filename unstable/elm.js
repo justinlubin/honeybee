@@ -5878,7 +5878,7 @@ var $elm$core$Dict$fromList = function (assocs) {
 		assocs);
 };
 var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
-var $elm$json$Json$Decode$map6 = _Json_map6;
+var $elm$json$Json$Decode$map7 = _Json_map7;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$maybe = function (decoder) {
 	return $elm$json$Json$Decode$oneOf(
@@ -5926,11 +5926,12 @@ var $author$project$Incoming$valueType = A2(
 		}
 	},
 	$elm$json$Json$Decode$string);
-var $author$project$Incoming$factSignature = A7(
-	$elm$json$Json$Decode$map6,
-	F6(
-		function (p, pt, pd, pe, t, ph) {
+var $author$project$Incoming$factSignature = A8(
+	$elm$json$Json$Decode$map7,
+	F7(
+		function (p, pt, pd, pe, t, d, ph) {
 			return {
+				description: d,
 				paramDescriptions: $elm$core$Dict$fromList(
 					A2($elm$core$Maybe$withDefault, _List_Nil, pd)),
 				paramExamples: $elm$core$Dict$fromList(
@@ -5969,6 +5970,12 @@ var $author$project$Incoming$factSignature = A7(
 			$elm$json$Json$Decode$at,
 			_List_fromArray(
 				['info', 'title']),
+			$elm$json$Json$Decode$string)),
+	$elm$json$Json$Decode$maybe(
+		A2(
+			$elm$json$Json$Decode$at,
+			_List_fromArray(
+				['info', 'description']),
 			$elm$json$Json$Decode$string)),
 	$elm$json$Json$Decode$maybe(
 		A2(
@@ -6234,6 +6241,7 @@ var $author$project$Incoming$decodeFunctionChoice = A4(
 												'function_title',
 												$elm$json$Json$Decode$string,
 												$elm$json$Json$Decode$succeed($author$project$Cell$FunctionChoice)))))))))))));
+var $elm$json$Json$Decode$map6 = _Json_map6;
 var $author$project$Incoming$decodeChoiceCell = A7(
 	$elm$json$Json$Decode$map6,
 	$author$project$Cell$ChoiceCell,
@@ -6673,7 +6681,7 @@ var $author$project$Update$subscriptions = function (model) {
 				})
 			]));
 };
-var $author$project$Version$build = 'dbc2f34';
+var $author$project$Version$build = '5e3dd78';
 var $elm$core$Debug$toString = _Debug_toString;
 var $author$project$Update$encodeMsg = function (msg) {
 	return $elm$json$Json$Encode$string(
@@ -10384,7 +10392,7 @@ var $author$project$View$choice = F3(
 									'choice-type-title',
 									_List_fromArray(
 										[
-											$elm$html$Html$text('This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on what you feel is right for your experiment!')
+											$elm$html$Html$text('This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on your judgment call for what is right for your experiment!')
 										]))
 								])),
 							function () {
@@ -10411,7 +10419,7 @@ var $author$project$View$choice = F3(
 									'choice-next-steps',
 									_List_fromArray(
 										[
-											$elm$html$Html$text('These are the next steps you can choose between for this part of the analysis.')
+											$elm$html$Html$text('These are the “next steps” you can choose between for this part of the analysis.')
 										]))
 								])),
 							A2(
@@ -10741,13 +10749,35 @@ var $author$project$View$startNavigationButton = function (model) {
 };
 var $author$project$View$goalSpecification = function (model) {
 	var workflowComplete = function () {
-		var _v1 = A2($author$project$Util$at, 0, model.program.props);
-		if ((_v1.$ === 'Just') && (_v1.a.$ === 'Just')) {
+		var _v2 = A2($author$project$Util$at, 0, model.program.props);
+		if ((_v2.$ === 'Just') && (_v2.a.$ === 'Just')) {
 			return true;
 		} else {
 			return false;
 		}
 	}();
+	var maybeProp = $author$project$Util$joinMaybe(
+		$author$project$Util$asSingleton(model.program.props));
+	var description = function (mp) {
+		var _v1 = A2(
+			$elm$core$Maybe$andThen,
+			function (p) {
+				return p.sig.description;
+			},
+			mp);
+		if (_v1.$ === 'Just') {
+			var d = _v1.a;
+			return A2(
+				$author$project$View$markdown,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('goal-specification-info')
+					]),
+				d);
+		} else {
+			return $elm$html$Html$text('');
+		}
+	};
 	return {
 		body: _List_fromArray(
 			[
@@ -10776,9 +10806,9 @@ var $author$project$View$goalSpecification = function (model) {
 						model.library.props,
 						'Choose an assay…',
 						$author$project$Core$Prop(0),
-						$author$project$Util$joinMaybe(
-							$author$project$Util$asSingleton(model.program.props)),
-						true)
+						maybeProp,
+						true),
+						description(maybeProp)
 					])),
 				A2(
 				$author$project$View$pane,
@@ -10812,7 +10842,8 @@ var $author$project$View$goalSpecification = function (model) {
 						'Choose a goal…',
 						$author$project$Core$Goal,
 						model.program.goal,
-						workflowComplete)
+						workflowComplete),
+						description(model.program.goal)
 					]))
 			]),
 		footer: $elm$core$Maybe$Just(

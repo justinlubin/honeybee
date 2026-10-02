@@ -1,5 +1,5 @@
 [Config]
-name = "Honeybee Biology Library Release 8 (dbc2f34)"
+name = "Honeybee Biology Library Release 8 (5e3dd78)"
 erase_static = true
 allow_input_arguments = false
 
@@ -629,14 +629,24 @@ for sample in sample_sheet.rows(named=True):
 
 [Type.RnaSeq]
 params = {}
-info.title = "@intermediate:RNA-seq"
+info.title = "@intermediate:RNA-seq (bulk)"
+info.description = """Bulk RNA sequencing (RNA-seq) is a technique to sequence the RNA content of cells
+or tissues, commonly done via
+[Illumina sequencing](https://www.illumina.com/techniques/sequencing/rna-sequencing.html)."""
 info.code = '''@dataclass
 class RnaSeq:
-    """RNA-seq"""'''
+    """RNA-seq (bulk)
+
+    Bulk RNA sequencing (RNA-seq) is a technique to sequence the RNA content of cells
+    or tissues, commonly done via
+    [Illumina sequencing](https://www.illumina.com/techniques/sequencing/rna-sequencing.html)."""'''
 
 [Prop.P_RnaSeq]
 params = {}
-info.title = "RNA-seq"
+info.title = "RNA-seq (bulk)"
+info.description = """Bulk RNA sequencing (RNA-seq) is a technique to sequence the RNA content of cells
+or tissues, commonly done via
+[Illumina sequencing](https://www.illumina.com/techniques/sequencing/rna-sequencing.html)."""
 
 [Function.F_RnaSeq]
 params = {}
@@ -644,7 +654,7 @@ ret = "RnaSeq"
 condition = [
     "P_RnaSeq {  }"
 ]
-info.title = "RNA-seq"
+info.title = "RNA-seq (bulk)"
 
 [Type.SalmonIndex]
 params = {}
