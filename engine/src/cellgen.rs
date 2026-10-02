@@ -46,6 +46,7 @@ pub enum Cell {
         number_id: Option<String>,
         info: Option<toml::Table>,
         phase: Option<i64>,
+        var_name_function_name: Option<(String, String)>,
     },
     Hole {
         var_name: String,
@@ -63,13 +64,13 @@ pub enum Cell {
 }
 
 impl Cell {
-    fn has_output(&self) -> bool {
-        match self {
-            Self::Code { has_path, .. } => *has_path,
-            Self::Hole { .. } => true,
-            Self::Choice { .. } => true,
-        }
-    }
+    // fn has_output(&self) -> bool {
+    //     match self {
+    //         Self::Code { has_path, .. } => *has_path,
+    //         Self::Hole { .. } => true,
+    //         Self::Choice { .. } => true,
+    //     }
+    // }
 
     fn priority(&self) -> usize {
         match self {
@@ -140,7 +141,6 @@ struct Context<'a> {
     fresh_counter: HashMap<String, usize>,
     used_types: IndexSet<MetName>,
     used_functions: IndexSet<BaseFunction>,
-    paths: HashMap<String, String>,
     erase_static: bool,
     check_already_exists: bool,
     show_props: bool,
@@ -206,7 +206,6 @@ impl<'a> Context<'a> {
         metadata: &Vec<(String, String)>,
         args: &Vec<(String, String)>,
         implementation: Option<String>,
-        path: &str,
     ) -> String {
         let mut s = "".to_owned();
 
@@ -215,7 +214,7 @@ impl<'a> Context<'a> {
             let mut needs_newline = false;
             if implementation.is_some() {
                 needs_newline = true;
-                s += &format!("\n    path=\"{}\",", path);
+                s += &format!("\n    path={}.path,", var_name);
             }
             if !metadata.is_empty() {
                 needs_newline = true;
@@ -274,10 +273,10 @@ impl<'a> Context<'a> {
                     hole_name: *h,
                     code: None,
                 });
-                self.paths.insert(
-                    var_name.to_owned(),
-                    "<<<previous step>>>".to_owned(),
-                );
+                // self.paths.insert(
+                //     var_name.to_owned(),
+                //     "<<<previous step>>>".to_owned(),
+                // );
             }
             top_down::Sketch::App(f, args) => {
                 let f_sig = self.library.functions.get(&f.name).unwrap();
@@ -306,31 +305,11 @@ impl<'a> Context<'a> {
                     arg_strings.push((fp.0.clone(), arg_var));
                 }
 
-                let number_id = format!(
-                    "{:03}",
-                    self.cells
-                        .iter()
-                        .filter(|c| c.has_output())
-                        .collect::<Vec<_>>()
-                        .len()
-                        * 10
-                );
-
-                let path_prefix = format!("output/{}-", number_id);
-
-                let function_name = &f.name.0;
-
-                let path = format!("{}{}", path_prefix, function_name);
-
                 let implementation = f_sig.info_string("code");
                 let info = ret.info.clone();
 
                 self.cells.push(Cell::Code {
-                    number_id: if implementation.is_some() {
-                        Some(number_id)
-                    } else {
-                        None
-                    },
+                    number_id: None, // Will get set in finalize()
                     has_path: implementation.is_some(),
                     priority: if input {
                         2
@@ -354,15 +333,20 @@ impl<'a> Context<'a> {
                             .collect(),
                         &arg_strings,
                         implementation,
-                        &path,
                     ),
                     open_when_editing: true,
                     open_when_exporting: true,
                     phase: get_phase(&info),
                     info,
+                    var_name_function_name: Some((
+                        var_name.to_owned(),
+                        f.name.0.clone(),
+                    )),
                 });
 
-                self.paths.insert(var_name.to_owned(), path);
+                // let path_prefix = format!("output/{}-", number_id);
+                // let path = format!("{}{}", path_prefix, function_name);
+                // self.paths.insert(var_name.to_owned(), path);
             }
         }
     }
@@ -419,6 +403,7 @@ impl<'a> Context<'a> {
         self.cells.insert(
             0,
             Cell::Code {
+                number_id: None,
                 title: "Parameters".to_owned(),
                 code: hp_code.trim().to_owned(),
                 description: "Before running your code, please set the following parameters!".to_owned(),
@@ -426,9 +411,9 @@ impl<'a> Context<'a> {
                 open_when_exporting: true,
                 has_path: false,
                 priority: 0,
-                number_id: None,
                 info: None,
                 phase: None,
+                var_name_function_name: None,
             },
         );
 
@@ -462,6 +447,7 @@ impl<'a> Context<'a> {
         self.cells.insert(
             1,
             Cell::Code {
+                number_id: None,
                 title: "Initialization code".to_owned(),
                 code: pr_code.trim().to_owned(),
                 description: "".to_owned(),
@@ -469,9 +455,9 @@ impl<'a> Context<'a> {
                 open_when_exporting: false,
                 has_path: false,
                 priority: 0,
-                number_id: None,
                 info: None,
                 phase: None,
+                var_name_function_name: None,
             },
         );
     }
@@ -495,6 +481,41 @@ fn get_phase(info: &Option<toml::Table>) -> Option<i64> {
     }
 }
 
+fn path_format(number_id: usize, function_name: &str) -> String {
+    format!("output/{:03}-{}", number_id * 10, function_name)
+}
+
+fn finalize(cells: &mut Vec<Cell>) -> HashMap<String, String> {
+    let mut paths = HashMap::new();
+
+    cells.sort_by_key(|c| (c.priority(), c.phase()));
+    let mut i = 0;
+    for c in cells {
+        match c {
+            Cell::Code {
+                var_name_function_name,
+                ..
+            } => match var_name_function_name {
+                Some((var_name, function_name)) => {
+                    paths.insert(
+                        var_name.clone(),
+                        path_format(i, function_name),
+                    );
+                    i += 1;
+                }
+                None => (),
+            },
+            Cell::Hole { var_name, .. } => {
+                paths
+                    .insert(var_name.clone(), "<<<previous step>>>".to_owned());
+            }
+            Cell::Choice { .. } => (),
+        }
+    }
+
+    paths
+}
+
 pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
     let mut ctx = Context {
         library,
@@ -502,7 +523,6 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         fresh_counter: HashMap::new(),
         used_types: IndexSet::new(),
         used_functions: IndexSet::new(),
-        paths: HashMap::new(),
         erase_static: get_erase_static(library) == Some(true),
         check_already_exists: true,
         show_props: false,
@@ -513,10 +533,12 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
 
     let mut cells = ctx.cells;
 
+    let paths = finalize(&mut cells);
+
     for cell in &mut cells {
         match cell {
             Cell::Code { code, .. } => {
-                *code = post_process(&ctx.paths, code, ctx.erase_static)
+                *code = post_process(&paths, code, ctx.erase_static)
             }
             Cell::Hole {
                 code, hole_name, ..
@@ -528,13 +550,11 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
                     fc.code = fc
                         .code
                         .as_ref()
-                        .map(|c| post_process(&ctx.paths, c, ctx.erase_static));
+                        .map(|c| post_process(&paths, c, ctx.erase_static));
                 }
             }
         }
     }
-
-    cells.sort_by_key(|c| (c.priority(), c.phase()));
 
     cells
 }
@@ -694,7 +714,7 @@ pub fn fill(
         }
     }
 
-    cells.sort_by_key(|c| (c.priority(), c.phase()));
+    let _ = finalize(&mut cells);
 
     Ok(cells)
 }
