@@ -6673,7 +6673,7 @@ var $author$project$Update$subscriptions = function (model) {
 				})
 			]));
 };
-var $author$project$Version$build = 'd9c0606';
+var $author$project$Version$build = 'dbc2f34';
 var $elm$core$Debug$toString = _Debug_toString;
 var $author$project$Update$encodeMsg = function (msg) {
 	return $elm$json$Json$Encode$string(
