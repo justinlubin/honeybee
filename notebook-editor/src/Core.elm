@@ -127,6 +127,7 @@ type alias FactSignature =
     , paramDescriptions : Dict String String
     , paramExamples : Dict String String
     , title : Maybe String
+    , description : Maybe String
     , phase : Maybe Phase
     }
 

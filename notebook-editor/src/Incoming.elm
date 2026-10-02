@@ -185,13 +185,14 @@ phase =
 
 factSignature : D.Decoder Core.FactSignature
 factSignature =
-    D.map6
-        (\p pt pd pe t ph ->
+    D.map7
+        (\p pt pd pe t d ph ->
             { params = p
             , paramTitles = Dict.fromList (Maybe.withDefault [] pt)
             , paramDescriptions = Dict.fromList (Maybe.withDefault [] pd)
             , paramExamples = Dict.fromList (Maybe.withDefault [] pe)
             , title = t
+            , description = d
             , phase = ph
             }
         )
@@ -200,6 +201,7 @@ factSignature =
         (D.maybe <| D.at [ "info", "param_descriptions" ] <| D.keyValuePairs D.string)
         (D.maybe <| D.at [ "info", "param_examples" ] <| D.keyValuePairs D.string)
         (D.maybe <| D.at [ "info", "title" ] D.string)
+        (D.maybe <| D.at [ "info", "description" ] D.string)
         (D.maybe <| D.at [ "info" ] phase)
 
 

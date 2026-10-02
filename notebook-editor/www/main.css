@@ -816,3 +816,9 @@ code.elmsh {
 .progress-bar .past:before {
   border-left-color: #DDD;
 }
+
+/* Goal Specification */
+
+.goal-specification-info {
+  padding: 10px;
+}

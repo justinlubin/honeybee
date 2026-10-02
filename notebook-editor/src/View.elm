@@ -234,6 +234,17 @@ goalSpecification model =
 
                 _ ->
                     False
+
+        maybeProp =
+            model.program.props |> Util.asSingleton |> Util.joinMaybe
+
+        description mp =
+            case mp |> Maybe.andThen (\p -> p.sig.description) of
+                Just d ->
+                    markdown [ A.class "goal-specification-info" ] d
+
+                Nothing ->
+                    text ""
     in
     { key = "__init"
     , header =
@@ -251,8 +262,9 @@ goalSpecification model =
                 model.library.props
                 "Choose an assay…"
                 (Core.Prop 0)
-                (model.program.props |> Util.asSingleton |> Util.joinMaybe)
+                maybeProp
                 True
+            , description maybeProp
             ]
         , pane workflowComplete
             [ h2 []
@@ -273,6 +285,7 @@ goalSpecification model =
                 Core.Goal
                 model.program.goal
                 workflowComplete
+            , description model.program.goal
             ]
         ]
     , footer =
@@ -607,7 +620,7 @@ choice highestPhase activeHelp status =
                             , help
                                 activeHelp
                                 "choice-type-title"
-                                [ text "This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on what you feel is right for your experiment!" ]
+                                [ text "This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on your judgment call for what is right for your experiment!" ]
                             ]
                         , case cc.typeDescription of
                             Just desc ->
@@ -621,7 +634,7 @@ choice highestPhase activeHelp status =
                             , help
                                 activeHelp
                                 "choice-next-steps"
-                                [ text "These are the next steps you can choose between for this part of the analysis." ]
+                                [ text "These are the “next steps” you can choose between for this part of the analysis." ]
                             ]
                         , Html.Keyed.ul
                             [ A.class "function-choices" ]

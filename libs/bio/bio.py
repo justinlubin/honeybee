@@ -672,7 +672,11 @@ def bwa_mem(
 
 @Input
 class RnaSeq:
-    """RNA-seq"""
+    """RNA-seq (bulk)
+
+    Bulk RNA sequencing (RNA-seq) is a technique to sequence the RNA content of cells
+    or tissues, commonly done via
+    [Illumina sequencing](https://www.illumina.com/techniques/sequencing/rna-sequencing.html)."""
 
 
 @Output(
