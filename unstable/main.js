@@ -176,12 +176,21 @@ window.onbeforeunload = () => {
 // Elm ports
 
 app.ports.oScrollIntoView.subscribe((msg) => {
-  window.setTimeout(() => {
-    let el = document.querySelector(msg.selector);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
-  }, 100);
+  if (msg.smooth) {
+    window.setTimeout(() => {
+      let el = document.querySelector(msg.selector);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  } else {
+    window.setTimeout(() => {
+      let el = document.querySelector(msg.selector);
+      if (el) {
+        el.scrollIntoView();
+      }
+    }, 10);
+  }
 });
 
 // PBN

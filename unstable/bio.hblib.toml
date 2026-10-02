@@ -1,6 +1,7 @@
 [Config]
-name = "Honeybee Biology Library Release 8 (9a9d3a4)"
+name = "Honeybee Biology Library Release 8 (d9c0606)"
 erase_static = true
+allow_input_arguments = false
 
 [[Preamble]]
 content = '''from IPython.display import display
@@ -99,6 +100,13 @@ content='''def already_exists(path):
         if not file.startswith("."):
             return True
     return False'''
+
+[[Preamble]]
+content='''def needs_to_run(path):
+    if already_exists(path):
+        print(f"'{path}' already exists, skipping step (delete folder to re-run)")
+    else:
+        bash(f"""mkdir -p {path}""")'''
 
 [Type.SeqReads]
 params.qc = "Bool"
@@ -620,191 +628,21 @@ for sample in sample_sheet.rows(named=True):
     """)'''
 
 [Type.RnaSeq]
-params.sample_sheet = "Str"
-params.comparison_sheet = "Str"
+params = {}
 info.title = "@intermediate:RNA-seq"
-info.param_titles.sample_sheet = "Path to sample sheet CSV"
-info.param_descriptions.sample_sheet = """
-Here is an example CSV file (the headers must match exactly):
-
-| sample_name | condition | forward_location        | reverse_location        |
-|-------------|-----------|-------------------------|-------------------------|
-| BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-Each row is one sample. Here is what each column means:
-- **`sample_name`** is a unique identifier for each sample (it can be
-whatever you want as long as it is unique).
-- **`condition`** is the label for the experimental condition for each
-sample (this label can be whatever you want, such as "control" and
-"treatment"). Multiple samples with the same condition are considered
-**biological replicates**.
-- **`forward_location`** is the path to the raw RNA-seq data of forward
-reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-the filename is likely to end in something resembling `_1.fastq.gz` or
-`_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-their SRA "run accession" (SRR) identifier. These identifiers are of the
-form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-paired-end data, add a _1 to the end of the SRR identifier.
-- **`reverse_location`** (for **paired-end data only**) is the path to the
-reverse reads. This path should be similar to the `forward_location` path
-but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-identifier."""
-info.param_examples.sample_sheet = """metadata/sample_sheet.csv"""
-info.param_titles.comparison_sheet = "(Optional!) Path to comparison sheet CSV"
-info.param_descriptions.comparison_sheet = """
-If you want to compare some of the conditions defined in your sample sheet,
-include a path to a CSV that describes the comparisons you want to make
-in this field. Otherwise, you can leave it blank to make _all_ comparisons.
-(Depending on your analysis and number of conditions, it may take a long
-time to run all comparisons!)
-
-Here is an example CSV file (the headers must match exactly):
-
-| control_condition | treatment_condition |
-|-------------------|---------------------|
-| untreated         | treatment1          |
-| untreated         | treatment2          |
-
-Each row is one comparison to make.
-
-The `control_condition` column is the control condition, and the
-`treatment_condition` column is the treatment condition.
-
-**Important Note:** The entries must match the `condition` names from the
-sample sheet above exactly!"""
-info.param_examples.comparison_sheet = """metadata/comparison_sheet.csv"""
 info.code = '''@dataclass
 class RnaSeq:
-    """RNA-seq"""
-
-    sample_sheet: str
-    """Path to sample sheet CSV
-
-    @example:metadata/sample_sheet.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | sample_name | condition | forward_location        | reverse_location        |
-    |-------------|-----------|-------------------------|-------------------------|
-    | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-    Each row is one sample. Here is what each column means:
-    - **`sample_name`** is a unique identifier for each sample (it can be
-      whatever you want as long as it is unique).
-    - **`condition`** is the label for the experimental condition for each
-      sample (this label can be whatever you want, such as "control" and
-      "treatment"). Multiple samples with the same condition are considered
-      **biological replicates**.
-    - **`forward_location`** is the path to the raw RNA-seq data of forward
-      reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-      the filename is likely to end in something resembling `_1.fastq.gz` or
-      `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-      their SRA "run accession" (SRR) identifier. These identifiers are of the
-      form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-      paired-end data, add a _1 to the end of the SRR identifier.
-    - **`reverse_location`** (for **paired-end data only**) is the path to the
-      reverse reads. This path should be similar to the `forward_location` path
-      but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-      to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-      identifier."""
-
-    comparison_sheet: str
-    """(Optional!) Path to comparison sheet CSV
-
-    @example:metadata/comparison_sheet.csv
-
-    If you want to compare some of the conditions defined in your sample sheet,
-    include a path to a CSV that describes the comparisons you want to make
-    in this field. Otherwise, you can leave it blank to make _all_ comparisons.
-    (Depending on your analysis and number of conditions, it may take a long
-    time to run all comparisons!)
-    
-    Here is an example CSV file (the headers must match exactly):
-
-    | control_condition | treatment_condition |
-    |-------------------|---------------------|
-    | untreated         | treatment1          |
-    | untreated         | treatment2          |
-
-    Each row is one comparison to make.
-
-    The `control_condition` column is the control condition, and the
-    `treatment_condition` column is the treatment condition.
-
-    **Important Note:** The entries must match the `condition` names from the
-    sample sheet above exactly!"""'''
+    """RNA-seq"""'''
 
 [Prop.P_RnaSeq]
-params.sample_sheet = "Str"
-params.comparison_sheet = "Str"
+params = {}
 info.title = "RNA-seq"
-info.param_titles.sample_sheet = "Path to sample sheet CSV"
-info.param_descriptions.sample_sheet = """
-Here is an example CSV file (the headers must match exactly):
-
-| sample_name | condition | forward_location        | reverse_location        |
-|-------------|-----------|-------------------------|-------------------------|
-| BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-Each row is one sample. Here is what each column means:
-- **`sample_name`** is a unique identifier for each sample (it can be
-whatever you want as long as it is unique).
-- **`condition`** is the label for the experimental condition for each
-sample (this label can be whatever you want, such as "control" and
-"treatment"). Multiple samples with the same condition are considered
-**biological replicates**.
-- **`forward_location`** is the path to the raw RNA-seq data of forward
-reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-the filename is likely to end in something resembling `_1.fastq.gz` or
-`_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-their SRA "run accession" (SRR) identifier. These identifiers are of the
-form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-paired-end data, add a _1 to the end of the SRR identifier.
-- **`reverse_location`** (for **paired-end data only**) is the path to the
-reverse reads. This path should be similar to the `forward_location` path
-but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-identifier."""
-info.param_examples.sample_sheet = """metadata/sample_sheet.csv"""
-info.param_titles.comparison_sheet = "(Optional!) Path to comparison sheet CSV"
-info.param_descriptions.comparison_sheet = """
-If you want to compare some of the conditions defined in your sample sheet,
-include a path to a CSV that describes the comparisons you want to make
-in this field. Otherwise, you can leave it blank to make _all_ comparisons.
-(Depending on your analysis and number of conditions, it may take a long
-time to run all comparisons!)
-
-Here is an example CSV file (the headers must match exactly):
-
-| control_condition | treatment_condition |
-|-------------------|---------------------|
-| untreated         | treatment1          |
-| untreated         | treatment2          |
-
-Each row is one comparison to make.
-
-The `control_condition` column is the control condition, and the
-`treatment_condition` column is the treatment condition.
-
-**Important Note:** The entries must match the `condition` names from the
-sample sheet above exactly!"""
-info.param_examples.comparison_sheet = """metadata/comparison_sheet.csv"""
 
 [Function.F_RnaSeq]
 params = {}
 ret = "RnaSeq"
 condition = [
-    "P_RnaSeq { sample_sheet = ret.sample_sheet, comparison_sheet = ret.comparison_sheet }"
+    "P_RnaSeq {  }"
 ]
 info.title = "RNA-seq"
 
@@ -1050,13 +888,14 @@ info.phase = 2
 info.phase_description = "Downstream Analysis"
 
 [Function.load_rna_seq]
-params.rna = "RnaSeq"
+params = {}
 ret = "SeqReads"
 condition = [
     "ret.qc = false",
     "ret.trimmed = false",
     "ret.long = false",
     "ret.type = \"rna\"",
+    "P_RnaSeq {}",
 ]
 info.title = "Load RNA-seq data from sample sheet"
 info.description = """This code collects all the RNA-seq data defined in the sample sheet. It
@@ -1064,8 +903,10 @@ downloads samples identified with SRR accession identifiers from the
 [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 info.search = false
 info.hyperparameters = [
+    {name = 'RNA_SEQ_SAMPLE_SHEET', default = '"metadata/sample_sheet.csv"', comment = 'Path to RNA-seq sample sheet CSV' },
+    {name = 'RNA_SEQ_COPMARISON_SHEET', default = 'None', comment = 'Optional path to RNA-seq comparison sheet CSV' },
 ]
-info.code = '''sample_sheet = pl.read_csv(__hb_rna.sample_sheet)
+info.code = '''sample_sheet = pl.read_csv(RNA_SEQ_SAMPLE_SHEET)
 
 # Store the resulting filenames for the new sample sheet we will create
 new_files = {}
@@ -1119,9 +960,9 @@ sample_sheet.with_columns(
 ).write_csv(f"{shared()}/sample_sheet.csv")
 
 # Copy over the comparison sheet, if it exists
-if __hb_rna.comparison_sheet:
+if RNA_SEQ_COPMARISON_SHEET:
     link(
-        __hb_rna.comparison_sheet,
+        RNA_SEQ_COPMARISON_SHEET,
         f"{shared()}/comparison_sheet.csv",
     )
 
@@ -1690,56 +1531,21 @@ info.code = '''bash(f"""
         --output={__hb_ret.path}""")'''
 
 [Type.LemonSeq]
-params.fastq_path = "Str"
-params.reference = "Str"
+params = {}
 info.title = "@intermediate:LEMONmethyl-seq"
-info.param_titles.fastq_path = "Path to the directory containing the LEMONmethyl-seq data"
-info.param_descriptions.fastq_path = """
-This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.fastq_path = """raw-data/"""
-info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
-info.param_descriptions.reference = """
-The path should be to a `.fasta` file containing one entry (for the
-reference genome)."""
-info.param_examples.reference = """reference.fasta"""
 info.code = '''@dataclass
 class LemonSeq:
-    "LEMONmethyl-seq"
-
-    fastq_path: str
-    """Path to the directory containing the LEMONmethyl-seq data
-
-    @example:raw-data/
-
-    This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-
-    reference: str
-    """Path to the reference genome to align the LEMONmethyl-seq data to
-
-    @example:reference.fasta
-
-    The path should be to a `.fasta` file containing one entry (for the
-    reference genome)."""'''
+    "LEMONmethyl-seq"'''
 
 [Prop.P_LemonSeq]
-params.fastq_path = "Str"
-params.reference = "Str"
+params = {}
 info.title = "LEMONmethyl-seq"
-info.param_titles.fastq_path = "Path to the directory containing the LEMONmethyl-seq data"
-info.param_descriptions.fastq_path = """
-This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.fastq_path = """raw-data/"""
-info.param_titles.reference = "Path to the reference genome to align the LEMONmethyl-seq data to"
-info.param_descriptions.reference = """
-The path should be to a `.fasta` file containing one entry (for the
-reference genome)."""
-info.param_examples.reference = """reference.fasta"""
 
 [Function.F_LemonSeq]
 params = {}
 ret = "LemonSeq"
 condition = [
-    "P_LemonSeq { fastq_path = ret.fastq_path, reference = ret.reference }"
+    "P_LemonSeq {  }"
 ]
 info.title = "LEMONmethyl-seq"
 
@@ -1784,20 +1590,23 @@ class MethylationCalls:
     path: str'''
 
 [Function.load_local_lemon_seq]
-params.local = "LemonSeq"
+params = {}
 ret = "UnconvertedLemonSeq"
 condition = [
+    "P_LemonSeq {}",
 ]
 info.title = "Load LEMONmethyl-seq data from hard drive"
 info.description = """The raw LEMONmethyl-seq files are typically in the `.fastq` or `.fastq.gz`
 file format."""
 info.search = false
 info.hyperparameters = [
+    {name = 'LEMON_FASTQ_PATH', default = '"raw-data/"', comment = 'Path to the directory containing the LEMONmethyl-seq data' },
+    {name = 'LEMON_REFERENCE', default = '"reference.fasta"', comment = 'Path to the reference genome to align the LEMONmethyl-seq data to' },
 ]
-info.code = '''carry_over(__hb_local.fastq_path, __hb_ret.path)
+info.code = '''carry_over(LEMON_FASTQ_PATH, __hb_ret.path)
 
 link(
-    __hb_local.reference,
+    LEMON_REFERENCE,
     f"{shared()}/reference/unconverted.fasta",
 )
 
@@ -1921,36 +1730,21 @@ info.code = '''for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
     """)'''
 
 [Type.LocalEmSeq]
-params.path = "Str"
+params = {}
 info.title = "@intermediate:EM-seq"
-info.param_titles.path = "Path to the directory containing the raw EM-seq data"
-info.param_descriptions.path = """
-This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.path = """raw-data/"""
 info.code = '''@dataclass
 class LocalEmSeq:
-    "EM-seq"
-
-    path: str
-    """Path to the directory containing the raw EM-seq data
-
-    @example:raw-data/
-
-    This directory should contain files ending with `.fastq` or `.fastq.gz`."""'''
+    "EM-seq"'''
 
 [Prop.P_LocalEmSeq]
-params.path = "Str"
+params = {}
 info.title = "EM-seq"
-info.param_titles.path = "Path to the directory containing the raw EM-seq data"
-info.param_descriptions.path = """
-This directory should contain files ending with `.fastq` or `.fastq.gz`."""
-info.param_examples.path = """raw-data/"""
 
 [Function.F_LocalEmSeq]
 params = {}
 ret = "LocalEmSeq"
 condition = [
-    "P_LocalEmSeq { path = ret.path }"
+    "P_LocalEmSeq {  }"
 ]
 info.title = "EM-seq"
 
@@ -1972,9 +1766,10 @@ class EmSeqNoRef:
     """'''
 
 [Function.load_local_em_seq]
-params.local = "LocalEmSeq"
+params = {}
 ret = "EmSeqNoRef"
 condition = [
+    "P_LocalEmSeq {}",
 ]
 info.title = "Load EM-seq data from hard drive"
 info.description = """# Load raw EM-seq data already present on your computer
@@ -1983,8 +1778,9 @@ The raw EM-seq files are typically in the `.fastq` or `.fastq.gz` file
 format."""
 info.search = false
 info.hyperparameters = [
+    {name = 'EM_FASTQ_PATH', default = '"raw-data/"', comment = 'Path to the directory containing the raw EM-seq data' },
 ]
-info.code = '''carry_over(__hb_local.path, __hb_ret.path)'''
+info.code = '''carry_over(EM_FASTQ_PATH, __hb_ret.path)'''
 
 [Function.bismark_genome_preparation]
 params.input = "EmSeqNoRef"
@@ -2126,117 +1922,21 @@ info.code = '''for path in sorted(glob.glob(f"{__hb_input.path}/*.bam")):
     """)'''
 
 [Type.AtacSeq]
-params.sample_sheet = "Str"
+params = {}
 info.title = "@intermediate:ATAC-seq"
-info.param_titles.sample_sheet = "Path to sample sheet CSV"
-info.param_descriptions.sample_sheet = """
-Here is an example CSV file (the headers must match exactly):
-
-| sample_name | condition | forward_location        | reverse_location        |
-|-------------|-----------|-------------------------|-------------------------|
-| BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-Each row is one sample. Here is what each column means:
-- **`sample_name`** is a unique identifier for each sample (it can be
-whatever you want as long as it is unique).
-- **`condition`** is the label for the experimental condition for each
-sample (this label can be whatever you want, such as "control" and
-"treatment"). Multiple samples with the same condition are considered
-**biological replicates**.
-- **`forward_location`** is the path to the raw ATAC-seq data of forward
-reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-the filename is likely to end in something resembling `_1.fastq.gz` or
-`_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-their SRA "run accession" (SRR) identifier. These identifiers are of the
-form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-paired-end data, add a _1 to the end of the SRR identifier.
-- **`reverse_location`** (for **paired-end data only**) is the path to the
-reverse reads. This path should be similar to the `forward_location` path
-but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-identifier."""
-info.param_examples.sample_sheet = """metadata/sample_sheet.csv"""
 info.code = '''@dataclass
 class AtacSeq:
-    """ATAC-seq"""
-
-    sample_sheet: str
-    """Path to sample sheet CSV
-
-    @example:metadata/sample_sheet.csv
-
-    Here is an example CSV file (the headers must match exactly):
-
-    | sample_name | condition | forward_location        | reverse_location        |
-    |-------------|-----------|-------------------------|-------------------------|
-    | BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-    | BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-    | BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-    Each row is one sample. Here is what each column means:
-    - **`sample_name`** is a unique identifier for each sample (it can be
-      whatever you want as long as it is unique).
-    - **`condition`** is the label for the experimental condition for each
-      sample (this label can be whatever you want, such as "control" and
-      "treatment"). Multiple samples with the same condition are considered
-      **biological replicates**.
-    - **`forward_location`** is the path to the raw ATAC-seq data of forward
-      reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-      the filename is likely to end in something resembling `_1.fastq.gz` or
-      `_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-      their SRA "run accession" (SRR) identifier. These identifiers are of the
-      form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-      paired-end data, add a _1 to the end of the SRR identifier.
-    - **`reverse_location`** (for **paired-end data only**) is the path to the
-      reverse reads. This path should be similar to the `forward_location` path
-      but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-      to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-      identifier."""'''
+    """ATAC-seq"""'''
 
 [Prop.P_AtacSeq]
-params.sample_sheet = "Str"
+params = {}
 info.title = "ATAC-seq"
-info.param_titles.sample_sheet = "Path to sample sheet CSV"
-info.param_descriptions.sample_sheet = """
-Here is an example CSV file (the headers must match exactly):
-
-| sample_name | condition | forward_location        | reverse_location        |
-|-------------|-----------|-------------------------|-------------------------|
-| BM001_t1    | treated   | raw-data/t1_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM002_t2    | treated   | raw-data/t2_R1.fastq.gz | raw-data/t1_R2.fastq.gz |
-| BM003_u1    | untreated | SRR34323943_1           | SRR3423943_2            |
-| BM004_u2    | untreated | SRR34323942_1           | SRR3423942_2            |
-
-Each row is one sample. Here is what each column means:
-- **`sample_name`** is a unique identifier for each sample (it can be
-whatever you want as long as it is unique).
-- **`condition`** is the label for the experimental condition for each
-sample (this label can be whatever you want, such as "control" and
-"treatment"). Multiple samples with the same condition are considered
-**biological replicates**.
-- **`forward_location`** is the path to the raw ATAC-seq data of forward
-reads, likely ending in `.fastq` or `.fastq.gz`. For paired-end reads,
-the filename is likely to end in something resembling `_1.fastq.gz` or
-`_R1.fastq.gz`. Optionally, you can refer to pre-existing datasets using
-their SRA "run accession" (SRR) identifier. These identifiers are of the
-form SRR*xxxxxxxx*, where each *x* is digit. For both single-end and
-paired-end data, add a _1 to the end of the SRR identifier.
-- **`reverse_location`** (for **paired-end data only**) is the path to the
-reverse reads. This path should be similar to the `forward_location` path
-but have `_2` or `_R2` in the filename instead of `_1` or `_R1`. To refer
-to a pre-existing experiment with an SRR, add `_2` to the end of the SRR
-identifier."""
-info.param_examples.sample_sheet = """metadata/sample_sheet.csv"""
 
 [Function.F_AtacSeq]
 params = {}
 ret = "AtacSeq"
 condition = [
-    "P_AtacSeq { sample_sheet = ret.sample_sheet }"
+    "P_AtacSeq {  }"
 ]
 info.title = "ATAC-seq"
 
@@ -2250,13 +1950,14 @@ class AtacPeaks:
     path: str'''
 
 [Function.load_atac_seq]
-params.atac = "AtacSeq"
+params = {}
 ret = "SeqReads"
 condition = [
     "ret.qc = false",
     "ret.trimmed = false",
     "ret.long = false",
     "ret.type = \"atac\"",
+    "P_AtacSeq {}",
 ]
 info.title = "Load ATAC-seq data from sample sheet"
 info.description = """This code collects all the ATAC-seq data defined in the sample sheet. It
@@ -2264,8 +1965,9 @@ downloads samples identified with SRR accession identifiers from the
 [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 info.search = false
 info.hyperparameters = [
+    {name = 'ATAC_SEQ_SAMPLE_SHEET', default = '"metadata/sample_sheet.csv"', comment = 'Path to RNA-seq sample sheet CSV' },
 ]
-info.code = '''sample_sheet = pl.read_csv(__hb_atac.sample_sheet)
+info.code = '''sample_sheet = pl.read_csv(ATAC_SEQ_SAMPLE_SHEET)
 
 # Store the resulting filenames for the new sample sheet we will create
 new_files = {}

@@ -5592,7 +5592,6 @@ var $author$project$Complete$completeProps = F2(
 					$author$project$Complete$fact(allowPropHoles)),
 				prog.props));
 	});
-var $author$project$Core$VTStr = {$: 'VTStr'};
 var $author$project$Assoc$get = F2(
 	function (k, a) {
 		get:
@@ -5631,19 +5630,7 @@ var $author$project$Core$example = function (library) {
 			props: _List_fromArray(
 				[
 					$elm$core$Maybe$Just(
-					{
-						args: _List_fromArray(
-							[
-								_Utils_Tuple2(
-								'sample_sheet',
-								_Utils_Tuple2('sample_sheet.csv', $author$project$Core$VTStr)),
-								_Utils_Tuple2(
-								'comparison_sheet',
-								_Utils_Tuple2('comparison_sheet.csv', $author$project$Core$VTStr))
-							]),
-						name: propName,
-						sig: propSig
-					})
+					{args: _List_Nil, name: propName, sig: propSig})
 				])
 		};
 	} else {
@@ -5735,7 +5722,7 @@ var $author$project$Model$init = function (_v0) {
 	var model = {
 		activeHelp: $elm$core$Maybe$Nothing,
 		currentGoalMetadataSuggestions: _List_Nil,
-		dragHandleState: $author$project$Model$Static(0.55),
+		dragHandleState: $author$project$Model$Static(0.5),
 		goalSuggestions: _List_Nil,
 		library: library,
 		log: log,
@@ -5921,6 +5908,7 @@ var $author$project$Incoming$phase = A3(
 		$elm$json$Json$Decode$string));
 var $author$project$Core$VTBool = {$: 'VTBool'};
 var $author$project$Core$VTInt = {$: 'VTInt'};
+var $author$project$Core$VTStr = {$: 'VTStr'};
 var $elm$json$Json$Decode$andThen = _Json_andThen;
 var $elm$json$Json$Decode$fail = _Json_fail;
 var $author$project$Incoming$valueType = A2(
@@ -6685,7 +6673,7 @@ var $author$project$Update$subscriptions = function (model) {
 				})
 			]));
 };
-var $author$project$Version$build = '9a9d3a4';
+var $author$project$Version$build = 'd9c0606';
 var $elm$core$Debug$toString = _Debug_toString;
 var $author$project$Update$encodeMsg = function (msg) {
 	return $elm$json$Json$Encode$string(
@@ -6868,6 +6856,7 @@ var $author$project$Outgoing$oPbnUndo = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$object(_List_Nil);
 	});
+var $elm$json$Json$Encode$bool = _Json_wrap;
 var $author$project$Outgoing$oScrollIntoView = _Platform_outgoingPort(
 	'oScrollIntoView',
 	function ($) {
@@ -6876,7 +6865,10 @@ var $author$project$Outgoing$oScrollIntoView = _Platform_outgoingPort(
 				[
 					_Utils_Tuple2(
 					'selector',
-					$elm$json$Json$Encode$string($.selector))
+					$elm$json$Json$Encode$string($.selector)),
+					_Utils_Tuple2(
+					'smooth',
+					$elm$json$Json$Encode$bool($.smooth))
 				]));
 	});
 var $author$project$Update$doUndo = function (model) {
@@ -6891,7 +6883,7 @@ var $author$project$Update$doUndo = function (model) {
 						$author$project$Outgoing$oPbnUndo(
 						{}),
 						$author$project$Outgoing$oScrollIntoView(
-						{selector: '#active-choice-cell'})
+						{selector: '#active-choice-cell', smooth: false})
 					]))) : _Utils_Tuple2(
 			_Utils_update(
 				model,
@@ -7005,7 +6997,6 @@ var $author$project$Outgoing$oPbnChoose = _Platform_outgoingPort(
 					$elm$json$Json$Encode$int($.choice))
 				]));
 	});
-var $elm$json$Json$Encode$bool = _Json_wrap;
 var $author$project$Outgoing$oPbnInit = _Platform_outgoingPort(
 	'oPbnInit',
 	function ($) {
@@ -7334,7 +7325,7 @@ var $author$project$Update$update_ = F2(
 						_List_fromArray(
 							[
 								$author$project$Outgoing$oScrollIntoView(
-								{selector: '#active-choice-cell'}),
+								{selector: '#active-choice-cell', smooth: false}),
 								$author$project$Outgoing$oPbnInit(
 								{programSource: programSource, sound: model.sound})
 							])));
@@ -7354,7 +7345,7 @@ var $author$project$Update$update_ = F2(
 						_List_fromArray(
 							[
 								$author$project$Outgoing$oScrollIntoView(
-								{selector: '#active-choice-cell'}),
+								{selector: '#active-choice-cell', smooth: true}),
 								function () {
 								if (speculateChoice.$ === 'Just') {
 									var choice = speculateChoice.a;
@@ -7375,7 +7366,7 @@ var $author$project$Update$update_ = F2(
 							model,
 							{speculativePbnStatus: $elm$core$Maybe$Nothing})),
 					$author$project$Outgoing$oScrollIntoView(
-						{selector: '#active-choice-cell'}));
+						{selector: '#active-choice-cell', smooth: true}));
 			case 'UserSelectedMetadata':
 				var cellIndex = msg.a.cellIndex;
 				var functionIndex = msg.a.functionIndex;
@@ -7396,7 +7387,7 @@ var $author$project$Update$update_ = F2(
 								$author$project$Outgoing$oPbnChoose(
 								{choice: choice}),
 								$author$project$Outgoing$oScrollIntoView(
-								{selector: '#active-choice-cell'})
+								{selector: '#active-choice-cell', smooth: false})
 							])));
 			case 'UserRequestedDownload':
 				var x = msg.a;
@@ -7542,6 +7533,14 @@ var $author$project$Update$update = F2(
 			return A2($author$project$Update$update_, msg, oldModel);
 		}
 	});
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -7550,6 +7549,7 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$details = _VirtualDom_node('details');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
@@ -8908,14 +8908,6 @@ var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $pablohirafuji$elm_syntax_highlight$SyntaxHighlight$Line$Add = {$: 'Add'};
 var $pablohirafuji$elm_syntax_highlight$SyntaxHighlight$Line$Del = {$: 'Del'};
 var $pablohirafuji$elm_syntax_highlight$SyntaxHighlight$Line$Normal = {$: 'Normal'};
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
@@ -9113,6 +9105,7 @@ var $author$project$View$pythonCode = function (codeString) {
 	}
 };
 var $elm$html$Html$section = _VirtualDom_node('section');
+var $elm$html$Html$summary = _VirtualDom_node('summary');
 var $author$project$View$cell = F2(
 	function (ctx, c) {
 		if (c.$ === 'Code') {
@@ -9121,26 +9114,42 @@ var $author$project$View$cell = F2(
 				$elm$html$Html$section,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('cell')
+						$elm$html$Html$Attributes$class('cell'),
+						$elm$html$Html$Attributes$class('code-cell')
 					]),
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$h2,
-						_List_Nil,
+						$elm$html$Html$details,
+						cc.openWhenEditing ? _List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$attribute, 'open', '')
+							]) : _List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text(cc.title)
-							])),
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('code-container')
-							]),
-						_List_fromArray(
-							[
-								$author$project$View$pythonCode(cc.code)
+								A2(
+								$elm$html$Html$summary,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$h2,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$text(cc.title)
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('code-container')
+									]),
+								_List_fromArray(
+									[
+										$author$project$View$pythonCode(cc.code)
+									]))
 							]))
 					]));
 		} else {
@@ -9537,7 +9546,6 @@ var $author$project$Update$UserSelectedFunction = F3(
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$blockquote = _VirtualDom_node('blockquote');
 var $elm$html$Html$Attributes$checked = $elm$html$Html$Attributes$boolProperty('checked');
-var $elm$html$Html$details = _VirtualDom_node('details');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -9627,7 +9635,6 @@ var $elm$html$Html$Attributes$src = function (url) {
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
 var $elm$html$Html$strong = _VirtualDom_node('strong');
-var $elm$html$Html$summary = _VirtualDom_node('summary');
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $author$project$View$functionChoice = F2(

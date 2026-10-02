@@ -222,18 +222,18 @@ h1 {
 }
 
 
-.panel details {
+#control-panel details {
   margin-left: 30px;
 }
 
-.panel details>div {
+#control-panel details>div {
   border-left: 1px dashed black;
   padding-left: 10px;
   margin-left: 3px;
 }
 
-.panel summary {
-  cursor: default;
+#control-panel summary {
+  cursor: pointer;
   user-select: none;
   font-style: italic;
   margin-bottom: var(--text-spacing);
@@ -315,11 +315,26 @@ strong {
 
 .cell {
   scroll-margin-top: 10px;
+  margin-bottom: 20px;
 }
 
 .choices-header {
   color: var(--choice-color);
   margin-top: 20px;
+}
+
+.code-cell summary {
+  /* background-color: yellow; */
+  /* margin-bottom: 10px; */
+  cursor: pointer;
+}
+
+.code-cell h2 {
+  display: inline-block;
+}
+
+.code-cell details:not([open]) h2 {
+  margin-bottom: 0;
 }
 
 /* Menu bar */
