@@ -1,3 +1,9 @@
+use std::{
+    env,
+    hash::{Hash, Hasher},
+    io::Write,
+};
+
 use crate::datalog::*;
 
 use chumsky::Parser;
@@ -337,6 +343,23 @@ impl Engine for Egglog {
                 egglog_program: Some(p),
             } => {
                 let combined_program = format!("{}\n{}", p, egglog_query);
+                match env::var("HB_EMIT_EGG") {
+                    Ok(folder) => {
+                        let mut hasher = std::hash::DefaultHasher::new();
+                        combined_program.hash(&mut hasher);
+                        let path = format!(
+                            "{}/honeybee-{}.egg",
+                            folder,
+                            hasher.finish()
+                        );
+
+                        let mut file = std::fs::File::create(path).unwrap();
+                        let _ = write!(file, "{}", combined_program).unwrap();
+
+                        ()
+                    }
+                    Err(_) => (),
+                };
                 let mut e = EGraph::default();
                 e.parse_and_run_program(None, &combined_program)
                     .map_err(|e| {
