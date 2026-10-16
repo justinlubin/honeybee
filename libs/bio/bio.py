@@ -818,6 +818,51 @@ class DifferentialGeneExpression:
     path: str
 
 
+@Output(
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class RunBatchCorrection:
+    """Run batch correction?
+
+    If you have run your samples across conditions in a two or more "batches,"
+    then you may want to run _batch correction_, which corrects for systematic
+    differences between the batches.
+
+    For example, say you have samples from condition A and B. You run batch 1
+    of A and B on one day, and batch 2 on another day. Because you are
+    interested in comparing conditions A and B (and _not_ batches 1 and 2),
+    you may want to run batch correction to try to eliminate and systematic
+    differences between batches 1 and 2, leaving only the differences between
+    conditions A and B."""
+
+    path: str
+
+
+@Function(
+    search=False,
+)
+def run_batch_correction(__hb_ret: RunBatchCorrection):
+    """Run batch correction
+
+    This choice will enable batch correction in downstream analyses."""
+
+    # PARAMETER
+    RUN_BATCH_CORRECTION = True
+
+
+@Function(
+    search=False,
+)
+def do_not_run_batch_correction(__hb_ret: RunBatchCorrection):
+    """Do not run batch correction
+
+    This choice will skip batch correction."""
+
+    # PARAMETER
+    RUN_BATCH_CORRECTION = False
+
+
 @Function(
     "ret.qc = false",
     "ret.trimmed = false",
@@ -1425,6 +1470,9 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
             --output={__hb_ret.path}""")
 
 
+RUN_BATCH_CORRECTION = None
+
+
 @Function(
     google_scholar_id="16121678637925818947",
     citation="Love MI, Huber W, Anders S (2014). Moderated estimation of fold change "
@@ -1433,7 +1481,11 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     pmid="25516281",
     use="a **widely-used tool** that does **not** give you error bars.",
 )
-def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
+def deseq2(
+    __hb_data: GeneMatrices,
+    __hb_bc: RunBatchCorrection,
+    __hb_ret: DifferentialGeneExpression,
+):
     """DESeq2
 
     # Find differentially-expressed protein-coding genes with [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
@@ -1465,6 +1517,7 @@ def deseq2(__hb_data: GeneMatrices, __hb_ret: DifferentialGeneExpression):
 
     bash(f"""
         Rscript environment/deseq2.r
+            --batch_correct={RUN_BATCH_CORRECTION}
             --ensembl_version={ENSEMBL_VERSION}
             --ensembl_dataset={ENSEMBL_DATASET}
             --sample_sheet={shared()}/sample_sheet.csv

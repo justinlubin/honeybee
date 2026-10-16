@@ -58,8 +58,8 @@ mod honeybee {
     #[pymethods]
     impl Controller {
         #[new]
-        #[pyo3(signature = (library, program, algorithm = "PBNHoneybee"))]
-        fn new(library: &str, program: &str, algorithm: &str) -> PyResult<Self> {
+        #[pyo3(signature = (library, program, algorithm = "PBNHoneybee", allow_undo = false))]
+        fn new(library: &str, program: &str, algorithm: &str, allow_undo: bool) -> PyResult<Self> {
             let problem = load_problem(library, program)?;
             let timer = util::Timer::infinite();
             let algorithm: menu::Algorithm = algorithm
@@ -68,7 +68,7 @@ mod honeybee {
 
             Ok(Self {
                 _library: problem.library.clone(),
-                _controller: algorithm.controller(timer, problem, false),
+                _controller: algorithm.controller(timer, problem, allow_undo),
             })
         }
 
@@ -113,6 +113,15 @@ mod honeybee {
             }
             self._controller.decide(options.swap_remove(index));
             Ok(())
+        }
+
+        fn undo(&mut self) -> PyResult<()> {
+            if self._controller.can_undo() {
+                self._controller.undo();
+                Ok(())
+            } else {
+                Err(PyValueError::new_err("Cannot undo"))
+            }
         }
     }
 }
