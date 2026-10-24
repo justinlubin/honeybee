@@ -1,5 +1,5 @@
 [Config]
-name = "Honeybee Biology Library Release 8 (5e3dd78)"
+name = "Honeybee Biology Library Release 8 (ac91486)"
 erase_static = true
 allow_input_arguments = false
 
@@ -897,6 +897,67 @@ class DifferentialGeneExpression:
 info.phase = 2
 info.phase_description = "Downstream Analysis"
 
+[Type.RunBatchCorrection]
+params = {}
+info.title = "Run batch correction?"
+info.description = """If you have run your samples across conditions in a two or more "batches,"
+then you may want to run _batch correction_, which corrects for systematic
+differences between the batches.
+
+For example, say you have samples from condition A and B. You run batch 1
+of A and B on one day, and batch 2 on another day. Because you are
+interested in comparing conditions A and B (and _not_ batches 1 and 2),
+you may want to run batch correction to try to eliminate and systematic
+differences between batches 1 and 2, leaving only the differences between
+conditions A and B."""
+info.code = '''@dataclass
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class RunBatchCorrection:
+    """Run batch correction?
+
+    If you have run your samples across conditions in a two or more "batches,"
+    then you may want to run _batch correction_, which corrects for systematic
+    differences between the batches.
+
+    For example, say you have samples from condition A and B. You run batch 1
+    of A and B on one day, and batch 2 on another day. Because you are
+    interested in comparing conditions A and B (and _not_ batches 1 and 2),
+    you may want to run batch correction to try to eliminate and systematic
+    differences between batches 1 and 2, leaving only the differences between
+    conditions A and B."""
+
+    path: str'''
+info.phase = 2
+info.phase_description = "Downstream Analysis"
+
+[Function.run_batch_correction]
+params = {}
+ret = "RunBatchCorrection"
+condition = [
+]
+info.title = "Run batch correction"
+info.description = """This choice will enable batch correction in downstream analyses."""
+info.search = false
+info.hyperparameters = [
+]
+info.code = '''# PARAMETER
+RUN_BATCH_CORRECTION = True'''
+
+[Function.do_not_run_batch_correction]
+params = {}
+ret = "RunBatchCorrection"
+condition = [
+]
+info.title = "Do not run batch correction"
+info.description = """This choice will skip batch correction."""
+info.search = false
+info.hyperparameters = [
+]
+info.code = '''# PARAMETER
+RUN_BATCH_CORRECTION = False'''
+
 [Function.load_rna_seq]
 params = {}
 ret = "SeqReads"
@@ -1426,6 +1487,7 @@ info.code = '''bash(f"""
 
 [Function.deseq2]
 params.data = "GeneMatrices"
+params.bc = "RunBatchCorrection"
 ret = "DifferentialGeneExpression"
 condition = [
 ]
@@ -1460,6 +1522,7 @@ info.hyperparameters = [
 ]
 info.code = '''bash(f"""
     Rscript environment/deseq2.r
+        --batch_correct={RUN_BATCH_CORRECTION}
         --ensembl_version={ENSEMBL_VERSION}
         --ensembl_dataset={ENSEMBL_DATASET}
         --sample_sheet={shared()}/sample_sheet.csv
