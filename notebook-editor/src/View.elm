@@ -760,7 +760,7 @@ functionChoice ctx fc =
                                         ++ pmid
                                         ++ "/"
                                 ]
-                                [ text "PubMed" ]
+                                [ text "Original Paper" ]
                             ]
                         ]
 
@@ -772,7 +772,7 @@ functionChoice ctx fc =
                             [ img [ A.src "assets/google_scholar.png" ] []
                             , a
                                 [ A.href <| "https://scholar.google.com/scholar?cites=" ++ gsid ]
-                                [ text "Google Scholar" ]
+                                [ text "Papers Using This Tool" ]
                             ]
                         ]
 

@@ -24,8 +24,8 @@ def hbimport(url: str) -> dict | None:
         raise ValueError("bioRxiv rate limit!")
     if "differential gene expression" in ctx.main_text():
         pbn = honeybee.Controller(
-            library="../editor/www/bio.hblib.toml",
-            program="../editor/www/example.hb.toml",
+            library="../notebook-editor/www/bio.hblib.toml",
+            program="../notebook-editor/www/example.hb.toml",
         )
     else:
         return None
