@@ -471,6 +471,14 @@ fn get_erase_static(library: &Library) -> Option<bool> {
     library.config.as_ref()?.get("erase_static")?.as_bool()
 }
 
+fn get_check_already_exists(library: &Library) -> Option<bool> {
+    library
+        .config
+        .as_ref()?
+        .get("check_already_exists")?
+        .as_bool()
+}
+
 fn get_phase(info: &Option<toml::Table>) -> Option<i64> {
     match info {
         Some(inf) => match inf.get("phase") {
@@ -524,7 +532,7 @@ pub fn exp(library: &Library, e: &Exp) -> Vec<Cell> {
         used_types: IndexSet::new(),
         used_functions: IndexSet::new(),
         erase_static: get_erase_static(library) == Some(true),
-        check_already_exists: true,
+        check_already_exists: get_check_already_exists(library) == Some(true),
         show_props: false,
     };
 

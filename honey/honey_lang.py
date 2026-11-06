@@ -405,9 +405,7 @@ def initialize(name=None, erase_static=True, allow_input_arguments=True):
             else:
                 break
     for needed_import in [
-        "from dataclasses import dataclass",
         "import os",
-        "import datetime",
         "import logging",
     ]:
         if needed_import not in imports:

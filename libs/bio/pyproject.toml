@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "altair[all]>=6.1.0",
     "cutadapt>=5.1",
+    "gget>=0.30.8",
     "honey-lang",
     "ipython>=9.9.0",
     "multiqc>=1.30",

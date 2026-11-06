@@ -13,6 +13,8 @@ initialize(
     allow_input_arguments=False,
 )
 
+# uv run gget ref --ftp --which cdna --release 116 homo_sapiens
+
 ################################################################################
 # %% Helper
 
@@ -94,8 +96,10 @@ def already_exists(path):
 def needs_to_run(path):
     if already_exists(path):
         print(f"'{path}' already exists, skipping step (delete folder to re-run)")
+        return True
     else:
         bash(f"""mkdir -p {path}""")
+        return False
 
 
 ################################################################################
@@ -879,10 +883,7 @@ def load_rna_seq(__hb_ret: SeqReads):
     [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 
     # PARAMETER: Path to RNA-seq sample sheet CSV
-    RNA_SEQ_SAMPLE_SHEET = "metadata/sample_sheet.csv"
-
-    # PARAMETER: Optional path to RNA-seq comparison sheet CSV
-    RNA_SEQ_COPMARISON_SHEET = None
+    RNA_SEQ_SAMPLE_SHEET = "sample_sheet.csv"
 
     sample_sheet = pl.read_csv(RNA_SEQ_SAMPLE_SHEET)
 
@@ -912,12 +913,12 @@ def load_rna_seq(__hb_ret: SeqReads):
                 new_file = file + ".fastq.gz"
 
                 # Download the file
-                # -x 16 -s 16 means to use 16 concurrent streams to download the
+                # -x 4 -s 4 means to use 4 concurrent streams to download the
                 # files; please do not set this number too high out of respect
                 # for the EBI's bandwidth!
                 bash(f"""
                      aria2c
-                         -x 16 -s 16
+                         -x 4 -s 4
                          --dir={__hb_ret.path}
                          {base_url}{new_file}
                 """)
@@ -929,6 +930,7 @@ def load_rna_seq(__hb_ret: SeqReads):
                     src=file,
                     dst=f"{__hb_ret.path}/{new_file}",
                 )
+
             new_files[file] = new_file
 
     # Create the new sample sheet with updated filenames
@@ -936,26 +938,6 @@ def load_rna_seq(__hb_ret: SeqReads):
         forward_location=pl.col("forward_location").replace(new_files),
         reverse_location=pl.col("reverse_location").replace(new_files),
     ).write_csv(f"{shared()}/sample_sheet.csv")
-
-    # Copy over the comparison sheet, if it exists
-    if RNA_SEQ_COPMARISON_SHEET:
-        link(
-            RNA_SEQ_COPMARISON_SHEET,
-            f"{shared()}/comparison_sheet.csv",
-        )
-
-    # Otherwise, include all comparisons
-    else:
-        conditions = sample_sheet["condition"].unique(maintain_order=True)
-        controls = []
-        treatments = []
-        for i in range(0, len(conditions)):
-            for j in range(i + 1, len(conditions)):
-                controls.append(conditions[i])
-                treatments.append(conditions[j])
-        pl.DataFrame(
-            {"control_condition": controls, "treatment_condition": treatments}
-        ).write_csv(f"{shared()}/comparison_sheet.csv")
 
 
 @Function(
