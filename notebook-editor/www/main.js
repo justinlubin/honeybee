@@ -56,13 +56,10 @@ const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
 let sound = true;
-let log = false;
-let partid = "000";
+let partid = null;
 
 // Study mode (running on user study server)
 if (window.location.href.includes(":5000")) {
-  log = true;
-
   const urlParams = new URLSearchParams(window.location.search);
 
   const condition = urlParams.get("condition");
@@ -87,7 +84,6 @@ if (window.location.href.includes(":5000")) {
 
 const flags = {
   sound: sound,
-  log: log,
   partid: partid,
   library: {
     props: elmify(library.Prop),

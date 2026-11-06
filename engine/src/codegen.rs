@@ -73,6 +73,8 @@ impl Codegen for PlainTextNotebook {
 ////////////////////////////////////////////////////////////////////////////////
 // Jupyter Notebook style
 
+const INCLUDE_HONEYBEE_CITATION: bool = false;
+
 fn get_name(lib: &Library) -> Option<&str> {
     lib.config.as_ref()?.get("name")?.as_str()
 }
@@ -167,20 +169,22 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
         None => "".to_owned(),
     };
 
-    cells.insert(
-        0,
-        ipynb::Cell::Markdown(ipynb::MarkdownCell {
-            metadata: HashMap::new(),
-            id: Some("start".to_owned()),
-            attachments: Some(HashMap::new()),
-            source: vec![
-                format!(
-                    "Script originally created using [Honeybee](https://honeybee-lang.org){}.\n\n",
-                    name,
-                ),
-                "**Please cite:** Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
-        }),
-    );
+    if INCLUDE_HONEYBEE_CITATION {
+        cells.insert(
+            0,
+            ipynb::Cell::Markdown(ipynb::MarkdownCell {
+                metadata: HashMap::new(),
+                id: Some("start".to_owned()),
+                attachments: Some(HashMap::new()),
+                source: vec![
+                    format!(
+                        "Script originally created using [Honeybee](https://honeybee-lang.org){}.\n\n",
+                        name,
+                    ),
+                    "**Please cite:** Justin Lubin, Parker Ziegler, and Sarah E. Chasins. 2025. Programming by Navigation. Proc. ACM Program. Lang. 9, PLDI, Article 165 (June 2025), 28 pages. https://doi.org/10.1145/3729264".to_owned()],
+            }),
+        );
+    }
 
     serde_json::to_string(&ipynb::Notebook {
         cells,

@@ -1,6 +1,7 @@
 module Model exposing
     ( DragHandleState(..)
     , Model
+    , inUserStudy
     , init
     , toFraction
     )
@@ -35,8 +36,7 @@ toFraction dragState =
 
 type alias Model =
     { sound : Bool
-    , log : Bool
-    , partid : String
+    , partid : Maybe String
     , library : Library
     , program : WorkingProgram
     , pbnStatus : Maybe Incoming.PbnStatusMessage
@@ -49,15 +49,17 @@ type alias Model =
 
 
 type alias Flags =
-    { library : Library, sound : Bool, log : Bool, partid : String }
+    { library : Library
+    , sound : Bool
+    , partid : Maybe String
+    }
 
 
 init : Flags -> ( Model, Cmd msg )
-init { library, sound, log, partid } =
+init { library, sound, partid } =
     let
         model =
             { sound = sound
-            , log = log
             , partid = partid
             , library = library
             , program = Core.example library -- Core.empty
@@ -82,3 +84,8 @@ init { library, sound, log, partid } =
                     Cmd.none
     in
     ( model, cmd )
+
+
+inUserStudy : Model -> Bool
+inUserStudy m =
+    m.partid /= Nothing

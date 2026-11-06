@@ -551,25 +551,26 @@ update_ msg model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg oldModel =
-    if oldModel.log then
-        let
-            ( newModel, cmd ) =
-                update_ msg oldModel
-        in
-        ( newModel
-        , Cmd.batch
-            [ cmd
-            , Outgoing.oLog
-                { partid = oldModel.partid
-                , msg = encodeMsg msg
-                , build = Version.build
-                , logfmt = 0
-                }
-            ]
-        )
+    case oldModel.partid of
+        Just partid ->
+            let
+                ( newModel, cmd ) =
+                    update_ msg oldModel
+            in
+            ( newModel
+            , Cmd.batch
+                [ cmd
+                , Outgoing.oLog
+                    { partid = partid
+                    , msg = encodeMsg msg
+                    , build = Version.build
+                    , logfmt = 0
+                    }
+                ]
+            )
 
-    else
-        update_ msg oldModel
+        Nothing ->
+            update_ msg oldModel
 
 
 

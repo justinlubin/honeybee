@@ -24,16 +24,10 @@ main =
                             |> Json.Decode.decodeValue (Json.Decode.field "sound" Json.Decode.bool)
                             |> Result.mapError (Debug.log "'sound' decode error")
                             |> Result.withDefault True
-                    , log =
-                        v
-                            |> Json.Decode.decodeValue (Json.Decode.field "log" Json.Decode.bool)
-                            |> Result.mapError (Debug.log "'log' decode error")
-                            |> Result.withDefault False
                     , partid =
                         v
                             |> Json.Decode.decodeValue (Json.Decode.field "partid" Json.Decode.string)
-                            |> Result.mapError (Debug.log "'partid' decode error")
-                            |> Result.withDefault "000"
+                            |> Result.toMaybe
                     }
         , update = Update.update
         , view = View.view

@@ -951,8 +951,13 @@ view model =
 
                 Model.Moving _ ->
                     "none"
+        , A.classList [ ( "sound", model.sound ), ( "in-user-study", Model.inUserStudy model ) ]
         ]
-        [ mainMenuBar
+        [ if not (Model.inUserStudy model) then
+            mainMenuBar
+
+          else
+            text ""
         , main_ []
             [ codePanel
                 model
