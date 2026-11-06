@@ -562,6 +562,7 @@ update msg oldModel =
                 [ cmd
                 , Outgoing.oLog
                     { partid = partid
+                    , sound = oldModel.sound
                     , msg = encodeMsg msg
                     , build = Version.build
                     , logfmt = 0

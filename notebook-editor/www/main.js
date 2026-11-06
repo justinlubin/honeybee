@@ -55,6 +55,8 @@ const libraryResponse = await fetch("bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
+const SESSION_ID = crypto.randomUUID();
+
 let sound = true;
 let partid = null;
 
@@ -262,6 +264,7 @@ app.ports.oDownload.subscribe((msg) => {
 });
 
 app.ports.oLog.subscribe((msg) => {
+  msg["sessionid"] = SESSION_ID;
   msg["timestamp"] = Date.now();
 
   // https://stackoverflow.com/a/47065313

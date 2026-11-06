@@ -1,5 +1,6 @@
-import base64
-import zlib
+# import base64
+# import zlib
+
 import flask
 from flask import Flask
 
@@ -18,7 +19,8 @@ def simple(path):
 
 @app.post("/__log")
 def log():
-    line = base64.a85encode(zlib.compress(flask.request.data)) + NEWLINE
+    # line = base64.a85encode(zlib.compress(flask.request.data)) + NEWLINE
+    line = flask.request.data + NEWLINE
     with open("log.txt", "ab") as f:
         f.write(line)
 

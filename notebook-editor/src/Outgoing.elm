@@ -73,6 +73,7 @@ port oPbnUndo : PbnUndoMessage -> Cmd msg
 
 type alias LogMessage =
     { partid : String
+    , sound : Bool
     , msg : Json.Encode.Value
     , build : String
     , logfmt : Int
