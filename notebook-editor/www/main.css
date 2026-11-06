@@ -350,6 +350,11 @@ strong {
   line-height: var(--menu-bar-height);
 }
 
+.menu-bar-center {
+  text-align: center;
+  flex: 1;
+}
+
 .menu-bar-left>span {
   margin-right: 30px;
 }
@@ -822,3 +827,13 @@ code.elmsh {
 .goal-specification-info {
   padding: 10px;
 }
+
+/* User study styles */
+
+/* .in-user-study { */
+/* background: #FFDDDD; */
+/* } */
+
+/* .in-user-study.sound { */
+/* background: #DDDDFF; */
+/* } */

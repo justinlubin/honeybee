@@ -252,7 +252,7 @@ goalSpecification model =
     , body =
         [ pane True
             [ h2 []
-                [ text "Experimental workflow"
+                [ text "Experimental Workflow"
                 , help
                     model.activeHelp
                     "experimental-workflow"
@@ -268,7 +268,7 @@ goalSpecification model =
             ]
         , pane workflowComplete
             [ h2 []
-                [ text "Goal of experiment"
+                [ text "Goal of Experiment"
                 , help
                     model.activeHelp
                     "goal"
@@ -522,8 +522,8 @@ progressBar labels { high, current } =
             text ""
 
 
-choice : Maybe Int -> Maybe String -> Incoming.PbnStatusMessage -> Panel
-choice highestPhase activeHelp status =
+choice : Bool -> Maybe Int -> Maybe String -> Incoming.PbnStatusMessage -> Panel
+choice sound highestPhase activeHelp status =
     let
         nextChoice =
             status.cells
@@ -580,7 +580,7 @@ choice highestPhase activeHelp status =
                                 }
                             )
                         ]
-                        [ text "Download notebook" ]
+                        [ text "Download Notebook" ]
                     ]
             }
 
@@ -612,47 +612,53 @@ choice highestPhase activeHelp status =
                             |> String.fromInt
                     , header = header
                     , body =
-                        [ progressBar labels { high = highestPhase, current = cc.phase }
-                        , h2 []
-                            [ span [ A.class "choice" ] [ text "Choice" ]
-                            , text " "
-                            , text (Annotations.removeAll cc.typeTitle)
-                            , help
-                                activeHelp
-                                "choice-type-title"
-                                [ text "This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on your judgment call for what is right for your experiment!" ]
-                            ]
-                        , case cc.typeDescription of
-                            Just desc ->
-                                markdown [] desc
+                        (if sound then
+                            [ progressBar labels { high = highestPhase, current = cc.phase }
+                            , h2 []
+                                [ span [ A.class "choice" ] [ text "Choice" ]
+                                , text " "
+                                , text (Annotations.removeAll cc.typeTitle)
+                                , help
+                                    activeHelp
+                                    "choice-type-title"
+                                    [ text "This is information about the part of the analysis you are currently working on. You’ll need to choose one of the “next steps” below based on your judgment call for what is right for your experiment!" ]
+                                ]
+                            , case cc.typeDescription of
+                                Just desc ->
+                                    markdown [] desc
 
-                            Nothing ->
-                                text ""
-                        , h3
-                            [ A.class "choices-header" ]
-                            [ text "Choices for next step"
-                            , help
-                                activeHelp
-                                "choice-next-steps"
-                                [ text "These are the “next steps” you can choose between for this part of the analysis." ]
+                                Nothing ->
+                                    text ""
+                            , h3
+                                [ A.class "choices-header" ]
+                                [ text "Choices for next step"
+                                , help
+                                    activeHelp
+                                    "choice-next-steps"
+                                    [ text "These are the “next steps” you can choose between for this part of the analysis." ]
+                                ]
                             ]
-                        , Html.Keyed.ul
-                            [ A.class "function-choices" ]
-                            (List.indexedMap
-                                (\functionIndex fc ->
-                                    ( fc.functionTitle
-                                    , functionChoice
-                                        { cellIndex = cellIndex
-                                        , functionIndex = functionIndex
-                                        , selected =
-                                            Just functionIndex == cc.selectedFunctionChoice
-                                        }
-                                        fc
+
+                         else
+                            []
+                        )
+                            ++ [ Html.Keyed.ul
+                                    [ A.class "function-choices" ]
+                                    (List.indexedMap
+                                        (\functionIndex fc ->
+                                            ( fc.functionTitle
+                                            , functionChoice
+                                                { cellIndex = cellIndex
+                                                , functionIndex = functionIndex
+                                                , selected =
+                                                    Just functionIndex == cc.selectedFunctionChoice
+                                                }
+                                                fc
+                                            )
+                                        )
+                                        cc.functionChoices
                                     )
-                                )
-                                cc.functionChoices
-                            )
-                        ]
+                               ]
                     , footer =
                         Just
                             [ button
@@ -869,6 +875,7 @@ controlPanel model fraction =
 
             Just status ->
                 choice
+                    model.sound
                     (model.program.goal
                         |> Maybe.andThen (\goalFact -> goalFact.sig.phase)
                         |> Maybe.map (\phase -> phase.value)
@@ -878,57 +885,61 @@ controlPanel model fraction =
         )
 
 
-mainMenuBar : Html Msg
-mainMenuBar =
-    div
-        [ A.class "menu-bar" ]
-        [ div [ A.class "menu-bar-left" ]
-            [ span []
-                [ text "🐝 "
-                , b
-                    []
-                    [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
-                    ]
-                , text " (homepage)"
-                ]
-            , span []
-                [ img
-                    [ A.src "assets/zulip-icon-circle.svg"
-                    , A.width 20
-                    , A.height 20
-                    ]
-                    []
-                , text " "
-                , b []
-                    [ a
-                        [ A.href "https://chat.honeybee-lang.org" ]
-                        [ text "Zulip" ]
-                    ]
-                , text " (say hi, ask for help)"
-                ]
-            , span []
-                [ text "📓 "
-                , b []
-                    [ a
-                        [ A.href "launch-notebook.sh"
-                        , A.download "launch-notebook.sh"
-                        ]
-                        [ text "Download notebook launcher" ]
-                    ]
-                ]
-            ]
-        , div [ A.class "menu-bar-right" ]
-            [ span
-                [ A.class "version-number" ]
-                [ text <| " build " ++ Version.build
-                , if not Version.stable then
-                    span [ A.class "unstable-indicator" ] [ text " UNSTABLE" ]
+mainMenuBar : Maybe (Html Msg) -> Html Msg
+mainMenuBar overrideTitle =
+    div [ A.class "menu-bar" ] <|
+        case overrideTitle of
+            Just title ->
+                [ div [ A.class "menu-bar-center" ] [ title ] ]
 
-                  else
-                    text ""
+            Nothing ->
+                [ div [ A.class "menu-bar-left" ]
+                    [ span []
+                        [ text "🐝 "
+                        , b
+                            []
+                            [ a [ A.href "https://honeybee-lang.org" ] [ text "Honeybee" ]
+                            ]
+                        , text " (homepage)"
+                        ]
+                    , span []
+                        [ img
+                            [ A.src "assets/zulip-icon-circle.svg"
+                            , A.width 20
+                            , A.height 20
+                            ]
+                            []
+                        , text " "
+                        , b []
+                            [ a
+                                [ A.href "https://chat.honeybee-lang.org" ]
+                                [ text "Zulip" ]
+                            ]
+                        , text " (say hi, ask for help)"
+                        ]
+                    , span []
+                        [ text "📓 "
+                        , b []
+                            [ a
+                                [ A.href "launch-notebook.sh"
+                                , A.download "launch-notebook.sh"
+                                ]
+                                [ text "Download notebook launcher" ]
+                            ]
+                        ]
+                    ]
+                , div [ A.class "menu-bar-right" ]
+                    [ span
+                        [ A.class "version-number" ]
+                        [ text <| " build " ++ Version.build
+                        , if not Version.stable then
+                            span [ A.class "unstable-indicator" ] [ text " UNSTABLE" ]
+
+                          else
+                            text ""
+                        ]
+                    ]
                 ]
-            ]
-        ]
 
 
 dragHandle : Html Msg
@@ -953,11 +964,18 @@ view model =
                     "none"
         , A.classList [ ( "sound", model.sound ), ( "in-user-study", Model.inUserStudy model ) ]
         ]
-        [ if not (Model.inUserStudy model) then
-            mainMenuBar
+        [ mainMenuBar
+            (if Model.inUserStudy model then
+                Just <|
+                    if model.sound then
+                        b [] [ u [] [ text "Safe" ], text " Choices Only" ]
 
-          else
-            text ""
+                    else
+                        b [] [ u [] [ text "Unrestricted" ], text " Choices" ]
+
+             else
+                Nothing
+            )
         , main_ []
             [ codePanel
                 model
