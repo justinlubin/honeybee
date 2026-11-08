@@ -601,7 +601,12 @@ subscriptions model =
                     (D.field "ctrlKey" D.bool)
                     (D.field "shiftKey" D.bool)
                     (D.field "key" D.string |> D.map String.toUpper)
-        , Browser.Events.onClick (D.succeed UserClicked)
+        , case model.activeHelp of
+            Just _ ->
+                Browser.Events.onClick (D.succeed UserClicked)
+
+            Nothing ->
+                Sub.none
         , case model.dragHandleState of
             Model.Static _ ->
                 Sub.none

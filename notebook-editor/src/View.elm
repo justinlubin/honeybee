@@ -34,7 +34,13 @@ help activeHelp id body =
             , E.stopPropagationOn "click" (D.succeed ( UserClickedHelp id, True ))
             ]
             [ text "?" ]
-        , div [ A.class "help-content" ] body
+        , div
+            [ A.class "help-content"
+
+            -- Cancel the global click handler
+            , E.stopPropagationOn "click" (D.succeed ( Nop, True ))
+            ]
+            body
         ]
 
 
