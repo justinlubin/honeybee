@@ -91,6 +91,7 @@ RUN uv add ipython
 RUN uv add pysam
 RUN uv add --dev ipykernel
 RUN uv add scikit-learn
+RUN uv add gget
 
 RUN uv sync
 

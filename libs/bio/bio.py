@@ -1160,13 +1160,14 @@ def create_kallisto_index(__hb_ret: KallistoIndex):
     # Get the species (e.g. homo_sapiens)
     species = sample_sheet["species"].unique().item()
 
+    # Create transcriptome folder (if necessary)
+    bash(f"""mkdir -p {shared()}/transcriptomes""")
+
     # Download the transcriptome from Ensembl
     bash(f"""
         wget
             --progress=bar:force
-            --no-clobber
-            --directory-prefix {shared()}/transcriptomes
-            -O {species}.cdna.fa.gz
+            -O {shared()}/transcriptomes/{species}.cdna.fa.gz
             $(uv run gget ref --ftp --which cdna --release {ENSEMBL_VERSION} {species})
     """)
 
@@ -1176,7 +1177,7 @@ def create_kallisto_index(__hb_ret: KallistoIndex):
         kallisto index
             -t {CORES}
             -i {__hb_ret.path}/kallisto.idx
-            {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+            {shared()}/transcriptomes/{species}.cdna.fa.gz
     """)
 
 
@@ -1205,13 +1206,14 @@ def create_salmon_index(__hb_ret: SalmonIndex):
     # Get the species (e.g. homo_sapiens)
     species = sample_sheet["species"].unique().item()
 
+    # Create transcriptome folder (if necessary)
+    bash(f"""mkdir -p {shared()}/transcriptomes""")
+
     # Download the transcriptome from Ensembl
     bash(f"""
         wget
             --progress=bar:force
-            --no-clobber
-            --directory-prefix {shared()}/transcriptomes
-            -O {species}.cdna.fa.gz
+            -O {shared()}/transcriptomes/{species}.cdna.fa.gz
             $(uv run gget ref --ftp --which cdna --release {ENSEMBL_VERSION} {species})
     """)
 
