@@ -830,12 +830,7 @@ functionChoice ctx fc =
                                 details [] <|
                                     [ summary [] [ text "Citation information..." ]
                                     , div [ A.class "markdown" ] <|
-                                        [ p []
-                                            [ text <|
-                                                "If you use "
-                                                    ++ fc.functionTitle
-                                                    ++ ", please cite it as:"
-                                            ]
+                                        [ p [] [ text "If you use this tool, please cite:" ]
                                         , blockquote [] [ text citation ]
                                         ]
                                             ++ (case fc.additionalCitations of

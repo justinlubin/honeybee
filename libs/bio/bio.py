@@ -748,7 +748,7 @@ class KallistoIndex:
     phase_description="Read Quantification",
 )
 class TranscriptMatrices:
-    """RNA-seq transcript read counts
+    """Transcript read counts
 
     This step outputs two tables: one with read counts, and one with
     transcripts-per-million (TPM) abundance for each of your samples. Each row
@@ -796,7 +796,7 @@ class TranscriptMatrices:
     phase_description="Read Quantification",
 )
 class GeneMatrices:
-    """RNA-seq gene read counts
+    """Gene read counts
 
     This step outputs two tables: one with read counts, and one with
     transcripts-per-million (TPM) abundance for each of your samples. Each row
@@ -834,7 +834,7 @@ class GeneMatrices:
     phase_description="Downstream Analysis",
 )
 class DifferentialGeneExpression:
-    """RNA-seq differential gene expression
+    """Differential gene expression
 
     The goal of this step is to assign a score (like a _p_-value) to each gene
     that ranks how differentially expressed it is between two conditions.
@@ -856,11 +856,11 @@ class DifferentialGeneExpression:
     phase_description="Downstream Analysis",
 )
 class PCAGeneExpression:
-    """2D Principal Component Analysis (PCA) of Gene Expression
+    """2D principal component analysis (PCA) of gene expression
 
     This analysis computes a 2D visualization of gene expression using
     something called
-    [Principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
+    [principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
 
     The "principal components" capture the axes of largest variation in the dataset.
     This means that if a quantity of interest segregates cleanly in the 2D
@@ -887,45 +887,63 @@ class PCAGeneExpression:
     phase=2,
     phase_description="Downstream Analysis",
 )
-class RunBatchCorrection:
-    """Run batch correction?
+class CountDifferentiallyExpressedGenes:
+    """Count differentially-expressed genes
 
-    If you have run your samples across conditions in a two or more "batches,"
-    then you may want to run _batch correction_, which corrects for systematic
-    differences between the batches.
+    TODO
 
-    For example, say you have samples from condition A and B. You run batch 1
-    of A and B on one day, and batch 2 on another day. Because you are
-    interested in comparing conditions A and B (and _not_ batches 1 and 2),
-    you may want to run batch correction to try to eliminate and systematic
-    differences between batches 1 and 2, leaving only the differences between
-    conditions A and B."""
+    This analysis goal is a downstream analysis in RNA-seq processing.
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 
     path: str
 
 
-@Function(
-    search=False,
-)
-def run_batch_correction(__hb_ret: RunBatchCorrection):
-    """Run batch correction
+# @Output(
+#     phase=2,
+#     phase_description="Downstream Analysis",
+# )
+# class RunBatchCorrection:
+#     """@intermediate:Run batch correction?
 
-    This choice will enable batch correction in downstream analyses."""
+#     If you have run your samples across conditions in a two or more "batches,"
+#     then you may want to run _batch correction_, which corrects for systematic
+#     differences between the batches.
 
-    # PARAMETER
-    RUN_BATCH_CORRECTION = True
+#     For example, say you have samples from condition A and B. You run batch 1
+#     of A and B on one day, and batch 2 on another day. Because you are
+#     interested in comparing conditions A and B (and _not_ batches 1 and 2),
+#     you may want to run batch correction to try to eliminate and systematic
+#     differences between batches 1 and 2, leaving only the differences between
+#     conditions A and B."""
+
+#     path: str
 
 
-@Function(
-    search=False,
-)
-def do_not_run_batch_correction(__hb_ret: RunBatchCorrection):
-    """Do not run batch correction
+# @Function(
+#     search=False,
+# )
+# def run_batch_correction(__hb_ret: RunBatchCorrection):
+#     """Run batch correction
 
-    This choice will skip batch correction."""
+#     This choice will enable batch correction in downstream analyses."""
 
-    # PARAMETER
-    RUN_BATCH_CORRECTION = False
+#     # PARAMETER
+#     RUN_BATCH_CORRECTION = True
+
+
+# @Function(
+#     search=False,
+# )
+# def do_not_run_batch_correction(__hb_ret: RunBatchCorrection):
+#     """Do not run batch correction
+
+#     This choice will skip batch correction."""
+
+#     # PARAMETER
+#     RUN_BATCH_CORRECTION = False
 
 
 @Function(
@@ -1620,14 +1638,73 @@ RUN_BATCH_CORRECTION = None
 
 
 @Function(
-    use="a 2D visualization of the entire space of gene expression",
+    use="a 2D visualization of your samples' gene expression",
+    search=False,
+    citation="Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011.",
 )
 def pca_gene_expression(
     __hb_data: GeneMatrices,
     # __hb_bc: RunBatchCorrection,
     __hb_ret: PCAGeneExpression,
 ):
-    "2D Principal Component Analysis (PCA)"
+    """Perform 2D Principal Component Analysis (PCA)
+
+    This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
+    to perform a principal component analysis. Specifically, it uses the
+    [`sklearn.decomposition.PCA`](https://scikit-learn.org/stable/modules/generated/
+    sklearn.decomposition.PCA.html) function; that webpage contains all the
+    documentation for this function and more examples."""
+
+    # Load sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Load gene expression (rows are genes, columns are samples)
+    expression = pl.read_csv(f"{__hb_data.path}/counts.csv")
+
+    # Transpose gene expression so that rows are samples, columns are genes
+    X = expression.to_numpy().T
+
+    # Get the principal components
+    pcs = skdec.PCA(n_components=2).fit_transform(X)
+
+    # Convert to dataframe and add condition information
+    results = (
+        pl.DataFrame(pcs, schema=["PC1", "PC2"])
+        .insert_column(
+            0,
+            pl.Series("sample_name", expression.columns),
+        )
+        .join(sample_sheet, on="sample_name")
+    )
+
+    # Save the results of the PCA
+    results.write_csv(
+        f"{__hb_ret.path}/pca.tsv",
+        separator="\t",
+    )
+
+    # Display the interactive PCA chart
+    display(
+        alt.Chart(results)
+        .mark_point()
+        .encode(
+            x="PC1:Q",
+            y="PC2:Q",
+            color="condition:N",
+            tooltip="sample_name:N",
+        ),
+    )
+
+
+@Function(
+    use="a 2D visualization of the entire space of gene expression",
+)
+def count_differentially_expressed_genes(
+    __hb_data: GeneMatrices,
+    # __hb_bc: RunBatchCorrection,
+    __hb_ret: CountDifferentiallyExpressedGenes,
+):
+    "Count differentially-expressed genes"
 
     # Load sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
@@ -1771,7 +1848,7 @@ def deseq2(
     "and Lior Pachter, Differential analysis of RNA-Seq incorporating "
     "quantification uncertainty, Nature Methods (2017), "
     "http://dx.doi.org/10.1038/nmeth.4324.",
-    use="a **lesser-used (but still common)** tool that **does** give you error bars.",
+    use="a **lesser-used** (but still common) tool that **does** give you error bars.",
 )
 def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     """sleuth
