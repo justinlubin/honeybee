@@ -312,7 +312,6 @@ strong {
   border: 1px dashed #888;
 }
 
-
 .cell {
   scroll-margin-top: 10px;
   margin-bottom: 20px;
@@ -337,9 +336,6 @@ strong {
   margin-bottom: 0;
 }
 
-.code-cell .markdown {
-  margin-bottom: 20px;
-}
 
 /* Menu bar */
 
