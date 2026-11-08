@@ -1338,12 +1338,14 @@ def kallisto(
     # Run kallisto for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
         # -t number of cores, -i kallisto index, -o output folder
-        bash(f"""kallisto quant
-                    -t {CORES}
-                    -i {__hb_idx.path}/kallisto.idx
-                    -o {__hb_ret.path}/{sample["sample_name"]}
-                    {__hb_reads.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["reverse_location"]}""")
+        bash(f"""
+            kallisto quant
+                -t {CORES}
+                -i {__hb_idx.path}/kallisto.idx
+                -o {__hb_ret.path}/{sample["sample_name"]}
+                {__hb_reads.path}/{sample["forward_location"]}
+                {__hb_reads.path}/{sample["reverse_location"]}
+        """)
 
 
 # # Single-end reads
@@ -1484,13 +1486,15 @@ def salmon(
     for sample in sample_sheet.rows(named=True):
         # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
         # reads, -o output folder (-l A autodetects library type)
-        bash(f"""salmon quant
-                    -l A
-                    -p {CORES}
-                    -i {__hb_idx.path}/salmon_index
-                    -1 {__hb_reads.path}/{sample["forward_location"]}
-                    -2 {__hb_reads.path}/{sample["reverse_location"]}
-                    -o {__hb_ret.path}/{sample["sample_name"]}""")
+        bash(f"""
+            salmon quant
+                -l A
+                -p {CORES}
+                -i {__hb_idx.path}/salmon_index
+                -1 {__hb_reads.path}/{sample["forward_location"]}
+                -2 {__hb_reads.path}/{sample["reverse_location"]}
+                -o {__hb_ret.path}/{sample["sample_name"]}
+        """)
 
         # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
         # compatability
@@ -1633,7 +1637,8 @@ def deseq2(
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
             --input={__hb_data.path}/counts.csv
-            --output={__hb_ret.path}""")
+            --output={__hb_ret.path}
+    """)
 
     gene_metadata = pl.read_csv(f"{shared()}/gene_metadata.csv")
     comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
@@ -1714,7 +1719,8 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
             --input={__hb_data.path}
-            --output={__hb_ret.path}""")
+            --output={__hb_ret.path}
+    """)
 
 
 ################################################################################
