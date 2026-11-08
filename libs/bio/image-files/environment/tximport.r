@@ -1,9 +1,8 @@
 ################################################################################
 # %% Imports
 
-suppressPackageStartupMessages(library(biomaRt))
-suppressPackageStartupMessages(library(tximport))
-suppressPackageStartupMessages(library(optparse))
+library(optparse)
+library(tximport)
 
 ################################################################################
 # %% Command-line arguments
@@ -11,100 +10,82 @@ suppressPackageStartupMessages(library(optparse))
 parser = OptionParser()
 
 parser = add_option(
-    parser,
-    c("--ensembl_version"),
-    type = "character",
-    help = "Ensembl version to use (e.g. 115)"
+  parser,
+  c("--sample_sheet"),
+  type = "character",
+  help = "Path to sample sheet"
 )
 
 parser = add_option(
-    parser,
-    c("--ensembl_dataset"),
-    type = "character",
-    help = "Ensembl dataset to use (e.g. hsapiens_gene_ensembl)"
+  parser,
+  c("--tx2gene"),
+  type = "character",
+  help = "Path to transcript-to-gene file"
 )
 
 parser = add_option(
-    parser,
-    c("--sample_sheet"),
-    type = "character",
-    help = "Path to sample sheet"
+  parser,
+  c("--input"),
+  type = "character",
+  help = "Path to input directory (transcript quantifications)"
 )
 
 parser = add_option(
-    parser,
-    c("--input"),
-    type = "character",
-    help = "Path to input directory (transcript quantifications)"
-)
-
-parser = add_option(
-    parser,
-    c("--output"),
-    type = "character",
-    help = "Path to output directory (gene quantifications)"
+  parser,
+  c("--output"),
+  type = "character",
+  help = "Path to output directory (gene quantifications)"
 )
 
 opt = parse_args(parser)
 
-ENSEMBL_VERSION = opt$ensembl_version
-ENSEMBL_DATASET = opt$ensembl_dataset
 SAMPLE_SHEET = opt$sample_sheet
-TRANSCRIPT_DIR = opt$input
+TX2GENE = opt$tx2gene
+INPUT_DIR = opt$input
 OUTPUT_DIR = opt$output
 
 ###############################################################################
 # %% Main script
 
-# Set up file paths
-
 print("Loading sample sheet...")
 
-metadata = read.csv(SAMPLE_SHEET, header = TRUE)
+metadata = read.csv(
+  SAMPLE_SHEET,
+  header = TRUE
+)
 
 files = file.path(
-    TRANSCRIPT_DIR,
-    metadata$sample_name,
-    "abundance.tsv"
+  INPUT_DIR,
+  metadata$sample_name,
+  "abundance.tsv"
 )
 
 names(files) = metadata$sample_name
 
-# %% Create tx2gene using biomaRt
+print("Loading tx2gene (transcript-to-gene) file...")
 
-print("Connecting to Ensembl...")
-
-mart = useEnsembl(
-    biomart = "ensembl",
-    dataset = ENSEMBL_DATASET,
-    #version = ENSEMBL_VERSION,
-    mirror  = "www"
+tx2gene = read.csv(
+  TX2GENE,
+  header = TRUE
 )
-
-print("Fetching transcript-to-gene table...")
-
-tx2gene = getBM(
-    attributes =
-        c("ensembl_transcript_id_version",
-          "ensembl_gene_id_version"),
-    mart = mart
-)
-
-print("Writing transcript-to-gene table...")
-
-write.csv(tx2gene, "output/shared/tx2gene.csv")
-
-# %% Aggregate abundances and save count file
 
 print("Aggregating transcripts to genes...")
 
 txi = tximport(
-    files,
-    type = "kallisto",
-    tx2gene = tx2gene
+  files,
+  type = "kallisto",
+  tx2gene = tx2gene,
+  ignoreTxVersion = TRUE
 )
 
 print("Writing final abundance tables...")
 
-write.csv(txi$counts, file.path(OUTPUT_DIR, "counts.csv"))
-write.csv(txi$abundance, file.path(OUTPUT_DIR, "abundance.csv"))
+write.csv(
+  txi$counts,
+  file.path(OUTPUT_DIR, "counts.csv"),
+)
+
+write.csv(
+  txi$abundance,
+  file.path(OUTPUT_DIR, "abundance.csv"),
+)

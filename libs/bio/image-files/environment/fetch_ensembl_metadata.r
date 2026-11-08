@@ -1,10 +1,12 @@
-# Imports
+################################################################################
+# %% Imports
 
 library(optparse)
 library(AnnotationHub)
 library(ensembldb)
 
-# Option parsing
+################################################################################
+# %% Command-line arguments
 
 parser = OptionParser()
 
@@ -35,15 +37,39 @@ ENSEMBL_VERSION = opt$ensembl_version
 SPECIES_WITH_UNDERSCORE = opt$species
 OUTPUT_DIRECTORY = opt$output_directory
 
-# Main script
+###############################################################################
+# %% Main script
 
 # Replace _ with space for AnnotationHub
 species = gsub("_", " ", SPECIES_WITH_UNDERSCORE)
 
-print("Retrieving Ensembl database...")
+print(paste0("Retrieving Ensembl database for species '", species, "'..."))
 
 ah = AnnotationHub()
 q = query(ah, c("EnsDb", species, ENSEMBL_VERSION))
+
+pattern = paste0(
+  "^Ensembl ",
+  ENSEMBL_VERSION,
+  " EnsDb for ",
+  species,
+  "( .*)?$"
+)
+q = q[grepl(pattern, q$title, ignore.case = TRUE)]
+
+# If there are multiple strains, use the reference genome, whose file name has
+# no strain suffix (e.g. EnsDb.Mmusculus.v111.sqlite, not
+# EnsDb.Mmusculus_aj.v111.sqlite)
+if (length(q) > 1) {
+  q = q[!grepl("_", basename(q$rdatapath))]
+}
+
+if (length(q) != 1) {
+  stop(paste0("Expected 1 record matching '", pattern, "', found ", length(q)))
+}
+
+print(paste0("Using ", q$title, " (", q$genome, ")"))
+
 edb = q[[1]]
 
 print("Fetching transcript-to-gene table from Ensembl...")
@@ -56,7 +82,11 @@ tx2gene = transcripts(
 
 print("Writing transcript-to-gene table...")
 
-write.csv(tx2gene, file.path(OUTPUT_DIRECTORY, "tx2gene.csv"))
+write.csv(
+  tx2gene,
+  file.path(OUTPUT_DIRECTORY, "tx2gene.csv"),
+  row.names = FALSE
+)
 
 print("Fetching gene metadata from Ensembl...")
 
@@ -68,4 +98,8 @@ gene_metadata = genes(
 
 print("Saving gene metadata...")
 
-write_csv(gene_metadata, file.path(OUTPUT_DIRECTORY, "gene_metadata.csv"))
+write.csv(
+  gene_metadata,
+  file.path(OUTPUT_DIRECTORY, "gene_metadata.csv"),
+  row.names = FALSE
+)

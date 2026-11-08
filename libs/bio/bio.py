@@ -14,7 +14,7 @@ initialize(
     allow_input_arguments=False,
 )
 
-# uv run gget ref --ftp --which cdna --release 116 homo_sapiens
+# uv run gget ref --ftp --which cdna --release 111 homo_sapiens
 
 ################################################################################
 # %% Helper
@@ -1149,7 +1149,7 @@ def create_kallisto_index(__hb_ret: KallistoIndex):
     CORES = 4
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "116"
+    ENSEMBL_VERSION = "111"
 
     # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
@@ -1195,7 +1195,7 @@ def create_salmon_index(__hb_ret: SalmonIndex):
     CORES = 4
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "116"
+    ENSEMBL_VERSION = "111"
 
     # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
@@ -1256,7 +1256,7 @@ def create_salmon_index(__hb_ret: SalmonIndex):
 #     CORES = 4
 
 #     # PARAMETER: The version of Ensembl to use for gene annotations
-#     ENSEMBL_VERSION = "116"
+#     ENSEMBL_VERSION = "111"
 
 #     bash(f"""
 #         wget
@@ -1332,7 +1332,7 @@ def create_salmon_index(__hb_ret: SalmonIndex):
 #     CORES = 4
 
 #     # PARAMETER: The version of Ensembl to use for gene annotations
-#     ENSEMBL_VERSION = "116"
+#     ENSEMBL_VERSION = "111"
 
 #     bash(f"""
 #         wget
@@ -1617,18 +1617,36 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     same gene together for gene-level downstream analysis."""
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "116"
+    ENSEMBL_VERSION = "111"
 
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
 
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Create species metadata folder (if necessary)
+    bash(f"""mkdir -p {shared()}/{species}""")
+
+    # Download Ensembl metadata
+    bash(f"""
+        Rscript environment/fetch_ensembl_metadata.r
+            --ensembl_version={ENSEMBL_VERSION}
+            --species={species}
+            --output_directory={shared()}/{species}
+    """)
+
+    # Run tximport
     bash(f"""
         Rscript environment/tximport.r
-            --ensembl_version={ENSEMBL_VERSION}
-            --ensembl_dataset={ENSEMBL_DATASET}
             --sample_sheet={shared()}/sample_sheet.csv
+            --tx2gene={shared()}/{species}/tx2gene.csv
             --input={__hb_data.path}
-            --output={__hb_ret.path}""")
+            --output={__hb_ret.path}
+    """)
 
 
 RUN_BATCH_CORRECTION = None
@@ -1751,7 +1769,7 @@ def deseq2(
     can be done to turn off that behavior."""
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "116"
+    ENSEMBL_VERSION = "111"
 
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
@@ -1832,7 +1850,7 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     CORES = 4
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "116"
+    ENSEMBL_VERSION = "111"
 
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"

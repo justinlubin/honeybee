@@ -98,6 +98,8 @@ RUN uv sync
 RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
 RUN Rscript -e 'BiocManager::install("Huber-group-EMBL/remart")'
+RUN Rscript -e 'BiocManager::install("AnnotationHub")'
+RUN Rscript -e 'BiocManager::install("ensembldb")'
 
 # Final setup (some stuff commented out for user study)
 
