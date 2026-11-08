@@ -126,7 +126,13 @@ class SeqReads:
     information (e.g. about chromatin accessibility, methylation status, or
     transcription levels), reads first need to be _preprocessed_. Most
     preprocessing is method-specific, but some methods share commonalities, such
-    as _quality control_ (QC) checks."""
+    as _quality control_ (QC) checks.
+
+    **Note:** Often, you will need to trim "adapter" sequences from your reads;
+    these are sequences of nucleotides that are an artifact of the sequencing
+    process. It is good practice to run quality control checks **twice**: once
+    before trimming, and once after. (In fact, this practice is enforced by
+    this interface!)"""
 
     path: str
     """Data path
@@ -188,11 +194,13 @@ def fastqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    # Carry forward the sequencing data for downstream steps
     carry_over(__hb_reads.path, __hb_ret.path)
 
+    # Get the files to run FastQC on
     fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
-    # -t number of cores, -o output
+    # Run FastQC (-t number of cores, -o output)
     bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
 
 
@@ -235,12 +243,16 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    # Carry forward the sequencing data for downstream steps
     carry_over(__hb_reads.path, __hb_ret.path)
 
+    # Get the files to run FastQC on
     fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
-    # -t number of cores, -o output
+    # Run FastQC (-t number of cores, -o output)
     bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
+
+    # Aggregate FastQC results with MultiQC
     bash(f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}""")
 
 
@@ -251,7 +263,7 @@ def multiqc(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "ret.trimmed = true",
     "ret.long = reads.long",
     "ret.type = reads.type",
-    use="to skip adapter trimming (e.g. because your sequencing provider already did adapter trimming for you)",
+    use="to skip adapter trimming (e.g. because your sequencing provider already did adapter trimming for you, or you want to save time)",
     search=False,
 )
 def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
@@ -261,6 +273,8 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     have already been removed, then you don't need to run any processing to
     try to remove them again."""
 
+    # Carry forward the sequencing data for downstream steps;
+    # do not perform any trimming
     carry_over(__hb_reads.path, __hb_ret.path)
 
 
@@ -271,6 +285,7 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     "ret.trimmed = true",
     "ret.long = reads.long",
     "ret.type = reads.type",
+    "ret.type != 'rna'",
     google_scholar_id="4180123542769751602",
     citation="Marcel Martin. Cutadapt removes adapter sequences from "
     "high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. "
@@ -278,7 +293,7 @@ def skip_trimming(__hb_reads: SeqReads, __hb_ret: SeqReads):
     use="to remove sequencing adapters from DNA",
 )
 def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
-    """cutadapt - include poly(A) tails
+    """cutadapt
 
     # Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
@@ -295,33 +310,36 @@ def cutadapt(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+    # Run cutadapt for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
-        # Paired-end
-        if sample["reverse_location"]:
-            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-            # -A reverse adapter, -o forward output, -o reverse output
-            bash(f"""uv run cutadapt
-                        --cores={CORES}
-                        -m 1
-                        -a {FORWARD_ADAPTER}
-                        -A {REVERSE_ADAPTER}
-                        -o {__hb_ret.path}/{sample["forward_location"]}
-                        -p {__hb_ret.path}/{sample["reverse_location"]}
-                        {__hb_reads.path}/{sample["forward_location"]}
-                        {__hb_reads.path}/{sample["reverse_location"]}""")
+        # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+        # -A reverse adapter, -o forward output, -o reverse output
+        bash(f"""
+            uv run cutadapt
+                --cores={CORES}
+                -m 1
+                -a {FORWARD_ADAPTER}
+                -A {REVERSE_ADAPTER}
+                -o {__hb_ret.path}/{sample["forward_location"]}
+                -p {__hb_ret.path}/{sample["reverse_location"]}
+                {__hb_reads.path}/{sample["forward_location"]}
+                {__hb_reads.path}/{sample["reverse_location"]}i
+        """)
 
-        # Single-end
-        else:
-            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-            # -o forward output
-            bash(f"""uv run cutadapt
-                        --cores={CORES}
-                        -m 1
-                        -a {FORWARD_ADAPTER}
-                        -o {__hb_ret.path}/{sample["forward_location"]}
-                        {__hb_reads.path}/{sample["forward_location"]}""")
+
+# # Single-end reads
+# else:
+#     # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+#     # -o forward output
+#     bash(f"""uv run cutadapt
+#                 --cores={CORES}
+#                 -m 1
+#                 -a {FORWARD_ADAPTER}
+#                 -o {__hb_ret.path}/{sample["forward_location"]}
+#                 {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 @Function(
@@ -345,6 +363,7 @@ def minimap2(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
     align long reads, minimap2 is a dedicated tool that aligns long reads much
     more quickly."""
 
+    # Run minimap2 for each sample
     for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
         sample_name = os.path.splitext(os.path.basename(path))[0]
         bash(f"""
@@ -691,8 +710,14 @@ class SalmonIndex:
     """@intermediate:Salmon index
 
     The goal of this step is to create an index for the
-    [salmon](https://salmon.readthedocs.io/en/latest/)
-    transcript abundance quantifier."""
+    [salmon](https://salmon.readthedocs.io/en/latest/) transcript abundance
+    quantifier.
+
+    You can think of an _index_ like the index in a book: by sorting all the
+    concepts in a book alphabetically (which takes some time to do up-front),
+    it's a lot quicker to find where each concept is located in the book! It's
+    the same with a genome: Salmon _indexes_ it ahead of time so that it can
+    find locations much quicker as it operates."""
 
     path: str
 
@@ -706,7 +731,13 @@ class KallistoIndex:
 
     The goal of this step is to create an index for the
     [kallisto](https://pachterlab.github.io/kallisto/about)
-    transcript abundance quantifier."""
+    transcript abundance quantifier.
+
+    You can think of an _index_ like the index in a book: by sorting all the
+    concepts in a book alphabetically (which takes some time to do up-front),
+    it's a lot quicker to find where each concept is located in the book! It's
+    the same with a genome: kallisto _indexes_ it ahead of time so that it can
+    find locations much quicker as it operates."""
 
     path: str
 
@@ -973,13 +1004,13 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     > Cutadapt finds and removes adapter sequences, primers, poly-A tails and
     > other types of unwanted sequence from your high-throughput sequencing
     > reads.
-
+    >
     > Cleaning your data in this way is often required: Reads from small-RNA
     > sequencing contain the 3’ sequencing adapter because the read is longer
     > than the molecule that is sequenced. Amplicon reads start with a primer
     > sequence. Poly-A tails are useful for pulling out RNA from your sample,
     > but often you don’t want them to be in your reads.
-
+    >
     > Cutadapt helps with these trimming tasks by finding the adapter or primer
     > sequences in an error-tolerant way."""
 
@@ -992,35 +1023,42 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+    # Run cutadapt for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
-        # Paired-end
-        if sample["reverse_location"]:
-            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-            # -A reverse adapter, -o forward output, -o reverse output
-            bash(f"""uv run cutadapt
-                        --cores={CORES}
-                        -m 1
-                        --poly-a
-                        -a {FORWARD_ADAPTER}
-                        -A {REVERSE_ADAPTER}
-                        -o {__hb_ret.path}/{sample["forward_location"]}
-                        -p {__hb_ret.path}/{sample["reverse_location"]}
-                        {__hb_reads.path}/{sample["forward_location"]}
-                        {__hb_reads.path}/{sample["reverse_location"]}""")
+        # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+        # -A reverse adapter, -o forward output, -o reverse output
+        # ==> Important! The --poly-a flag removes poly(A) tails!
+        bash(f"""
+            uv run cutadapt
+                --cores={CORES}
+                -m 1
+                --poly-a
+                -a {FORWARD_ADAPTER}
+                -A {REVERSE_ADAPTER}
+                -o {__hb_ret.path}/{sample["forward_location"]}
+                -p {__hb_ret.path}/{sample["reverse_location"]}
+                {__hb_reads.path}/{sample["forward_location"]}
+                {__hb_reads.path}/{sample["reverse_location"]}
+        """)
 
-        # Single-end
-        else:
-            # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-            # -o forward output
-            bash(f"""uv run cutadapt
-                        --cores={CORES}
-                        -m 1
-                        --poly-a
-                        -a {FORWARD_ADAPTER}
-                        -o {__hb_ret.path}/{sample["forward_location"]}
-                        {__hb_reads.path}/{sample["forward_location"]}""")
+
+# # Single-end reads
+# else:
+#     # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+#     # -o forward output
+
+#     # Important! The --poly-a flag removes poly(A) tails!
+
+#     bash(f"""uv run cutadapt
+#                 --cores={CORES}
+#                 -m 1
+#                 --poly-a
+#                 -a {FORWARD_ADAPTER}
+#                 -o {__hb_ret.path}/{sample["forward_location"]}
+#                 {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 # @Function(
@@ -1051,48 +1089,40 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
 #                   --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
 
 
-@Function(
-    search=False,
-)
-def use_existing_kallisto_index(__hb_ret: KallistoIndex):
-    """Use existing index
+@Function(search=False)
+def create_kallisto_index(__hb_ret: KallistoIndex):
+    """Create necessary kallisto indexes by downloading Ensembl transcriptomes
 
-    If you already have a kallisto index for the transcriptome you'd like to
-    use, you can use this code to skip creating a new one."""
+    This code downloads transcriptomes from [Ensembl](https://ensembl.org) that match
+    the sample sheet information, then creates a kallisto index for each of
+    them.
 
-    # PARAMETER: The location of the kallisto transcriptome index on your computer
-    KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
-
-    link(
-        KALLISTO_INDEX,
-        f"{__hb_ret.path}/kallisto.idx",
-    )
-
-
-@Function(
-    search=False,
-)
-def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
-    """New from HUMAN transcriptome (hg38)
-
-    This code creates a kallisto index from the human transcriptome (hg38). It
-    automatically downloads the human transcriptome for you from
-    [Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+    A _transcriptome_ contains the complementary DNA (cDNA) for your transcripts
+    of interest. Ensembl has such transcriptomes for many different species!"""
 
     # PARAMETER: The number of cores to use
     CORES = 4
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "115"
+    ENSEMBL_VERSION = "116"
 
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Download the transcriptome from Ensembl
     bash(f"""
         wget
             --progress=bar:force
             --no-clobber
             --directory-prefix {shared()}/transcriptomes
-            https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+            -O {species}.cdna.fa.gz
+            $(uv run gget ref --ftp --which cdna --release {ENSEMBL_VERSION} {species})
     """)
 
+    # Create the kallisto index
     # -t number of cores, -i output filename for index
     bash(f"""
         kallisto index
@@ -1105,104 +1135,173 @@ def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
 @Function(
     search=False,
 )
-def create_kallisto_index(__hb_ret: KallistoIndex):
-    """New from OTHER transcriptome
-
-    This code creates a kallisto index from an existing transcriptome file on
-    your computer. This transcriptome file should contain the complementary
-    DNA (cDNA) for your transcripts of interest. A good place to download
-    transcriptome files is the
-    [Ensembl genome repository](https://www.ensembl.org/)."""
-
-    # PARAMETER: The number of cores to use
-    CORES = 4
-
-    # PARAMETER: The location of the reference transcriptome on your computer (FASTA format)
-    TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
-
-    # -t number of cores, -i output filename for index
-    bash(f"""
-        kallisto index
-            -t {CORES}
-            -i {__hb_ret.path}/kallisto.idx
-            {TRANSCRIPTOME_PATH}
-    """)
-
-
-@Function
-def use_existing_salmon_index(__hb_ret: SalmonIndex):
-    """Use existing index
-
-    If you already have a salmon index for the transcriptome you'd like to
-    use, you can use this code to skip creating a new one."""
-
-    # PARAMETER: The location of the salmon transcriptome index on your computer
-    SALMON_INDEX = "salmon_index"
-
-    link(
-        SALMON_INDEX,
-        f"{__hb_ret.path}/salmon_index",
-    )
-
-
-@Function(
-    search=False,
-)
 def create_salmon_index(__hb_ret: SalmonIndex):
-    """New from OTHER transcriptome
+    """Create necessary Salmon indexes by downloading Ensembl transcriptomes
 
-    This code creates a salmon index from an existing transcriptome file on
-    your computer. This transcriptome file should contain the complementary
-    DNA (cDNA) for your transcripts of interest. A good place to download
-    transcriptome files is the
-    [Ensembl genome repository](https://www.ensembl.org/)."""
+    This code downloads transcriptomes from [Ensembl](https://ensembl.org) that
+    match the sample sheet information, then creates a Salmon index for each
+    of them.
 
-    # PARAMETER: The number of cores to use
-    CORES = 4
-
-    # PARAMETER: The location of the reference transcriptome on your computer (FASTA format)
-    TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
-
-    # -p number of cores, -t path to transcriptome, -i output filename for index
-    bash(f"""
-        salmon index
-            -p {CORES}
-            -t {TRANSCRIPTOME_PATH}
-            -i {__hb_ret.path}/salmon_index
-    """)
-
-
-@Function(
-    search=False,
-)
-def create_hg38_salmon_index(__hb_ret: SalmonIndex):
-    """New from HUMAN transcriptome (hg38)
-
-    This code creates a salmon index from the human transcriptome (hg38). It
-    automatically downloads the human transcriptome for you from
-    [Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+    A _transcriptome_ contains the complementary DNA (cDNA) for your transcripts
+    of interest. Ensembl has such transcriptomes for many different species!"""
 
     # PARAMETER: The number of cores to use
     CORES = 4
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "115"
+    ENSEMBL_VERSION = "116"
 
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Download the transcriptome from Ensembl
     bash(f"""
         wget
             --progress=bar:force
             --no-clobber
             --directory-prefix {shared()}/transcriptomes
-            https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+            -O {species}.cdna.fa.gz
+            $(uv run gget ref --ftp --which cdna --release {ENSEMBL_VERSION} {species})
     """)
 
+    # Create the Salmon index
     # -p number of cores, -t path to transcriptome, -i output filename for index
     bash(f"""
         salmon index
             -p {CORES}
-            -t {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+            -t {shared()}/transcriptomes/{species}.cdna.fa.gz
             -i {__hb_ret.path}/salmon_index
     """)
+
+
+# @Function(
+#     search=False,
+# )
+# def use_existing_kallisto_index(__hb_ret: KallistoIndex):
+#     """Use existing index
+
+#     If you already have a kallisto index for the transcriptome you'd like to
+#     use, you can use this code to skip creating a new one."""
+
+#     # PARAMETER: The location of the kallisto transcriptome index on your computer
+#     KALLISTO_INDEX = "ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"
+
+#     link(
+#         KALLISTO_INDEX,
+#         f"{__hb_ret.path}/kallisto.idx",
+#     )
+
+
+# @Function(
+#     search=False,
+# )
+# def create_hg38_kallisto_index(__hb_ret: KallistoIndex):
+#     """New from HUMAN transcriptome (hg38)
+
+#     This code creates a kallisto index from the human transcriptome (hg38). It
+#     automatically downloads the human transcriptome for you from
+#     [Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+
+#     # PARAMETER: The number of cores to use
+#     CORES = 4
+
+#     # PARAMETER: The version of Ensembl to use for gene annotations
+#     ENSEMBL_VERSION = "116"
+
+#     bash(f"""
+#         wget
+#             --progress=bar:force
+#             --no-clobber
+#             --directory-prefix {shared()}/transcriptomes
+#             https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+#     """)
+
+#     # -t number of cores, -i output filename for index
+#     bash(f"""
+#         kallisto index
+#             -t {CORES}
+#             -i {__hb_ret.path}/kallisto.idx
+#             {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+#     """)
+
+
+# @Function(
+#     search=False,
+# )
+# def create_kallisto_index(__hb_ret: KallistoIndex):
+#     """New from OTHER transcriptome
+
+#     This code creates a kallisto index from an existing transcriptome file on
+#     your computer. This transcriptome file should contain the complementary
+#     DNA (cDNA) for your transcripts of interest. A good place to download
+#     transcriptome files is the
+#     [Ensembl genome repository](https://www.ensembl.org/)."""
+
+#     # PARAMETER: The number of cores to use
+#     CORES = 4
+
+#     # PARAMETER: The location of the reference transcriptome on your computer (FASTA format)
+#     TRANSCRIPTOME_PATH = "ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"
+
+#     # -t number of cores, -i output filename for index
+#     bash(f"""
+#         kallisto index
+#             -t {CORES}
+#             -i {__hb_ret.path}/kallisto.idx
+#             {TRANSCRIPTOME_PATH}
+#     """)
+
+
+# @Function
+# def use_existing_salmon_index(__hb_ret: SalmonIndex):
+#     """Use existing index
+
+#     If you already have a salmon index for the transcriptome you'd like to
+#     use, you can use this code to skip creating a new one."""
+
+#     # PARAMETER: The location of the salmon transcriptome index on your computer
+#     SALMON_INDEX = "salmon_index"
+
+#     link(
+#         SALMON_INDEX,
+#         f"{__hb_ret.path}/salmon_index",
+#     )
+
+
+# @Function(
+#     search=False,
+# )
+# def create_hg38_salmon_index(__hb_ret: SalmonIndex):
+#     """New from HUMAN transcriptome (hg38)
+
+#     This code creates a salmon index from the human transcriptome (hg38). It
+#     automatically downloads the human transcriptome for you from
+#     [Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+
+#     # PARAMETER: The number of cores to use
+#     CORES = 4
+
+#     # PARAMETER: The version of Ensembl to use for gene annotations
+#     ENSEMBL_VERSION = "116"
+
+#     bash(f"""
+#         wget
+#             --progress=bar:force
+#             --no-clobber
+#             --directory-prefix {shared()}/transcriptomes
+#             https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+#     """)
+
+#     # -p number of cores, -t path to transcriptome, -i output filename for index
+#     bash(f"""
+#         salmon index
+#             -p {CORES}
+#             -t {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+#             -i {__hb_ret.path}/salmon_index
+#     """)
 
 
 @Function(
@@ -1233,36 +1332,37 @@ def kallisto(
     # PARAMETER: The number of cores to use
     CORES = 4
 
+    # Load sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+    # Run kallisto for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
-        # Paired-end
-        if sample["reverse_location"]:
-            # -t number of cores, -i kallisto index, -o output folder
-            bash(f"""kallisto quant
-                        -t {CORES}
-                        -i {__hb_idx.path}/kallisto.idx
-                        -o {__hb_ret.path}/{sample["sample_name"]}
-                        {__hb_reads.path}/{sample["forward_location"]}
-                        {__hb_reads.path}/{sample["reverse_location"]}""")
+        # -t number of cores, -i kallisto index, -o output folder
+        bash(f"""kallisto quant
+                    -t {CORES}
+                    -i {__hb_idx.path}/kallisto.idx
+                    -o {__hb_ret.path}/{sample["sample_name"]}
+                    {__hb_reads.path}/{sample["forward_location"]}
+                    {__hb_reads.path}/{sample["reverse_location"]}""")
 
-        # Single-end
-        else:
-            # IMPORTANT: For single-end reads, you *must* set fragment length
-            # and standard deviation of the library! These can be determined
-            # from, e.g., a TapeStation. The kallisto creators note:
-            #     Typical Illumina libraries produce fragment lengths ranging
-            #     from 180–200 bp but it's best to determine this from a library
-            #     quantification with an instrument such as an Agilent
-            #     Bioanalyzer.
-            #                     - https://pachterlab.github.io/kallisto/manual
-            bash(f"""kallisto quant
-                        --fragment-length=200
-                        --sd=20
-                        -t {CORES}
-                        -i {__hb_idx.path}/kallisto.idx
-                        -o {__hb_ret.path}/{sample["sample_name"]}
-                        {__hb_reads.path}/{sample["forward_location"]}""")
+
+# # Single-end reads
+# else:
+#     # IMPORTANT: For single-end reads, you *must* set fragment length
+#     # and standard deviation of the library! These can be determined
+#     # from, e.g., a TapeStation. The kallisto creators note:
+#     #     Typical Illumina libraries produce fragment lengths ranging
+#     #     from 180–200 bp but it's best to determine this from a library
+#     #     quantification with an instrument such as an Agilent
+#     #     Bioanalyzer.
+#     #                     - https://pachterlab.github.io/kallisto/manual
+#     bash(f"""kallisto quant
+#                 --fragment-length=200
+#                 --sd=20
+#                 -t {CORES}
+#                 -i {__hb_idx.path}/kallisto.idx
+#                 -o {__hb_ret.path}/{sample["sample_name"]}
+#                 {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 @Function(
@@ -1305,42 +1405,45 @@ def kallisto_bootstrap(
     # PARAMETER: The number of bootstrap resamplings kallisto should perform
     KALLISTO_BOOTSTRAPS = 50
 
+    # Load sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+    # Run kallisto for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
-        # Paired-end
-        if sample["reverse_location"]:
-            # -b number of bootstrap resamplings, -t number of cores,
-            # -i kallisto index, -o output folder (--plaintext sets output
-            # format)
-            bash(f"""kallisto quant
-                         --plaintext
-                        -b {KALLISTO_BOOTSTRAPS}
-                        -t {CORES}
-                        -i {__hb_idx.path}/kallisto.idx
-                        -o {__hb_ret.path}/{sample["sample_name"]}
-                        {__hb_reads.path}/{sample["forward_location"]}
-                        {__hb_reads.path}/{sample["reverse_location"]}""")
+        # -b number of bootstrap resamplings, -t number of cores,
+        # -i kallisto index, -o output folder (--plaintext sets output
+        # format)
+        bash(f"""
+             kallisto quant
+                 --plaintext
+                 -b {KALLISTO_BOOTSTRAPS}
+                 -t {CORES}
+                 -i {__hb_idx.path}/kallisto.idx
+                 -o {__hb_ret.path}/{sample["sample_name"]}
+                 {__hb_reads.path}/{sample["forward_location"]}
+                 {__hb_reads.path}/{sample["reverse_location"]}
+        """)
 
-        # Singe-end
-        else:
-            # IMPORTANT: For single-end reads, you *must* set fragment length
-            # and standard deviation of the library! These can be determined
-            # from, e.g., a TapeStation. The kallisto creators note:
-            #     Typical Illumina libraries produce fragment lengths ranging
-            #     from 180–200 bp but it's best to determine this from a library
-            #     quantification with an instrument such as an Agilent
-            #     Bioanalyzer.
-            #                     - https://pachterlab.github.io/kallisto/manual
-            bash(f"""kallisto quant
-                         --plaintext
-                        -b {KALLISTO_BOOTSTRAPS}
-                        --fragment-length=200
-                        --sd=20
-                        -t {CORES}
-                        -i {__hb_idx.path}/kallisto.idx
-                        -o {__hb_ret.path}/{sample["sample_name"]}
-                        {__hb_reads.path}/{sample["forward_location"]}""")
+
+# # Single-end reads
+# else:
+#     # IMPORTANT: For single-end reads, you *must* set fragment length
+#     # and standard deviation of the library! These can be determined
+#     # from, e.g., a TapeStation. The kallisto creators note:
+#     #     Typical Illumina libraries produce fragment lengths ranging
+#     #     from 180–200 bp but it's best to determine this from a library
+#     #     quantification with an instrument such as an Agilent
+#     #     Bioanalyzer.
+#     #                     - https://pachterlab.github.io/kallisto/manual
+#     bash(f"""kallisto quant
+#                  --plaintext
+#                 -b {KALLISTO_BOOTSTRAPS}
+#                 --fragment-length=200
+#                 --sd=20
+#                 -t {CORES}
+#                 -i {__hb_idx.path}/kallisto.idx
+#                 -o {__hb_ret.path}/{sample["sample_name"]}
+#                 {__hb_reads.path}/{sample["forward_location"]}""")
 
 
 ################################################################################
@@ -1377,29 +1480,17 @@ def salmon(
 
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+    # Run Salmon for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
-        # Paired-end
-        if sample["reverse_location"]:
-            # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
-            # reads, -o output folder (-l A autodetects library type)
-            bash(f"""salmon quant
-                        -l A
-                        -p {CORES}
-                        -i {__hb_idx.path}/salmon_index
-                        -1 {__hb_reads.path}/{sample["forward_location"]}
-                        -2 {__hb_reads.path}/{sample["reverse_location"]}
-                        -o {__hb_ret.path}/{sample["sample_name"]}""")
-
-        # Single-end
-        else:
-            # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
-            # reads, -o output folder (-l A autodetects library type)
-            bash(f"""salmon quant
-                         -l A
-                        -p {CORES}
-                        -i {__hb_idx.path}/salmon_index
-                        -r {__hb_reads.path}/{sample["forward_location"]}
-                        -o {__hb_ret.path}/{sample["sample_name"]}""")
+        # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+        # reads, -o output folder (-l A autodetects library type)
+        bash(f"""salmon quant
+                    -l A
+                    -p {CORES}
+                    -i {__hb_idx.path}/salmon_index
+                    -1 {__hb_reads.path}/{sample["forward_location"]}
+                    -2 {__hb_reads.path}/{sample["reverse_location"]}
+                    -o {__hb_ret.path}/{sample["sample_name"]}""")
 
         # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
         # compatability
@@ -1407,15 +1498,52 @@ def salmon(
             f"{__hb_ret.path}/{sample['sample_name']}/quant.sf",
             separator="\t",
         ).select(
+            # Rename left columns to right
             pl.col("Name").alias("target_id"),
             pl.col("Length").alias("length"),
             pl.col("EffectiveLength").alias("eff_length"),
             pl.col("NumReads").alias("est_counts"),
             pl.col("TPM").alias("tpm"),
         ).write_csv(
+            # Save the file
             f"{__hb_ret.path}/{sample['sample_name']}/abundance.tsv",
             separator="\t",
         )
+
+
+# # Single-end
+# else:
+#     # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+#     # reads, -o output folder (-l A autodetects library type)
+#     bash(f"""salmon quant
+#                  -l A
+#                 -p {CORES}
+#                 -i {__hb_idx.path}/salmon_index
+#                 -r {__hb_reads.path}/{sample["forward_location"]}
+#                 -o {__hb_ret.path}/{sample["sample_name"]}""")
+
+# # Single-end
+# else:
+#     # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+#     # reads, -o output folder (-l A autodetects library type)
+#     bash(f"""salmon quant
+#                  -l A
+#                 -p {CORES}
+#                 -i {__hb_idx.path}/salmon_index
+#                 -r {__hb_reads.path}/{sample["forward_location"]}
+#                 -o {__hb_ret.path}/{sample["sample_name"]}""")
+
+
+# # Single-end
+# else:
+#     # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+#     # reads, -o output folder (-l A autodetects library type)
+#     bash(f"""salmon quant
+#                  -l A
+#                 -p {CORES}
+#                 -i {__hb_idx.path}/salmon_index
+#                 -r {__hb_reads.path}/{sample["forward_location"]}
+#                 -o {__hb_ret.path}/{sample["sample_name"]}""")
 
 
 @Function(
@@ -1438,7 +1566,7 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     same gene together for gene-level downstream analysis."""
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "115"
+    ENSEMBL_VERSION = "116"
 
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
@@ -1492,7 +1620,7 @@ def deseq2(
     can be done to turn off that behavior."""
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "115"
+    ENSEMBL_VERSION = "116"
 
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
@@ -1573,7 +1701,7 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     CORES = 4
 
     # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "115"
+    ENSEMBL_VERSION = "116"
 
     # PARAMETER: The Ensembl gene annotation dataset to use
     ENSEMBL_DATASET = "hsapiens_gene_ensembl"
