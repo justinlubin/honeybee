@@ -1,10 +1,8 @@
 ################################################################################
 # %% Imports
 
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(biomaRt))
-suppressPackageStartupMessages(library(sleuth))
-suppressPackageStartupMessages(library(optparse))
+library(optparse)
+library(sleuth)
 
 ################################################################################
 # %% Command-line arguments
@@ -12,160 +10,199 @@ suppressPackageStartupMessages(library(optparse))
 parser = OptionParser()
 
 parser = add_option(
-    parser,
-    c("--cores"),
-    type = "integer",
-    help = "Number of cores to use"
+  parser,
+  c("--cores"),
+  type = "integer",
+  help = "Number of cores to use"
 )
 
 parser = add_option(
-    parser,
-    c("--ensembl_version"),
-    type = "character",
-    help = "Ensembl version to use (e.g. 115)"
+  parser,
+  c("--gene_metadata"),
+  type = "character",
+  help = "Path to gene metadata file"
 )
 
 parser = add_option(
-    parser,
-    c("--ensembl_dataset"),
-    type = "character",
-    help = "Ensembl dataset to use (e.g. hsapiens_gene_ensembl)"
+  parser,
+  c("--tx2gene"),
+  type = "character",
+  help = "Path to transcript-to-gene file"
 )
 
 parser = add_option(
-    parser,
-    c("--sample_sheet"),
-    type = "character",
-    help = "Path to sample sheet"
+  parser,
+  c("--sample_sheet"),
+  type = "character",
+  help = "Path to sample sheet"
 )
 
 parser = add_option(
-    parser,
-    c("--comparison_sheet"),
-    type = "character",
-    help = "Path to comparison sheet"
+  parser,
+  c("--comparison_sheet"),
+  type = "character",
+  help = "Path to comparison sheet"
 )
 
 parser = add_option(
-    parser,
-    c("--input"),
-    type = "character",
-    help = "Path to input directory (gene read count matrix)"
+  parser,
+  c("--input_directory"),
+  type = "character",
+  help = "Path to input directory (kallisto quantifications with bootstraps)"
 )
 
 parser = add_option(
-    parser,
-    c("--output"),
-    type = "character",
-    help = "Path to output directory"
+  parser,
+  c("--output_directory"),
+  type = "character",
+  help = "Path to output directory"
 )
 
 opt = parse_args(parser)
 
 CORES = opt$cores
-ENSEMBL_VERSION = opt$ensembl_version
-ENSEMBL_DATASET = opt$ensembl_dataset
+GENE_METADATA = opt$gene_metadata
+TX2GENE = opt$tx2gene
 SAMPLE_SHEET = opt$sample_sheet
 COMPARISON_SHEET = opt$comparison_sheet
-DATA_DIR = opt$input
-OUTPUT_DIR = opt$output
+INPUT_DIR = opt$input_directory
+OUTPUT_DIR = opt$output_directory
 
 ################################################################################
 # %% Main script
 
-# Get transcript metadata
+print("Loading gene metadata file...")
 
-transcript_metadata_filename = "output/shared/transcript_metadata.csv"
+gene_metadata = read.csv(
+  GENE_METADATA,
+  header = TRUE
+)
 
-if (file.exists(transcript_metadata_filename)) {
-    print("Transcript metadata already exists; loading it now...")
+print("Loading tx2gene (transcript-to-gene) file...")
 
-    transcript_metadata = read.csv(transcript_metadata_filename, header=TRUE)
-} else {
-    print("Transcript metadata does not exist yet; fetching it now...")
-    
-    print("Connecting to Ensembl...")
-
-    mart = useEnsembl(
-        biomart = "ensembl",
-        dataset = ENSEMBL_DATASET,
-        version = ENSEMBL_VERSION,
-        host    = "may2025.archive.ensembl.org"
-    )
-    
-    transcript_metadata = getBM(
-        attributes = c(
-            "ensembl_transcript_id_version",
-            "ensembl_gene_id_version",
-            "external_gene_name",
-            "gene_biotype"
-        ),
-        mart = mart
-    )
-
-    write_csv(transcript_metadata, transcript_metadata_filename)
-}
-
-transcript_metadata = dplyr::rename(
-    transcript_metadata,
-    target_id = ensembl_transcript_id_version,
-    ens_gene = ensembl_gene_id_version,
-    ext_gene = external_gene_name
+tx2gene = read.csv(
+  TX2GENE,
+  header = TRUE
 )
 
 print("Filtering to protein-coding genes...")
 
-transcript_metadata = transcript_metadata[
-    transcript_metadata$gene_biotype == "protein_coding", 
+protein_coding = gene_metadata[
+  gene_metadata$gene_biotype == "protein_coding",
+  "gene_id"
 ]
 
-# Load sample sheet and comparisons sheet
-
-metadata = read.csv(
-    SAMPLE_SHEET,
-    header = TRUE,
+target_mapping = data.frame(
+  target_id = tx2gene$tx_id,
+  gene_id = tx2gene$gene_id
 )
 
-# Convert to sleuth format
-sample2condition = data.frame(
-    sample = metadata$sample_name,
-    condition = metadata$condition,
-    path = file.path(DATA_DIR, metadata$sample_name)
+target_mapping = target_mapping[
+  target_mapping$gene_id %in% protein_coding,
+]
+
+print("Loading sample sheet...")
+
+samples = read.csv(
+  SAMPLE_SHEET,
+  header = TRUE
 )
+
+print("Loading comparison sheet...")
 
 comparisons = read.csv(
-    COMPARISON_SHEET,
-    header = TRUE,
+  COMPARISON_SHEET,
+  header = TRUE
 )
 
 # Run comparisons
 
 for (i in 1:nrow(comparisons)) {
-    row = comparisons[i,]
+  row = comparisons[i, ]
 
-    filtered_s2c <- sample2condition %>% filter(
-        condition %in% c(row$control, row$treatment)
-    )
+  print(paste(
+    "Running sleuth with control '",
+    row$control_condition,
+    "' and treatment '",
+    row$treatment_condition,
+    "'",
+    sep = ""
+  ))
 
-    so <- sleuth_prep(
-        filtered_s2c,
-        target_mapping = transcript_metadata,
-        extra_bootstrap_summary = FALSE,
-        read_bootstrap_tpm = FALSE,
-        num_cores = CORES,
-        ~condition
-    )
+  # Set up sleuth input data
 
-    so <- sleuth_fit(so, ~condition, "full")
-    so <- sleuth_fit(so, ~1, "reduced")
-    so <- sleuth_lrt(so, "reduced", "full")
+  control = samples[
+    samples$condition == row$control_condition,
+  ]
 
-    sleuth_table <- sleuth_results(so, "reduced:full", "lrt")
+  treatment = samples[
+    samples$condition == row$treatment_condition,
+  ]
 
-    filename = paste0(
-        paste(row$control, row$treatment, sep = "-"),
-        ".csv"
-    )
+  sample_names = c(control$sample_name, treatment$sample_name)
+  conditions = c(control$condition, treatment$condition)
 
-    write_csv(sleuth_table, file.path(OUTPUT_DIR, filename))
+  s2c = data.frame(
+    sample = sample_names,
+    condition = factor(
+      conditions,
+      levels = c(row$control_condition, row$treatment_condition)
+    ),
+    path = file.path(INPUT_DIR, sample_names)
+  )
+
+  # Run sleuth (aggregating transcripts to genes)
+
+  so = sleuth_prep(
+    s2c,
+    full_model = ~condition,
+    target_mapping = target_mapping,
+    aggregation_column = "gene_id",
+    gene_mode = TRUE,
+    extra_bootstrap_summary = FALSE,
+    num_cores = CORES
+  )
+
+  so = sleuth_fit(so, ~condition, "full")
+  so = sleuth_fit(so, ~1, "reduced")
+
+  # Likelihood ratio test for significance
+  so = sleuth_lrt(so, "reduced", "full")
+
+  # Wald test for the fold change
+  beta = paste0("condition", row$treatment_condition)
+  so = sleuth_wt(so, beta, "full")
+
+  lrt = sleuth_results(so, "reduced:full", "lrt", show_all = FALSE)
+  wt = sleuth_results(so, beta, "wt", show_all = FALSE)
+
+  # Match the DESeq2 results format (gene IDs as row names). In gene mode,
+  # target_id is the gene ID. sleuth's b (and its standard error) is a fold
+  # change on the natural log scale, so convert it to log2. The p-values come
+  # from the likelihood ratio test, so stat is the likelihood ratio test
+  # statistic.
+  wt = wt[match(lrt$target_id, wt$target_id), ]
+
+  res = data.frame(
+    log2FoldChange = wt$b / log(2),
+    lfcSE = wt$se_b / log(2),
+    stat = lrt$test_stat,
+    pvalue = lrt$pval,
+    padj = lrt$qval,
+    row.names = lrt$target_id
+  )
+
+  # Write results to CSV
+
+  print("Writing results...")
+
+  path = file.path(
+    OUTPUT_DIR,
+    row$control_condition,
+    row$treatment_condition,
+    "results.csv"
+  )
+
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  write.csv(res, path)
 }

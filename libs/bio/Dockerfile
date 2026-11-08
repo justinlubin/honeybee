@@ -101,6 +101,13 @@ RUN Rscript -e 'BiocManager::install("Huber-group-EMBL/remart")'
 RUN Rscript -e 'BiocManager::install("AnnotationHub")'
 RUN Rscript -e 'BiocManager::install("ensembldb")'
 
+# sleuth uses dplyr functions (select_, etc.) that are defunct in dplyr >= 1.2
+# (https://github.com/pachterlab/sleuth/issues/276), so pin dplyr. dbplyr >= 2.6
+# (used by AnnotationHub) requires dplyr >= 1.2, so pin it too. These must come
+# after all other R package installs so that nothing upgrades them again.
+RUN Rscript -e 'remotes::install_version("dplyr", "1.1.4", repos = "https://cloud.r-project.org", upgrade = "never")'
+RUN Rscript -e 'remotes::install_version("dbplyr", "2.5.0", repos = "https://cloud.r-project.org", upgrade = "never")'
+
 # Final setup (some stuff commented out for user study)
 
 # COPY image-files/environment environment

@@ -1880,22 +1880,82 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
     # PARAMETER: The number of cores to use
     CORES = 4
 
-    # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "111"
+    # PARAMETER: The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction
+    RNA_SEQ_P_VALUE_THRESHOLD = 0.05
 
-    # PARAMETER: The Ensembl gene annotation dataset to use
-    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Run sleuth
     bash(f"""
         Rscript environment/sleuth.r
             --cores={CORES}
-            --ensembl_version={ENSEMBL_VERSION}
-            --ensembl_dataset={ENSEMBL_DATASET}
+            --gene_metadata={shared()}/{species}/gene_metadata.csv
+            --tx2gene={shared()}/{species}/tx2gene.csv
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
-            --input={__hb_data.path}
-            --output={__hb_ret.path}
+            --input_directory={__hb_data.path}
+            --output_directory={__hb_ret.path}
     """)
+
+    # Load gene metadata
+    gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+    # Load comparison sheet
+    comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+    # Create an interactive volcano plot for each comparison
+    for comparison in comparisons.iter_rows(named=True):
+        control = comparison["control_condition"]
+        treatment = comparison["treatment_condition"]
+
+        # Load the results from sleuth and give significance labels (up/down/ns)
+        results = (
+            pl.read_csv(
+                os.path.join(
+                    __hb_ret.path,
+                    control,
+                    treatment,
+                    "results.csv",
+                ),
+                null_values=["NA"],
+            )
+            .rename({"": "gene_id"})
+            .join(gene_metadata, on="gene_id")
+            .with_columns(
+                sig=pl.col("padj").log10().neg(),
+                group=pl.when(
+                    (pl.col("padj").is_null())
+                    | (pl.col("padj") >= RNA_SEQ_P_VALUE_THRESHOLD)
+                )
+                .then(pl.lit("ns"))
+                .when(pl.col("log2FoldChange") > 0)
+                .then(pl.lit("up"))
+                .otherwise(pl.lit("down")),
+            )
+        )
+
+        # Make and display the volcano plot
+        display(
+            alt.Chart(results)
+            .mark_point()
+            .encode(
+                x="log2FoldChange:Q",
+                y="sig:Q",
+                color=alt.Color(
+                    "group:N",
+                    scale=alt.Scale(
+                        domain=["up", "down", "ns"],
+                        range=["crimson", "steelblue", "black"],
+                    ),
+                ),
+                tooltip=["gene_name", "gene_id"],
+            )
+            .properties(title=f"{treatment} vs. {control}"),
+        )
 
 
 ################################################################################
