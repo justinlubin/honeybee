@@ -337,6 +337,10 @@ strong {
   margin-bottom: 0;
 }
 
+.code-cell .markdown {
+  margin-bottom: 20px;
+}
+
 /* Menu bar */
 
 .menu-bar {

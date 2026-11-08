@@ -35,6 +35,7 @@ type alias FunctionChoice =
 
 type alias CodeCell =
     { title : String
+    , description : String
     , code : String
     , openWhenEditing : Bool
     , phase : Maybe Core.Phase

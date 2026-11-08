@@ -422,6 +422,7 @@ cell ctx c =
                         []
                     )
                     [ summary [] [ h2 [] [ text cc.title ] ]
+                    , markdown [] cc.description
                     , div
                         [ A.class "code-container" ]
                         [ pythonCode cc.code ]
@@ -438,6 +439,7 @@ cell ctx c =
                             , A.class "speculating"
                             ]
                             [ h2 [] [ text specCode.title ]
+                            , markdown [] specCode.description
                             , div
                                 [ A.class "code-container" ]
                                 [ pythonCode specCode.code ]
