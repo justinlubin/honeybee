@@ -186,6 +186,17 @@ pub fn jupyter_notebook(lib: &Library, e: &Exp) -> String {
         );
     }
 
+    cells.insert(
+        0,
+        ipynb::Cell::Code(ipynb::CodeCell {
+            metadata: HashMap::new(),
+            source: vec!["from environment import *".to_owned()],
+            id: Some("environment_import".to_owned()),
+            execution_count: None,
+            outputs: vec![],
+        }),
+    );
+
     serde_json::to_string(&ipynb::Notebook {
         cells,
         metadata: HashMap::new(),

@@ -241,15 +241,16 @@ impl<'a> Context<'a> {
                     );
                 }
 
-                let mut new_imp = if self.check_already_exists {
+                let new_imp = if self.check_already_exists {
                     imp.lines()
                         .map(|s| format!("    {}\n", s))
                         .collect::<Vec<_>>()
                         .join("")
-                        .replace("__hb_ret", var_name)
                 } else {
                     imp
                 };
+
+                let mut new_imp = new_imp.replace("__hb_ret", var_name);
 
                 for (lhs, rhs) in args {
                     new_imp = new_imp.replace(&format!("__hb_{}", lhs), rhs)
@@ -444,22 +445,23 @@ impl<'a> Context<'a> {
             }
         }
 
-        self.cells.insert(
-            1,
-            Cell::Code {
-                number_id: None,
-                title: "Initialization code".to_owned(),
-                code: pr_code.trim().to_owned(),
-                description: "".to_owned(),
-                open_when_editing: false,
-                open_when_exporting: false,
-                has_path: false,
-                priority: 0,
-                info: None,
-                phase: None,
-                var_name_function_name: None,
-            },
-        );
+        // Keep in separate "environment.py" file for now
+        // self.cells.insert(
+        //     1,
+        //     Cell::Code {
+        //         number_id: None,
+        //         title: "Initialization code".to_owned(),
+        //         code: pr_code.trim().to_owned(),
+        //         description: "This cell defines some \"helper\" functions to glue things together, like running commands and getting file paths. **The actual computational analysis pipeline starts in the cell after this one!**".to_owned(),
+        //         open_when_editing: false,
+        //         open_when_exporting: false,
+        //         has_path: false,
+        //         priority: 0,
+        //         info: None,
+        //         phase: None,
+        //         var_name_function_name: None,
+        //     },
+        // );
     }
 }
 

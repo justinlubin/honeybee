@@ -96,13 +96,13 @@ RUN uv sync
 RUN uv run jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
 
-# Final setup
+# Final setup (some stuff commented out for user study)
 
-COPY image-files/environment environment
+# COPY image-files/environment environment
 COPY image-files/edit-warning.md DO_NOT_EDIT_HERE.md
 
-COPY image-files/entrypoint.sh entrypoint.sh
-RUN chmod +x entrypoint.sh
+# COPY image-files/entrypoint.sh entrypoint.sh
+# RUN chmod +x entrypoint.sh
 
 ARG RELEASE
 ARG COMMIT
@@ -112,4 +112,4 @@ ENV HONEYBEE_RELEASE=${RELEASE}+${COMMIT}
 ENV HONEYBEE_COMMIT=${COMMIT}
 ENV HONEYBEE_USER_ENVIRONMENT=${USER_FILES}/environment
 
-ENTRYPOINT ["/root/entrypoint.sh"]
+#ENTRYPOINT ["/root/entrypoint.sh"]

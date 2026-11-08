@@ -412,7 +412,12 @@ def initialize(name=None, erase_static=True, allow_input_arguments=True):
             imports.append(needed_import)
     imports.sort()
 
-    print(f"[[Preamble]]\ncontent = '''{'\n'.join(imports)}")
+    header_comment = """# This file defines some "helper" code that lets us do things
+# like run commands and log outputs! The file "pipeline.ipynb"
+# contains your computational analysis."""
+
+    print(f"[[Preamble]]\ncontent = '''{header_comment}\n")
+    print("\n".join(imports))
     print('\nalt.data_transformers.enable("vegafusion")')
     print("\nlogger = logging.getLogger(__name__)")
     print("logging.basicConfig(")
