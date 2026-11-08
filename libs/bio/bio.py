@@ -401,9 +401,6 @@ def bam_sort_index(__hb_align: SeqAlignment, __hb_ret: SeqAlignment):
         """)
 
 
-# https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
-
-
 @Output
 class Bowtie2Index:
     """@intermediate:Bowtie 2 index
