@@ -1639,7 +1639,6 @@ RUN_BATCH_CORRECTION = None
 
 @Function(
     use="a 2D visualization of your samples' gene expression",
-    search=False,
     citation="Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011.",
 )
 def pca_gene_expression(
@@ -1647,7 +1646,7 @@ def pca_gene_expression(
     # __hb_bc: RunBatchCorrection,
     __hb_ret: PCAGeneExpression,
 ):
-    """Perform 2D Principal Component Analysis (PCA)
+    """2D Principal Component Analysis (PCA) with scikit-learn
 
     This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
     to perform a principal component analysis. Specifically, it uses the
@@ -1697,54 +1696,23 @@ def pca_gene_expression(
 
 
 @Function(
-    use="a 2D visualization of the entire space of gene expression",
+    search=False,
 )
 def count_differentially_expressed_genes(
-    __hb_data: GeneMatrices,
+    __hb_data: DifferentialGeneExpression,
     # __hb_bc: RunBatchCorrection,
     __hb_ret: CountDifferentiallyExpressedGenes,
 ):
     "Count differentially-expressed genes"
 
-    # Load sample sheet
-    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+    # PARAMETER: The log2 fold change threshold for what constitutes a "differentially-expressed gene"
+    RNA_SEQ_LOG2_FC_THRESHOLD = 1
 
-    # Load gene expression (rows are genes, columns are samples)
-    expression = pl.read_csv(f"{__hb_data.path}/counts.csv")
+    # PARAMETER: The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction
+    RNA_SEQ_P_VALUE_THRESHOLD = 0.05
 
-    # Transpose gene expression so that rows are samples, columns are genes
-    X = expression.to_numpy().T
-
-    # Get the principal components
-    pcs = skdec.PCA(n_components=2).fit_transform(X)
-
-    # Convert to dataframe and add condition information
-    results = (
-        pl.DataFrame(pcs, schema=["PC1", "PC2"])
-        .insert_column(
-            0,
-            pl.Series("sample_name", expression.columns),
-        )
-        .join(sample_sheet, on="sample_name")
-    )
-
-    # Save the results of the PCA
-    results.write_csv(
-        f"{__hb_ret.path}/pca.tsv",
-        separator="\t",
-    )
-
-    # Display the interactive PCA chart
-    display(
-        alt.Chart(results)
-        .mark_point()
-        .encode(
-            x="PC1:Q",
-            y="PC2:Q",
-            color="condition:N",
-            tooltip="sample_name:N",
-        ),
-    )
+    # TODO
+    pass
 
 
 @Function(
