@@ -1015,6 +1015,18 @@ def load_rna_seq(__hb_ret: SeqReads):
         reverse_location=pl.col("reverse_location").replace(new_files),
     ).write_csv(f"{shared()}/sample_sheet.csv")
 
+    # Create comparison sheet
+    (
+        sample_sheet.select("comparison", "condition")
+        .unique(maintain_order=True)
+        .with_columns(
+            control_condition=pl.col("condition").first().over("comparison"),
+        )
+        .filter(pl.col("condition") != pl.col("control_condition"))
+        .select("control_condition", treatment_condition="condition")
+        .write_csv(f"{shared()}/comparison_sheet.csv")
+    )
+
 
 @Function(
     "reads.qc = true",
@@ -1778,6 +1790,7 @@ def deseq2(
     bash(f"""
         Rscript environment/deseq2.r
             --sample_sheet={shared()}/sample_sheet.csv
+            --comparison_sheet={shared()}/comparison_sheet.csv
             --gene_counts={__hb_data.path}/counts.csv
             --output_directory={__hb_ret.path}
     """)
@@ -1818,7 +1831,7 @@ def deseq2(
                         range=["crimson", "steelblue", "black"],
                     ),
                 ),
-                tooltip="external_gene_name",
+                tooltip=["gene_name", "gene_id"],
             ),
         )
 

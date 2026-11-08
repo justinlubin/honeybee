@@ -92,7 +92,7 @@ print("Fetching gene metadata from Ensembl...")
 
 gene_metadata = genes(
   edb,
-  columns = c("gene_id", "gene_biotype"),
+  columns = c("gene_id", "gene_name", "gene_biotype"),
   return.type = "data.frame"
 )
 

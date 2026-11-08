@@ -26,6 +26,13 @@ parser = add_option(
 
 parser = add_option(
   parser,
+  c("--comparison_sheet"),
+  type = "character",
+  help = "Path to comparison sheet"
+)
+
+parser = add_option(
+  parser,
   c("--gene_counts"),
   type = "character",
   help = "Path to gene read count matrix"
@@ -42,8 +49,9 @@ opt = parse_args(parser)
 
 GENE_METADATA = opt$gene_metadata
 SAMPLE_SHEET = opt$sample_sheet
+COMPARISON_SHEET = opt$comparison_sheet
 GENE_COUNTS = opt$gene_counts
-OUTPUT_DIR = opt$output
+OUTPUT_DIR = opt$output_directory
 
 ################################################################################
 # %% Main script
@@ -66,7 +74,14 @@ print("Loading sample sheet...")
 
 samples = read.csv(
   SAMPLE_SHEET,
-  header = TRUE,
+  header = TRUE
+)
+
+print("Loading comparison sheet...")
+
+comparisons = read.csv(
+  COMPARISON_SHEET,
+  header = TRUE
 )
 
 print("Loading counts...")
@@ -74,7 +89,8 @@ print("Loading counts...")
 counts = round(
   read.csv(
     GENE_COUNTS,
-    row.names = 1
+    row.names = 1,
+    check.names = FALSE
   )
 )
 
@@ -86,19 +102,17 @@ counts = counts[
 
 # Run comparisons
 
-# TODO: make comparisons table
-
 for (i in 1:nrow(comparisons)) {
   row = comparisons[i, ]
 
-  paste(
+  print(paste(
     "Running DESeq2 with control '",
     row$control_condition,
     "' and treatment '",
     row$treatment_condition,
     "'",
     sep = ""
-  )
+  ))
 
   # Set up DESeq2 input data
 
@@ -134,12 +148,12 @@ for (i in 1:nrow(comparisons)) {
       "condition",
       row$treatment_condition,
       row$control_condition
-    ),
+    )
   )
 
   # Write results to CSV
 
-  paste("Writing results...")
+  print("Writing results...")
 
   path = file.path(
     OUTPUT_DIR,
@@ -148,6 +162,6 @@ for (i in 1:nrow(comparisons)) {
     "results.csv"
   )
 
-  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   write.csv(res, path)
 }
