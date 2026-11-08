@@ -1045,7 +1045,7 @@ def load_rna_seq(__hb_ret: SeqReads):
 def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
     """cutadapt - remove poly(A) tails
 
-    # Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+    # Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
     [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
     removes adapter sequences that are present due to a read length being
@@ -1780,6 +1780,9 @@ def deseq2(
     including an explanation of why some adjusted _p_-values are `NA` and what
     can be done to turn off that behavior."""
 
+    # PARAMETER: The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction
+    RNA_SEQ_P_VALUE_THRESHOLD = 0.05
+
     # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
@@ -1789,28 +1792,43 @@ def deseq2(
     # Run DESeq2
     bash(f"""
         Rscript environment/deseq2.r
+            --gene_metadata={shared()}/{species}/gene_metadata.csv
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
             --gene_counts={__hb_data.path}/counts.csv
             --output_directory={__hb_ret.path}
     """)
 
-    gene_metadata = pl.read_csv(f"{shared()}/gene_metadata.csv")
+    # Load gene metadata
+    gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+    # Load comparison sheet
     comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+    # Create an interactive volcano plot for each comparison
     for comparison in comparisons.iter_rows(named=True):
-        filename = (
-            f"{comparison['control_condition']}-{comparison['treatment_condition']}.csv"
-        )
+        control = comparison["control_condition"]
+        treatment = comparison["treatment_condition"]
+
+        # Load the results from DESeq2 and give significance labels (up/down/ns)
         results = (
             pl.read_csv(
-                f"{__hb_ret.path}/{filename}",
+                os.path.join(
+                    __hb_ret.path,
+                    control,
+                    treatment,
+                    "results.csv",
+                ),
                 null_values=["NA"],
             )
-            .rename({"": "ensembl_gene_id_version"})
-            .join(gene_metadata, on="ensembl_gene_id_version")
+            .rename({"": "gene_id"})
+            .join(gene_metadata, on="gene_id")
             .with_columns(
                 sig=pl.col("padj").log10().neg(),
-                group=pl.when(pl.col("padj") >= 0.05)
+                group=pl.when(
+                    (pl.col("padj").is_null())
+                    | (pl.col("padj") >= RNA_SEQ_P_VALUE_THRESHOLD)
+                )
                 .then(pl.lit("ns"))
                 .when(pl.col("log2FoldChange") > 0)
                 .then(pl.lit("up"))
@@ -1818,6 +1836,7 @@ def deseq2(
             )
         )
 
+        # Make and display the volcano plot
         display(
             alt.Chart(results)
             .mark_point()
@@ -1832,7 +1851,8 @@ def deseq2(
                     ),
                 ),
                 tooltip=["gene_name", "gene_id"],
-            ),
+            )
+            .properties(title=f"{treatment} vs. {control}"),
         )
 
 
