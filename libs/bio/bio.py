@@ -4,6 +4,7 @@ import re
 import subprocess
 import polars as pl
 import altair as alt
+import sklearn.decomposition as skdec
 from IPython.display import display
 
 from honey_lang import Function, Helper, Input, Output, initialize, log
@@ -841,14 +842,43 @@ class DifferentialGeneExpression:
     [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
     [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
 
+    This analysis goal is a downstream analysis in RNA-seq processing.
     The following image shows a _typical_ RNA-seq processing workflow,
     **but the details can vary a lot!**
 
-    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 
-    For example, sometimes you start with reads already quantified or trimmed,
-    and sometimes you need to run additional processing steps like batch
-    correction."""
+    path: str
+
+
+@Output(
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class PCAGeneExpression:
+    """2D Principal Component Analysis (PCA) of Gene Expression
+
+    This analysis computes a 2D visualization of gene expression using
+    something called
+    [Principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
+
+    The "principal components" capture the axes of largest variation in the dataset.
+    This means that if a quantity of interest segregates cleanly in the 2D
+    PCA projection, you can have high assurance that it accounts for most of the
+    variation in your dataset.
+
+    For example, say you have samples in Condition A and samples in Condition
+    B in your experiment, and you cluster each sample's gene expressions down
+    to a 2D visualization using PCA. If all the Condition A points are close
+    to each other and all the Condition B points are close to each other, that
+    means that most of the variation in your data set can be explained by which
+    condition your samples are assigned to.
+
+    This analysis goal is a downstream analysis in RNA-seq processing.
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 
     path: str
 
@@ -1586,6 +1616,59 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
 
 RUN_BATCH_CORRECTION = None
 
+# --batch_correct={RUN_BATCH_CORRECTION}
+
+
+@Function(
+    use="a 2D visualization of the entire space of gene expression",
+)
+def pca_gene_expression(
+    __hb_data: GeneMatrices,
+    # __hb_bc: RunBatchCorrection,
+    __hb_ret: PCAGeneExpression,
+):
+    "2D Principal Component Analysis (PCA)"
+
+    # Load sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Load gene expression (rows are genes, columns are samples)
+    expression = pl.read_csv(f"{__hb_data.path}/counts.csv")
+
+    # Transpose gene expression so that rows are samples, columns are genes
+    X = expression.to_numpy().T
+
+    # Get the principal components
+    pcs = skdec.PCA(n_components=2).fit_transform(X)
+
+    # Convert to dataframe and add condition information
+    results = (
+        pl.DataFrame(pcs, schema=["PC1", "PC2"])
+        .insert_column(
+            0,
+            pl.Series("sample_name", expression.columns),
+        )
+        .join(sample_sheet, on="sample_name")
+    )
+
+    # Save the results of the PCA
+    results.write_csv(
+        f"{__hb_ret.path}/pca.tsv",
+        separator="\t",
+    )
+
+    # Display the interactive PCA chart
+    display(
+        alt.Chart(results)
+        .mark_point()
+        .encode(
+            x="PC1:Q",
+            y="PC2:Q",
+            color="condition:N",
+            tooltip="sample_name:N",
+        ),
+    )
+
 
 @Function(
     google_scholar_id="16121678637925818947",
@@ -1597,7 +1680,7 @@ RUN_BATCH_CORRECTION = None
 )
 def deseq2(
     __hb_data: GeneMatrices,
-    __hb_bc: RunBatchCorrection,
+    # __hb_bc: RunBatchCorrection,
     __hb_ret: DifferentialGeneExpression,
 ):
     """DESeq2
@@ -1631,7 +1714,6 @@ def deseq2(
 
     bash(f"""
         Rscript environment/deseq2.r
-            --batch_correct={RUN_BATCH_CORRECTION}
             --ensembl_version={ENSEMBL_VERSION}
             --ensembl_dataset={ENSEMBL_DATASET}
             --sample_sheet={shared()}/sample_sheet.csv

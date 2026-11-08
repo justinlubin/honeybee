@@ -90,6 +90,7 @@ RUN uv add "altair[all]"
 RUN uv add ipython
 RUN uv add pysam
 RUN uv add --dev ipykernel
+RUN uv add scikit-learn
 
 RUN uv sync
 
