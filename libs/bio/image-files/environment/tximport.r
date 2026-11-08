@@ -25,14 +25,14 @@ parser = add_option(
 
 parser = add_option(
   parser,
-  c("--input"),
+  c("--input_directory"),
   type = "character",
   help = "Path to input directory (transcript quantifications)"
 )
 
 parser = add_option(
   parser,
-  c("--output"),
+  c("--output_directory"),
   type = "character",
   help = "Path to output directory (gene quantifications)"
 )
@@ -41,8 +41,8 @@ opt = parse_args(parser)
 
 SAMPLE_SHEET = opt$sample_sheet
 TX2GENE = opt$tx2gene
-INPUT_DIR = opt$input
-OUTPUT_DIR = opt$output
+INPUT_DIR = opt$input_directory
+OUTPUT_DIR = opt$output_directory
 
 ###############################################################################
 # %% Main script

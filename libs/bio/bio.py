@@ -1619,9 +1619,6 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     # PARAMETER: The version of Ensembl to use for gene annotations
     ENSEMBL_VERSION = "111"
 
-    # PARAMETER: The Ensembl gene annotation dataset to use
-    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
-
     # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
@@ -1644,8 +1641,8 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
         Rscript environment/tximport.r
             --sample_sheet={shared()}/sample_sheet.csv
             --tx2gene={shared()}/{species}/tx2gene.csv
-            --input={__hb_data.path}
-            --output={__hb_ret.path}
+            --input_directory={__hb_data.path}
+            --output_directory={__hb_ret.path}
     """)
 
 
@@ -1732,6 +1729,16 @@ def count_differentially_expressed_genes(
     pass
 
 
+# <span class="more-info">
+#     <span style="display: none">
+#         A <b>negative binomial distribution</b> is a statistical distribution
+#         that models count data with unexplained variance, such as the
+#         number of mRNA transcripts in a cell.  It looks like an off-center
+#         normal distribution that is only defined for non-negative integers.
+#     </span>
+#     negative binomial distribution</span>,
+
+
 @Function(
     google_scholar_id="16121678637925818947",
     citation="Love MI, Huber W, Anders S (2014). Moderated estimation of fold change "
@@ -1750,14 +1757,7 @@ def deseq2(
     # Find differentially-expressed protein-coding genes with [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
 
     DESeq2 models gene expression using what is called a
-    <span class="more-info">
-        <span style="display: none">
-            A <b>negative binomial distribution</b> is a statistical distribution
-            that models count data with unexplained variance, such as the
-            number of mRNA transcripts in a cell.  It looks like an off-center
-            normal distribution that is only defined for non-negative integers.
-        </span>
-        negative binomial distribution</span>,
+    [negative binomial distribution](https://en.wikipedia.org/wiki/Negative_binomial_distribution),
     which is much more suitable for RNA-seq data than something like a _t_-test.
     DESeq2 has an
     [extensive guide](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
@@ -1768,20 +1768,18 @@ def deseq2(
     including an explanation of why some adjusted _p_-values are `NA` and what
     can be done to turn off that behavior."""
 
-    # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "111"
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
-    # PARAMETER: The Ensembl gene annotation dataset to use
-    ENSEMBL_DATASET = "hsapiens_gene_ensembl"
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
 
+    # Run DESeq2
     bash(f"""
         Rscript environment/deseq2.r
-            --ensembl_version={ENSEMBL_VERSION}
-            --ensembl_dataset={ENSEMBL_DATASET}
             --sample_sheet={shared()}/sample_sheet.csv
-            --comparison_sheet={shared()}/comparison_sheet.csv
-            --input={__hb_data.path}/counts.csv
-            --output={__hb_ret.path}
+            --gene_counts={__hb_data.path}/counts.csv
+            --output_directory={__hb_ret.path}
     """)
 
     gene_metadata = pl.read_csv(f"{shared()}/gene_metadata.csv")

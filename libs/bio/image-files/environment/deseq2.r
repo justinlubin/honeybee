@@ -1,10 +1,9 @@
 ################################################################################
 # %% Imports
 
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(biomaRt))
-suppressPackageStartupMessages(library(DESeq2))
-suppressPackageStartupMessages(library(optparse))
+# suppressPackageStartupMessages(library(tidyverse))
+library(optparse)
+library(DESeq2)
 
 ################################################################################
 # %% Command-line arguments
@@ -12,196 +11,143 @@ suppressPackageStartupMessages(library(optparse))
 parser = OptionParser()
 
 parser = add_option(
-    parser,
-    c("--ensembl_version"),
-    type = "character",
-    help = "Ensembl version to use (e.g. 115)"
+  parser,
+  c("--gene_metadata"),
+  type = "character",
+  help = "Path to gene metadata file"
 )
 
 parser = add_option(
-    parser,
-    c("--ensembl_dataset"),
-    type = "character",
-    help = "Ensembl dataset to use (e.g. hsapiens_gene_ensembl)"
+  parser,
+  c("--sample_sheet"),
+  type = "character",
+  help = "Path to sample sheet"
 )
 
 parser = add_option(
-    parser,
-    c("--sample_sheet"),
-    type = "character",
-    help = "Path to sample sheet"
+  parser,
+  c("--gene_counts"),
+  type = "character",
+  help = "Path to gene read count matrix"
 )
 
 parser = add_option(
-    parser,
-    c("--comparison_sheet"),
-    type = "character",
-    help = "Path to comparison sheet"
-)
-
-parser = add_option(
-    parser,
-    c("--input"),
-    type = "character",
-    help = "Path to input directory (gene read count matrix)"
-)
-
-parser = add_option(
-    parser,
-    c("--output"),
-    type = "character",
-    help = "Path to output directory"
+  parser,
+  c("--output_directory"),
+  type = "character",
+  help = "Path to output directory"
 )
 
 opt = parse_args(parser)
 
-ENSEMBL_VERSION = opt$ensembl_version
-ENSEMBL_DATASET = opt$ensembl_dataset
+GENE_METADATA = opt$gene_metadata
 SAMPLE_SHEET = opt$sample_sheet
-COMPARISON_SHEET = opt$comparison_sheet
-GENE_COUNTS = opt$input
+GENE_COUNTS = opt$gene_counts
 OUTPUT_DIR = opt$output
 
 ################################################################################
 # %% Main script
 
-# Get gene metadata
+print("Loading gene metadata file...")
 
-gene_metadata_filename = "output/shared/gene_metadata.csv"
-
-if (file.exists(gene_metadata_filename)) {
-    print("Gene metadata already exists; loading it now...")
-
-    gene_metadata = read.csv(gene_metadata_filename, header=TRUE)
-} else {
-    print("Gene metadata does not exist yet; fetching it now...")
-    
-    print("Connecting to Ensembl...")
-    
-    mart = useEnsembl(
-        biomart = "ensembl",
-        dataset = ENSEMBL_DATASET,
-        version = ENSEMBL_VERSION
-    )
-    
-    print("Fetching gene metadata...")
-    
-    gene_metadata = getBM(
-        attributes = c(
-              "ensembl_gene_id",
-              "ensembl_gene_id_version",
-              "chromosome_name",
-              "start_position",
-              "end_position",
-              "external_gene_name",
-              "gene_biotype"
-        ),
-        mart = mart
-    )
-    
-    print("Saving gene metadata...")
-    
-    write_csv(gene_metadata, gene_metadata_filename)
-}
+gene_metadata = read.csv(
+  GENE_METADATA,
+  header = TRUE
+)
 
 print("Filtering to protein-coding genes...")
 
 protein_coding = gene_metadata[
-    gene_metadata$gene_biotype == "protein_coding",
-    "ensembl_gene_id_version"
+  gene_metadata$gene_biotype == "protein_coding",
+  "gene_id"
 ]
-
-# Load sample sheet, comparisons sheet, and RNA-seq data
 
 print("Loading sample sheet...")
 
-metadata = read.csv(
-    SAMPLE_SHEET,
-    header=TRUE,
-)
-
-print("Loading comparison sheet...")
-
-comparisons = read.csv(
-    COMPARISON_SHEET,
-    header=TRUE,
+samples = read.csv(
+  SAMPLE_SHEET,
+  header = TRUE,
 )
 
 print("Loading counts...")
 
 counts = round(
-    read.csv(
-        GENE_COUNTS,
-        row.names=1
-    )
+  read.csv(
+    GENE_COUNTS,
+    row.names = 1
+  )
 )
 
+print("Filtering genes to protein-coding only...")
+
 counts = counts[
-    rownames(counts) %in% protein_coding,
+  rownames(counts) %in% protein_coding,
 ]
 
 # Run comparisons
 
+# TODO: make comparisons table
+
 for (i in 1:nrow(comparisons)) {
-    row = comparisons[i,]
-    
-    paste(
-        "Running DESeq2 with control '",
-        row$control_condition,
-        "' and treatment '",
-        row$treatment_condition,
-        "'",
-        sep=""
-    )
+  row = comparisons[i, ]
 
-    # Set up DESeq2 input data
+  paste(
+    "Running DESeq2 with control '",
+    row$control_condition,
+    "' and treatment '",
+    row$treatment_condition,
+    "'",
+    sep = ""
+  )
 
-    row = comparisons[i,]
-    control = metadata[
-        (metadata$condition == row$control_condition),
-    ]
-    treatment = metadata[
-        (metadata$condition == row$treatment_condition),
-    ]
+  # Set up DESeq2 input data
 
-    cols = c(control$sample_name, treatment$sample_name)
-    conditions = c(control$condition, treatment$condition)
+  control = samples[
+    samples$condition == row$control_condition,
+  ]
 
-    colData = data.frame(
-        id = cols,
-        condition = as.factor(conditions)
-    )
+  treatment = samples[
+    samples$condition == row$treatment_condition,
+  ]
 
-    # Run DESeq2
+  cols = c(control$sample_name, treatment$sample_name)
+  conditions = c(control$condition, treatment$condition)
 
-    dds = DESeqDataSetFromMatrix(
-        countData = counts[, cols],
-        colData = colData,
-        design = ~ condition
-    )
+  colData = data.frame(
+    id = cols,
+    condition = as.factor(conditions)
+  )
 
-    dds = DESeq(dds)
+  # Run DESeq2
 
-    res = results(
-        dds,
-        contrast=c(
-            "condition",
-            row$treatment_condition,
-            row$control_condition
-        ),
-    )
+  dds = DESeqDataSetFromMatrix(
+    countData = counts[, cols],
+    colData = colData,
+    design = ~condition
+  )
 
-    # Write results to CSV
+  dds = DESeq(dds)
 
-    paste("Writing results...")
+  res = results(
+    dds,
+    contrast = c(
+      "condition",
+      row$treatment_condition,
+      row$control_condition
+    ),
+  )
 
-    filename = paste0(
-        paste(row$control_condition, row$treatment_condition, sep="-"),
-        ".csv"
-    )
+  # Write results to CSV
 
-    write.csv(
-        res,
-        file.path(OUTPUT_DIR, filename),
-    )
+  paste("Writing results...")
+
+  path = file.path(
+    OUTPUT_DIR,
+    row$control_condition,
+    row$treatment_condition,
+    "results.csv"
+  )
+
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  write.csv(res, path)
 }
