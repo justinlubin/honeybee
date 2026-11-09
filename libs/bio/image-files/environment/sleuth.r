@@ -93,7 +93,7 @@ protein_coding = gene_metadata[
 ]
 
 target_mapping = data.frame(
-  target_id = tx2gene$tx_id,
+  target_id = tx2gene$tx_id_version,
   gene_id = tx2gene$gene_id
 )
 

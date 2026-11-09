@@ -1472,11 +1472,10 @@ def kallisto_bootstrap(
     # Run kallisto for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
         # -b number of bootstrap resamplings, -t number of cores,
-        # -i kallisto index, -o output folder (--plaintext sets output
-        # format)
+        # -i kallisto index, -o output folder (do *not* use --plaintext, as
+        # sleuth needs the bootstraps that are only saved in abundance.h5)
         bash(f"""
              kallisto quant
-                 --plaintext
                  -b {KALLISTO_BOOTSTRAPS}
                  -t {CORES}
                  -i {__hb_idx.path}/kallisto.idx
@@ -1497,7 +1496,6 @@ def kallisto_bootstrap(
 #     #     Bioanalyzer.
 #     #                     - https://pachterlab.github.io/kallisto/manual
 #     bash(f"""kallisto quant
-#                  --plaintext
 #                 -b {KALLISTO_BOOTSTRAPS}
 #                 --fragment-length=200
 #                 --sd=20

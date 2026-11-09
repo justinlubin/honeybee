@@ -57,9 +57,7 @@ pattern = paste0(
 )
 q = q[grepl(pattern, q$title, ignore.case = TRUE)]
 
-# If there are multiple strains, use the reference genome, whose file name has
-# no strain suffix (e.g. EnsDb.Mmusculus.v111.sqlite, not
-# EnsDb.Mmusculus_aj.v111.sqlite)
+# Use reference genome (no strain suffix)
 if (length(q) > 1) {
   q = q[!grepl("_", basename(q$rdatapath))]
 }
@@ -76,9 +74,11 @@ print("Fetching transcript-to-gene table from Ensembl...")
 
 tx2gene = transcripts(
   edb,
-  columns = c("tx_id", "gene_id"),
+  columns = c("tx_id_version", "gene_id"),
   return.type = "data.frame"
 )
+
+tx2gene = tx2gene[, c("tx_id_version", "gene_id")]
 
 print("Writing transcript-to-gene table...")
 

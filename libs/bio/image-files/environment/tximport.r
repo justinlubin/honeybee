@@ -74,8 +74,7 @@ print("Aggregating transcripts to genes...")
 txi = tximport(
   files,
   type = "kallisto",
-  tx2gene = tx2gene,
-  ignoreTxVersion = TRUE
+  tx2gene = tx2gene
 )
 
 print("Writing final abundance tables...")
