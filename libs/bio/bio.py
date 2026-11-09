@@ -908,7 +908,17 @@ class PCAGeneExpression:
 class CountDifferentiallyExpressedGenes:
     """Count differentially-expressed genes
 
-    TODOTEXT
+    The goal of this step is to count how many genes are differentially
+    expressed in each comparison.
+
+    There are two thresholds you can set for this step:
+
+    - The **p-value** threshold (significance threshold)
+    - The **log2 fold change** threshold (magnitude threshold)
+
+    The p-value tells you how significant your hit is (which is related to
+    both sample size and magnitude) and the log2 fold change tells you just the
+    magnitude of the differential expression.
 
     This analysis goal is a downstream analysis in RNA-seq processing.
     The following image shows a _typical_ RNA-seq processing workflow,
@@ -926,7 +936,18 @@ class CountDifferentiallyExpressedGenes:
 class AnyDifferentiallyExpressedGenes:
     """@intermediate:Filter genes to just differentially-expressed
 
-    TODOTEXT"""
+    The goal of this step is to filter your entire list of genes to **just**
+    those that are differentially expressed **in at least one of the
+    comparisons against each control**.
+
+    There are two thresholds you can set for this step:
+
+    - The **p-value** threshold (significance threshold)
+    - The **log2 fold change** threshold (magnitude threshold)
+
+    The p-value tells you how significant your hit is (which is related to
+    both sample size and magnitude) and the log2 fold change tells you just the
+    magnitude of the differential expression."""
 
     path: str
 
@@ -938,14 +959,18 @@ class AnyDifferentiallyExpressedGenes:
 class DifferentiallyExpressedGeneClusters:
     """Cluster differentially-expressed genes
 
-    The goal of this step is to group differentially-expressed genes into
-    **clusters** of genes that have similar expression patterns across your
+    The goal of this step is to group genes that are differentially expressed
+    among **any** of the comparisons against your control into **clusters**.
+
+    Each cluster has genes that have similar expression patterns across your
     samples. For example, one cluster might contain genes that go up in your
     treatment condition, and another might contain genes that go down.
 
     Genes in the same cluster are often (but not always) involved in related
     biological processes, so these clusters are commonly used as input to
-    downstream analyses like gene ontology (GO) enrichment.
+    downstream analyses like
+    [gene ontology (GO)](https://en.wikipedia.org/wiki/Gene_Ontology)
+    enrichment.
 
     This analysis goal is a downstream analysis in RNA-seq processing.
     The following image shows a _typical_ RNA-seq processing workflow,
@@ -2012,7 +2037,13 @@ def count_differentially_expressed_genes(
     __hb_data: DifferentialGeneExpression,
     __hb_ret: CountDifferentiallyExpressedGenes,
 ):
-    "Count differentially-expressed genes"
+    """Count differentially-expressed genes
+
+    This code counts how many genes are differentially expressed in at least one
+    comparison against a control.
+
+    You can tweak the parameters to set the **p-value** threshold (significance
+    threshold) and **log2 fold change** threshold (magnitude threshold)."""
 
     # PARAMETER: The log2 fold change threshold for what constitutes a "differentially-expressed gene"
     RNA_SEQ_LOG2_FC_THRESHOLD = 1
@@ -2072,7 +2103,13 @@ def any_differentially_expressed_genes(
     __hb_data: DifferentialGeneExpression,
     __hb_ret: AnyDifferentiallyExpressedGenes,
 ):
-    "List genes differentially expressed in any comparison"
+    """List genes differentially expressed in any comparison
+
+    This code filters your list of genes into just the genes that are
+    differentially expressed in at least one comparison against a control.
+
+    You can tweak the parameters to set the **p-value** threshold (significance
+    threshold) and **log2 fold change** threshold (magnitude threshold)."""
 
     # PARAMETER: The log2 fold change threshold for what constitutes a "differentially-expressed gene"
     RNA_SEQ_LOG2_FC_THRESHOLD = 1
@@ -2138,7 +2175,7 @@ def any_differentially_expressed_genes(
 
 
 @Function(
-    use="a clustering method where you choose the **number of clusters** up-front.",
+    use="a clustering method that just splits genes into a prespecified number of clusters",
     citation="Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011.",
 )
 def kmeans_cluster_genes(
@@ -2155,19 +2192,13 @@ def kmeans_cluster_genes(
     sklearn.cluster.KMeans.html) function; that webpage contains all the
     documentation for this function and more examples.
 
-    Before clustering, each gene's expression (TPM) is log-transformed and
-    standardized (z-scored) across samples, so that genes are clustered by the
-    _shape_ of their expression pattern rather than by how highly expressed
-    they are overall."""
+    Before clustering, each gene's expression is log-transformed and standardized
+    (using [z-scores](https://en.wikipedia.org/wiki/Standard_score)) across
+    samples, so that genes are clustered by the shape of their expression
+    pattern rather than by how highly expressed they are overall."""
 
-    # PARAMETER: The number of clusters to group genes into
-    NUMBER_OF_CLUSTERS = 4
-
-    # PARAMETER: The random seed (for reproducibility)
-    RANDOM_SEED = 0
-
-    # Load sample sheet
-    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+    # PARAMETER: The number of clusters to group genes into for the RNA-seq analysis
+    RNA_SEQ_CLUSTER_COUNT = 4
 
     # Load gene expression (rows are genes, columns are samples), then
     # log-transform it and z-score each gene across samples
@@ -2186,20 +2217,21 @@ def kmeans_cluster_genes(
         )
     )
 
-    # Cluster the differentially-expressed genes for each comparison id
-    for path in sorted(
-        glob.glob(f"{__hb_genes.path}/differentially_expressed_genes*.csv")
-    ):
-        comparison_id = stem(path).removeprefix("differentially_expressed_genes")
+    # Load comparison sheet
+    comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
 
+    # Cluster the differentially-expressed genes for each comparison id
+    for comparison_id in comparisons["comparison"].unique(maintain_order=True):
         # Load the differentially-expressed genes and their expression
-        genes = pl.read_csv(path).join(expression, on="gene_id", how="inner")
+        genes = pl.read_csv(
+            f"{__hb_genes.path}/differentially_expressed_genes{comparison_id}.csv"
+        ).join(expression, on="gene_id", how="inner")
 
         # Run k-means clustering (rows are genes, columns are samples)
         X = genes.select(samples).to_numpy()
         labels = skclust.KMeans(
-            n_clusters=min(NUMBER_OF_CLUSTERS, len(genes)),
-            random_state=RANDOM_SEED,
+            n_clusters=min(RNA_SEQ_CLUSTER_COUNT, len(genes)),
+            random_state=0,
         ).fit_predict(X)
 
         # Save the cluster assignments
@@ -2207,25 +2239,6 @@ def kmeans_cluster_genes(
             cluster=pl.Series(labels + 1)
         )
         clusters.write_csv(f"{__hb_ret.path}/clusters{comparison_id}.csv")
-
-        # Display the average expression pattern for each cluster
-        profiles = (
-            genes.with_columns(cluster=pl.Series(labels + 1))
-            .unpivot(index=["gene_id", "cluster"], on=samples)
-            .rename({"variable": "sample_name", "value": "z_score"})
-            .join(sample_sheet, on="sample_name")
-        )
-        display(
-            alt.Chart(profiles)
-            .mark_line(point=True)
-            .encode(
-                x=alt.X("sample_name:N", sort=samples),
-                y=alt.Y("mean(z_score):Q", title="mean z-score"),
-                color="cluster:N",
-                tooltip=["cluster:N", "condition:N", "count(gene_id):Q"],
-            )
-            .properties(title=f"Gene clusters (comparison {comparison_id})"),
-        )
 
 
 @Function(
@@ -2248,19 +2261,13 @@ def hierarchical_cluster_genes(
     sklearn.cluster.AgglomerativeClustering.html) function; that webpage
     contains all the documentation for this function and more examples.
 
-    Before clustering, each gene's expression (TPM) is log-transformed and
-    standardized (z-scored) across samples, so that genes are clustered by the
-    _shape_ of their expression pattern rather than by how highly expressed
-    they are overall."""
+    Before clustering, each gene's expression is log-transformed and standardized
+    (using [z-scores](https://en.wikipedia.org/wiki/Standard_score)) across
+    samples, so that genes are clustered by the shape of their expression
+    pattern rather than by how highly expressed they are overall."""
 
-    # PARAMETER: The number of clusters to cut the tree into
-    NUMBER_OF_CLUSTERS = 4
-
-    # PARAMETER: How to measure distance between groups of genes ("ward", "complete", "average", or "single")
-    LINKAGE = "ward"
-
-    # Load sample sheet
-    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+    # PARAMETER: The number of clusters to group genes into for the RNA-seq analysis
+    RNA_SEQ_CLUSTER_COUNT = 4
 
     # Load gene expression (rows are genes, columns are samples), then
     # log-transform it and z-score each gene across samples
@@ -2279,20 +2286,23 @@ def hierarchical_cluster_genes(
         )
     )
 
-    # Cluster the differentially-expressed genes for each comparison id
-    for path in sorted(
-        glob.glob(f"{__hb_genes.path}/differentially_expressed_genes*.csv")
-    ):
-        comparison_id = stem(path).removeprefix("differentially_expressed_genes")
+    # Load comparison sheet
+    comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
 
+    # Cluster the differentially-expressed genes for each comparison id
+    for comparison_id in comparisons["comparison"].unique(maintain_order=True):
         # Load the differentially-expressed genes and their expression
-        genes = pl.read_csv(path).join(expression, on="gene_id", how="inner")
+        genes = pl.read_csv(
+            f"{__hb_genes.path}/differentially_expressed_genes{comparison_id}.csv"
+        ).join(expression, on="gene_id", how="inner")
 
         # Run hierarchical clustering (rows are genes, columns are samples)
+        # You can change the linkage to use alternative methods.
+        # Valid options are: "ward", "complete", "average", "single"
         X = genes.select(samples).to_numpy()
         labels = skclust.AgglomerativeClustering(
-            n_clusters=min(NUMBER_OF_CLUSTERS, len(genes)),
-            linkage=LINKAGE,
+            n_clusters=min(RNA_SEQ_CLUSTER_COUNT, len(genes)),
+            linkage="ward",
         ).fit_predict(X)
 
         # Save the cluster assignments
@@ -2300,25 +2310,6 @@ def hierarchical_cluster_genes(
             cluster=pl.Series(labels + 1)
         )
         clusters.write_csv(f"{__hb_ret.path}/clusters{comparison_id}.csv")
-
-        # Display the average expression pattern for each cluster
-        profiles = (
-            genes.with_columns(cluster=pl.Series(labels + 1))
-            .unpivot(index=["gene_id", "cluster"], on=samples)
-            .rename({"variable": "sample_name", "value": "z_score"})
-            .join(sample_sheet, on="sample_name")
-        )
-        display(
-            alt.Chart(profiles)
-            .mark_line(point=True)
-            .encode(
-                x=alt.X("sample_name:N", sort=samples),
-                y=alt.Y("mean(z_score):Q", title="mean z-score"),
-                color="cluster:N",
-                tooltip=["cluster:N", "condition:N", "count(gene_id):Q"],
-            )
-            .properties(title=f"Gene clusters (comparison {comparison_id})"),
-        )
 
 
 # <span class="more-info">
