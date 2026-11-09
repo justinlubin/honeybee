@@ -1734,8 +1734,48 @@ def count_differentially_expressed_genes(
     # PARAMETER: The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction
     RNA_SEQ_P_VALUE_THRESHOLD = 0.05
 
-    # TODO
-    pass
+    # Load comparison sheet
+    comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+    # Count the differentially-expressed genes for each comparison
+    counts = []
+    for comparison in comparisons.iter_rows(named=True):
+        control = comparison["control_condition"]
+        treatment = comparison["treatment_condition"]
+
+        # Load the differential expression results
+        results = pl.read_csv(
+            os.path.join(
+                __hb_data.path,
+                control,
+                treatment,
+                "results.csv",
+            ),
+            null_values=["NA"],
+        )
+
+        # Keep only genes that pass both thresholds (null p-values are dropped)
+        de_genes = results.filter(
+            (pl.col("padj") < RNA_SEQ_P_VALUE_THRESHOLD)
+            & (pl.col("log2FoldChange").abs() >= RNA_SEQ_LOG2_FC_THRESHOLD)
+        )
+
+        counts.append(
+            {
+                "control_condition": control,
+                "treatment_condition": treatment,
+                "differentially_expressed_genes": de_genes.height,
+            }
+        )
+
+    # Aggregate the counts (one row per comparison)
+    counts = pl.DataFrame(counts)
+
+    # Save the counts
+    counts.write_csv(f"{__hb_ret.path}/counts.csv")
+
+    # Display the counts
+    display(counts)
 
 
 # <span class="more-info">
