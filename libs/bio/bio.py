@@ -149,7 +149,7 @@ class SeqReads:
 
 @Output
 class SeqAlignment:
-    """Sequence alignment
+    """@intermediate:Sequence alignment
 
     [SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
     **uncompressed** files that describe an alignment of reads to a reference
@@ -766,7 +766,7 @@ class StarIndex:
     phase_description="Read Quantification",
 )
 class TranscriptMatrices:
-    """Transcript read counts
+    """Tally reads mapping to transcripts
 
     This step outputs two tables: one with read counts, and one with
     transcripts-per-million (TPM) abundance for each of your samples. Each row
@@ -814,7 +814,7 @@ class TranscriptMatrices:
     phase_description="Read Quantification",
 )
 class GeneMatrices:
-    """Gene read counts
+    """Tally reads mapping to genes
 
     This step outputs two tables: one with read counts, and one with
     transcripts-per-million (TPM) abundance for each of your samples. Each row
@@ -852,7 +852,7 @@ class GeneMatrices:
     phase_description="Downstream Analysis",
 )
 class DifferentialGeneExpression:
-    """Differential gene expression
+    """Test for differential gene expression
 
     The goal of this step is to assign a score (like a _p_-value) to each gene
     that ranks how differentially expressed it is between two conditions.
@@ -874,7 +874,7 @@ class DifferentialGeneExpression:
     phase_description="Downstream Analysis",
 )
 class PCAGeneExpression:
-    """2D principal component analysis (PCA) of gene expression
+    """PCA - Perform 2D principal component analysis of gene expression
 
     This analysis computes a 2D visualization of gene expression using
     something called
@@ -957,7 +957,7 @@ class AnyDifferentiallyExpressedGenes:
     phase_description="Downstream Analysis",
 )
 class DifferentiallyExpressedGeneClusters:
-    """Cluster differentially-expressed genes
+    """Cluster genes differentially expressed in at least one comparison
 
     The goal of this step is to group genes that are differentially expressed
     among **any** of the comparisons against your control into **clusters**.
