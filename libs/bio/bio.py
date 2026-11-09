@@ -460,6 +460,7 @@ def create_bowtie2_index(__hb_ret: Bowtie2Index):
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
+    "reads.type != 'rna'",
     "ret.type = reads.type",
     "ret.compressed = false",
     google_scholar_id="4636016874467197548",
@@ -577,6 +578,7 @@ def create_bwa_index(__hb_ret: BWAIndex):
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
+    "reads.type != 'rna'",
     "ret.type = reads.type",
     "ret.compressed = false",
     google_scholar_id="4636016874467197548",
@@ -733,6 +735,26 @@ class KallistoIndex:
     concepts in a book alphabetically (which takes some time to do up-front),
     it's a lot quicker to find where each concept is located in the book! It's
     the same with a genome: kallisto _indexes_ it ahead of time so that it can
+    find locations much quicker as it operates."""
+
+    path: str
+
+
+@Output(
+    phase=1,
+    phase_description="Read Quantification",
+)
+class StarIndex:
+    """@intermediate:STAR index
+
+    The goal of this step is to create an index for the
+    [STAR](https://github.com/alexdobin/STAR) splice-aware RNA-seq read
+    aligner.
+
+    You can think of an _index_ like the index in a book: by sorting all the
+    concepts in a book alphabetically (which takes some time to do up-front),
+    it's a lot quicker to find where each concept is located in the book! It's
+    the same with a genome: STAR _indexes_ it ahead of time so that it can
     find locations much quicker as it operates."""
 
     path: str
@@ -1134,34 +1156,6 @@ def cutadapt_rna(__hb_reads: SeqReads, __hb_ret: SeqReads):
 #                 {__hb_reads.path}/{sample["forward_location"]}""")
 
 
-# @Function(
-#     "reads.qc = true",
-#     "reads.trimmed = true",
-#     "reads.long = false",
-#     "reads.type = 'rna'",
-#     "ret.type = reads.type",
-#     "ret.compressed = false",
-# )
-# def star(__hb_reads: SeqReads, __hb_ret: SeqAlignment):
-#     """STAR"""
-
-#     # PARAMETER: The location of the STAR index on your computer
-#     STAR_REFERENCE = "/Users/barb/Desktop/Indexes/star_index"
-
-#     # PARAMETER: The number of cores that you want STAR to use
-#     STAR_CORES = 4
-
-#     carry_over(__hb_reads, __hb_ret, file="sample_sheet.csv")
-
-#     sample_sheet = pl.read_csv(f"{__hb_reads.path}/sample_sheet.csv")
-
-#     for sample_name in sample_sheet["sample_name"]:
-#         bash(f"""STAR
-#                   --runThreadN {STAR_CORES}
-#                   --genomeDir {STAR_REFERENCE}
-#                   --readFilesIn {__hb_reads.path}/{sample_name}_1.fastq.gz {__hb_reads.path}/{sample_name}_2.fastq.gz""")
-
-
 @Function(search=False)
 def create_kallisto_index(__hb_ret: KallistoIndex):
     """Create necessary kallisto indexes by downloading Ensembl transcriptomes
@@ -1258,6 +1252,89 @@ def create_salmon_index(__hb_ret: SalmonIndex):
             -p {CORES}
             -t {shared()}/transcriptomes/{species}.cdna.fa.gz
             -i {__hb_ret.path}/salmon_index
+    """)
+
+    # Also download the Ensembl metadata
+    bash(f"""mkdir -p {shared()}/{species}""")
+    bash(f"""
+        Rscript environment/fetch_ensembl_metadata.r
+            --ensembl_version={ENSEMBL_VERSION}
+            --species={species}
+            --output_directory={shared()}/{species}
+    """)
+
+
+@Function(
+    search=False,
+)
+def create_star_index(__hb_ret: StarIndex):
+    """Create necessary STAR indexes by downloading Ensembl genomes
+
+    This code downloads reference genomes and gene annotations from
+    [Ensembl](https://ensembl.org) that match the sample sheet information,
+    then creates a STAR index for each of them. It also downloads the
+    corresponding metadata for the genome.
+
+    Unlike a _transcriptome_ (which contains only the sequences of mRNA
+    transcripts), a _genome_ contains the full DNA sequence of an organism.
+    The gene annotation (in [GTF format](https://useast.ensembl.org/info/website/upload/gff.html))
+    describes where each gene (and each exon of each gene) is located in the
+    genome. Ensembl has such genomes and annotations for many different
+    species!
+
+    **Note:** Creating a STAR index for a large genome takes a lot of memory
+    (about 32 GB of RAM for the human genome)."""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # PARAMETER: The version of Ensembl to use for gene annotations
+    ENSEMBL_VERSION = "111"
+
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Create genome and annotation folders (if necessary)
+    bash(f"""mkdir -p {shared()}/genomes""")
+    bash(f"""mkdir -p {shared()}/annotations""")
+
+    # Download the genome from Ensembl
+    bash(f"""
+        wget
+            --progress=bar:force
+            -O {shared()}/genomes/{species}.dna.fa.gz
+            $(uv run gget ref --ftp --which dna --release {ENSEMBL_VERSION} {species})
+    """)
+
+    # Download the gene annotation from Ensembl
+    bash(f"""
+        wget
+            --progress=bar:force
+            -O {shared()}/annotations/{species}.gtf.gz
+            $(uv run gget ref --ftp --which gtf --release {ENSEMBL_VERSION} {species})
+    """)
+
+    # Decompress the genome and gene annotation (STAR requires uncompressed
+    # files); -f overwrites existing files
+    bash(f"""gunzip -f {shared()}/genomes/{species}.dna.fa.gz""")
+    bash(f"""gunzip -f {shared()}/annotations/{species}.gtf.gz""")
+
+    # Create the STAR index
+    # --runThreadN number of cores, --genomeDir output folder for index,
+    # --genomeFastaFiles path to genome, --sjdbGTFfile path to gene annotation,
+    # --outFileNamePrefix where to put log files
+    bash(f"""mkdir -p {__hb_ret.path}/star_index""")
+    bash(f"""
+        STAR
+            --runMode genomeGenerate
+            --runThreadN {CORES}
+            --genomeDir {__hb_ret.path}/star_index
+            --genomeFastaFiles {shared()}/genomes/{species}.dna.fa
+            --sjdbGTFfile {shared()}/annotations/{species}.gtf
+            --outFileNamePrefix {__hb_ret.path}/
     """)
 
     # Also download the Ensembl metadata
@@ -1641,6 +1718,87 @@ def salmon(
 
 
 @Function(
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = 'rna'",
+    "ret.type = reads.type",
+    "ret.compressed = true",
+    pmid="23104886",
+    citation="Dobin A, Davis CA, Schlesinger F, Drenkow J, Zaleski C, Jha S, "
+    "Batut P, Chaisson M, Gingeras TR. STAR: ultrafast universal RNA-seq "
+    "aligner. Bioinformatics. 2013 Jan 1;29(1):15-21. "
+    "doi: 10.1093/bioinformatics/bts635. PMID: 23104886; PMCID: PMC3530905.",
+    use="to align RNA-seq reads to a reference genome (splice-aware)",
+)
+def star(
+    __hb_idx: StarIndex,
+    __hb_reads: SeqReads,
+    __hb_ret: SeqAlignment,
+):
+    """STAR
+
+    # Align RNA-seq reads to a reference genome using [STAR](https://github.com/alexdobin/STAR)
+
+    STAR is a _splice-aware_ aligner: it can align reads that span exon-exon
+    junctions (where introns have been spliced out of the mRNA) to the
+    genome. Alignment is much slower than transcript quantification methods
+    like [kallisto](https://pachterlab.github.io/kallisto/) or
+    [Salmon](https://salmon.readthedocs.io/en/latest/index.html), but it tells
+    you exactly where each read aligns in the genome, which is useful for
+    viewing the alignments (e.g. in [IGV](https://igv.org/)) or for discovering
+    new splice junctions. To get gene-level read counts from the alignments,
+    use a tool like
+    [featureCounts](https://subread.sourceforge.net/featureCounts.html).
+
+    This code outputs **sorted** and **indexed** BAM files.
+
+    **Note:** Aligning to a large genome takes a lot of memory (about 32 GB of
+    RAM for the human genome)!"""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # Load sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Run STAR for each sample in the sample sheet
+    for sample in sample_sheet.rows(named=True):
+        # Get the reads (works for paired-end and single-end)
+        read_files = f"{__hb_reads.path}/{sample['forward_location']}"
+        if sample["reverse_location"]:
+            read_files += f" {__hb_reads.path}/{sample['reverse_location']}"
+
+        # Decompress the reads on the fly if they are gzipped
+        read_files_command = ""
+        if sample["forward_location"].endswith(".gz"):
+            read_files_command = "--readFilesCommand gunzip -c"
+
+        # --runThreadN number of cores, --genomeDir STAR index, --readFilesIn
+        # forward (and reverse) reads, --outFileNamePrefix prefix for output
+        # files, --outSAMtype output a BAM file sorted by coordinate
+        bash(f"""
+            STAR
+                --runThreadN {CORES}
+                --genomeDir {__hb_idx.path}/star_index
+                --readFilesIn {read_files}
+                {read_files_command}
+                --outFileNamePrefix {__hb_ret.path}/{sample["sample_name"]}.
+                --outSAMtype BAM SortedByCoordinate
+        """)
+
+        # Rename the alignment to match the other aligners
+        bash(f"""
+            mv
+                {__hb_ret.path}/{sample["sample_name"]}.Aligned.sortedByCoord.out.bam
+                {__hb_ret.path}/{sample["sample_name"]}.bam
+        """)
+
+        # Index the alignment
+        bash(f"""samtools index {__hb_ret.path}/{sample["sample_name"]}.bam""")
+
+
+@Function(
     "data.bootstrapped = false",
     google_scholar_id="5898741618830664005",
     pmid="26925227",
@@ -1649,7 +1807,7 @@ def salmon(
     "F1000Research, 4. doi:10.12688/f1000research.7563.1.",
 )
 def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
-    """tximport
+    """tximport (alignment-free method)
 
     # Aggregate transcript-level estimated counts for gene-level analysis with [tximport](https://bioconductor.org/packages/release/bioc/html/tximport.html)
 
@@ -1657,7 +1815,10 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     [salmon](https://salmon.readthedocs.io/en/latest/) report transcript-level
     read counts, but many analyses of interest (such as differential _gene_
     expression) require gene-level data. tximport aggregates transcripts of the
-    same gene together for gene-level downstream analysis."""
+    same gene together for gene-level downstream analysis.
+
+    **Note:** This choice will force you to select an **alignment-free**
+    quantification method like kallisto or Salmon!**"""
 
     # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
@@ -1673,6 +1834,89 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
             --input_directory={__hb_data.path}
             --output_directory={__hb_ret.path}
     """)
+
+
+@Function(
+    "align.type = 'rna'",
+    "align.compressed = true",
+    pmid="24227677",
+    citation="Liao Y, Smyth GK and Shi W (2014). featureCounts: an efficient "
+    "general purpose program for assigning sequence reads to genomic features. "
+    "Bioinformatics, 30(7):923-30.",
+)
+def featureCounts(__hb_align: SeqAlignment, __hb_ret: GeneMatrices):
+    """featureCounts (alignment-based method)
+
+    # Count reads aligned to each gene with [featureCounts](https://subread.sourceforge.net/featureCounts.html)
+
+    Aligners like [STAR](https://github.com/alexdobin/STAR) report where each
+    read aligns in the genome, but many analyses of interest (such as
+    differential gene expression) require gene-level read counts.
+    featureCounts uses a gene annotation (which describes where each gene is
+    located in the genome) to tally up how many reads align to each gene.
+
+    By default, reads that overlap more than one gene, or that align to more
+    than one location in the genome, are **not** counted (because it's
+    ambiguous which gene they came from).
+
+    **Note:** This choice will force you to select an **alignment-based**
+    quantification method like STAR!**"""
+
+    # PARAMETER: The number of cores to use
+    CORES = 4
+
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Get the alignment for each sample
+    alignments = {
+        f"{__hb_align.path}/{sample_name}.bam": sample_name
+        for sample_name in sample_sheet["sample_name"]
+    }
+
+    # Run featureCounts
+    # -T number of cores, -a gene annotation, -o output file
+    # -p --countReadPairs is for paired-end reads
+    bash(f"""
+        featureCounts
+            -T {CORES}
+            -p --countReadPairs
+            -a {shared()}/annotations/{species}.gtf
+            -o {__hb_ret.path}/featureCounts.tsv
+            {" ".join(alignments)}
+    """)
+
+    # Load featureCounts output (rows are genes, columns are gene information
+    # followed by the read counts for each alignment)
+    results = pl.read_csv(
+        f"{__hb_ret.path}/featureCounts.tsv",
+        separator="\t",
+        comment_prefix="#",
+    )
+
+    # Convert to the same format as tximport for compatibility (rows are
+    # genes, columns are samples; unnamed first column the gene ID)
+    results.select(
+        pl.col("Geneid").alias(""),
+        *[pl.col(path).alias(name) for path, name in alignments.items()],
+    ).write_csv(f"{__hb_ret.path}/counts.csv")
+
+    # Also compute transcripts-per-million (TPM) abundance: counts per base of
+    # gene length (summed exon lengths), scaled to sum to one million
+    results.select(
+        pl.col("Geneid").alias(""),
+        *[
+            (
+                (pl.col(path) / pl.col("Length"))
+                / (pl.col(path) / pl.col("Length")).sum()
+                * 1_000_000
+            ).alias(name)
+            for path, name in alignments.items()
+        ],
+    ).write_csv(f"{__hb_ret.path}/abundance.csv")
 
 
 RUN_BATCH_CORRECTION = None

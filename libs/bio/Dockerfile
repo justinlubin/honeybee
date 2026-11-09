@@ -108,6 +108,9 @@ RUN Rscript -e 'BiocManager::install("ensembldb")'
 RUN Rscript -e 'remotes::install_version("dplyr", "1.1.4", repos = "https://cloud.r-project.org", upgrade = "never")'
 RUN Rscript -e 'remotes::install_version("dbplyr", "2.5.0", repos = "https://cloud.r-project.org", upgrade = "never")'
 
+RUN apt-get install -y rna-star
+RUN apt-get install -y subread
+
 # Final setup (some stuff commented out for user study)
 
 # COPY image-files/environment environment
