@@ -896,6 +896,24 @@ class CountDifferentiallyExpressedGenes:
     path: str
 
 
+@Output(
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class AnyDifferentiallyExpressedGenes:
+    """List genes differentially expressed in any comparison
+
+    TODO
+
+    This analysis goal is a downstream analysis in RNA-seq processing.
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
+
+    path: str
+
+
 # @Output(
 #     phase=2,
 #     phase_description="Downstream Analysis",
@@ -1021,7 +1039,7 @@ def load_rna_seq(__hb_ret: SeqReads):
             control_condition=pl.col("condition").first().over("comparison"),
         )
         .filter(pl.col("condition") != pl.col("control_condition"))
-        .select("control_condition", treatment_condition="condition")
+        .select("comparison", "control_condition", treatment_condition="condition")
         .write_csv(f"{shared()}/comparison_sheet.csv")
     )
 
@@ -1764,6 +1782,7 @@ def count_differentially_expressed_genes(
 
         counts.append(
             {
+                "comparison": comparison["comparison"],
                 "control_condition": control,
                 "treatment_condition": treatment,
                 "differentially_expressed_genes": de_genes.height,
@@ -1778,6 +1797,76 @@ def count_differentially_expressed_genes(
 
     # Display the counts
     display(counts)
+
+
+@Function(
+    search=False,
+)
+def any_differentially_expressed_genes(
+    __hb_data: DifferentialGeneExpression,
+    # __hb_bc: RunBatchCorrection,
+    __hb_ret: AnyDifferentiallyExpressedGenes,
+):
+    "List genes differentially expressed in any comparison"
+
+    # PARAMETER: The log2 fold change threshold for what constitutes a "differentially-expressed gene"
+    RNA_SEQ_LOG2_FC_THRESHOLD = 1
+
+    # PARAMETER: The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction
+    RNA_SEQ_P_VALUE_THRESHOLD = 0.05
+
+    # Load the sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Get the species (e.g. homo_sapiens)
+    species = sample_sheet["species"].unique().item()
+
+    # Load gene metadata
+    gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+    # Load comparison sheet
+    comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+    # Collect the differentially-expressed genes for each comparison id
+    for comparison_id, group in comparisons.group_by(
+        "comparison",
+        maintain_order=True,
+    ):
+        de_genes = []
+        for comparison in group.iter_rows(named=True):
+            control = comparison["control_condition"]
+            treatment = comparison["treatment_condition"]
+
+            # Load the differential expression results
+            results = pl.read_csv(
+                os.path.join(
+                    __hb_data.path,
+                    control,
+                    treatment,
+                    "results.csv",
+                ),
+                null_values=["NA"],
+            ).rename({"": "gene_id"})
+
+            # Keep only genes that pass both thresholds (null p-values are dropped)
+            de_genes.append(
+                results.filter(
+                    (pl.col("padj") < RNA_SEQ_P_VALUE_THRESHOLD)
+                    & (pl.col("log2FoldChange").abs() >= RNA_SEQ_LOG2_FC_THRESHOLD)
+                ).select("gene_id")
+            )
+
+        # Combine genes across all treatments in this comparison id
+        genes = (
+            pl.concat(de_genes)
+            .unique(maintain_order=True)
+            .join(gene_metadata, on="gene_id", how="left")
+        )
+
+        # Save the genes
+        genes.write_csv(
+            f"{__hb_ret.path}/differentially_expressed_genes{comparison_id[0]}.csv"
+        )
 
 
 # <span class="more-info">
