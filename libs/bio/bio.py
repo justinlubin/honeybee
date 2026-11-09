@@ -2563,7 +2563,13 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
 
 @Input
 class LemonSeq:
-    "LEMONmethyl-seq"
+    """LEMONmethyl-seq
+
+    [Locus-Enriched Mapping Of Nucleotide methylation
+    (LEMONmethyl-seq)](https://www.biorxiv.org/content/10.64898/2026.02.24.70776
+    1v1) is a cost-effective pipeline for single-nucleotide detection of
+    DNA methylation at target regions using locus-specific amplification and
+    long-read DNA sequencing."""
 
 
 @Output
@@ -2747,7 +2753,12 @@ def lemon_mc(__hb_bam: SeqAlignment, __hb_ret: MethylationCalls):
 
 @Input
 class LocalEmSeq:
-    "EM-seq"
+    """EM-seq
+
+    [Enzymatic Methyl-seq (EM-seq)](https://www.neb.com/en-us/products/e7120-nebnext-enzymatic-methyl-seq-kit)
+    is a technique to detect genome-wide DNA methylation at single-nucleotide
+    resolution that uses enzymes (rather than harsh bisulfite treatment) to
+    convert unmethylated cytosines, preserving DNA integrity."""
 
 
 @Output
@@ -2998,7 +3009,12 @@ def bismark_methylation_extractor(
 
 @Input
 class AtacSeq:
-    """ATAC-seq"""
+    """ATAC-seq
+
+    [Assay for Transposase-Accessible Chromatin using sequencing (ATAC-seq)](https://www.nature.com/articles/nmeth.2688)
+    is a technique to identify regions of open (accessible) chromatin across
+    the genome, which often correspond to active regulatory elements like
+    promoters and enhancers."""
 
 
 @Output

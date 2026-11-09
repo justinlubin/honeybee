@@ -62,7 +62,9 @@ init { library, sound, partid } =
             { sound = sound
             , partid = partid
             , library = library
-            , program = Core.example library -- Core.empty
+            , program = Core.empty
+
+            -- , program = Core.example library
             , pbnStatus = Nothing
             , speculativePbnStatus = Nothing
             , currentGoalMetadataSuggestions = []
