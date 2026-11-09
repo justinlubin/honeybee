@@ -4,6 +4,7 @@ import re
 import subprocess
 import polars as pl
 import altair as alt
+import sklearn.cluster as skclust
 import sklearn.decomposition as skdec
 from IPython.display import display
 
@@ -907,7 +908,7 @@ class PCAGeneExpression:
 class CountDifferentiallyExpressedGenes:
     """Count differentially-expressed genes
 
-    TODO
+    TODOTEXT
 
     This analysis goal is a downstream analysis in RNA-seq processing.
     The following image shows a _typical_ RNA-seq processing workflow,
@@ -923,9 +924,28 @@ class CountDifferentiallyExpressedGenes:
     phase_description="Downstream Analysis",
 )
 class AnyDifferentiallyExpressedGenes:
-    """List genes differentially expressed in any comparison
+    """@intermediate:Filter genes to just differentially-expressed
 
-    TODO
+    TODOTEXT"""
+
+    path: str
+
+
+@Output(
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class DifferentiallyExpressedGeneClusters:
+    """Cluster differentially-expressed genes
+
+    The goal of this step is to group differentially-expressed genes into
+    **clusters** of genes that have similar expression patterns across your
+    samples. For example, one cluster might contain genes that go up in your
+    treatment condition, and another might contain genes that go down.
+
+    Genes in the same cluster are often (but not always) involved in related
+    biological processes, so these clusters are commonly used as input to
+    downstream analyses like gene ontology (GO) enrichment.
 
     This analysis goal is a downstream analysis in RNA-seq processing.
     The following image shows a _typical_ RNA-seq processing workflow,
@@ -1944,8 +1964,11 @@ def pca_gene_expression(
     # Load sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
-    # Load gene expression (rows are genes, columns are samples)
-    expression = pl.read_csv(f"{__hb_data.path}/counts.csv")
+    # Load gene expression (rows are genes, columns are samples), dropping gene IDs
+    expression = pl.read_csv(f"{__hb_data.path}/counts.csv").drop("")
+
+    # Log-transform the counts so that highly-expressed genes don't dominate
+    expression = expression.select((pl.all() + 1).log(base=2))
 
     # Transpose gene expression so that rows are samples, columns are genes
     X = expression.to_numpy().T
@@ -1987,7 +2010,6 @@ def pca_gene_expression(
 )
 def count_differentially_expressed_genes(
     __hb_data: DifferentialGeneExpression,
-    # __hb_bc: RunBatchCorrection,
     __hb_ret: CountDifferentiallyExpressedGenes,
 ):
     "Count differentially-expressed genes"
@@ -2048,7 +2070,6 @@ def count_differentially_expressed_genes(
 )
 def any_differentially_expressed_genes(
     __hb_data: DifferentialGeneExpression,
-    # __hb_bc: RunBatchCorrection,
     __hb_ret: AnyDifferentiallyExpressedGenes,
 ):
     "List genes differentially expressed in any comparison"
@@ -2067,6 +2088,9 @@ def any_differentially_expressed_genes(
 
     # Load gene metadata
     gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+    # Carry over the gene read count tables (counts.csv and abundance.csv)
+    carry_over(f"{__hb_data.path}/*.csv", __hb_ret.path)
 
     # Load comparison sheet
     comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
@@ -2110,6 +2134,190 @@ def any_differentially_expressed_genes(
         # Save the genes
         genes.write_csv(
             f"{__hb_ret.path}/differentially_expressed_genes{comparison_id[0]}.csv"
+        )
+
+
+@Function(
+    use="a clustering method where you choose the **number of clusters** up-front.",
+    citation="Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011.",
+)
+def kmeans_cluster_genes(
+    __hb_genes: AnyDifferentiallyExpressedGenes,
+    __hb_ret: DifferentiallyExpressedGeneClusters,
+):
+    """k-means clustering with scikit-learn
+
+    This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
+    to group genes into _k_ clusters using
+    [k-means clustering](https://en.wikipedia.org/wiki/K-means_clustering).
+    Specifically, it uses the
+    [`sklearn.cluster.KMeans`](https://scikit-learn.org/stable/modules/generated/
+    sklearn.cluster.KMeans.html) function; that webpage contains all the
+    documentation for this function and more examples.
+
+    Before clustering, each gene's expression (TPM) is log-transformed and
+    standardized (z-scored) across samples, so that genes are clustered by the
+    _shape_ of their expression pattern rather than by how highly expressed
+    they are overall."""
+
+    # PARAMETER: The number of clusters to group genes into
+    NUMBER_OF_CLUSTERS = 4
+
+    # PARAMETER: The random seed (for reproducibility)
+    RANDOM_SEED = 0
+
+    # Load sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Load gene expression (rows are genes, columns are samples), then
+    # log-transform it and z-score each gene across samples
+    expression = pl.read_csv(f"{__hb_genes.path}/abundance.csv").rename({"": "gene_id"})
+    samples = [c for c in expression.columns if c != "gene_id"]
+    expression = (
+        expression.with_columns((pl.col(s) + 1).log(base=2) for s in samples)
+        .with_columns(
+            mean=pl.mean_horizontal(samples),
+            std=pl.concat_list(samples).list.std(),
+        )
+        .filter(pl.col("std") > 0)
+        .select(
+            "gene_id",
+            *[((pl.col(s) - pl.col("mean")) / pl.col("std")).alias(s) for s in samples],
+        )
+    )
+
+    # Cluster the differentially-expressed genes for each comparison id
+    for path in sorted(
+        glob.glob(f"{__hb_genes.path}/differentially_expressed_genes*.csv")
+    ):
+        comparison_id = stem(path).removeprefix("differentially_expressed_genes")
+
+        # Load the differentially-expressed genes and their expression
+        genes = pl.read_csv(path).join(expression, on="gene_id", how="inner")
+
+        # Run k-means clustering (rows are genes, columns are samples)
+        X = genes.select(samples).to_numpy()
+        labels = skclust.KMeans(
+            n_clusters=min(NUMBER_OF_CLUSTERS, len(genes)),
+            random_state=RANDOM_SEED,
+        ).fit_predict(X)
+
+        # Save the cluster assignments
+        clusters = genes.select(pl.exclude(samples)).with_columns(
+            cluster=pl.Series(labels + 1)
+        )
+        clusters.write_csv(f"{__hb_ret.path}/clusters{comparison_id}.csv")
+
+        # Display the average expression pattern for each cluster
+        profiles = (
+            genes.with_columns(cluster=pl.Series(labels + 1))
+            .unpivot(index=["gene_id", "cluster"], on=samples)
+            .rename({"variable": "sample_name", "value": "z_score"})
+            .join(sample_sheet, on="sample_name")
+        )
+        display(
+            alt.Chart(profiles)
+            .mark_line(point=True)
+            .encode(
+                x=alt.X("sample_name:N", sort=samples),
+                y=alt.Y("mean(z_score):Q", title="mean z-score"),
+                color="cluster:N",
+                tooltip=["cluster:N", "condition:N", "count(gene_id):Q"],
+            )
+            .properties(title=f"Gene clusters (comparison {comparison_id})"),
+        )
+
+
+@Function(
+    use="a clustering method that builds a **tree** of similar genes.",
+    citation="Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011.",
+)
+def hierarchical_cluster_genes(
+    __hb_genes: AnyDifferentiallyExpressedGenes,
+    __hb_ret: DifferentiallyExpressedGeneClusters,
+):
+    """Hierarchical clustering with scikit-learn
+
+    This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
+    to group genes into clusters using
+    [hierarchical (agglomerative) clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering),
+    which repeatedly merges the most similar genes and groups of genes into a
+    tree, then cuts the tree into a fixed number of clusters. Specifically, it
+    uses the
+    [`sklearn.cluster.AgglomerativeClustering`](https://scikit-learn.org/stable/modules/generated/
+    sklearn.cluster.AgglomerativeClustering.html) function; that webpage
+    contains all the documentation for this function and more examples.
+
+    Before clustering, each gene's expression (TPM) is log-transformed and
+    standardized (z-scored) across samples, so that genes are clustered by the
+    _shape_ of their expression pattern rather than by how highly expressed
+    they are overall."""
+
+    # PARAMETER: The number of clusters to cut the tree into
+    NUMBER_OF_CLUSTERS = 4
+
+    # PARAMETER: How to measure distance between groups of genes ("ward", "complete", "average", or "single")
+    LINKAGE = "ward"
+
+    # Load sample sheet
+    sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+    # Load gene expression (rows are genes, columns are samples), then
+    # log-transform it and z-score each gene across samples
+    expression = pl.read_csv(f"{__hb_genes.path}/abundance.csv").rename({"": "gene_id"})
+    samples = [c for c in expression.columns if c != "gene_id"]
+    expression = (
+        expression.with_columns((pl.col(s) + 1).log(base=2) for s in samples)
+        .with_columns(
+            mean=pl.mean_horizontal(samples),
+            std=pl.concat_list(samples).list.std(),
+        )
+        .filter(pl.col("std") > 0)
+        .select(
+            "gene_id",
+            *[((pl.col(s) - pl.col("mean")) / pl.col("std")).alias(s) for s in samples],
+        )
+    )
+
+    # Cluster the differentially-expressed genes for each comparison id
+    for path in sorted(
+        glob.glob(f"{__hb_genes.path}/differentially_expressed_genes*.csv")
+    ):
+        comparison_id = stem(path).removeprefix("differentially_expressed_genes")
+
+        # Load the differentially-expressed genes and their expression
+        genes = pl.read_csv(path).join(expression, on="gene_id", how="inner")
+
+        # Run hierarchical clustering (rows are genes, columns are samples)
+        X = genes.select(samples).to_numpy()
+        labels = skclust.AgglomerativeClustering(
+            n_clusters=min(NUMBER_OF_CLUSTERS, len(genes)),
+            linkage=LINKAGE,
+        ).fit_predict(X)
+
+        # Save the cluster assignments
+        clusters = genes.select(pl.exclude(samples)).with_columns(
+            cluster=pl.Series(labels + 1)
+        )
+        clusters.write_csv(f"{__hb_ret.path}/clusters{comparison_id}.csv")
+
+        # Display the average expression pattern for each cluster
+        profiles = (
+            genes.with_columns(cluster=pl.Series(labels + 1))
+            .unpivot(index=["gene_id", "cluster"], on=samples)
+            .rename({"variable": "sample_name", "value": "z_score"})
+            .join(sample_sheet, on="sample_name")
+        )
+        display(
+            alt.Chart(profiles)
+            .mark_line(point=True)
+            .encode(
+                x=alt.X("sample_name:N", sort=samples),
+                y=alt.Y("mean(z_score):Q", title="mean z-score"),
+                color="cluster:N",
+                tooltip=["cluster:N", "condition:N", "count(gene_id):Q"],
+            )
+            .properties(title=f"Gene clusters (comparison {comparison_id})"),
         )
 
 
@@ -2170,6 +2378,9 @@ def deseq2(
             --gene_counts={__hb_data.path}/counts.csv
             --output_directory={__hb_ret.path}
     """)
+
+    # Carry over the gene read count tables (counts.csv and abundance.csv)
+    carry_over(f"{__hb_data.path}/*.csv", __hb_ret.path)
 
     # Load gene metadata
     gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
@@ -2269,6 +2480,16 @@ def sleuth(__hb_data: TranscriptMatrices, __hb_ret: DifferentialGeneExpression):
             --tx2gene={shared()}/{species}/tx2gene.csv
             --sample_sheet={shared()}/sample_sheet.csv
             --comparison_sheet={shared()}/comparison_sheet.csv
+            --input_directory={__hb_data.path}
+            --output_directory={__hb_ret.path}
+    """)
+
+    # Also aggregate transcripts to gene read count tables (counts.csv and
+    # abundance.csv) for downstream analyses
+    bash(f"""
+        Rscript environment/tximport.r
+            --sample_sheet={shared()}/sample_sheet.csv
+            --tx2gene={shared()}/{species}/tx2gene.csv
             --input_directory={__hb_data.path}
             --output_directory={__hb_ret.path}
     """)
