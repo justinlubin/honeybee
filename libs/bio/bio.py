@@ -1472,8 +1472,7 @@ def kallisto_bootstrap(
     # Run kallisto for each sample in the sample sheet
     for sample in sample_sheet.rows(named=True):
         # -b number of bootstrap resamplings, -t number of cores,
-        # -i kallisto index, -o output folder (do *not* use --plaintext, as
-        # sleuth needs the bootstraps that are only saved in abundance.h5)
+        # -i kallisto index, -o output folder
         bash(f"""
              kallisto quant
                  -b {KALLISTO_BOOTSTRAPS}
