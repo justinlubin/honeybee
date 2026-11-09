@@ -14,8 +14,6 @@ initialize(
     allow_input_arguments=False,
 )
 
-# uv run gget ref --ftp --which cdna --release 111 homo_sapiens
-
 ################################################################################
 # %% Helper
 
@@ -1152,7 +1150,7 @@ def create_kallisto_index(__hb_ret: KallistoIndex):
 
     This code downloads transcriptomes from [Ensembl](https://ensembl.org) that match
     the sample sheet information, then creates a kallisto index for each of
-    them.
+    them. It also downloads the corresponding metadata for the transcriptome.
 
     A _transcriptome_ contains the complementary DNA (cDNA) for your transcripts
     of interest. Ensembl has such transcriptomes for many different species!"""
@@ -1189,6 +1187,15 @@ def create_kallisto_index(__hb_ret: KallistoIndex):
             {shared()}/transcriptomes/{species}.cdna.fa.gz
     """)
 
+    # Also download the Ensembl metadata
+    bash(f"""mkdir -p {shared()}/{species}""")
+    bash(f"""
+        Rscript environment/fetch_ensembl_metadata.r
+            --ensembl_version={ENSEMBL_VERSION}
+            --species={species}
+            --output_directory={shared()}/{species}
+    """)
+
 
 @Function(
     search=False,
@@ -1198,7 +1205,7 @@ def create_salmon_index(__hb_ret: SalmonIndex):
 
     This code downloads transcriptomes from [Ensembl](https://ensembl.org) that
     match the sample sheet information, then creates a Salmon index for each
-    of them.
+    of them. It also downloads the corresponding metadata for the transcriptome.
 
     A _transcriptome_ contains the complementary DNA (cDNA) for your transcripts
     of interest. Ensembl has such transcriptomes for many different species!"""
@@ -1233,6 +1240,15 @@ def create_salmon_index(__hb_ret: SalmonIndex):
             -p {CORES}
             -t {shared()}/transcriptomes/{species}.cdna.fa.gz
             -i {__hb_ret.path}/salmon_index
+    """)
+
+    # Also download the Ensembl metadata
+    bash(f"""mkdir -p {shared()}/{species}""")
+    bash(f"""
+        Rscript environment/fetch_ensembl_metadata.r
+            --ensembl_version={ENSEMBL_VERSION}
+            --species={species}
+            --output_directory={shared()}/{species}
     """)
 
 
@@ -1625,25 +1641,11 @@ def tximport(__hb_data: TranscriptMatrices, __hb_ret: GeneMatrices):
     expression) require gene-level data. tximport aggregates transcripts of the
     same gene together for gene-level downstream analysis."""
 
-    # PARAMETER: The version of Ensembl to use for gene annotations
-    ENSEMBL_VERSION = "111"
-
     # Load the sample sheet
     sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
     # Get the species (e.g. homo_sapiens)
     species = sample_sheet["species"].unique().item()
-
-    # Create species metadata folder (if necessary)
-    bash(f"""mkdir -p {shared()}/{species}""")
-
-    # Download Ensembl metadata
-    bash(f"""
-        Rscript environment/fetch_ensembl_metadata.r
-            --ensembl_version={ENSEMBL_VERSION}
-            --species={species}
-            --output_directory={shared()}/{species}
-    """)
 
     # Run tximport
     bash(f"""
