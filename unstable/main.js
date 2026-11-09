@@ -55,14 +55,13 @@ const libraryResponse = await fetch("bio.hblib.toml");
 const librarySource = await libraryResponse.text();
 const library = Honeybee.parse_library(librarySource);
 
+const SESSION_ID = crypto.randomUUID();
+
 let sound = true;
-let log = false;
-let partid = "000";
+let partid = null;
 
 // Study mode (running on user study server)
 if (window.location.href.includes(":5000")) {
-  log = true;
-
   const urlParams = new URLSearchParams(window.location.search);
 
   const condition = urlParams.get("condition");
@@ -87,7 +86,6 @@ if (window.location.href.includes(":5000")) {
 
 const flags = {
   sound: sound,
-  log: log,
   partid: partid,
   library: {
     props: elmify(library.Prop),
@@ -266,6 +264,7 @@ app.ports.oDownload.subscribe((msg) => {
 });
 
 app.ports.oLog.subscribe((msg) => {
+  msg["sessionid"] = SESSION_ID;
   msg["timestamp"] = Date.now();
 
   // https://stackoverflow.com/a/47065313

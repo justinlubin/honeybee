@@ -1,18 +1,22 @@
 [Config]
-name = "Honeybee Biology Library Release 8 (ac91486)"
+name = "Honeybee Biology Library Release 8 (e466018)"
 erase_static = true
 allow_input_arguments = false
 
 [[Preamble]]
-content = '''from IPython.display import display
-from dataclasses import dataclass
+content = '''# This file defines some "helper" code that lets us do things
+# like run commands and log outputs! The file "pipeline.ipynb"
+# contains your computational analysis.
+
+from IPython.display import display
 import altair as alt
-import datetime
 import glob
 import logging
 import os
 import polars as pl
 import re
+import sklearn.cluster as skclust
+import sklearn.decomposition as skdec
 import subprocess
 
 alt.data_transformers.enable("vegafusion")
@@ -105,8 +109,10 @@ content='''def already_exists(path):
 content='''def needs_to_run(path):
     if already_exists(path):
         print(f"'{path}' already exists, skipping step (delete folder to re-run)")
+        return True
     else:
-        bash(f"""mkdir -p {path}""")'''
+        bash(f"""mkdir -p {path}""")
+        return False'''
 
 [Type.SeqReads]
 params.qc = "Bool"
@@ -127,7 +133,13 @@ Reads are stored typically stored in the `.fastq` (uncompressed) or
 information (e.g. about chromatin accessibility, methylation status, or
 transcription levels), reads first need to be _preprocessed_. Most
 preprocessing is method-specific, but some methods share commonalities, such
-as _quality control_ (QC) checks."""
+as _quality control_ (QC) checks.
+
+**Note:** Often, you will need to trim "adapter" sequences from your reads;
+these are sequences of nucleotides that are an artifact of the sequencing
+process. It is good practice to run quality control checks **twice**: once
+before trimming, and once after. (In fact, this practice is enforced by
+this interface!)"""
 info.param_titles.path = "Data path"
 info.param_descriptions.path = """Directory structure:
 - *.fastq: raw data
@@ -152,7 +164,13 @@ class SeqReads:
     information (e.g. about chromatin accessibility, methylation status, or
     transcription levels), reads first need to be _preprocessed_. Most
     preprocessing is method-specific, but some methods share commonalities, such
-    as _quality control_ (QC) checks."""
+    as _quality control_ (QC) checks.
+
+    **Note:** Often, you will need to trim "adapter" sequences from your reads;
+    these are sequences of nucleotides that are an artifact of the sequencing
+    process. It is good practice to run quality control checks **twice**: once
+    before trimming, and once after. (In fact, this practice is enforced by
+    this interface!)"""
 
     path: str
     """Data path
@@ -171,7 +189,7 @@ info.phase_description = "Preprocessing"
 [Type.SeqAlignment]
 params.compressed = "Bool"
 params.type = "Str"
-info.title = "Sequence alignment"
+info.title = "@intermediate:Sequence alignment"
 info.description = """[SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
 **uncompressed** files that describe an alignment of reads to a reference
 genome. These alignments may or may not be "sorted" by nucleotide position
@@ -183,7 +201,7 @@ from the alignment for viewing in, for example, the
 The equivalent **compressed** files are BAM files."""
 info.code = '''@dataclass
 class SeqAlignment:
-    """Sequence alignment
+    """@intermediate:Sequence alignment
 
     [SAM files](https://doi.org/10.1093/bioinformatics/btp352) are
     **uncompressed** files that describe an alignment of reads to a reference
@@ -225,11 +243,13 @@ info.use = "a widely-used quality control tool for high throughput sequence data
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''carry_over(__hb_reads.path, __hb_ret.path)
+info.code = '''# Carry forward the sequencing data for downstream steps
+carry_over(__hb_reads.path, __hb_ret.path)
 
+# Get the files to run FastQC on
 fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
-# -t number of cores, -o output
+# Run FastQC (-t number of cores, -o output)
 bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")'''
 
 [Function.multiqc]
@@ -264,12 +284,16 @@ info.use = "a wrapper around FastQC that also combines all results into a single
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''carry_over(__hb_reads.path, __hb_ret.path)
+info.code = '''# Carry forward the sequencing data for downstream steps
+carry_over(__hb_reads.path, __hb_ret.path)
 
+# Get the files to run FastQC on
 fastqs = " ".join(sorted(glob.glob(f"{__hb_reads.path}/*.fastq*")))
 
-# -t number of cores, -o output
+# Run FastQC (-t number of cores, -o output)
 bash(f"""fastqc -t {CORES} -o {__hb_ret.path} {fastqs}""")
+
+# Aggregate FastQC results with MultiQC
 bash(f"""uv run multiqc --filename {__hb_ret.path}/multiqc.html {__hb_ret.path}""")'''
 
 [Function.skip_trimming]
@@ -287,11 +311,13 @@ info.title = "Skip adapter trimming"
 info.description = """If the provider of your sequencing results has said that adapter sequences
 have already been removed, then you don't need to run any processing to
 try to remove them again."""
-info.use = "to skip adapter trimming (e.g. because your sequencing provider already did adapter trimming for you)"
+info.use = "to skip adapter trimming (e.g. because your sequencing provider already did adapter trimming for you, or you want to save time)"
 info.search = false
 info.hyperparameters = [
 ]
-info.code = '''carry_over(__hb_reads.path, __hb_ret.path)'''
+info.code = '''# Carry forward the sequencing data for downstream steps;
+# do not perform any trimming
+carry_over(__hb_reads.path, __hb_ret.path)'''
 
 [Function.cutadapt]
 params.reads = "SeqReads"
@@ -303,8 +329,9 @@ condition = [
     "ret.trimmed = true",
     "ret.long = reads.long",
     "ret.type = reads.type",
+    "ret.type != \"rna\"",
 ]
-info.title = "cutadapt - include poly(A) tails"
+info.title = "cutadapt"
 info.description = """# Remove sequencing adapters using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
@@ -318,33 +345,24 @@ info.hyperparameters = [
     {name = 'REVERSE_ADAPTER', default = '"AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"', comment = 'The reverse adapter, by default the Illumina universal (can delete for single-end only)' },
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+# Run cutadapt for each sample in the sample sheet
 for sample in sample_sheet.rows(named=True):
-    # Paired-end
-    if sample["reverse_location"]:
-        # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-        # -A reverse adapter, -o forward output, -o reverse output
-        bash(f"""uv run cutadapt
-                    --cores={CORES}
-                    -m 1
-                    -a {FORWARD_ADAPTER}
-                    -A {REVERSE_ADAPTER}
-                    -o {__hb_ret.path}/{sample["forward_location"]}
-                    -p {__hb_ret.path}/{sample["reverse_location"]}
-                    {__hb_reads.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["reverse_location"]}""")
-
-    # Single-end
-    else:
-        # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-        # -o forward output
-        bash(f"""uv run cutadapt
-                    --cores={CORES}
-                    -m 1
-                    -a {FORWARD_ADAPTER}
-                    -o {__hb_ret.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["forward_location"]}""")'''
+    # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+    # -A reverse adapter, -o forward output, -o reverse output
+    bash(f"""
+        uv run cutadapt
+            --cores={CORES}
+            -m 1
+            -a {FORWARD_ADAPTER}
+            -A {REVERSE_ADAPTER}
+            -o {__hb_ret.path}/{sample["forward_location"]}
+            -p {__hb_ret.path}/{sample["reverse_location"]}
+            {__hb_reads.path}/{sample["forward_location"]}
+            {__hb_reads.path}/{sample["reverse_location"]}i
+    """)'''
 
 [Function.minimap2]
 params.reads = "SeqReads"
@@ -369,7 +387,8 @@ info.citation = "Li H. Minimap2: pairwise alignment for nucleotide sequences. Bi
 info.use = "to align long reads"
 info.hyperparameters = [
 ]
-info.code = '''for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
+info.code = '''# Run minimap2 for each sample
+for path in sorted(glob.glob(f"{__hb_reads.path}/*.fastq")):
     sample_name = os.path.splitext(os.path.basename(path))[0]
     bash(f"""
         minimap2 -a
@@ -471,6 +490,7 @@ condition = [
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
+    "reads.type != \"rna\"",
     "ret.type = reads.type",
     "ret.compressed = false",
 ]
@@ -587,6 +607,7 @@ condition = [
     "reads.qc = true",
     "reads.trimmed = true",
     "reads.long = false",
+    "reads.type != \"rna\"",
     "ret.type = reads.type",
     "ret.compressed = false",
 ]
@@ -660,8 +681,14 @@ info.title = "RNA-seq (bulk)"
 params = {}
 info.title = "@intermediate:Salmon index"
 info.description = """The goal of this step is to create an index for the
-[salmon](https://salmon.readthedocs.io/en/latest/)
-transcript abundance quantifier."""
+[salmon](https://salmon.readthedocs.io/en/latest/) transcript abundance
+quantifier.
+
+You can think of an _index_ like the index in a book: by sorting all the
+concepts in a book alphabetically (which takes some time to do up-front),
+it's a lot quicker to find where each concept is located in the book! It's
+the same with a genome: Salmon _indexes_ it ahead of time so that it can
+find locations much quicker as it operates."""
 info.code = '''@dataclass
     phase=1,
     phase_description="Read Quantification",
@@ -670,8 +697,14 @@ class SalmonIndex:
     """@intermediate:Salmon index
 
     The goal of this step is to create an index for the
-    [salmon](https://salmon.readthedocs.io/en/latest/)
-    transcript abundance quantifier."""
+    [salmon](https://salmon.readthedocs.io/en/latest/) transcript abundance
+    quantifier.
+
+    You can think of an _index_ like the index in a book: by sorting all the
+    concepts in a book alphabetically (which takes some time to do up-front),
+    it's a lot quicker to find where each concept is located in the book! It's
+    the same with a genome: Salmon _indexes_ it ahead of time so that it can
+    find locations much quicker as it operates."""
 
     path: str'''
 info.phase = 1
@@ -682,7 +715,13 @@ params = {}
 info.title = "@intermediate:Kallisto index"
 info.description = """The goal of this step is to create an index for the
 [kallisto](https://pachterlab.github.io/kallisto/about)
-transcript abundance quantifier."""
+transcript abundance quantifier.
+
+You can think of an _index_ like the index in a book: by sorting all the
+concepts in a book alphabetically (which takes some time to do up-front),
+it's a lot quicker to find where each concept is located in the book! It's
+the same with a genome: kallisto _indexes_ it ahead of time so that it can
+find locations much quicker as it operates."""
 info.code = '''@dataclass
     phase=1,
     phase_description="Read Quantification",
@@ -692,7 +731,46 @@ class KallistoIndex:
 
     The goal of this step is to create an index for the
     [kallisto](https://pachterlab.github.io/kallisto/about)
-    transcript abundance quantifier."""
+    transcript abundance quantifier.
+
+    You can think of an _index_ like the index in a book: by sorting all the
+    concepts in a book alphabetically (which takes some time to do up-front),
+    it's a lot quicker to find where each concept is located in the book! It's
+    the same with a genome: kallisto _indexes_ it ahead of time so that it can
+    find locations much quicker as it operates."""
+
+    path: str'''
+info.phase = 1
+info.phase_description = "Read Quantification"
+
+[Type.StarIndex]
+params = {}
+info.title = "@intermediate:STAR index"
+info.description = """The goal of this step is to create an index for the
+[STAR](https://github.com/alexdobin/STAR) splice-aware RNA-seq read
+aligner.
+
+You can think of an _index_ like the index in a book: by sorting all the
+concepts in a book alphabetically (which takes some time to do up-front),
+it's a lot quicker to find where each concept is located in the book! It's
+the same with a genome: STAR _indexes_ it ahead of time so that it can
+find locations much quicker as it operates."""
+info.code = '''@dataclass
+    phase=1,
+    phase_description="Read Quantification",
+)
+class StarIndex:
+    """@intermediate:STAR index
+
+    The goal of this step is to create an index for the
+    [STAR](https://github.com/alexdobin/STAR) splice-aware RNA-seq read
+    aligner.
+
+    You can think of an _index_ like the index in a book: by sorting all the
+    concepts in a book alphabetically (which takes some time to do up-front),
+    it's a lot quicker to find where each concept is located in the book! It's
+    the same with a genome: STAR _indexes_ it ahead of time so that it can
+    find locations much quicker as it operates."""
 
     path: str'''
 info.phase = 1
@@ -700,7 +778,7 @@ info.phase_description = "Read Quantification"
 
 [Type.TranscriptMatrices]
 params.bootstrapped = "Bool"
-info.title = "RNA-seq transcript read counts"
+info.title = "Tally reads mapping to transcripts"
 info.description = """This step outputs two tables: one with read counts, and one with
 transcripts-per-million (TPM) abundance for each of your samples. Each row
 in these tables is a **gene isoform** (mRNA transcript), of which there may
@@ -741,7 +819,7 @@ info.code = '''@dataclass
     phase_description="Read Quantification",
 )
 class TranscriptMatrices:
-    """RNA-seq transcript read counts
+    """Tally reads mapping to transcripts
 
     This step outputs two tables: one with read counts, and one with
     transcripts-per-million (TPM) abundance for each of your samples. Each row
@@ -787,7 +865,7 @@ info.phase_description = "Read Quantification"
 
 [Type.GeneMatrices]
 params = {}
-info.title = "RNA-seq gene read counts"
+info.title = "Tally reads mapping to genes"
 info.description = """This step outputs two tables: one with read counts, and one with
 transcripts-per-million (TPM) abundance for each of your samples. Each row
 in these tables is a **single gene**.
@@ -820,7 +898,7 @@ info.code = '''@dataclass
     phase_description="Read Quantification",
 )
 class GeneMatrices:
-    """RNA-seq gene read counts
+    """Tally reads mapping to genes
 
     This step outputs two tables: one with read counts, and one with
     transcripts-per-million (TPM) abundance for each of your samples. Each row
@@ -856,27 +934,24 @@ info.phase_description = "Read Quantification"
 
 [Type.DifferentialGeneExpression]
 params = {}
-info.title = "RNA-seq differential gene expression"
+info.title = "Test for differential gene expression"
 info.description = """The goal of this step is to assign a score (like a _p_-value) to each gene
 that ranks how differentially expressed it is between two conditions.
 Among other uses, this information can be plotted in an
 [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
 [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
 
+This analysis goal is a downstream analysis in RNA-seq processing.
 The following image shows a _typical_ RNA-seq processing workflow,
 **but the details can vary a lot!**
 
-![An overview of the RNA-seq workflow.](assets/rna-seq.png)
-
-For example, sometimes you start with reads already quantified or trimmed,
-and sometimes you need to run additional processing steps like batch
-correction."""
+![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 info.code = '''@dataclass
     phase=2,
     phase_description="Downstream Analysis",
 )
 class DifferentialGeneExpression:
-    """RNA-seq differential gene expression
+    """Test for differential gene expression
 
     The goal of this step is to assign a score (like a _p_-value) to each gene
     that ranks how differentially expressed it is between two conditions.
@@ -884,79 +959,211 @@ class DifferentialGeneExpression:
     [MA plot](https://en.wikipedia.org/wiki/MA_plot) or a
     [volcano plot](https://en.wikipedia.org/wiki/Volcano_plot_(statistics%29).
 
+    This analysis goal is a downstream analysis in RNA-seq processing.
     The following image shows a _typical_ RNA-seq processing workflow,
     **but the details can vary a lot!**
 
-    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)
-
-    For example, sometimes you start with reads already quantified or trimmed,
-    and sometimes you need to run additional processing steps like batch
-    correction."""
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 
     path: str'''
 info.phase = 2
 info.phase_description = "Downstream Analysis"
 
-[Type.RunBatchCorrection]
+[Type.PCAGeneExpression]
 params = {}
-info.title = "Run batch correction?"
-info.description = """If you have run your samples across conditions in a two or more "batches,"
-then you may want to run _batch correction_, which corrects for systematic
-differences between the batches.
+info.title = "PCA - Perform 2D principal component analysis of gene expression"
+info.description = """This analysis computes a 2D visualization of gene expression using
+something called
+[principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
 
-For example, say you have samples from condition A and B. You run batch 1
-of A and B on one day, and batch 2 on another day. Because you are
-interested in comparing conditions A and B (and _not_ batches 1 and 2),
-you may want to run batch correction to try to eliminate and systematic
-differences between batches 1 and 2, leaving only the differences between
-conditions A and B."""
+The "principal components" capture the axes of largest variation in the dataset.
+This means that if a quantity of interest segregates cleanly in the 2D
+PCA projection, you can have high assurance that it accounts for most of the
+variation in your dataset.
+
+For example, say you have samples in Condition A and samples in Condition
+B in your experiment, and you cluster each sample's gene expressions down
+to a 2D visualization using PCA. If all the Condition A points are close
+to each other and all the Condition B points are close to each other, that
+means that most of the variation in your data set can be explained by which
+condition your samples are assigned to.
+
+This analysis goal is a downstream analysis in RNA-seq processing.
+The following image shows a _typical_ RNA-seq processing workflow,
+**but the details can vary a lot!**
+
+![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 info.code = '''@dataclass
     phase=2,
     phase_description="Downstream Analysis",
 )
-class RunBatchCorrection:
-    """Run batch correction?
+class PCAGeneExpression:
+    """PCA - Perform 2D principal component analysis of gene expression
 
-    If you have run your samples across conditions in a two or more "batches,"
-    then you may want to run _batch correction_, which corrects for systematic
-    differences between the batches.
+    This analysis computes a 2D visualization of gene expression using
+    something called
+    [principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis).
 
-    For example, say you have samples from condition A and B. You run batch 1
-    of A and B on one day, and batch 2 on another day. Because you are
-    interested in comparing conditions A and B (and _not_ batches 1 and 2),
-    you may want to run batch correction to try to eliminate and systematic
-    differences between batches 1 and 2, leaving only the differences between
-    conditions A and B."""
+    The "principal components" capture the axes of largest variation in the dataset.
+    This means that if a quantity of interest segregates cleanly in the 2D
+    PCA projection, you can have high assurance that it accounts for most of the
+    variation in your dataset.
+
+    For example, say you have samples in Condition A and samples in Condition
+    B in your experiment, and you cluster each sample's gene expressions down
+    to a 2D visualization using PCA. If all the Condition A points are close
+    to each other and all the Condition B points are close to each other, that
+    means that most of the variation in your data set can be explained by which
+    condition your samples are assigned to.
+
+    This analysis goal is a downstream analysis in RNA-seq processing.
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
 
     path: str'''
 info.phase = 2
 info.phase_description = "Downstream Analysis"
 
-[Function.run_batch_correction]
+[Type.CountDifferentiallyExpressedGenes]
 params = {}
-ret = "RunBatchCorrection"
-condition = [
-]
-info.title = "Run batch correction"
-info.description = """This choice will enable batch correction in downstream analyses."""
-info.search = false
-info.hyperparameters = [
-]
-info.code = '''# PARAMETER
-RUN_BATCH_CORRECTION = True'''
+info.title = "Count differentially-expressed genes"
+info.description = """The goal of this step is to count how many genes are differentially
+expressed in each comparison.
 
-[Function.do_not_run_batch_correction]
+There are two thresholds you can set for this step:
+
+- The **p-value** threshold (significance threshold)
+- The **log2 fold change** threshold (magnitude threshold)
+
+The p-value tells you how significant your hit is (which is related to
+both sample size and magnitude) and the log2 fold change tells you just the
+magnitude of the differential expression.
+
+This analysis goal is a downstream analysis in RNA-seq processing.
+The following image shows a _typical_ RNA-seq processing workflow,
+**but the details can vary a lot!**
+
+![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
+info.code = '''@dataclass
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class CountDifferentiallyExpressedGenes:
+    """Count differentially-expressed genes
+
+    The goal of this step is to count how many genes are differentially
+    expressed in each comparison.
+
+    There are two thresholds you can set for this step:
+
+    - The **p-value** threshold (significance threshold)
+    - The **log2 fold change** threshold (magnitude threshold)
+
+    The p-value tells you how significant your hit is (which is related to
+    both sample size and magnitude) and the log2 fold change tells you just the
+    magnitude of the differential expression.
+
+    This analysis goal is a downstream analysis in RNA-seq processing.
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
+
+    path: str'''
+info.phase = 2
+info.phase_description = "Downstream Analysis"
+
+[Type.AnyDifferentiallyExpressedGenes]
 params = {}
-ret = "RunBatchCorrection"
-condition = [
-]
-info.title = "Do not run batch correction"
-info.description = """This choice will skip batch correction."""
-info.search = false
-info.hyperparameters = [
-]
-info.code = '''# PARAMETER
-RUN_BATCH_CORRECTION = False'''
+info.title = "@intermediate:Filter genes to just differentially-expressed"
+info.description = """The goal of this step is to filter your entire list of genes to **just**
+those that are differentially expressed **in at least one of the
+comparisons against each control**.
+
+There are two thresholds you can set for this step:
+
+- The **p-value** threshold (significance threshold)
+- The **log2 fold change** threshold (magnitude threshold)
+
+The p-value tells you how significant your hit is (which is related to
+both sample size and magnitude) and the log2 fold change tells you just the
+magnitude of the differential expression."""
+info.code = '''@dataclass
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class AnyDifferentiallyExpressedGenes:
+    """@intermediate:Filter genes to just differentially-expressed
+
+    The goal of this step is to filter your entire list of genes to **just**
+    those that are differentially expressed **in at least one of the
+    comparisons against each control**.
+
+    There are two thresholds you can set for this step:
+
+    - The **p-value** threshold (significance threshold)
+    - The **log2 fold change** threshold (magnitude threshold)
+
+    The p-value tells you how significant your hit is (which is related to
+    both sample size and magnitude) and the log2 fold change tells you just the
+    magnitude of the differential expression."""
+
+    path: str'''
+info.phase = 2
+info.phase_description = "Downstream Analysis"
+
+[Type.DifferentiallyExpressedGeneClusters]
+params = {}
+info.title = "Cluster genes differentially expressed in at least one comparison"
+info.description = """The goal of this step is to group genes that are differentially expressed
+among **any** of the comparisons against your control into **clusters**.
+
+Each cluster has genes that have similar expression patterns across your
+samples. For example, one cluster might contain genes that go up in your
+treatment condition, and another might contain genes that go down.
+
+Genes in the same cluster are often (but not always) involved in related
+biological processes, so these clusters are commonly used as input to
+downstream analyses like
+[gene ontology (GO)](https://en.wikipedia.org/wiki/Gene_Ontology)
+enrichment.
+
+This analysis goal is a downstream analysis in RNA-seq processing.
+The following image shows a _typical_ RNA-seq processing workflow,
+**but the details can vary a lot!**
+
+![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
+info.code = '''@dataclass
+    phase=2,
+    phase_description="Downstream Analysis",
+)
+class DifferentiallyExpressedGeneClusters:
+    """Cluster genes differentially expressed in at least one comparison
+
+    The goal of this step is to group genes that are differentially expressed
+    among **any** of the comparisons against your control into **clusters**.
+
+    Each cluster has genes that have similar expression patterns across your
+    samples. For example, one cluster might contain genes that go up in your
+    treatment condition, and another might contain genes that go down.
+
+    Genes in the same cluster are often (but not always) involved in related
+    biological processes, so these clusters are commonly used as input to
+    downstream analyses like
+    [gene ontology (GO)](https://en.wikipedia.org/wiki/Gene_Ontology)
+    enrichment.
+
+    This analysis goal is a downstream analysis in RNA-seq processing.
+    The following image shows a _typical_ RNA-seq processing workflow,
+    **but the details can vary a lot!**
+
+    ![An overview of the RNA-seq workflow.](assets/rna-seq.png)"""
+
+    path: str'''
+info.phase = 2
+info.phase_description = "Downstream Analysis"
 
 [Function.load_rna_seq]
 params = {}
@@ -974,8 +1181,7 @@ downloads samples identified with SRR accession identifiers from the
 [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/home)."""
 info.search = false
 info.hyperparameters = [
-    {name = 'RNA_SEQ_SAMPLE_SHEET', default = '"metadata/sample_sheet.csv"', comment = 'Path to RNA-seq sample sheet CSV' },
-    {name = 'RNA_SEQ_COPMARISON_SHEET', default = 'None', comment = 'Optional path to RNA-seq comparison sheet CSV' },
+    {name = 'RNA_SEQ_SAMPLE_SHEET', default = '"sample_sheet.csv"', comment = 'Path to RNA-seq sample sheet CSV' },
 ]
 info.code = '''sample_sheet = pl.read_csv(RNA_SEQ_SAMPLE_SHEET)
 
@@ -1005,12 +1211,12 @@ for sample in sample_sheet.rows(named=True):
             new_file = file + ".fastq.gz"
 
             # Download the file
-            # -x 16 -s 16 means to use 16 concurrent streams to download the
+            # -x 4 -s 4 means to use 4 concurrent streams to download the
             # files; please do not set this number too high out of respect
             # for the EBI's bandwidth!
             bash(f"""
                  aria2c
-                     -x 16 -s 16
+                     -x 4 -s 4
                      --dir={__hb_ret.path}
                      {base_url}{new_file}
             """)
@@ -1022,6 +1228,7 @@ for sample in sample_sheet.rows(named=True):
                 src=file,
                 dst=f"{__hb_ret.path}/{new_file}",
             )
+
         new_files[file] = new_file
 
 # Create the new sample sheet with updated filenames
@@ -1030,25 +1237,17 @@ sample_sheet.with_columns(
     reverse_location=pl.col("reverse_location").replace(new_files),
 ).write_csv(f"{shared()}/sample_sheet.csv")
 
-# Copy over the comparison sheet, if it exists
-if RNA_SEQ_COPMARISON_SHEET:
-    link(
-        RNA_SEQ_COPMARISON_SHEET,
-        f"{shared()}/comparison_sheet.csv",
+# Create comparison sheet
+(
+    sample_sheet.select("comparison", "condition")
+    .unique(maintain_order=True)
+    .with_columns(
+        control_condition=pl.col("condition").first().over("comparison"),
     )
-
-# Otherwise, include all comparisons
-else:
-    conditions = sample_sheet["condition"].unique(maintain_order=True)
-    controls = []
-    treatments = []
-    for i in range(0, len(conditions)):
-        for j in range(i + 1, len(conditions)):
-            controls.append(conditions[i])
-            treatments.append(conditions[j])
-    pl.DataFrame(
-        {"control_condition": controls, "treatment_condition": treatments}
-    ).write_csv(f"{shared()}/comparison_sheet.csv")'''
+    .filter(pl.col("condition") != pl.col("control_condition"))
+    .select("comparison", "control_condition", treatment_condition="condition")
+    .write_csv(f"{shared()}/comparison_sheet.csv")
+)'''
 
 [Function.cutadapt_rna]
 params.reads = "SeqReads"
@@ -1063,7 +1262,7 @@ condition = [
     "ret.type = reads.type",
 ]
 info.title = "cutadapt - remove poly(A) tails"
-info.description = """# Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/).
+info.description = """# Remove sequencing adapters and poly(A) tails using [cutadapt](https://cutadapt.readthedocs.io/en/stable/)
 
 [Adapter trimming](https://knowledge.illumina.com/library-preparation/general/library-preparation-general-reference_material-list/000001314)
 removes adapter sequences that are present due to a read length being
@@ -1079,13 +1278,13 @@ From the [cutadapt manual](https://cutadapt.readthedocs.io/en/stable/):
 > Cutadapt finds and removes adapter sequences, primers, poly-A tails and
 > other types of unwanted sequence from your high-throughput sequencing
 > reads.
-
+>
 > Cleaning your data in this way is often required: Reads from small-RNA
 > sequencing contain the 3’ sequencing adapter because the read is longer
 > than the molecule that is sequenced. Amplicon reads start with a primer
 > sequence. Poly-A tails are useful for pulling out RNA from your sample,
 > but often you don’t want them to be in your reads.
-
+>
 > Cutadapt helps with these trimming tasks by finding the adapter or primer
 > sequences in an error-tolerant way."""
 info.google_scholar_id = "4180123542769751602"
@@ -1096,175 +1295,209 @@ info.hyperparameters = [
     {name = 'REVERSE_ADAPTER', default = '"AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"', comment = 'The reverse adapter, by default the Illumina universal (can delete for single-end only)' },
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+# Run cutadapt for each sample in the sample sheet
 for sample in sample_sheet.rows(named=True):
-    # Paired-end
-    if sample["reverse_location"]:
-        # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-        # -A reverse adapter, -o forward output, -o reverse output
-        bash(f"""uv run cutadapt
-                    --cores={CORES}
-                    -m 1
-                    --poly-a
-                    -a {FORWARD_ADAPTER}
-                    -A {REVERSE_ADAPTER}
-                    -o {__hb_ret.path}/{sample["forward_location"]}
-                    -p {__hb_ret.path}/{sample["reverse_location"]}
-                    {__hb_reads.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["reverse_location"]}""")
-
-    # Single-end
-    else:
-        # --cores number of cores, -m 1 remove reads <1, -a forward adapter
-        # -o forward output
-        bash(f"""uv run cutadapt
-                    --cores={CORES}
-                    -m 1
-                    --poly-a
-                    -a {FORWARD_ADAPTER}
-                    -o {__hb_ret.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["forward_location"]}""")'''
-
-[Function.use_existing_kallisto_index]
-params = {}
-ret = "KallistoIndex"
-condition = [
-]
-info.title = "Use existing index"
-info.description = """If you already have a kallisto index for the transcriptome you'd like to
-use, you can use this code to skip creating a new one."""
-info.search = false
-info.hyperparameters = [
-    {name = 'KALLISTO_INDEX', default = '"ensembl115.Homo_sapiens.GRCh38.cdna.all.kallisto.idx"', comment = 'The location of the kallisto transcriptome index on your computer' },
-]
-info.code = '''link(
-    KALLISTO_INDEX,
-    f"{__hb_ret.path}/kallisto.idx",
-)'''
-
-[Function.create_hg38_kallisto_index]
-params = {}
-ret = "KallistoIndex"
-condition = [
-]
-info.title = "New from HUMAN transcriptome (hg38)"
-info.description = """This code creates a kallisto index from the human transcriptome (hg38). It
-automatically downloads the human transcriptome for you from
-[Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
-info.search = false
-info.hyperparameters = [
-    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
-]
-info.code = '''bash(f"""
-    wget
-        --progress=bar:force
-        --no-clobber
-        --directory-prefix {shared()}/transcriptomes
-        https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
-""")
-
-# -t number of cores, -i output filename for index
-bash(f"""
-    kallisto index
-        -t {CORES}
-        -i {__hb_ret.path}/kallisto.idx
-        {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
-""")'''
+    # --cores number of cores, -m 1 remove reads <1, -a forward adapter
+    # -A reverse adapter, -o forward output, -o reverse output
+    # ==> Important! The --poly-a flag removes poly(A) tails!
+    bash(f"""
+        uv run cutadapt
+            --cores={CORES}
+            -m 1
+            --poly-a
+            -a {FORWARD_ADAPTER}
+            -A {REVERSE_ADAPTER}
+            -o {__hb_ret.path}/{sample["forward_location"]}
+            -p {__hb_ret.path}/{sample["reverse_location"]}
+            {__hb_reads.path}/{sample["forward_location"]}
+            {__hb_reads.path}/{sample["reverse_location"]}
+    """)'''
 
 [Function.create_kallisto_index]
 params = {}
 ret = "KallistoIndex"
 condition = [
 ]
-info.title = "New from OTHER transcriptome"
-info.description = """This code creates a kallisto index from an existing transcriptome file on
-your computer. This transcriptome file should contain the complementary
-DNA (cDNA) for your transcripts of interest. A good place to download
-transcriptome files is the
-[Ensembl genome repository](https://www.ensembl.org/)."""
+info.title = "Create necessary kallisto indexes by downloading Ensembl transcriptomes"
+info.description = """This code downloads transcriptomes from [Ensembl](https://ensembl.org) that match
+the sample sheet information, then creates a kallisto index for each of
+them. It also downloads the corresponding metadata for the transcriptome.
+
+A _transcriptome_ contains the complementary DNA (cDNA) for your transcripts
+of interest. Ensembl has such transcriptomes for many different species!"""
 info.search = false
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
-    {name = 'TRANSCRIPTOME_PATH', default = '"ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"', comment = 'The location of the reference transcriptome on your computer (FASTA format)' },
+    {name = 'ENSEMBL_VERSION', default = '"111"', comment = 'The version of Ensembl to use for gene annotations' },
 ]
-info.code = '''# -t number of cores, -i output filename for index
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Create transcriptome folder (if necessary)
+bash(f"""mkdir -p {shared()}/transcriptomes""")
+
+# Download the transcriptome from Ensembl
+bash(f"""
+    wget
+        --progress=bar:force
+        -O {shared()}/transcriptomes/{species}.cdna.fa.gz
+        $(uv run gget ref --ftp --which cdna --release {ENSEMBL_VERSION} {species})
+""")
+
+# Create the kallisto index
+# -t number of cores, -i output filename for index
 bash(f"""
     kallisto index
         -t {CORES}
         -i {__hb_ret.path}/kallisto.idx
-        {TRANSCRIPTOME_PATH}
-""")'''
+        {shared()}/transcriptomes/{species}.cdna.fa.gz
+""")
 
-[Function.use_existing_salmon_index]
-params = {}
-ret = "SalmonIndex"
-condition = [
-]
-info.title = "Use existing index"
-info.description = """If you already have a salmon index for the transcriptome you'd like to
-use, you can use this code to skip creating a new one."""
-info.hyperparameters = [
-    {name = 'SALMON_INDEX', default = '"salmon_index"', comment = 'The location of the salmon transcriptome index on your computer' },
-]
-info.code = '''link(
-    SALMON_INDEX,
-    f"{__hb_ret.path}/salmon_index",
-)'''
+# Also download the Ensembl metadata
+bash(f"""mkdir -p {shared()}/{species}""")
+bash(f"""
+    Rscript environment/fetch_ensembl_metadata.r
+        --ensembl_version={ENSEMBL_VERSION}
+        --species={species}
+        --output_directory={shared()}/{species}
+""")'''
 
 [Function.create_salmon_index]
 params = {}
 ret = "SalmonIndex"
 condition = [
 ]
-info.title = "New from OTHER transcriptome"
-info.description = """This code creates a salmon index from an existing transcriptome file on
-your computer. This transcriptome file should contain the complementary
-DNA (cDNA) for your transcripts of interest. A good place to download
-transcriptome files is the
-[Ensembl genome repository](https://www.ensembl.org/)."""
-info.search = false
-info.hyperparameters = [
-    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
-    {name = 'TRANSCRIPTOME_PATH', default = '"ensembl115.Homo_sapiens.GRCh38.cdna.all.fa.gz"', comment = 'The location of the reference transcriptome on your computer (FASTA format)' },
-]
-info.code = '''# -p number of cores, -t path to transcriptome, -i output filename for index
-bash(f"""
-    salmon index
-        -p {CORES}
-        -t {TRANSCRIPTOME_PATH}
-        -i {__hb_ret.path}/salmon_index
-""")'''
+info.title = "Create necessary Salmon indexes by downloading Ensembl transcriptomes"
+info.description = """This code downloads transcriptomes from [Ensembl](https://ensembl.org) that
+match the sample sheet information, then creates a Salmon index for each
+of them. It also downloads the corresponding metadata for the transcriptome.
 
-[Function.create_hg38_salmon_index]
-params = {}
-ret = "SalmonIndex"
-condition = [
-]
-info.title = "New from HUMAN transcriptome (hg38)"
-info.description = """This code creates a salmon index from the human transcriptome (hg38). It
-automatically downloads the human transcriptome for you from
-[Ensembl](https://www.ensembl.org/Homo_sapiens/Info/Index)."""
+A _transcriptome_ contains the complementary DNA (cDNA) for your transcripts
+of interest. Ensembl has such transcriptomes for many different species!"""
 info.search = false
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
+    {name = 'ENSEMBL_VERSION', default = '"111"', comment = 'The version of Ensembl to use for gene annotations' },
 ]
-info.code = '''bash(f"""
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Create transcriptome folder (if necessary)
+bash(f"""mkdir -p {shared()}/transcriptomes""")
+
+# Download the transcriptome from Ensembl
+bash(f"""
     wget
         --progress=bar:force
-        --no-clobber
-        --directory-prefix {shared()}/transcriptomes
-        https://ftp.ensembl.org/pub/release-{ENSEMBL_VERSION}/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+        -O {shared()}/transcriptomes/{species}.cdna.fa.gz
+        $(uv run gget ref --ftp --which cdna --release {ENSEMBL_VERSION} {species})
 """)
 
+# Create the Salmon index
 # -p number of cores, -t path to transcriptome, -i output filename for index
 bash(f"""
     salmon index
         -p {CORES}
-        -t {shared()}/transcriptomes/Homo_sapiens.GRCh38.cdna.all.fa.gz
+        -t {shared()}/transcriptomes/{species}.cdna.fa.gz
         -i {__hb_ret.path}/salmon_index
+""")
+
+# Also download the Ensembl metadata
+bash(f"""mkdir -p {shared()}/{species}""")
+bash(f"""
+    Rscript environment/fetch_ensembl_metadata.r
+        --ensembl_version={ENSEMBL_VERSION}
+        --species={species}
+        --output_directory={shared()}/{species}
+""")'''
+
+[Function.create_star_index]
+params = {}
+ret = "StarIndex"
+condition = [
+]
+info.title = "Create necessary STAR indexes by downloading Ensembl genomes"
+info.description = """This code downloads reference genomes and gene annotations from
+[Ensembl](https://ensembl.org) that match the sample sheet information,
+then creates a STAR index for each of them. It also downloads the
+corresponding metadata for the genome.
+
+Unlike a _transcriptome_ (which contains only the sequences of mRNA
+transcripts), a _genome_ contains the full DNA sequence of an organism.
+The gene annotation (in [GTF format](https://useast.ensembl.org/info/website/upload/gff.html))
+describes where each gene (and each exon of each gene) is located in the
+genome. Ensembl has such genomes and annotations for many different
+species!
+
+**Note:** Creating a STAR index for a large genome takes a lot of memory
+(about 32 GB of RAM for the human genome)."""
+info.search = false
+info.hyperparameters = [
+    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
+    {name = 'ENSEMBL_VERSION', default = '"111"', comment = 'The version of Ensembl to use for gene annotations' },
+]
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Create genome and annotation folders (if necessary)
+bash(f"""mkdir -p {shared()}/genomes""")
+bash(f"""mkdir -p {shared()}/annotations""")
+
+# Download the genome from Ensembl
+bash(f"""
+    wget
+        --progress=bar:force
+        -O {shared()}/genomes/{species}.dna.fa.gz
+        $(uv run gget ref --ftp --which dna --release {ENSEMBL_VERSION} {species})
+""")
+
+# Download the gene annotation from Ensembl
+bash(f"""
+    wget
+        --progress=bar:force
+        -O {shared()}/annotations/{species}.gtf.gz
+        $(uv run gget ref --ftp --which gtf --release {ENSEMBL_VERSION} {species})
+""")
+
+# Decompress the genome and gene annotation (STAR requires uncompressed
+# files); -f overwrites existing files
+bash(f"""gunzip -f {shared()}/genomes/{species}.dna.fa.gz""")
+bash(f"""gunzip -f {shared()}/annotations/{species}.gtf.gz""")
+
+# Create the STAR index
+# --runThreadN number of cores, --genomeDir output folder for index,
+# --genomeFastaFiles path to genome, --sjdbGTFfile path to gene annotation,
+# --outFileNamePrefix where to put log files
+bash(f"""mkdir -p {__hb_ret.path}/star_index""")
+bash(f"""
+    STAR
+        --runMode genomeGenerate
+        --runThreadN {CORES}
+        --genomeDir {__hb_ret.path}/star_index
+        --genomeFastaFiles {shared()}/genomes/{species}.dna.fa
+        --sjdbGTFfile {shared()}/annotations/{species}.gtf
+        --outFileNamePrefix {__hb_ret.path}/
+""")
+
+# Also download the Ensembl metadata
+bash(f"""mkdir -p {shared()}/{species}""")
+bash(f"""
+    Rscript environment/fetch_ensembl_metadata.r
+        --ensembl_version={ENSEMBL_VERSION}
+        --species={species}
+        --output_directory={shared()}/{species}
 """)'''
 
 [Function.kallisto]
@@ -1290,36 +1523,20 @@ info.citation = "NL Bray, H Pimentel, P Melsted and L Pachter, Near optimal prob
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
 ]
-info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+info.code = '''# Load sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+# Run kallisto for each sample in the sample sheet
 for sample in sample_sheet.rows(named=True):
-    # Paired-end
-    if sample["reverse_location"]:
-        # -t number of cores, -i kallisto index, -o output folder
-        bash(f"""kallisto quant
-                    -t {CORES}
-                    -i {__hb_idx.path}/kallisto.idx
-                    -o {__hb_ret.path}/{sample["sample_name"]}
-                    {__hb_reads.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["reverse_location"]}""")
-
-    # Single-end
-    else:
-        # IMPORTANT: For single-end reads, you *must* set fragment length
-        # and standard deviation of the library! These can be determined
-        # from, e.g., a TapeStation. The kallisto creators note:
-        #     Typical Illumina libraries produce fragment lengths ranging
-        #     from 180–200 bp but it's best to determine this from a library
-        #     quantification with an instrument such as an Agilent
-        #     Bioanalyzer.
-        #                     - https://pachterlab.github.io/kallisto/manual
-        bash(f"""kallisto quant
-                    --fragment-length=200
-                    --sd=20
-                    -t {CORES}
-                    -i {__hb_idx.path}/kallisto.idx
-                    -o {__hb_ret.path}/{sample["sample_name"]}
-                    {__hb_reads.path}/{sample["forward_location"]}""")'''
+    # -t number of cores, -i kallisto index, -o output folder
+    bash(f"""
+        kallisto quant
+            -t {CORES}
+            -i {__hb_idx.path}/kallisto.idx
+            -o {__hb_ret.path}/{sample["sample_name"]}
+            {__hb_reads.path}/{sample["forward_location"]}
+            {__hb_reads.path}/{sample["reverse_location"]}
+    """)'''
 
 [Function.kallisto_bootstrap]
 params.idx = "KallistoIndex"
@@ -1354,42 +1571,22 @@ info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
     {name = 'KALLISTO_BOOTSTRAPS', default = '50', comment = 'The number of bootstrap resamplings kallisto should perform' },
 ]
-info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+info.code = '''# Load sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+# Run kallisto for each sample in the sample sheet
 for sample in sample_sheet.rows(named=True):
-    # Paired-end
-    if sample["reverse_location"]:
-        # -b number of bootstrap resamplings, -t number of cores,
-        # -i kallisto index, -o output folder (--plaintext sets output
-        # format)
-        bash(f"""kallisto quant
-                     --plaintext
-                    -b {KALLISTO_BOOTSTRAPS}
-                    -t {CORES}
-                    -i {__hb_idx.path}/kallisto.idx
-                    -o {__hb_ret.path}/{sample["sample_name"]}
-                    {__hb_reads.path}/{sample["forward_location"]}
-                    {__hb_reads.path}/{sample["reverse_location"]}""")
-
-    # Singe-end
-    else:
-        # IMPORTANT: For single-end reads, you *must* set fragment length
-        # and standard deviation of the library! These can be determined
-        # from, e.g., a TapeStation. The kallisto creators note:
-        #     Typical Illumina libraries produce fragment lengths ranging
-        #     from 180–200 bp but it's best to determine this from a library
-        #     quantification with an instrument such as an Agilent
-        #     Bioanalyzer.
-        #                     - https://pachterlab.github.io/kallisto/manual
-        bash(f"""kallisto quant
-                     --plaintext
-                    -b {KALLISTO_BOOTSTRAPS}
-                    --fragment-length=200
-                    --sd=20
-                    -t {CORES}
-                    -i {__hb_idx.path}/kallisto.idx
-                    -o {__hb_ret.path}/{sample["sample_name"]}
-                    {__hb_reads.path}/{sample["forward_location"]}""")'''
+    # -b number of bootstrap resamplings, -t number of cores,
+    # -i kallisto index, -o output folder
+    bash(f"""
+         kallisto quant
+             -b {KALLISTO_BOOTSTRAPS}
+             -t {CORES}
+             -i {__hb_idx.path}/kallisto.idx
+             -o {__hb_ret.path}/{sample["sample_name"]}
+             {__hb_reads.path}/{sample["forward_location"]}
+             {__hb_reads.path}/{sample["reverse_location"]}
+    """)'''
 
 [Function.salmon]
 params.idx = "SalmonIndex"
@@ -1416,29 +1613,19 @@ info.hyperparameters = [
 ]
 info.code = '''sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
 
+# Run Salmon for each sample in the sample sheet
 for sample in sample_sheet.rows(named=True):
-    # Paired-end
-    if sample["reverse_location"]:
-        # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
-        # reads, -o output folder (-l A autodetects library type)
-        bash(f"""salmon quant
-                    -l A
-                    -p {CORES}
-                    -i {__hb_idx.path}/salmon_index
-                    -1 {__hb_reads.path}/{sample["forward_location"]}
-                    -2 {__hb_reads.path}/{sample["reverse_location"]}
-                    -o {__hb_ret.path}/{sample["sample_name"]}""")
-
-    # Single-end
-    else:
-        # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
-        # reads, -o output folder (-l A autodetects library type)
-        bash(f"""salmon quant
-                     -l A
-                    -p {CORES}
-                    -i {__hb_idx.path}/salmon_index
-                    -r {__hb_reads.path}/{sample["forward_location"]}
-                    -o {__hb_ret.path}/{sample["sample_name"]}""")
+    # -p number of cores, -i salmon index, -1 forward reads, -2 reverse
+    # reads, -o output folder (-l A autodetects library type)
+    bash(f"""
+        salmon quant
+            -l A
+            -p {CORES}
+            -i {__hb_idx.path}/salmon_index
+            -1 {__hb_reads.path}/{sample["forward_location"]}
+            -2 {__hb_reads.path}/{sample["reverse_location"]}
+            -o {__hb_ret.path}/{sample["sample_name"]}
+    """)
 
     # Convert Salmon's quant.sf to kallisto's abundance.tsv format for
     # compatability
@@ -1446,15 +1633,91 @@ for sample in sample_sheet.rows(named=True):
         f"{__hb_ret.path}/{sample['sample_name']}/quant.sf",
         separator="\t",
     ).select(
+        # Rename left columns to right
         pl.col("Name").alias("target_id"),
         pl.col("Length").alias("length"),
         pl.col("EffectiveLength").alias("eff_length"),
         pl.col("NumReads").alias("est_counts"),
         pl.col("TPM").alias("tpm"),
     ).write_csv(
+        # Save the file
         f"{__hb_ret.path}/{sample['sample_name']}/abundance.tsv",
         separator="\t",
     )'''
+
+[Function.star]
+params.idx = "StarIndex"
+params.reads = "SeqReads"
+ret = "SeqAlignment"
+condition = [
+    "reads.qc = true",
+    "reads.trimmed = true",
+    "reads.long = false",
+    "reads.type = \"rna\"",
+    "ret.type = reads.type",
+    "ret.compressed = true",
+]
+info.title = "STAR"
+info.description = """# Align RNA-seq reads to a reference genome using [STAR](https://github.com/alexdobin/STAR)
+
+STAR is a _splice-aware_ aligner: it can align reads that span exon-exon
+junctions (where introns have been spliced out of the mRNA) to the
+genome. Alignment is much slower than transcript quantification methods
+like [kallisto](https://pachterlab.github.io/kallisto/) or
+[Salmon](https://salmon.readthedocs.io/en/latest/index.html), but it tells
+you exactly where each read aligns in the genome, which is useful for
+viewing the alignments (e.g. in [IGV](https://igv.org/)) or for discovering
+new splice junctions. To get gene-level read counts from the alignments,
+use a tool like
+[featureCounts](https://subread.sourceforge.net/featureCounts.html).
+
+This code outputs **sorted** and **indexed** BAM files.
+
+**Note:** Aligning to a large genome takes a lot of memory (about 32 GB of
+RAM for the human genome)!"""
+info.pmid = "23104886"
+info.citation = "Dobin A, Davis CA, Schlesinger F, Drenkow J, Zaleski C, Jha S, Batut P, Chaisson M, Gingeras TR. STAR: ultrafast universal RNA-seq aligner. Bioinformatics. 2013 Jan 1;29(1):15-21. doi: 10.1093/bioinformatics/bts635. PMID: 23104886; PMCID: PMC3530905."
+info.use = "to align RNA-seq reads to a reference genome (splice-aware)"
+info.hyperparameters = [
+    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
+]
+info.code = '''# Load sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Run STAR for each sample in the sample sheet
+for sample in sample_sheet.rows(named=True):
+    # Get the reads (works for paired-end and single-end)
+    read_files = f"{__hb_reads.path}/{sample['forward_location']}"
+    if sample["reverse_location"]:
+        read_files += f" {__hb_reads.path}/{sample['reverse_location']}"
+
+    # Decompress the reads on the fly if they are gzipped
+    read_files_command = ""
+    if sample["forward_location"].endswith(".gz"):
+        read_files_command = "--readFilesCommand gunzip -c"
+
+    # --runThreadN number of cores, --genomeDir STAR index, --readFilesIn
+    # forward (and reverse) reads, --outFileNamePrefix prefix for output
+    # files, --outSAMtype output a BAM file sorted by coordinate
+    bash(f"""
+        STAR
+            --runThreadN {CORES}
+            --genomeDir {__hb_idx.path}/star_index
+            --readFilesIn {read_files}
+            {read_files_command}
+            --outFileNamePrefix {__hb_ret.path}/{sample["sample_name"]}.
+            --outSAMtype BAM SortedByCoordinate
+    """)
+
+    # Rename the alignment to match the other aligners
+    bash(f"""
+        mv
+            {__hb_ret.path}/{sample["sample_name"]}.Aligned.sortedByCoord.out.bam
+            {__hb_ret.path}/{sample["sample_name"]}.bam
+    """)
+
+    # Index the alignment
+    bash(f"""samtools index {__hb_ret.path}/{sample["sample_name"]}.bam""")'''
 
 [Function.tximport]
 params.data = "TranscriptMatrices"
@@ -1462,32 +1725,439 @@ ret = "GeneMatrices"
 condition = [
     "data.bootstrapped = false",
 ]
-info.title = "tximport"
+info.title = "tximport (alignment-free method)"
 info.description = """# Aggregate transcript-level estimated counts for gene-level analysis with [tximport](https://bioconductor.org/packages/release/bioc/html/tximport.html)
 
 Tools like [kallisto](https://pachterlab.github.io/kallisto/) and
 [salmon](https://salmon.readthedocs.io/en/latest/) report transcript-level
 read counts, but many analyses of interest (such as differential _gene_
 expression) require gene-level data. tximport aggregates transcripts of the
-same gene together for gene-level downstream analysis."""
+same gene together for gene-level downstream analysis.
+
+**Note:** This choice will force you to select an **alignment-free**
+quantification method like kallisto or Salmon!**"""
 info.google_scholar_id = "5898741618830664005"
 info.pmid = "26925227"
 info.citation = "Soneson C, Love MI, Robinson MD (2015). Differential analyses for RNA-seq: transcript-level estimates improve gene-level inferences. F1000Research, 4. doi:10.12688/f1000research.7563.1."
 info.hyperparameters = [
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
 ]
-info.code = '''bash(f"""
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Run tximport
+bash(f"""
     Rscript environment/tximport.r
-        --ensembl_version={ENSEMBL_VERSION}
-        --ensembl_dataset={ENSEMBL_DATASET}
         --sample_sheet={shared()}/sample_sheet.csv
-        --input={__hb_data.path}
-        --output={__hb_ret.path}""")'''
+        --tx2gene={shared()}/{species}/tx2gene.csv
+        --input_directory={__hb_data.path}
+        --output_directory={__hb_ret.path}
+""")'''
+
+[Function.featureCounts]
+params.align = "SeqAlignment"
+ret = "GeneMatrices"
+condition = [
+    "align.type = \"rna\"",
+    "align.compressed = true",
+]
+info.title = "featureCounts (alignment-based method)"
+info.description = """# Count reads aligned to each gene with [featureCounts](https://subread.sourceforge.net/featureCounts.html)
+
+Aligners like [STAR](https://github.com/alexdobin/STAR) report where each
+read aligns in the genome, but many analyses of interest (such as
+differential gene expression) require gene-level read counts.
+featureCounts uses a gene annotation (which describes where each gene is
+located in the genome) to tally up how many reads align to each gene.
+
+By default, reads that overlap more than one gene, or that align to more
+than one location in the genome, are **not** counted (because it's
+ambiguous which gene they came from).
+
+**Note:** This choice will force you to select an **alignment-based**
+quantification method like STAR!**"""
+info.pmid = "24227677"
+info.citation = "Liao Y, Smyth GK and Shi W (2014). featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics, 30(7):923-30."
+info.hyperparameters = [
+    {name = 'CORES', default = '4', comment = 'The number of cores to use' },
+]
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Get the alignment for each sample
+alignments = {
+    f"{__hb_align.path}/{sample_name}.bam": sample_name
+    for sample_name in sample_sheet["sample_name"]
+}
+
+# Run featureCounts
+# -T number of cores, -a gene annotation, -o output file
+# -p --countReadPairs is for paired-end reads
+bash(f"""
+    featureCounts
+        -T {CORES}
+        -p --countReadPairs
+        -a {shared()}/annotations/{species}.gtf
+        -o {__hb_ret.path}/featureCounts.tsv
+        {" ".join(alignments)}
+""")
+
+# Load featureCounts output (rows are genes, columns are gene information
+# followed by the read counts for each alignment)
+results = pl.read_csv(
+    f"{__hb_ret.path}/featureCounts.tsv",
+    separator="\t",
+    comment_prefix="#",
+)
+
+# Convert to the same format as tximport for compatibility (rows are
+# genes, columns are samples; unnamed first column the gene ID)
+results.select(
+    pl.col("Geneid").alias(""),
+    *[pl.col(path).alias(name) for path, name in alignments.items()],
+).write_csv(f"{__hb_ret.path}/counts.csv")
+
+# Also compute transcripts-per-million (TPM) abundance: counts per base of
+# gene length (summed exon lengths), scaled to sum to one million
+results.select(
+    pl.col("Geneid").alias(""),
+    *[
+        (
+            (pl.col(path) / pl.col("Length"))
+            / (pl.col(path) / pl.col("Length")).sum()
+            * 1_000_000
+        ).alias(name)
+        for path, name in alignments.items()
+    ],
+).write_csv(f"{__hb_ret.path}/abundance.csv")'''
+
+[Function.pca_gene_expression]
+params.data = "GeneMatrices"
+ret = "PCAGeneExpression"
+condition = [
+]
+info.title = "2D Principal Component Analysis (PCA) with scikit-learn"
+info.description = """This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
+to perform a principal component analysis. Specifically, it uses the
+[`sklearn.decomposition.PCA`](https://scikit-learn.org/stable/modules/generated/
+sklearn.decomposition.PCA.html) function; that webpage contains all the
+documentation for this function and more examples."""
+info.use = "a 2D visualization of your samples' gene expression"
+info.citation = "Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011."
+info.hyperparameters = [
+]
+info.code = '''# Load sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Load gene expression (rows are genes, columns are samples), dropping gene IDs
+expression = pl.read_csv(f"{__hb_data.path}/counts.csv").drop("")
+
+# Log-transform the counts so that highly-expressed genes don't dominate
+expression = expression.select((pl.all() + 1).log(base=2))
+
+# Transpose gene expression so that rows are samples, columns are genes
+X = expression.to_numpy().T
+
+# Get the principal components
+pcs = skdec.PCA(n_components=2).fit_transform(X)
+
+# Convert to dataframe and add condition information
+results = (
+    pl.DataFrame(pcs, schema=["PC1", "PC2"])
+    .insert_column(
+        0,
+        pl.Series("sample_name", expression.columns),
+    )
+    .join(sample_sheet, on="sample_name")
+)
+
+# Save the results of the PCA
+results.write_csv(
+    f"{__hb_ret.path}/pca.tsv",
+    separator="\t",
+)
+
+# Display the interactive PCA chart
+display(
+    alt.Chart(results)
+    .mark_point()
+    .encode(
+        x="PC1:Q",
+        y="PC2:Q",
+        color="condition:N",
+        tooltip="sample_name:N",
+    ),
+)'''
+
+[Function.count_differentially_expressed_genes]
+params.data = "DifferentialGeneExpression"
+ret = "CountDifferentiallyExpressedGenes"
+condition = [
+]
+info.title = "Count differentially-expressed genes"
+info.description = """This code counts how many genes are differentially expressed in at least one
+comparison against a control.
+
+You can tweak the parameters to set the **p-value** threshold (significance
+threshold) and **log2 fold change** threshold (magnitude threshold)."""
+info.search = false
+info.hyperparameters = [
+    {name = 'RNA_SEQ_LOG2_FC_THRESHOLD', default = '1', comment = 'The log2 fold change threshold for what constitutes a "differentially-expressed gene"' },
+    {name = 'RNA_SEQ_P_VALUE_THRESHOLD', default = '0.05', comment = 'The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction' },
+]
+info.code = '''# Load comparison sheet
+comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+# Count the differentially-expressed genes for each comparison
+counts = []
+for comparison in comparisons.iter_rows(named=True):
+    control = comparison["control_condition"]
+    treatment = comparison["treatment_condition"]
+
+    # Load the differential expression results
+    results = pl.read_csv(
+        os.path.join(
+            __hb_data.path,
+            control,
+            treatment,
+            "results.csv",
+        ),
+        null_values=["NA"],
+    )
+
+    # Keep only genes that pass both thresholds (null p-values are dropped)
+    de_genes = results.filter(
+        (pl.col("padj") < RNA_SEQ_P_VALUE_THRESHOLD)
+        & (pl.col("log2FoldChange").abs() >= RNA_SEQ_LOG2_FC_THRESHOLD)
+    )
+
+    counts.append(
+        {
+            "comparison": comparison["comparison"],
+            "control_condition": control,
+            "treatment_condition": treatment,
+            "differentially_expressed_genes": de_genes.height,
+        }
+    )
+
+# Aggregate the counts (one row per comparison)
+counts = pl.DataFrame(counts)
+
+# Save the counts
+counts.write_csv(f"{__hb_ret.path}/counts.csv")
+
+# Display the counts
+display(counts)'''
+
+[Function.any_differentially_expressed_genes]
+params.data = "DifferentialGeneExpression"
+ret = "AnyDifferentiallyExpressedGenes"
+condition = [
+]
+info.title = "List genes differentially expressed in any comparison"
+info.description = """This code filters your list of genes into just the genes that are
+differentially expressed in at least one comparison against a control.
+
+You can tweak the parameters to set the **p-value** threshold (significance
+threshold) and **log2 fold change** threshold (magnitude threshold)."""
+info.search = false
+info.hyperparameters = [
+    {name = 'RNA_SEQ_LOG2_FC_THRESHOLD', default = '1', comment = 'The log2 fold change threshold for what constitutes a "differentially-expressed gene"' },
+    {name = 'RNA_SEQ_P_VALUE_THRESHOLD', default = '0.05', comment = 'The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction' },
+]
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Load gene metadata
+gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+# Carry over the gene read count tables (counts.csv and abundance.csv)
+carry_over(f"{__hb_data.path}/*.csv", __hb_ret.path)
+
+# Load comparison sheet
+comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+# Collect the differentially-expressed genes for each comparison id
+for comparison_id, group in comparisons.group_by(
+    "comparison",
+    maintain_order=True,
+):
+    de_genes = []
+    for comparison in group.iter_rows(named=True):
+        control = comparison["control_condition"]
+        treatment = comparison["treatment_condition"]
+
+        # Load the differential expression results
+        results = pl.read_csv(
+            os.path.join(
+                __hb_data.path,
+                control,
+                treatment,
+                "results.csv",
+            ),
+            null_values=["NA"],
+        ).rename({"": "gene_id"})
+
+        # Keep only genes that pass both thresholds (null p-values are dropped)
+        de_genes.append(
+            results.filter(
+                (pl.col("padj") < RNA_SEQ_P_VALUE_THRESHOLD)
+                & (pl.col("log2FoldChange").abs() >= RNA_SEQ_LOG2_FC_THRESHOLD)
+            ).select("gene_id")
+        )
+
+    # Combine genes across all treatments in this comparison id
+    genes = (
+        pl.concat(de_genes)
+        .unique(maintain_order=True)
+        .join(gene_metadata, on="gene_id", how="left")
+    )
+
+    # Save the genes
+    genes.write_csv(
+        f"{__hb_ret.path}/differentially_expressed_genes{comparison_id[0]}.csv"
+    )'''
+
+[Function.kmeans_cluster_genes]
+params.genes = "AnyDifferentiallyExpressedGenes"
+ret = "DifferentiallyExpressedGeneClusters"
+condition = [
+]
+info.title = "k-means clustering with scikit-learn"
+info.description = """This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
+to group genes into _k_ clusters using
+[k-means clustering](https://en.wikipedia.org/wiki/K-means_clustering).
+Specifically, it uses the
+[`sklearn.cluster.KMeans`](https://scikit-learn.org/stable/modules/generated/
+sklearn.cluster.KMeans.html) function; that webpage contains all the
+documentation for this function and more examples.
+
+Before clustering, each gene's expression is log-transformed and standardized
+(using [z-scores](https://en.wikipedia.org/wiki/Standard_score)) across
+samples, so that genes are clustered by the shape of their expression
+pattern rather than by how highly expressed they are overall."""
+info.use = "a clustering method that just splits genes into a prespecified number of clusters"
+info.citation = "Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011."
+info.hyperparameters = [
+    {name = 'RNA_SEQ_CLUSTER_COUNT', default = '4', comment = 'The number of clusters to group genes into for the RNA-seq analysis' },
+]
+info.code = '''# Load gene expression (rows are genes, columns are samples), then
+# log-transform it and z-score each gene across samples
+expression = pl.read_csv(f"{__hb_genes.path}/abundance.csv").rename({"": "gene_id"})
+samples = [c for c in expression.columns if c != "gene_id"]
+expression = (
+    expression.with_columns((pl.col(s) + 1).log(base=2) for s in samples)
+    .with_columns(
+        mean=pl.mean_horizontal(samples),
+        std=pl.concat_list(samples).list.std(),
+    )
+    .filter(pl.col("std") > 0)
+    .select(
+        "gene_id",
+        *[((pl.col(s) - pl.col("mean")) / pl.col("std")).alias(s) for s in samples],
+    )
+)
+
+# Load comparison sheet
+comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+# Cluster the differentially-expressed genes for each comparison id
+for comparison_id in comparisons["comparison"].unique(maintain_order=True):
+    # Load the differentially-expressed genes and their expression
+    genes = pl.read_csv(
+        f"{__hb_genes.path}/differentially_expressed_genes{comparison_id}.csv"
+    ).join(expression, on="gene_id", how="inner")
+
+    # Run k-means clustering (rows are genes, columns are samples)
+    X = genes.select(samples).to_numpy()
+    labels = skclust.KMeans(
+        n_clusters=min(RNA_SEQ_CLUSTER_COUNT, len(genes)),
+        random_state=0,
+    ).fit_predict(X)
+
+    # Save the cluster assignments
+    clusters = genes.select(pl.exclude(samples)).with_columns(
+        cluster=pl.Series(labels + 1)
+    )
+    clusters.write_csv(f"{__hb_ret.path}/clusters{comparison_id}.csv")'''
+
+[Function.hierarchical_cluster_genes]
+params.genes = "AnyDifferentiallyExpressedGenes"
+ret = "DifferentiallyExpressedGeneClusters"
+condition = [
+]
+info.title = "Hierarchical clustering with scikit-learn"
+info.description = """This function uses [scikit-learn](https://scikit-learn.org/stable/index.html)
+to group genes into clusters using
+[hierarchical (agglomerative) clustering](https://en.wikipedia.org/wiki/Hierarchical_clustering),
+which repeatedly merges the most similar genes and groups of genes into a
+tree, then cuts the tree into a fixed number of clusters. Specifically, it
+uses the
+[`sklearn.cluster.AgglomerativeClustering`](https://scikit-learn.org/stable/modules/generated/
+sklearn.cluster.AgglomerativeClustering.html) function; that webpage
+contains all the documentation for this function and more examples.
+
+Before clustering, each gene's expression is log-transformed and standardized
+(using [z-scores](https://en.wikipedia.org/wiki/Standard_score)) across
+samples, so that genes are clustered by the shape of their expression
+pattern rather than by how highly expressed they are overall."""
+info.use = "a clustering method that builds a **tree** of similar genes."
+info.citation = "Scikit-learn: Machine Learning in Python, Pedregosa et al., JMLR 12, pp. 2825-2830, 2011."
+info.hyperparameters = [
+    {name = 'RNA_SEQ_CLUSTER_COUNT', default = '4', comment = 'The number of clusters to group genes into for the RNA-seq analysis' },
+]
+info.code = '''# Load gene expression (rows are genes, columns are samples), then
+# log-transform it and z-score each gene across samples
+expression = pl.read_csv(f"{__hb_genes.path}/abundance.csv").rename({"": "gene_id"})
+samples = [c for c in expression.columns if c != "gene_id"]
+expression = (
+    expression.with_columns((pl.col(s) + 1).log(base=2) for s in samples)
+    .with_columns(
+        mean=pl.mean_horizontal(samples),
+        std=pl.concat_list(samples).list.std(),
+    )
+    .filter(pl.col("std") > 0)
+    .select(
+        "gene_id",
+        *[((pl.col(s) - pl.col("mean")) / pl.col("std")).alias(s) for s in samples],
+    )
+)
+
+# Load comparison sheet
+comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+# Cluster the differentially-expressed genes for each comparison id
+for comparison_id in comparisons["comparison"].unique(maintain_order=True):
+    # Load the differentially-expressed genes and their expression
+    genes = pl.read_csv(
+        f"{__hb_genes.path}/differentially_expressed_genes{comparison_id}.csv"
+    ).join(expression, on="gene_id", how="inner")
+
+    # Run hierarchical clustering (rows are genes, columns are samples)
+    # You can change the linkage to use alternative methods.
+    # Valid options are: "ward", "complete", "average", "single"
+    X = genes.select(samples).to_numpy()
+    labels = skclust.AgglomerativeClustering(
+        n_clusters=min(RNA_SEQ_CLUSTER_COUNT, len(genes)),
+        linkage="ward",
+    ).fit_predict(X)
+
+    # Save the cluster assignments
+    clusters = genes.select(pl.exclude(samples)).with_columns(
+        cluster=pl.Series(labels + 1)
+    )
+    clusters.write_csv(f"{__hb_ret.path}/clusters{comparison_id}.csv")'''
 
 [Function.deseq2]
 params.data = "GeneMatrices"
-params.bc = "RunBatchCorrection"
 ret = "DifferentialGeneExpression"
 condition = [
 ]
@@ -1495,14 +2165,7 @@ info.title = "DESeq2"
 info.description = """# Find differentially-expressed protein-coding genes with [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
 
 DESeq2 models gene expression using what is called a
-<span class="more-info">
-<span style="display: none">
-A <b>negative binomial distribution</b> is a statistical distribution
-that models count data with unexplained variance, such as the
-number of mRNA transcripts in a cell.  It looks like an off-center
-normal distribution that is only defined for non-negative integers.
-</span>
-negative binomial distribution</span>,
+[negative binomial distribution](https://en.wikipedia.org/wiki/Negative_binomial_distribution),
 which is much more suitable for RNA-seq data than something like a _t_-test.
 DESeq2 has an
 [extensive guide](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
@@ -1517,35 +2180,57 @@ info.citation = "Love MI, Huber W, Anders S (2014). Moderated estimation of fold
 info.pmid = "25516281"
 info.use = "a **widely-used tool** that does **not** give you error bars."
 info.hyperparameters = [
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
+    {name = 'RNA_SEQ_P_VALUE_THRESHOLD', default = '0.05', comment = 'The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction' },
 ]
-info.code = '''bash(f"""
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Run DESeq2
+bash(f"""
     Rscript environment/deseq2.r
-        --batch_correct={RUN_BATCH_CORRECTION}
-        --ensembl_version={ENSEMBL_VERSION}
-        --ensembl_dataset={ENSEMBL_DATASET}
+        --gene_metadata={shared()}/{species}/gene_metadata.csv
         --sample_sheet={shared()}/sample_sheet.csv
         --comparison_sheet={shared()}/comparison_sheet.csv
-        --input={__hb_data.path}/counts.csv
-        --output={__hb_ret.path}""")
+        --gene_counts={__hb_data.path}/counts.csv
+        --output_directory={__hb_ret.path}
+""")
 
-gene_metadata = pl.read_csv(f"{shared()}/gene_metadata.csv")
+# Carry over the gene read count tables (counts.csv and abundance.csv)
+carry_over(f"{__hb_data.path}/*.csv", __hb_ret.path)
+
+# Load gene metadata
+gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+# Load comparison sheet
 comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+# Create an interactive volcano plot for each comparison
 for comparison in comparisons.iter_rows(named=True):
-    filename = (
-        f"{comparison['control_condition']}-{comparison['treatment_condition']}.csv"
-    )
+    control = comparison["control_condition"]
+    treatment = comparison["treatment_condition"]
+
+    # Load the results from DESeq2 and give significance labels (up/down/ns)
     results = (
         pl.read_csv(
-            f"{__hb_ret.path}/{filename}",
+            os.path.join(
+                __hb_ret.path,
+                control,
+                treatment,
+                "results.csv",
+            ),
             null_values=["NA"],
         )
-        .rename({"": "ensembl_gene_id_version"})
-        .join(gene_metadata, on="ensembl_gene_id_version")
+        .rename({"": "gene_id"})
+        .join(gene_metadata, on="gene_id")
         .with_columns(
             sig=pl.col("padj").log10().neg(),
-            group=pl.when(pl.col("padj") >= 0.05)
+            group=pl.when(
+                (pl.col("padj").is_null())
+                | (pl.col("padj") >= RNA_SEQ_P_VALUE_THRESHOLD)
+            )
             .then(pl.lit("ns"))
             .when(pl.col("log2FoldChange") > 0)
             .then(pl.lit("up"))
@@ -1553,6 +2238,7 @@ for comparison in comparisons.iter_rows(named=True):
         )
     )
 
+    # Make and display the volcano plot
     display(
         alt.Chart(results)
         .mark_point()
@@ -1566,8 +2252,9 @@ for comparison in comparisons.iter_rows(named=True):
                     range=["crimson", "steelblue", "black"],
                 ),
             ),
-            tooltip="external_gene_name",
-        ),
+            tooltip=["gene_name", "gene_id"],
+        )
+        .properties(title=f"{treatment} vs. {control}"),
     )'''
 
 [Function.sleuth]
@@ -1587,32 +2274,121 @@ that demonstrate how to use it to analyze RNA-seq datasets."""
 info.google_scholar_id = "1639708055766929241"
 info.pmid = "28581496"
 info.citation = "Harold J. Pimentel, Nicolas Bray, Suzette Puente, Páll Melsted and Lior Pachter, Differential analysis of RNA-Seq incorporating quantification uncertainty, Nature Methods (2017), http://dx.doi.org/10.1038/nmeth.4324."
-info.use = "a **lesser-used (but still common)** tool that **does** give you error bars."
+info.use = "a **lesser-used** (but still common) tool that **does** give you error bars."
 info.hyperparameters = [
     {name = 'CORES', default = '4', comment = 'The number of cores to use' },
-    {name = 'ENSEMBL_VERSION', default = '"115"', comment = 'The version of Ensembl to use for gene annotations' },
-    {name = 'ENSEMBL_DATASET', default = '"hsapiens_gene_ensembl"', comment = 'The Ensembl gene annotation dataset to use' },
+    {name = 'RNA_SEQ_P_VALUE_THRESHOLD', default = '0.05', comment = 'The p-value threshold for what constitutes a "differentially-expressed gene" after multiple comparisons correction' },
 ]
-info.code = '''bash(f"""
+info.code = '''# Load the sample sheet
+sample_sheet = pl.read_csv(f"{shared()}/sample_sheet.csv")
+
+# Get the species (e.g. homo_sapiens)
+species = sample_sheet["species"].unique().item()
+
+# Run sleuth
+bash(f"""
     Rscript environment/sleuth.r
         --cores={CORES}
-        --ensembl_version={ENSEMBL_VERSION}
-        --ensembl_dataset={ENSEMBL_DATASET}
+        --gene_metadata={shared()}/{species}/gene_metadata.csv
+        --tx2gene={shared()}/{species}/tx2gene.csv
         --sample_sheet={shared()}/sample_sheet.csv
         --comparison_sheet={shared()}/comparison_sheet.csv
-        --input={__hb_data.path}
-        --output={__hb_ret.path}""")'''
+        --input_directory={__hb_data.path}
+        --output_directory={__hb_ret.path}
+""")
+
+# Also aggregate transcripts to gene read count tables (counts.csv and
+# abundance.csv) for downstream analyses
+bash(f"""
+    Rscript environment/tximport.r
+        --sample_sheet={shared()}/sample_sheet.csv
+        --tx2gene={shared()}/{species}/tx2gene.csv
+        --input_directory={__hb_data.path}
+        --output_directory={__hb_ret.path}
+""")
+
+# Load gene metadata
+gene_metadata = pl.read_csv(f"{shared()}/{species}/gene_metadata.csv")
+
+# Load comparison sheet
+comparisons = pl.read_csv(f"{shared()}/comparison_sheet.csv")
+
+# Create an interactive volcano plot for each comparison
+for comparison in comparisons.iter_rows(named=True):
+    control = comparison["control_condition"]
+    treatment = comparison["treatment_condition"]
+
+    # Load the results from sleuth and give significance labels (up/down/ns)
+    results = (
+        pl.read_csv(
+            os.path.join(
+                __hb_ret.path,
+                control,
+                treatment,
+                "results.csv",
+            ),
+            null_values=["NA"],
+        )
+        .rename({"": "gene_id"})
+        .join(gene_metadata, on="gene_id")
+        .with_columns(
+            sig=pl.col("padj").log10().neg(),
+            group=pl.when(
+                (pl.col("padj").is_null())
+                | (pl.col("padj") >= RNA_SEQ_P_VALUE_THRESHOLD)
+            )
+            .then(pl.lit("ns"))
+            .when(pl.col("log2FoldChange") > 0)
+            .then(pl.lit("up"))
+            .otherwise(pl.lit("down")),
+        )
+    )
+
+    # Make and display the volcano plot
+    display(
+        alt.Chart(results)
+        .mark_point()
+        .encode(
+            x="log2FoldChange:Q",
+            y="sig:Q",
+            color=alt.Color(
+                "group:N",
+                scale=alt.Scale(
+                    domain=["up", "down", "ns"],
+                    range=["crimson", "steelblue", "black"],
+                ),
+            ),
+            tooltip=["gene_name", "gene_id"],
+        )
+        .properties(title=f"{treatment} vs. {control}"),
+    )'''
 
 [Type.LemonSeq]
 params = {}
 info.title = "@intermediate:LEMONmethyl-seq"
+info.description = """[Locus-Enriched Mapping Of Nucleotide methylation
+(LEMONmethyl-seq)](https://www.biorxiv.org/content/10.64898/2026.02.24.70776
+1v1) is a cost-effective pipeline for single-nucleotide detection of
+DNA methylation at target regions using locus-specific amplification and
+long-read DNA sequencing."""
 info.code = '''@dataclass
 class LemonSeq:
-    "LEMONmethyl-seq"'''
+    """LEMONmethyl-seq
+
+    [Locus-Enriched Mapping Of Nucleotide methylation
+    (LEMONmethyl-seq)](https://www.biorxiv.org/content/10.64898/2026.02.24.70776
+    1v1) is a cost-effective pipeline for single-nucleotide detection of
+    DNA methylation at target regions using locus-specific amplification and
+    long-read DNA sequencing."""'''
 
 [Prop.P_LemonSeq]
 params = {}
 info.title = "LEMONmethyl-seq"
+info.description = """[Locus-Enriched Mapping Of Nucleotide methylation
+(LEMONmethyl-seq)](https://www.biorxiv.org/content/10.64898/2026.02.24.70776
+1v1) is a cost-effective pipeline for single-nucleotide detection of
+DNA methylation at target regions using locus-specific amplification and
+long-read DNA sequencing."""
 
 [Function.F_LemonSeq]
 params = {}
@@ -1805,13 +2581,26 @@ info.code = '''for path in sorted(glob.glob(f"{__hb_bam.path}/*.bam")):
 [Type.LocalEmSeq]
 params = {}
 info.title = "@intermediate:EM-seq"
+info.description = """[Enzymatic Methyl-seq (EM-seq)](https://www.neb.com/en-us/products/e7120-nebnext-enzymatic-methyl-seq-kit)
+is a technique to detect genome-wide DNA methylation at single-nucleotide
+resolution that uses enzymes (rather than harsh bisulfite treatment) to
+convert unmethylated cytosines, preserving DNA integrity."""
 info.code = '''@dataclass
 class LocalEmSeq:
-    "EM-seq"'''
+    """EM-seq
+
+    [Enzymatic Methyl-seq (EM-seq)](https://www.neb.com/en-us/products/e7120-nebnext-enzymatic-methyl-seq-kit)
+    is a technique to detect genome-wide DNA methylation at single-nucleotide
+    resolution that uses enzymes (rather than harsh bisulfite treatment) to
+    convert unmethylated cytosines, preserving DNA integrity."""'''
 
 [Prop.P_LocalEmSeq]
 params = {}
 info.title = "EM-seq"
+info.description = """[Enzymatic Methyl-seq (EM-seq)](https://www.neb.com/en-us/products/e7120-nebnext-enzymatic-methyl-seq-kit)
+is a technique to detect genome-wide DNA methylation at single-nucleotide
+resolution that uses enzymes (rather than harsh bisulfite treatment) to
+convert unmethylated cytosines, preserving DNA integrity."""
 
 [Function.F_LocalEmSeq]
 params = {}
@@ -1997,13 +2786,26 @@ info.code = '''for path in sorted(glob.glob(f"{__hb_input.path}/*.bam")):
 [Type.AtacSeq]
 params = {}
 info.title = "@intermediate:ATAC-seq"
+info.description = """[Assay for Transposase-Accessible Chromatin using sequencing (ATAC-seq)](https://www.nature.com/articles/nmeth.2688)
+is a technique to identify regions of open (accessible) chromatin across
+the genome, which often correspond to active regulatory elements like
+promoters and enhancers."""
 info.code = '''@dataclass
 class AtacSeq:
-    """ATAC-seq"""'''
+    """ATAC-seq
+
+    [Assay for Transposase-Accessible Chromatin using sequencing (ATAC-seq)](https://www.nature.com/articles/nmeth.2688)
+    is a technique to identify regions of open (accessible) chromatin across
+    the genome, which often correspond to active regulatory elements like
+    promoters and enhancers."""'''
 
 [Prop.P_AtacSeq]
 params = {}
 info.title = "ATAC-seq"
+info.description = """[Assay for Transposase-Accessible Chromatin using sequencing (ATAC-seq)](https://www.nature.com/articles/nmeth.2688)
+is a technique to identify regions of open (accessible) chromatin across
+the genome, which often correspond to active regulatory elements like
+promoters and enhancers."""
 
 [Function.F_AtacSeq]
 params = {}
